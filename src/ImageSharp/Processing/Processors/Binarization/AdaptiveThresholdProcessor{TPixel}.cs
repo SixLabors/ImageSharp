@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,70 +26,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public AdaptiveThresholdProcessor(Configuration configuration, AdaptiveThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            var intersect = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             Configuration configuration = this.Configuration;
             TPixel upper = this.definition.Upper.ToPixel<TPixel>();
             TPixel lower = this.definition.Lower.ToPixel<TPixel>();
             float thresholdLimit = this.definition.ThresholdLimit;
 
-            int startY = intersect.Y;
-            int endY = intersect.Bottom;
-            int startX = intersect.X;
-            int endX = intersect.Right;
+            // ClusterSize defines the size of cluster to used to check for average.
+            // Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
+            byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 0, 255);
 
-            int width = intersect.Width;
-            int height = intersect.Height;
-
-            // ClusterSize defines the size of cluster to used to check for average. Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
-            byte clusterSize = (byte)Math.Truncate((width / 16f) - 1);
-
-            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
-
-            // Using pooled 2d buffer for integer image table and temp memory to hold Rgb24 converted pixel data.
-            using (Buffer2D<ulong> intImage = this.Configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
-            {
-                Rgba32 rgb = default;
-                for (int x = startX; x < endX; x++)
-                {
-                    ulong sum = 0;
-                    for (int y = startY; y < endY; y++)
-                    {
-                        Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
-                        ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
-                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                        color.ToRgba32(ref rgb);
-
-                        sum += (ulong)(rgb.R + rgb.G + rgb.B);
-
-                        if (x - startX != 0)
-                        {
-                            intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;
-                        }
-                        else
-                        {
-                            intImage[x - startX, y - startY] = sum;
-                        }
-                    }
-                }
-
-                var operation = new RowOperation(intersect, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
-                ParallelRowIterator.IterateRows(
-                    configuration,
-                    intersect,
-                    in operation);
-            }
+            using Buffer2D<ulong> intImage = source.CalculateIntegralImage(interest);
+            RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize);
+            ParallelRowIterator.IterateRows<RowOperation, L8>(
+                configuration,
+                interest,
+                in operation);
         }
 
-        private readonly struct RowOperation : IRowOperation
+        private readonly struct RowOperation : IRowOperation<L8>
         {
+            private readonly Configuration configuration;
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> source;
             private readonly Buffer2D<ulong> intImage;
@@ -98,64 +60,58 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel lower;
             private readonly float thresholdLimit;
             private readonly int startX;
-            private readonly int endX;
             private readonly int startY;
             private readonly byte clusterSize;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
+                Configuration configuration,
                 Rectangle bounds,
                 Buffer2D<TPixel> source,
                 Buffer2D<ulong> intImage,
                 TPixel upper,
                 TPixel lower,
                 float thresholdLimit,
-                byte clusterSize,
-                int startX,
-                int endX,
-                int startY)
+                byte clusterSize)
             {
+                this.configuration = configuration;
                 this.bounds = bounds;
+                this.startX = bounds.X;
+                this.startY = bounds.Y;
                 this.source = source;
                 this.intImage = intImage;
                 this.upper = upper;
                 this.lower = lower;
                 this.thresholdLimit = thresholdLimit;
-                this.startX = startX;
-                this.endX = endX;
-                this.startY = startY;
                 this.clusterSize = clusterSize;
             }
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
+            public void Invoke(int y, Span<L8> span)
             {
-                Rgba32 rgb = default;
-                Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
+                Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
+                PixelOperations<TPixel>.Instance.ToL8(this.configuration, rowSpan, span);
+
                 int maxX = this.bounds.Width - 1;
                 int maxY = this.bounds.Height - 1;
-
-                for (int x = this.startX; x < this.endX; x++)
+                for (int x = 0; x < rowSpan.Length; x++)
                 {
-                    TPixel pixel = pixelRow[x];
-                    pixel.ToRgba32(ref rgb);
-
-                    int x1 = Math.Min(Math.Max(x - this.startX - this.clusterSize + 1, 0), maxX);
-                    int x2 = Math.Min(x - this.startX + this.clusterSize + 1, maxX);
-                    int y1 = Math.Min(Math.Max(y - this.startY - this.clusterSize + 1, 0), maxY);
+                    int x1 = Math.Clamp(x - this.clusterSize + 1, 0, maxX);
+                    int x2 = Math.Min(x + this.clusterSize + 1, maxX);
+                    int y1 = Math.Clamp(y - this.startY - this.clusterSize + 1, 0, maxY);
                     int y2 = Math.Min(y - this.startY + this.clusterSize + 1, maxY);
 
                     uint count = (uint)((x2 - x1) * (y2 - y1));
-                    long sum = (long)Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], long.MaxValue);
+                    ulong sum = Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], ulong.MaxValue);
 
-                    if ((rgb.R + rgb.G + rgb.B) * count <= sum * this.thresholdLimit)
+                    if (span[x].PackedValue * count <= sum * this.thresholdLimit)
                     {
-                        this.source[x, y] = this.lower;
+                        rowSpan[x] = this.lower;
                     }
                     else
                     {
-                        this.source[x, y] = this.upper;
+                        rowSpan[x] = this.upper;
                     }
                 }
             }

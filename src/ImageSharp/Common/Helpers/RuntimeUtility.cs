@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Common.Helpers
     /// </summary>
     internal static class RuntimeUtility
     {
+        // Tuple swap uses 2 more IL bytes
+#pragma warning disable IDE0180 // Use tuple to swap values
         /// <summary>
         /// Swaps the two references.
         /// </summary>
@@ -20,10 +22,7 @@ namespace SixLabors.ImageSharp.Common.Helpers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Swap<T>(ref T a, ref T b)
         {
-            // Tuple swap uses 2 more IL bytes
-#pragma warning disable IDE0180 // Use tuple to swap values
             T tmp = a;
-#pragma warning restore IDE0180 // Use tuple to swap values
             a = b;
             b = tmp;
         }
@@ -38,11 +37,10 @@ namespace SixLabors.ImageSharp.Common.Helpers
         public static void Swap<T>(ref Span<T> a, ref Span<T> b)
         {
             // Tuple swap uses 2 more IL bytes
-#pragma warning disable IDE0180 // Use tuple to swap values
             Span<T> tmp = a;
-#pragma warning restore IDE0180 // Use tuple to swap values
             a = b;
             b = tmp;
         }
+#pragma warning restore IDE0180 // Use tuple to swap values
     }
 }

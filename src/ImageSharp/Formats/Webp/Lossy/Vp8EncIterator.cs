@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System;
-using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -755,11 +754,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void SwapOut()
         {
+            // Tuple swap uses 2 more IL bytes
 #pragma warning disable IDE0180 // Use tuple to swap values
             byte[] tmp = this.YuvOut;
-#pragma warning restore IDE0180 // Use tuple to swap values
             this.YuvOut = this.YuvOut2;
             this.YuvOut2 = tmp;
+#pragma warning restore IDE0180 // Use tuple to swap values
         }
 
         public void NzToBytes()

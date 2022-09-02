@@ -100,7 +100,6 @@ namespace SixLabors.ImageSharp.Tests.Processing
             System.Func<TPixel, ulong> getPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Image<TPixel> image = provider.GetImage();
             Buffer2DRegion<TPixel> image = provider.GetImage().GetRootFramePixelBuffer().GetRegion(bounds);
 
             // Check top-left corner

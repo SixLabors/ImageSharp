@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Exception exception = Record.Exception(() =>
             {
                 using Image<TPixel> image = provider.GetImage();
-                image.Mutate(img => img.AdaptiveThreshold(.5F));
+                image.Mutate(img => img.AdaptiveThreshold());
                 image.DebugSave(provider);
             });
 

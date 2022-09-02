@@ -19,15 +19,14 @@ namespace SixLabors.ImageSharp
         /// <param name="defaultValue">The default value to return.</param>
         /// <returns>The <typeparamref name="TEnum"/>.</returns>
         public static TEnum Parse<TEnum>(int value, TEnum defaultValue)
-            where TEnum : Enum
+            where TEnum : struct, Enum
         {
-            foreach (TEnum enumValue in Enum.GetValues(typeof(TEnum)))
+            DebugGuard.IsTrue(Unsafe.SizeOf<TEnum>() == sizeof(int), "Only int-sized enums are supported.");
+
+            TEnum valueEnum = Unsafe.As<int, TEnum>(ref value);
+            if (Enum.IsDefined(valueEnum))
             {
-                TEnum current = enumValue;
-                if (value == Unsafe.As<TEnum, int>(ref current))
-                {
-                    return enumValue;
-                }
+                return valueEnum;
             }
 
             return defaultValue;
@@ -41,8 +40,10 @@ namespace SixLabors.ImageSharp
         /// <param name="flag">The flag.</param>
         /// <returns>The <see cref="bool"/>.</returns>
         public static bool HasFlag<TEnum>(TEnum value, TEnum flag)
-          where TEnum : Enum
+          where TEnum : struct, Enum
         {
+            DebugGuard.IsTrue(Unsafe.SizeOf<TEnum>() == sizeof(int), "Only int-sized enums are supported.");
+
             uint flagValue = Unsafe.As<TEnum, uint>(ref flag);
             return (Unsafe.As<TEnum, uint>(ref value) & flagValue) == flagValue;
         }

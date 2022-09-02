@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -35,10 +35,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             return JpegColorConverterBase.GetConverter(colorSpace, frame.Precision);
         }
 
-        /// <remarks>
+        /// <summary>
         /// This converter must be used only for RGB and YCbCr color spaces for performance reasons.
         /// For grayscale images <see cref="GrayJpegSpectralConverter{TPixel}"/> must be used.
-        /// </remarks>
+        /// </summary>
         private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation)
             => interpretation switch
             {

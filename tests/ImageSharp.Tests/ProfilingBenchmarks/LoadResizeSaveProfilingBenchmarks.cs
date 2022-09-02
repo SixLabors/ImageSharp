@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Processing;
 
 using Xunit;
@@ -23,23 +24,26 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             var configuration = Configuration.CreateDefaultInstance();
             configuration.MaxDegreeOfParallelism = 1;
 
+            DecoderOptions options = new()
+            {
+                Configuration = configuration
+            };
+
             byte[] imageBytes = TestFile.Create(imagePath).Bytes;
 
-            using (var ms = new MemoryStream())
-            {
-                this.Measure(
-                    30,
-                    () =>
+            using var ms = new MemoryStream();
+            this.Measure(
+                30,
+                () =>
+                    {
+                        using (var image = Image.Load(options, imageBytes))
                         {
-                            using (var image = Image.Load(configuration, imageBytes))
-                            {
-                                image.Mutate(x => x.Resize(image.Size() / 4));
-                                image.SaveAsJpeg(ms);
-                            }
+                            image.Mutate(x => x.Resize(image.Size() / 4));
+                            image.SaveAsJpeg(ms);
+                        }
 
-                            ms.Seek(0, SeekOrigin.Begin);
-                        });
-            }
+                        ms.Seek(0, SeekOrigin.Begin);
+                    });
         }
     }
 }

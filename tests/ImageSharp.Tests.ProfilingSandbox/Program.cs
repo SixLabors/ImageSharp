@@ -66,12 +66,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             return null;
         }
 
-        private static void RunJpegEncoderProfilingTests()
-        {
-            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
-            benchmarks.EncodeJpeg_SingleMidSize();
-        }
-
         private static void RunResizeProfilingTest()
         {
             var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
@@ -82,20 +76,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         {
             var tests = new PixelOperationsTests.Rgba32_OperationsTests(new ConsoleOutput());
             tests.Benchmark_ToVector4();
-        }
-
-        private static void RunDecodeJpegProfilingTests()
-        {
-            Console.WriteLine("RunDecodeJpegProfilingTests...");
-            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
-            foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
-            {
-                string fileName = (string)data[0];
-                int executionCount = (int)data[1];
-                benchmarks.DecodeJpeg(fileName, executionCount);
-            }
-
-            Console.WriteLine("DONE.");
         }
     }
 }

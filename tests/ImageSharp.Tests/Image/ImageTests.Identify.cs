@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             private static readonly string ActualImagePath = TestFile.GetInputFileFullPath(TestImages.Bmp.F);
 
-            private static readonly Size ExpectedImageSize = new Size(108, 202);
+            private static readonly Size ExpectedImageSize = new(108, 202);
 
             private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
@@ -43,7 +43,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromBytes_CustomConfiguration()
             {
-                IImageInfo info = Image.Identify(this.LocalConfiguration, this.ByteArray, out IImageFormat type);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageInfo info = Image.Identify(options, this.ByteArray, out IImageFormat type);
 
                 Assert.Equal(this.LocalImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, type);
@@ -61,7 +66,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromFileSystemPath_CustomConfiguration()
             {
-                IImageInfo info = Image.Identify(this.LocalConfiguration, this.MockFilePath, out IImageFormat type);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageInfo info = Image.Identify(options, this.MockFilePath, out IImageFormat type);
 
                 Assert.Equal(this.LocalImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, type);
@@ -70,24 +80,20 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_GlobalConfiguration()
             {
-                using (var stream = new MemoryStream(ActualImageBytes))
-                {
-                    IImageInfo info = Image.Identify(stream, out IImageFormat type);
+                using var stream = new MemoryStream(ActualImageBytes);
+                IImageInfo info = Image.Identify(stream, out IImageFormat type);
 
-                    Assert.NotNull(info);
-                    Assert.Equal(ExpectedGlobalFormat, type);
-                }
+                Assert.NotNull(info);
+                Assert.Equal(ExpectedGlobalFormat, type);
             }
 
             [Fact]
             public void FromStream_GlobalConfiguration_NoFormat()
             {
-                using (var stream = new MemoryStream(ActualImageBytes))
-                {
-                    IImageInfo info = Image.Identify(stream);
+                using var stream = new MemoryStream(ActualImageBytes);
+                IImageInfo info = Image.Identify(stream);
 
-                    Assert.NotNull(info);
-                }
+                Assert.NotNull(info);
             }
 
             [Fact]
@@ -116,7 +122,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_CustomConfiguration()
             {
-                IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream, out IImageFormat type);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageInfo info = Image.Identify(options, this.DataStream, out IImageFormat type);
 
                 Assert.Equal(this.LocalImageInfo, info);
                 Assert.Equal(this.LocalImageFormat, type);
@@ -125,7 +136,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void FromStream_CustomConfiguration_NoFormat()
             {
-                IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageInfo info = Image.Identify(options, this.DataStream);
 
                 Assert.Equal(this.LocalImageInfo, info);
             }
@@ -133,7 +149,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WhenNoMatchingFormatFound_ReturnsNull()
             {
-                IImageInfo info = Image.Identify(new Configuration(), this.DataStream, out IImageFormat type);
+                DecoderOptions options = new()
+                {
+                    Configuration = new()
+                };
+
+                IImageInfo info = Image.Identify(options, this.DataStream, out IImageFormat type);
 
                 Assert.Null(info);
                 Assert.Null(type);
@@ -168,26 +189,22 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromStreamAsync_GlobalConfiguration_NoFormat()
             {
-                using (var stream = new MemoryStream(ActualImageBytes))
-                {
-                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                    IImageInfo info = await Image.IdentifyAsync(asyncStream);
+                using var stream = new MemoryStream(ActualImageBytes);
+                var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                IImageInfo info = await Image.IdentifyAsync(asyncStream);
 
-                    Assert.NotNull(info);
-                }
+                Assert.NotNull(info);
             }
 
             [Fact]
             public async Task FromStreamAsync_GlobalConfiguration()
             {
-                using (var stream = new MemoryStream(ActualImageBytes))
-                {
-                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                    (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(asyncStream);
+                using var stream = new MemoryStream(ActualImageBytes);
+                var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(asyncStream);
 
-                    Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
-                    Assert.Equal(ExpectedGlobalFormat, res.Format);
-                }
+                Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
+                Assert.Equal(ExpectedGlobalFormat, res.Format);
             }
 
             [Fact]
@@ -244,14 +261,24 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromPathAsync_CustomConfiguration()
             {
-                IImageInfo info = await Image.IdentifyAsync(this.LocalConfiguration, this.MockFilePath);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                IImageInfo info = await Image.IdentifyAsync(options, this.MockFilePath);
                 Assert.Equal(this.LocalImageInfo, info);
             }
 
             [Fact]
             public async Task IdentifyWithFormatAsync_FromPath_CustomConfiguration()
             {
-                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(this.LocalConfiguration, this.MockFilePath);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
+                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(options, this.MockFilePath);
                 Assert.NotNull(info.ImageInfo);
                 Assert.Equal(this.LocalImageFormat, info.Format);
             }
@@ -276,8 +303,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task FromStreamAsync_CustomConfiguration()
             {
+                DecoderOptions options = new()
+                {
+                    Configuration = this.LocalConfiguration
+                };
+
                 var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
-                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(this.LocalConfiguration, asyncStream);
+                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(options, asyncStream);
 
                 Assert.Equal(this.LocalImageInfo, info.ImageInfo);
                 Assert.Equal(this.LocalImageFormat, info.Format);
@@ -286,8 +318,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
             {
+                DecoderOptions options = new()
+                {
+                    Configuration = new()
+                };
+
                 var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
-                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(new Configuration(), asyncStream);
+                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(options, asyncStream);
 
                 Assert.Null(info.ImageInfo);
             }

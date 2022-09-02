@@ -34,6 +34,11 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private readonly Configuration configuration;
 
         /// <summary>
+        /// The maximum number of frames to decode. Inclusive.
+        /// </summary>
+        private readonly uint maxFrames;
+
+        /// <summary>
         /// The area to restore.
         /// </summary>
         private Rectangle? restoreArea;
@@ -49,27 +54,22 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private WebpMetadata webpMetadata;
 
         /// <summary>
+        /// The alpha data, if an ALPH chunk is present.
+        /// </summary>
+        private IMemoryOwner<byte> alphaData;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The global configuration.</param>
-        /// <param name="decodingMode">The frame decoding mode.</param>
-        public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration, FrameDecodingMode decodingMode)
+        /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
+        public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration, uint maxFrames)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
-            this.DecodingMode = decodingMode;
+            this.maxFrames = maxFrames;
         }
-
-        /// <summary>
-        /// Gets or sets the alpha data, if an ALPH chunk is present.
-        /// </summary>
-        public IMemoryOwner<byte> AlphaData { get; set; }
-
-        /// <summary>
-        /// Gets the decoding mode for multi-frame images.
-        /// </summary>
-        public FrameDecodingMode DecodingMode { get; }
 
         /// <summary>
         /// Decodes the animated webp image from the specified stream.
@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             this.webpMetadata = this.metadata.GetWebpMetadata();
             this.webpMetadata.AnimationLoopCount = features.AnimationLoopCount;
 
+            uint frameCount = 0;
             int remainingBytes = (int)completeDataSize;
             while (remainingBytes > 0)
             {
@@ -110,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                         break;
                 }
 
-                if (stream.Position == stream.Length || this.DecodingMode is FrameDecodingMode.First)
+                if (stream.Position == stream.Length || ++frameCount == this.maxFrames)
                 {
                     break;
                 }
@@ -224,14 +225,14 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="stream">The stream to read from.</param>
         private byte ReadAlphaData(BufferedReadStream stream)
         {
-            this.AlphaData?.Dispose();
+            this.alphaData?.Dispose();
 
             uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
             int alphaDataSize = (int)(alphaChunkSize - 1);
-            this.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+            this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
 
             byte alphaChunkHeader = (byte)stream.ReadByte();
-            Span<byte> alphaData = this.AlphaData.GetSpan();
+            Span<byte> alphaData = this.alphaData.GetSpan();
             stream.Read(alphaData, 0, alphaDataSize);
 
             return alphaChunkHeader;
@@ -260,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 else
                 {
                     var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                    lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.AlphaData);
+                    lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
                 }
 
                 return pixelBufferDecoded;
@@ -381,6 +382,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <inheritdoc/>
-        public void Dispose() => this.AlphaData?.Dispose();
+        public void Dispose() => this.alphaData?.Dispose();
     }
 }

@@ -121,6 +121,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
+        public static Block8x8 Load(ReadOnlySpan<byte> data)
+        {
+            Unsafe.SkipInit(out Block8x8 result);
+            result.LoadFrom(data);
+            return result;
+        }
+
+        public void LoadFrom(ReadOnlySpan<byte> source)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                this[i] = source[i];
+            }
+        }
+
         /// <summary>
         /// Load raw 16bit integers from source.
         /// </summary>

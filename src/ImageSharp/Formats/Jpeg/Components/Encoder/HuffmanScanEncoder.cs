@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -60,10 +59,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private const int OutputBufferLengthMultiplier = 2;
 
         /// <summary>
-        /// Compiled huffman tree to encode given values.
+        /// The DC Huffman tables.
         /// </summary>
-        /// <remarks>Yields codewords by index consisting of [run length | bitsize].</remarks>
-        private HuffmanLut[] huffmanTables;
+        private readonly HuffmanLut[] dcHuffmanTables = new HuffmanLut[4];
+
+        /// <summary>
+        /// The AC Huffman tables.
+        /// </summary>
+        private readonly HuffmanLut[] acHuffmanTables = new HuffmanLut[4];
 
         /// <summary>
         /// Emitted bits 'micro buffer' before being transferred to the <see cref="emitBuffer"/>.
@@ -93,8 +96,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         private int bitCount;
 
         private int emitWriteIndex;
-
-        private Block8x8 tempBlock;
 
         /// <summary>
         /// The output stream. All attempted writes after the first error become no-ops.
@@ -128,57 +129,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
         }
 
+        public void BuildHuffmanTable(JpegHuffmanTableConfig tableConfig)
+        {
+            HuffmanLut[] tables = tableConfig.Class == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
+            tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
+        }
+
         /// <summary>
-        /// Encodes the image with no subsampling.
+        /// Encodes scan in baseline interleaved mode.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void Encode444<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
+        /// <param name="color">Output color space.</param>
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void EncodeScanBaselineInterleaved<TPixel>(JpegEncodingColor color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
-            FloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
+            switch (color)
+            {
+                case JpegEncodingColor.YCbCrRatio444:
+                case JpegEncodingColor.Rgb:
+                    this.EncodeThreeComponentBaselineInterleavedScanNoSubsampling(frame, converter, cancellationToken);
+                    break;
+                default:
+                    this.EncodeScanBaselineInterleaved(frame, converter, cancellationToken);
+                    break;
+            }
+        }
 
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+        /// <summary>
+        /// Encodes grayscale scan in baseline interleaved mode.
+        /// </summary>
+        /// <param name="component">Component with grayscale data.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void EncodeScanBaselineSingleComponent<TPixel>(Component component, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int h = component.HeightInBlocks;
+            int w = component.WidthInBlocks;
 
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+            ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            var pixelConverter = new YCbCrForwardConverter444<TPixel>(frame);
-
-            for (int y = 0; y < pixels.Height; y += 8)
+            for (int i = 0; i < h; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                currentRows.Update(pixelBuffer, y);
 
-                for (int x = 0; x < pixels.Width; x += 8)
+                // Convert from pixels to spectral via given converter
+                converter.ConvertStrideBaseline();
+
+                // Encode spectral to binary
+                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                for (nint k = 0; k < w; k++)
                 {
-                    pixelConverter.Convert(x, y, ref currentRows);
-
-                    prevDCY = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCY,
-                        ref pixelConverter.Y,
-                        ref luminanceQuantTable);
-
-                    prevDCCb = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCb,
-                        ref pixelConverter.Cb,
-                        ref chrominanceQuantTable);
-
-                    prevDCCr = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCr,
-                        ref pixelConverter.Cr,
-                        ref chrominanceQuantTable);
+                    this.WriteBlock(
+                        component,
+                        ref Unsafe.Add(ref blockRef, k),
+                        ref dcHuffmanTable,
+                        ref acHuffmanTable);
 
                     if (this.IsStreamFlushNeeded)
                     {
@@ -191,65 +202,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Encodes the image with subsampling. The Cb and Cr components are each subsampled
-        /// at a factor of 2 both horizontally and vertically.
+        /// Encodes scan with a single component in baseline non-interleaved mode.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
-        /// <param name="chrominanceQuantTable">Chrominance quantization table provided by the callee.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void Encode420<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, ref Block8x8F chrominanceQuantTable, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="component">Component with grayscale data.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void EncodeScanBaseline(Component component, CancellationToken cancellationToken)
         {
-            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
-            FloatingPointDCT.AdjustToFDCT(ref chrominanceQuantTable);
+            int h = component.HeightInBlocks;
+            int w = component.WidthInBlocks;
 
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+            ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+            ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            var pixelConverter = new YCbCrForwardConverter420<TPixel>(frame);
-
-            for (int y = 0; y < pixels.Height; y += 16)
+            for (int i = 0; i < h; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                for (int x = 0; x < pixels.Width; x += 16)
+
+                // Encode spectral to binary
+                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
+                ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                for (nint k = 0; k < w; k++)
                 {
-                    for (int i = 0; i < 2; i++)
-                    {
-                        int yOff = i * 8;
-                        currentRows.Update(pixelBuffer, y + yOff);
-                        pixelConverter.Convert(x, y, ref currentRows, i);
-
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            ref pixelConverter.YLeft,
-                            ref luminanceQuantTable);
-
-                        prevDCY = this.WriteBlock(
-                            QuantIndex.Luminance,
-                            prevDCY,
-                            ref pixelConverter.YRight,
-                            ref luminanceQuantTable);
-                    }
-
-                    prevDCCb = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCb,
-                        ref pixelConverter.Cb,
-                        ref chrominanceQuantTable);
-
-                    prevDCCr = this.WriteBlock(
-                        QuantIndex.Chrominance,
-                        prevDCCr,
-                        ref pixelConverter.Cr,
-                        ref chrominanceQuantTable);
+                    this.WriteBlock(
+                        component,
+                        ref Unsafe.Add(ref blockRef, k),
+                        ref dcHuffmanTable,
+                        ref acHuffmanTable);
 
                     if (this.IsStreamFlushNeeded)
                     {
@@ -262,43 +241,64 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Encodes the image with no chroma, just luminance.
+        /// Encodes scan in baseline interleaved mode for any amount of component with arbitrary sampling factors.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="luminanceQuantTable">Luminance quantization table provided by the callee.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void EncodeGrayscale<TPixel>(Image<TPixel> pixels, ref Block8x8F luminanceQuantTable, CancellationToken cancellationToken)
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        private void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FloatingPointDCT.AdjustToFDCT(ref luminanceQuantTable);
+            nint mcu = 0;
+            nint mcusPerColumn = frame.McusPerColumn;
+            nint mcusPerLine = frame.McusPerLine;
 
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
-
-            // ReSharper disable once InconsistentNaming
-            int prevDCY = 0;
-
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
-
-            var pixelConverter = new LuminanceForwardConverter<TPixel>(frame);
-
-            for (int y = 0; y < pixels.Height; y += 8)
+            for (int j = 0; j < mcusPerColumn; j++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                currentRows.Update(pixelBuffer, y);
 
-                for (int x = 0; x < pixels.Width; x += 8)
+                // Convert from pixels to spectral via given converter
+                converter.ConvertStrideBaseline();
+
+                // Encode spectral to binary
+                for (nint i = 0; i < mcusPerLine; i++)
                 {
-                    pixelConverter.Convert(x, y, ref currentRows);
+                    // Scan an interleaved mcu... process components in order
+                    nint mcuCol = mcu % mcusPerLine;
+                    for (nint k = 0; k < frame.Components.Length; k++)
+                    {
+                        Component component = frame.Components[k];
 
-                    prevDCY = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCY,
-                        ref pixelConverter.Y,
-                        ref luminanceQuantTable);
+                        ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+                        ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
+                        nint h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
+
+                        nint blockColBase = mcuCol * h;
+
+                        // Scan out an mcu's worth of this component; that's just determined
+                        // by the basic H and V specified for the component
+                        for (int y = 0; y < v; y++)
+                        {
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
+                            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+                            for (nint x = 0; x < h; x++)
+                            {
+                                nint blockCol = blockColBase + x;
+
+                                this.WriteBlock(
+                                    component,
+                                    ref Unsafe.Add(ref blockRef, blockCol),
+                                    ref dcHuffmanTable,
+                                    ref acHuffmanTable);
+                            }
+                        }
+                    }
+
+                    // After all interleaved components, that's an interleaved MCU
+                    mcu++;
                     if (this.IsStreamFlushNeeded)
                     {
                         this.FlushToStream();
@@ -310,54 +310,59 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// Encodes the image with no subsampling and keeps the pixel data as Rgb24.
+        /// Encodes scan in baseline interleaved mode with exactly 3 components with no subsampling.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        /// <param name="quantTable">Quantization table provided by the callee.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        public void EncodeRgb<TPixel>(Image<TPixel> pixels, ref Block8x8F quantTable, CancellationToken cancellationToken)
+        /// <param name="frame">Frame to encode.</param>
+        /// <param name="converter">Converter from color to spectral.</param>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        private void EncodeThreeComponentBaselineInterleavedScanNoSubsampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            FloatingPointDCT.AdjustToFDCT(ref quantTable);
+            nint mcusPerColumn = frame.McusPerColumn;
+            nint mcusPerLine = frame.McusPerLine;
 
-            this.huffmanTables = HuffmanLut.TheHuffmanLut;
+            Component c2 = frame.Components[2];
+            Component c1 = frame.Components[1];
+            Component c0 = frame.Components[0];
 
-            // ReSharper disable once InconsistentNaming
-            int prevDCR = 0, prevDCG = 0, prevDCB = 0;
+            ref HuffmanLut c0dcHuffmanTable = ref this.dcHuffmanTables[c0.DcTableId];
+            ref HuffmanLut c0acHuffmanTable = ref this.acHuffmanTables[c0.AcTableId];
+            ref HuffmanLut c1dcHuffmanTable = ref this.dcHuffmanTables[c1.DcTableId];
+            ref HuffmanLut c1acHuffmanTable = ref this.acHuffmanTables[c1.AcTableId];
+            ref HuffmanLut c2dcHuffmanTable = ref this.dcHuffmanTables[c2.DcTableId];
+            ref HuffmanLut c2acHuffmanTable = ref this.acHuffmanTables[c2.AcTableId];
 
-            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
-            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
-            RowOctet<TPixel> currentRows = default;
+            ref Block8x8 c0BlockRef = ref MemoryMarshal.GetReference(c0.SpectralBlocks.DangerousGetRowSpan(y: 0));
+            ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks.DangerousGetRowSpan(y: 0));
+            ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks.DangerousGetRowSpan(y: 0));
 
-            var pixelConverter = new RgbForwardConverter<TPixel>(frame);
-
-            for (int y = 0; y < pixels.Height; y += 8)
+            for (nint j = 0; j < mcusPerColumn; j++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                currentRows.Update(pixelBuffer, y);
 
-                for (int x = 0; x < pixels.Width; x += 8)
+                // Convert from pixels to spectral via given converter
+                converter.ConvertStrideBaseline();
+
+                // Encode spectral to binary
+                for (nint i = 0; i < mcusPerLine; i++)
                 {
-                    pixelConverter.Convert(x, y, ref currentRows);
+                    this.WriteBlock(
+                        c0,
+                        ref Unsafe.Add(ref c0BlockRef, i),
+                        ref c0dcHuffmanTable,
+                        ref c0acHuffmanTable);
 
-                    prevDCR = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCR,
-                        ref pixelConverter.R,
-                        ref quantTable);
+                    this.WriteBlock(
+                        c1,
+                        ref Unsafe.Add(ref c1BlockRef, i),
+                        ref c1dcHuffmanTable,
+                        ref c1acHuffmanTable);
 
-                    prevDCG = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCG,
-                        ref pixelConverter.G,
-                        ref quantTable);
-
-                    prevDCB = this.WriteBlock(
-                        QuantIndex.Luminance,
-                        prevDCB,
-                        ref pixelConverter.B,
-                        ref quantTable);
+                    this.WriteBlock(
+                        c2,
+                        ref Unsafe.Add(ref c2BlockRef, i),
+                        ref c2dcHuffmanTable,
+                        ref c2acHuffmanTable);
 
                     if (this.IsStreamFlushNeeded)
                     {
@@ -369,44 +374,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.FlushRemainingBytes();
         }
 
-        /// <summary>
-        /// Writes a block of pixel data using the given quantization table,
-        /// returning the post-quantized DC value of the DCT-transformed block.
-        /// The block is in natural (not zig-zag) order.
-        /// </summary>
-        /// <param name="index">The quantization table index.</param>
-        /// <param name="prevDC">The previous DC value.</param>
-        /// <param name="block">Source block.</param>
-        /// <param name="quant">Quantization table.</param>
-        /// <returns>The <see cref="int"/>.</returns>
-        private int WriteBlock(
-            QuantIndex index,
-            int prevDC,
-            ref Block8x8F block,
-            ref Block8x8F quant)
+        private void WriteBlock(
+            Component component,
+            ref Block8x8 block,
+            ref HuffmanLut dcTable,
+            ref HuffmanLut acTable)
         {
-            ref Block8x8 spectralBlock = ref this.tempBlock;
-
-            // Shifting level from 0..255 to -128..127
-            block.AddInPlace(-128f);
-
-            // Discrete cosine transform
-            FloatingPointDCT.TransformFDCT(ref block);
-
-            // Quantization
-            Block8x8F.Quantize(ref block, ref spectralBlock, ref quant);
-
             // Emit the DC delta.
-            int dc = spectralBlock[0];
-            this.EmitHuffRLE(this.huffmanTables[2 * (int)index].Values, 0, dc - prevDC);
+            int dc = block[0];
+            this.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
+            component.DcPredictor = dc;
 
             // Emit the AC components.
-            int[] acHuffTable = this.huffmanTables[(2 * (int)index) + 1].Values;
+            int[] acHuffTable = acTable.Values;
 
-            nint lastValuableIndex = spectralBlock.GetLastNonZeroIndex();
+            nint lastValuableIndex = block.GetLastNonZeroIndex();
 
             int runLength = 0;
-            ref short blockRef = ref Unsafe.As<Block8x8, short>(ref spectralBlock);
+            ref short blockRef = ref Unsafe.As<Block8x8, short>(ref block);
             for (nint zig = 1; zig <= lastValuableIndex; zig++)
             {
                 const int zeroRun1 = 1 << 4;
@@ -437,8 +422,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             {
                 this.EmitHuff(acHuffTable, 0x00);
             }
-
-            return dc;
         }
 
         /// <summary>
@@ -642,7 +625,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         /// <summary>
         /// Flushes spectral data bytes after encoding all channel blocks
-        /// in a single jpeg macroblock using <see cref="WriteBlock"/>.
+        /// in a single jpeg macroblock using <see cref="WriteBlock(Component, ref Block8x8, ref HuffmanLut, ref HuffmanLut)"/>.
         /// </summary>
         /// <remarks>
         /// This must be called only if <see cref="IsStreamFlushNeeded"/> is true
@@ -671,6 +654,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Flush cached bytes to the output stream with padding bits
             int lastByteIndex = (this.emitWriteIndex * 4) - valuableBytesCount;
             this.FlushToStream(lastByteIndex);
+
+            // Clear huffman register
+            // This is needed for for images with multiples scans
+            this.bitCount = 0;
+            this.accumulatedBits = 0;
         }
     }
 }

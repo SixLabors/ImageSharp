@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 
         public void Compress_Works(byte[] inputData, byte[] expectedCompressedData)
         {
-            var compressedData = new byte[expectedCompressedData.Length];
+            byte[] compressedData = new byte[expectedCompressedData.Length];
             Stream streamData = CreateCompressedStream(inputData);
             streamData.Read(compressedData, 0, expectedCompressedData.Length);
 
@@ -37,10 +37,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         public void Compress_Decompress_Roundtrip_Works(byte[] data)
         {
             using BufferedReadStream stream = CreateCompressedStream(data);
-            var buffer = new byte[data.Length];
+            byte[] buffer = new byte[data.Length];
 
             using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false);
-            decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer);
+            decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer, default);
 
             Assert.Equal(data, buffer);
         }

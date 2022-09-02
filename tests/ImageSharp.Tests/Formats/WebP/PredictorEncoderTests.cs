@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -100,7 +99,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(expectedData, transformData);
         }
 
-        // Test image: Input\Png\Bike.png
         private static void RunColorSpaceTransformTestWithBikeImage()
         {
             // arrange
@@ -115,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             // Convert image pixels to bgra array.
             byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Lossy.BikeSmall));
-            using var image = Image.Load<Rgba32>(imgBytes, new WebpDecoder());
+            using var image = Image.Load<Rgba32>(imgBytes);
             uint[] bgra = ToBgra(image);
 
             const int colorTransformBits = 4;

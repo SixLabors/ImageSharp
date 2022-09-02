@@ -49,8 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+            JpegDecoderOptions option = new();
 
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(option);
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
@@ -78,8 +79,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // Calculating data from ImageSharp
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+            JpegDecoderOptions options = new();
 
-            using var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            using var decoder = new JpegDecoderCore(options);
             using var ms = new MemoryStream(sourceBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
@@ -153,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     // Due to underlying architecture, baseline interleaved jpegs would inject spectral data during parsing
                     // Progressive and multi-scan images must be loaded manually
-                    if (this.frame.Progressive || this.frame.MultiScan)
+                    if (this.frame.Progressive || !this.frame.Interleaved)
                     {
                         this.PrepareForDecoding();
                         LibJpegTools.ComponentData[] components = this.spectralData.Components;

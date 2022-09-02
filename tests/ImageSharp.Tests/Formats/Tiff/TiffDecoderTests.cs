@@ -4,6 +4,8 @@
 // ReSharper disable InconsistentNaming
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -649,10 +651,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder() { DecodingMode = FrameDecodingMode.First }))
-            {
-                Assert.Equal(1, image.Frames.Count);
-            }
+            DecoderOptions options = new() { MaxFrames = 1 };
+            using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+            Assert.Equal(1, image.Frames.Count);
         }
 
         [Theory]
@@ -709,6 +710,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             image.DebugSaveMultiFrame(provider);
             image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
+        }
+
+        [Theory]
+        [WithFile(Rgba3BitUnassociatedAlpha, PixelTypes.Rgba32)]
+        public void TiffDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<TPixel> image = provider.GetImage(TiffDecoder, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+            image.CompareToReferenceOutput(
+                ImageComparer.Exact,
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
         }
     }
 }

@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromYCbCrScalar(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.YCbCrScalar(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromYCbCrVector(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.YCbCrVector(8).ConvertToRgbInplace(values);
         }
 
         [Benchmark]
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromYCbCrAvx(8).ConvertToRgbInplace(values);
+            new JpegColorConverterBase.YCbCrAvx(8).ConvertToRgbInplace(values);
         }
     }
 }

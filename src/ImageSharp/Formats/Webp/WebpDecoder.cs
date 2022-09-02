@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
@@ -12,49 +10,34 @@ namespace SixLabors.ImageSharp.Formats.Webp
     /// <summary>
     /// Image decoder for generating an image out of a webp stream.
     /// </summary>
-    public sealed class WebpDecoder : IImageDecoder, IWebpDecoderOptions, IImageInfoDetector
+    public sealed class WebpDecoder : IImageDecoder
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <summary>
-        /// Gets or sets the decoding mode for multi-frame images.
-        /// Defaults to All.
-        /// </summary>
-        public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
-
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            using var decoder = new WebpDecoderCore(configuration, this);
-
-            try
-            {
-                return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-            }
+            using WebpDecoderCore decoder = new(options);
+            return decoder.Identify(options.Configuration, stream, cancellationToken);
         }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
+            Guard.NotNull(options, nameof(options));
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebpDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
+            using WebpDecoderCore decoder = new(options);
+            Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+            ImageDecoderUtilities.Resize(options, image);
+
+            return image;
         }
+
+        /// <inheritdoc/>
+        Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => ((IImageDecoder)this).Decode<Rgba32>(options, stream, cancellationToken);
     }
 }

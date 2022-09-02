@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,7 +16,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Stream_Specific()
             {
-                var img = Image.Load<Rgb24>(this.TopLevelConfiguration, this.DataStream);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load<Rgb24>(options, this.DataStream);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
@@ -28,7 +32,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Stream_Agnostic()
             {
-                var img = Image.Load(this.TopLevelConfiguration, this.DataStream);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.DataStream);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat.SampleAgnostic(), img);
@@ -39,8 +48,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void NonSeekableStream()
             {
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
                 var stream = new NonSeekableStream(this.DataStream);
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream);
+                var img = Image.Load<Rgba32>(options, stream);
 
                 Assert.NotNull(img);
 
@@ -50,8 +64,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task NonSeekableStreamAsync()
             {
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
                 var stream = new NonSeekableStream(this.DataStream);
-                Image<Rgba32> img = await Image.LoadAsync<Rgba32>(this.TopLevelConfiguration, stream);
+                Image<Rgba32> img = await Image.LoadAsync<Rgba32>(options, stream);
 
                 Assert.NotNull(img);
 
@@ -59,29 +78,14 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void Configuration_Stream_Decoder_Specific()
-            {
-                var stream = new MemoryStream();
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
-
-                Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream, default));
-            }
-
-            [Fact]
-            public void Configuration_Stream_Decoder_Agnostic()
-            {
-                var stream = new MemoryStream();
-                var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
-
-                Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, stream, default));
-            }
-
-            [Fact]
             public void Configuration_Stream_OutFormat_Specific()
             {
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.DataStream, out IImageFormat format);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load<Rgba32>(options, this.DataStream, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);
@@ -92,7 +96,12 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void Configuration_Stream_OutFormat_Agnostic()
             {
-                var img = Image.Load(this.TopLevelConfiguration, this.DataStream, out IImageFormat format);
+                DecoderOptions options = new()
+                {
+                    Configuration = this.TopLevelConfiguration
+                };
+
+                var img = Image.Load(options, this.DataStream, out IImageFormat format);
 
                 Assert.NotNull(img);
                 Assert.Equal(this.TestFormat, format);

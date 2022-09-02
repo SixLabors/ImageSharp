@@ -7,7 +7,6 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -73,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
-            this.bitsPerPixel = this.bitsPerPixel ?? tgaMetadata.BitsPerPixel;
+            this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
 
             TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
             if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
@@ -118,7 +117,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, TgaFileHeader.Size);
-
             if (this.compression is TgaCompression.RunLength)
             {
                 this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
@@ -160,6 +158,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 case TgaBitsPerPixel.Pixel32:
                     this.Write32Bit(stream, pixels);
                     break;
+                default:
+                    break;
             }
         }
 
@@ -174,89 +174,147 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            int totalPixels = image.Width * image.Height;
-            int encodedPixels = 0;
-            while (encodedPixels < totalPixels)
+            for (int y = 0; y < image.Height; y++)
             {
-                int x = encodedPixels % pixels.Width;
-                int y = encodedPixels / pixels.Width;
-                TPixel currentPixel = pixels[x, y];
-                currentPixel.ToRgba32(ref color);
-                byte equalPixelCount = this.FindEqualPixels(pixels, x, y);
-
-                // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
-                stream.WriteByte((byte)(equalPixelCount | 128));
-                switch (this.bitsPerPixel)
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
+                for (int x = 0; x < image.Width;)
                 {
-                    case TgaBitsPerPixel.Pixel8:
-                        int luminance = GetLuminance(currentPixel);
-                        stream.WriteByte((byte)luminance);
-                        break;
+                    TPixel currentPixel = pixelRow[x];
+                    currentPixel.ToRgba32(ref color);
+                    byte equalPixelCount = this.FindEqualPixels(pixelRow, x);
 
-                    case TgaBitsPerPixel.Pixel16:
-                        var bgra5551 = new Bgra5551(color.ToVector4());
-                        BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
-                        stream.WriteByte(this.buffer[0]);
-                        stream.WriteByte(this.buffer[1]);
-
-                        break;
-
-                    case TgaBitsPerPixel.Pixel24:
-                        stream.WriteByte(color.B);
-                        stream.WriteByte(color.G);
-                        stream.WriteByte(color.R);
-                        break;
-
-                    case TgaBitsPerPixel.Pixel32:
-                        stream.WriteByte(color.B);
-                        stream.WriteByte(color.G);
-                        stream.WriteByte(color.R);
-                        stream.WriteByte(color.A);
-                        break;
+                    if (equalPixelCount > 0)
+                    {
+                        // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
+                        stream.WriteByte((byte)(equalPixelCount | 128));
+                        this.WritePixel(stream, currentPixel, color);
+                        x += equalPixelCount + 1;
+                    }
+                    else
+                    {
+                        // Write Raw Packet (i.e., Non-Run-Length Encoded):
+                        byte unEqualPixelCount = this.FindUnEqualPixels(pixelRow, x);
+                        stream.WriteByte(unEqualPixelCount);
+                        this.WritePixel(stream, currentPixel, color);
+                        x++;
+                        for (int i = 0; i < unEqualPixelCount; i++)
+                        {
+                            currentPixel = pixelRow[x];
+                            currentPixel.ToRgba32(ref color);
+                            this.WritePixel(stream, currentPixel, color);
+                            x++;
+                        }
+                    }
                 }
-
-                encodedPixels += equalPixelCount + 1;
             }
         }
 
         /// <summary>
-        /// Finds consecutive pixels which have the same value.
+        /// Writes a the pixel to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="currentPixel">The current pixel.</param>
+        /// <param name="color">The color of the pixel to write.</param>
+        private void WritePixel<TPixel>(Stream stream, TPixel currentPixel, Rgba32 color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            switch (this.bitsPerPixel)
+            {
+                case TgaBitsPerPixel.Pixel8:
+                    int luminance = GetLuminance(currentPixel);
+                    stream.WriteByte((byte)luminance);
+                    break;
+
+                case TgaBitsPerPixel.Pixel16:
+                    var bgra5551 = new Bgra5551(color.ToVector4());
+                    BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
+                    stream.WriteByte(this.buffer[0]);
+                    stream.WriteByte(this.buffer[1]);
+
+                    break;
+
+                case TgaBitsPerPixel.Pixel24:
+                    stream.WriteByte(color.B);
+                    stream.WriteByte(color.G);
+                    stream.WriteByte(color.R);
+                    break;
+
+                case TgaBitsPerPixel.Pixel32:
+                    stream.WriteByte(color.B);
+                    stream.WriteByte(color.G);
+                    stream.WriteByte(color.R);
+                    stream.WriteByte(color.A);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Finds consecutive pixels which have the same value up to 128 pixels maximum.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="pixels">The pixels of the image.</param>
+        /// <param name="pixelRow">A pixel row of the image to encode.</param>
         /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
-        /// <param name="yStart">Y coordinate to start searching for the same pixels.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yStart)
+        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte equalPixelCount = 0;
-            bool firstRow = true;
-            TPixel startPixel = pixels[xStart, yStart];
-            for (int y = yStart; y < pixels.Height; y++)
+            TPixel startPixel = pixelRow[xStart];
+            for (int x = xStart + 1; x < pixelRow.Length; x++)
             {
-                for (int x = firstRow ? xStart + 1 : 0; x < pixels.Width; x++)
+                TPixel nextPixel = pixelRow[x];
+                if (startPixel.Equals(nextPixel))
                 {
-                    TPixel nextPixel = pixels[x, y];
-                    if (startPixel.Equals(nextPixel))
-                    {
-                        equalPixelCount++;
-                    }
-                    else
-                    {
-                        return equalPixelCount;
-                    }
-
-                    if (equalPixelCount >= 127)
-                    {
-                        return equalPixelCount;
-                    }
+                    equalPixelCount++;
+                }
+                else
+                {
+                    return equalPixelCount;
                 }
 
-                firstRow = false;
+                if (equalPixelCount >= 127)
+                {
+                    return equalPixelCount;
+                }
             }
 
             return equalPixelCount;
+        }
+
+        /// <summary>
+        /// Finds consecutive pixels which are unequal up to 128 pixels maximum.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="pixelRow">A pixel row of the image to encode.</param>
+        /// <param name="xStart">X coordinate to start searching for the unequal pixels.</param>
+        /// <returns>The number of equal pixels.</returns>
+        private byte FindUnEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            byte unEqualPixelCount = 0;
+            TPixel currentPixel = pixelRow[xStart];
+            for (int x = xStart + 1; x < pixelRow.Length; x++)
+            {
+                TPixel nextPixel = pixelRow[x];
+                if (currentPixel.Equals(nextPixel))
+                {
+                    return unEqualPixelCount;
+                }
+
+                unEqualPixelCount++;
+
+                if (unEqualPixelCount >= 127)
+                {
+                    return unEqualPixelCount;
+                }
+
+                currentPixel = nextPixel;
+            }
+
+            return unEqualPixelCount;
         }
 
         private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)

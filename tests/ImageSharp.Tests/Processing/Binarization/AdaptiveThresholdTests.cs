@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
@@ -103,6 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [WithFile(TestImages.Png.Bradley01, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bradley02, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Issue2217, PixelTypes.Rgba32)]
         public void AdaptiveThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -125,23 +125,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider);
             }
-        }
-
-        // https://github.com/SixLabors/ImageSharp/issues/2217
-        [Theory]
-        [WithFile(TestImages.Png.Issue2217, PixelTypes.Rgba32)]
-        public void Issue_2217_AdaptiveThreshold_DoesNotThrowIndexOutOfRangeException<TPixel>(
-            TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Exception exception = Record.Exception(() =>
-            {
-                using Image<TPixel> image = provider.GetImage();
-                image.Mutate(img => img.AdaptiveThreshold());
-                image.DebugSave(provider);
-            });
-
-            Assert.Null(exception);
         }
     }
 }

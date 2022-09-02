@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -69,4 +68,3 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
     }
 }
-#endif

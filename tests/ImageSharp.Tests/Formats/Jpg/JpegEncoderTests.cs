@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -33,7 +32,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { JpegEncodingColor.Rgb, 100, 0.0238f / 100 },
             { JpegEncodingColor.Rgb, 80,  1.3044f / 100 },
             { JpegEncodingColor.Rgb, 40,  2.9879f / 100 },
-
             { JpegEncodingColor.YCbCrRatio444, 100, 0.0780f / 100 },
             { JpegEncodingColor.YCbCrRatio444, 80,  1.4585f / 100 },
             { JpegEncodingColor.YCbCrRatio444, 40,  3.1413f / 100 },
@@ -44,15 +42,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { JpegEncodingColor.YCbCrRatio422, 100, 0.4895f / 100 },
             { JpegEncodingColor.YCbCrRatio422, 80,  1.6043f / 100 },
             { JpegEncodingColor.YCbCrRatio422, 40,  3.1996f / 100 },
-
             { JpegEncodingColor.YCbCrRatio420, 100, 0.5790f / 100 },
             { JpegEncodingColor.YCbCrRatio420, 80,  1.6692f / 100 },
             { JpegEncodingColor.YCbCrRatio420, 40,  3.2324f / 100 },
-
             { JpegEncodingColor.YCbCrRatio411, 100, 0.6868f / 100 },
             { JpegEncodingColor.YCbCrRatio411, 80,  1.7139f / 100 },
             { JpegEncodingColor.YCbCrRatio411, 40,  3.2634f / 100 },
-
             { JpegEncodingColor.YCbCrRatio410, 100, 0.7357f / 100 },
             { JpegEncodingColor.YCbCrRatio410, 80,  1.7495f / 100 },
             { JpegEncodingColor.YCbCrRatio410, 40,  3.2911f / 100 },

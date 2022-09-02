@@ -37,7 +37,8 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { TagDataEntryHeader_CurveArr, TagDataEntryHeader_CurveVal },
         };
 
-        public static readonly IccUnknownTagDataEntry Unknown_Val = new IccUnknownTagDataEntry(new byte[] { 0x00, 0x01, 0x02, 0x03 });
+        public static readonly IccUnknownTagDataEntry Unknown_Val = new(new byte[] { 0x00, 0x01, 0x02, 0x03 });
+
         public static readonly byte[] Unknown_Arr = { 0x00, 0x01, 0x02, 0x03 };
 
         public static readonly object[][] UnknownTagDataEntryTestData =
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Unknown_Arr, Unknown_Val, 12u },
         };
 
-        public static readonly IccChromaticityTagDataEntry Chromaticity_Val1 = new IccChromaticityTagDataEntry(IccColorantEncoding.ItuRBt709_2);
+        public static readonly IccChromaticityTagDataEntry Chromaticity_Val1 = new(IccColorantEncoding.ItuRBt709_2);
         public static readonly byte[] Chromaticity_Arr1 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt16_3,
             IccTestDataPrimitives.UInt16_1,
@@ -56,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
             new byte[] { 0x00, 0x00, 0x26, 0x66 },  // 0.150
             new byte[] { 0x00, 0x00, 0x0F, 0x5C }); // 0.060
 
-        public static readonly IccChromaticityTagDataEntry Chromaticity_Val2 = new IccChromaticityTagDataEntry(
+        public static readonly IccChromaticityTagDataEntry Chromaticity_Val2 = new(
             new double[][]
             {
                 new double[] { 1, 2 },
@@ -91,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Chromaticity_Arr2, Chromaticity_Val2 },
         };
 
-        public static readonly IccColorantOrderTagDataEntry ColorantOrder_Val = new IccColorantOrderTagDataEntry(new byte[] { 0x00, 0x01, 0x02 });
+        public static readonly IccColorantOrderTagDataEntry ColorantOrder_Val = new(new byte[] { 0x00, 0x01, 0x02 });
         public static readonly byte[] ColorantOrder_Arr = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_3, new byte[] { 0x00, 0x01, 0x02 });
 
         public static readonly object[][] ColorantOrderTagDataEntryTestData =
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ColorantOrder_Arr, ColorantOrder_Val },
         };
 
-        public static readonly IccColorantTableTagDataEntry ColorantTable_Val = new IccColorantTableTagDataEntry(
+        public static readonly IccColorantTableTagDataEntry ColorantTable_Val = new(
             new IccColorantTableEntry[]
             {
                 IccTestDataNonPrimitives.ColorantTableEntry_ValRand1,
@@ -116,15 +117,15 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ColorantTable_Arr, ColorantTable_Val },
         };
 
-        public static readonly IccCurveTagDataEntry Curve_Val_0 = new IccCurveTagDataEntry();
+        public static readonly IccCurveTagDataEntry Curve_Val_0 = new();
         public static readonly byte[] Curve_Arr_0 = IccTestDataPrimitives.UInt32_0;
 
-        public static readonly IccCurveTagDataEntry Curve_Val_1 = new IccCurveTagDataEntry(1f);
+        public static readonly IccCurveTagDataEntry Curve_Val_1 = new(1f);
         public static readonly byte[] Curve_Arr_1 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_1,
             IccTestDataPrimitives.UFix8_1);
 
-        public static readonly IccCurveTagDataEntry Curve_Val_2 = new IccCurveTagDataEntry(new float[] { 1 / 65535f, 2 / 65535f, 3 / 65535f });
+        public static readonly IccCurveTagDataEntry Curve_Val_2 = new(new float[] { 1 / 65535f, 2 / 65535f, 3 / 65535f });
         public static readonly byte[] Curve_Arr_2 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_3,
             IccTestDataPrimitives.UInt16_1,
@@ -138,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Curve_Arr_2, Curve_Val_2 },
         };
 
-        public static readonly IccDataTagDataEntry Data_ValNoASCII = new IccDataTagDataEntry(
+        public static readonly IccDataTagDataEntry Data_ValNoASCII = new(
             new byte[] { 0x01, 0x02, 0x03, 0x04 },
             false);
 
@@ -148,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests
             0x01, 0x02, 0x03, 0x04
         };
 
-        public static readonly IccDataTagDataEntry Data_ValASCII = new IccDataTagDataEntry(
+        public static readonly IccDataTagDataEntry Data_ValASCII = new(
             new byte[] { (byte)'A', (byte)'S', (byte)'C', (byte)'I', (byte)'I' },
             true);
 
@@ -164,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Data_ArrASCII, Data_ValASCII, 17u },
         };
 
-        public static readonly IccDateTimeTagDataEntry DateTime_Val = new IccDateTimeTagDataEntry(IccTestDataNonPrimitives.DateTime_ValRand1);
+        public static readonly IccDateTimeTagDataEntry DateTime_Val = new(IccTestDataNonPrimitives.DateTime_ValRand1);
         public static readonly byte[] DateTime_Arr = IccTestDataNonPrimitives.DateTime_Rand1;
 
         public static readonly object[][] DateTimeTagDataEntryTestData =
@@ -172,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { DateTime_Arr, DateTime_Val },
         };
 
-        public static readonly IccLut16TagDataEntry Lut16_Val = new IccLut16TagDataEntry(
+        public static readonly IccLut16TagDataEntry Lut16_Val = new(
             new IccLut[] { IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad },
             IccTestDataLut.CLUT16_ValGrad,
             new IccLut[] { IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad });
@@ -193,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Lut16_Arr, Lut16_Val },
         };
 
-        public static readonly IccLut8TagDataEntry Lut8_Val = new IccLut8TagDataEntry(
+        public static readonly IccLut8TagDataEntry Lut8_Val = new(
             new IccLut[] { IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad },
             IccTestDataLut.CLUT8_ValGrad,
             new IccLut[] { IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad });
@@ -225,18 +226,20 @@ namespace SixLabors.ImageSharp.Tests
             TagDataEntryHeader_CurveArr,
             Curve_Arr_2);
 
-        public static readonly IccLutAToBTagDataEntry LutAToB_Val = new IccLutAToBTagDataEntry(
-            new IccCurveTagDataEntry[]
+        public static readonly IccLutAToBTagDataEntry LutAToB_Val
+            = new(
+                new IccCurveTagDataEntry[]
             {
                 Curve_Val_0,
                 Curve_Val_1,
                 Curve_Val_2,
             },
-            IccTestDataMatrix.Single_2DArray_ValGrad,
-            IccTestDataMatrix.Single_1DArray_ValGrad,
-            new IccCurveTagDataEntry[] { Curve_Val_1,  Curve_Val_2, Curve_Val_0 },
-            IccTestDataLut.CLUT_Val16,
-            new IccCurveTagDataEntry[] { Curve_Val_2, Curve_Val_1 });
+                IccTestDataMatrix.Single_2DArray_ValGrad,
+                IccTestDataMatrix.Single_1DArray_ValGrad,
+                new IccCurveTagDataEntry[] { Curve_Val_1, Curve_Val_2, Curve_Val_0 },
+                IccTestDataLut.CLUT_Val16,
+                new IccCurveTagDataEntry[] { Curve_Val_2, Curve_Val_1 });
+
         public static readonly byte[] LutAToB_Arr = ArrayHelper.Concat(
             new byte[] { 0x02, 0x03, 0x00, 0x00 },
             new byte[] { 0x00, 0x00, 0x00, 0x20 },  // b:        32
@@ -273,13 +276,12 @@ namespace SixLabors.ImageSharp.Tests
             CurveFull_1,                // 14 bytes
             new byte[] { 0x00, 0x00 }); // Padding
 
-
         public static readonly object[][] LutAToBTagDataEntryTestData =
         {
             new object[] { LutAToB_Arr, LutAToB_Val },
         };
 
-        public static readonly IccLutBToATagDataEntry LutBToA_Val = new IccLutBToATagDataEntry(
+        public static readonly IccLutBToATagDataEntry LutBToA_Val = new(
             new[]
             {
                 Curve_Val_0,
@@ -290,9 +292,9 @@ namespace SixLabors.ImageSharp.Tests
             null,
             IccTestDataLut.CLUT_Val16,
             new[] { Curve_Val_2, Curve_Val_1, Curve_Val_0 });
+
         public static readonly byte[] LutBToA_Arr = ArrayHelper.Concat(
             new byte[] { 0x02, 0x03, 0x00, 0x00 },
-
             new byte[] { 0x00, 0x00, 0x00, 0x20 },  // b:        32
             new byte[] { 0x00, 0x00, 0x00, 0x00 },  // matrix:   0
             new byte[] { 0x00, 0x00, 0x00, 0x00 },  // m:        0
@@ -315,13 +317,12 @@ namespace SixLabors.ImageSharp.Tests
             new byte[] { 0x00, 0x00 },  // Padding
             CurveFull_0); // 12 bytes
 
-
         public static readonly object[][] LutBToATagDataEntryTestData =
         {
             new object[] { LutBToA_Arr, LutBToA_Val },
         };
 
-        public static readonly IccMeasurementTagDataEntry Measurement_Val = new IccMeasurementTagDataEntry(
+        public static readonly IccMeasurementTagDataEntry Measurement_Val = new(
             IccStandardObserver.Cie1931Observer,
             IccTestDataNonPrimitives.XyzNumber_ValVar1,
             IccMeasurementGeometry.Degree0ToDOrDTo0,
@@ -346,7 +347,7 @@ namespace SixLabors.ImageSharp.Tests
         private static readonly IccLocalizedString LocalizedString_Rand2_esXL = CreateLocalizedString("es", "XL", IccTestDataPrimitives.Unicode_ValRand2);
         private static readonly IccLocalizedString LocalizedString_Rand2_xyXL = CreateLocalizedString("xy", "XL", IccTestDataPrimitives.Unicode_ValRand2);
         private static readonly IccLocalizedString LocalizedString_Rand_en = CreateLocalizedString("en", null, IccTestDataPrimitives.Unicode_ValRand2);
-        private static readonly IccLocalizedString LocalizedString_Rand_Invariant = new IccLocalizedString(CultureInfo.InvariantCulture, IccTestDataPrimitives.Unicode_ValRand3);
+        private static readonly IccLocalizedString LocalizedString_Rand_Invariant = new(CultureInfo.InvariantCulture, IccTestDataPrimitives.Unicode_ValRand3);
 
         private static IccLocalizedString CreateLocalizedString(string language, string country, string text)
         {
@@ -397,7 +398,7 @@ namespace SixLabors.ImageSharp.Tests
             LocalizedString_Rand2_xyXL,
         };
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_enUS_deDE);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new(LocalizedString_RandArr_enUS_deDE);
         public static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_2,
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
@@ -410,7 +411,7 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.Unicode_Rand2,
             IccTestDataPrimitives.Unicode_Rand3);
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val2 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_en_Invariant);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val2 = new(LocalizedString_RandArr_en_Invariant);
         public static readonly byte[] MultiLocalizedUnicode_Arr2_Read = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_2,
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
@@ -435,7 +436,7 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.Unicode_Rand2,
             IccTestDataPrimitives.Unicode_Rand3);
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_SameArr_enUS_deDE_esXL_xyXL);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new(LocalizedString_SameArr_enUS_deDE_esXL_xyXL);
         public static readonly byte[] MultiLocalizedUnicode_Arr3 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_4,
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
@@ -467,7 +468,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { MultiLocalizedUnicode_Arr3, MultiLocalizedUnicode_Val3 },
         };
 
-        public static readonly IccMultiProcessElementsTagDataEntry MultiProcessElements_Val = new IccMultiProcessElementsTagDataEntry(
+        public static readonly IccMultiProcessElementsTagDataEntry MultiProcessElements_Val = new(
             new IccMultiProcessElement[]
             {
                 IccTestDataMultiProcessElements.MPE_ValCLUT,
@@ -490,11 +491,11 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { MultiProcessElements_Arr, MultiProcessElements_Val },
         };
 
-        public static readonly IccNamedColor2TagDataEntry NamedColor2_Val = new IccNamedColor2TagDataEntry(
+        public static readonly IccNamedColor2TagDataEntry NamedColor2_Val = new(
             16909060,
             ArrayHelper.Fill('A', 31),
             ArrayHelper.Fill('4', 31),
-            new IccNamedColor[] { IccTestDataNonPrimitives.NamedColor_ValMin,  IccTestDataNonPrimitives.NamedColor_ValMin });
+            new IccNamedColor[] { IccTestDataNonPrimitives.NamedColor_ValMin, IccTestDataNonPrimitives.NamedColor_ValMin });
 
         public static readonly byte[] NamedColor2_Arr = ArrayHelper.Concat(
             new byte[] { 0x01, 0x02, 0x03, 0x04 },
@@ -512,7 +513,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { NamedColor2_Arr, NamedColor2_Val },
         };
 
-        public static readonly IccParametricCurveTagDataEntry ParametricCurve_Val = new IccParametricCurveTagDataEntry(IccTestDataCurves.Parametric_ValVar1);
+        public static readonly IccParametricCurveTagDataEntry ParametricCurve_Val = new(IccTestDataCurves.Parametric_ValVar1);
         public static readonly byte[] ParametricCurve_Arr = IccTestDataCurves.Parametric_Var1;
 
         public static readonly object[][] ParametricCurveTagDataEntryTestData =
@@ -520,7 +521,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ParametricCurve_Arr, ParametricCurve_Val },
         };
 
-        public static readonly IccProfileSequenceDescTagDataEntry ProfileSequenceDesc_Val = new IccProfileSequenceDescTagDataEntry(
+        public static readonly IccProfileSequenceDescTagDataEntry ProfileSequenceDesc_Val = new(
             new IccProfileDescription[]
             {
                 IccTestDataNonPrimitives.ProfileDescription_ValRand1,
@@ -537,7 +538,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileSequenceDesc_Arr, ProfileSequenceDesc_Val },
         };
 
-        public static readonly IccProfileSequenceIdentifierTagDataEntry ProfileSequenceIdentifier_Val = new IccProfileSequenceIdentifierTagDataEntry(
+        public static readonly IccProfileSequenceIdentifierTagDataEntry ProfileSequenceIdentifier_Val = new(
             new IccProfileSequenceIdentifier[]
             {
                 new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
@@ -564,7 +565,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileSequenceIdentifier_Arr, ProfileSequenceIdentifier_Val },
         };
 
-        public static readonly IccResponseCurveSet16TagDataEntry ResponseCurveSet16_Val = new IccResponseCurveSet16TagDataEntry(
+        public static readonly IccResponseCurveSet16TagDataEntry ResponseCurveSet16_Val = new(
             new IccResponseCurve[]
             {
                 IccTestDataCurves.Response_ValGrad,
@@ -584,7 +585,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ResponseCurveSet16_Arr, ResponseCurveSet16_Val },
         };
 
-        public static readonly IccFix16ArrayTagDataEntry Fix16Array_Val = new IccFix16ArrayTagDataEntry(new float[] { 1 / 256f, 2 / 256f, 3 / 256f });
+        public static readonly IccFix16ArrayTagDataEntry Fix16Array_Val = new(new float[] { 1 / 256f, 2 / 256f, 3 / 256f });
         public static readonly byte[] Fix16Array_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.Fix16_1,
             IccTestDataPrimitives.Fix16_2,
@@ -595,7 +596,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Fix16Array_Arr, Fix16Array_Val, 20u },
         };
 
-        public static readonly IccSignatureTagDataEntry Signature_Val = new IccSignatureTagDataEntry("ABCD");
+        public static readonly IccSignatureTagDataEntry Signature_Val = new("ABCD");
         public static readonly byte[] Signature_Arr = { 0x41, 0x42, 0x43, 0x44, };
 
         public static readonly object[][] SignatureTagDataEntryTestData =
@@ -603,7 +604,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Signature_Arr, Signature_Val },
         };
 
-        public static readonly IccTextTagDataEntry Text_Val = new IccTextTagDataEntry("ABCD");
+        public static readonly IccTextTagDataEntry Text_Val = new("ABCD");
         public static readonly byte[] Text_Arr = { 0x41, 0x42, 0x43, 0x44 };
 
         public static readonly object[][] TextTagDataEntryTestData =
@@ -611,7 +612,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Text_Arr, Text_Val, 12u },
         };
 
-        public static readonly IccUFix16ArrayTagDataEntry UFix16Array_Val = new IccUFix16ArrayTagDataEntry(new float[] { 1, 2, 3 });
+        public static readonly IccUFix16ArrayTagDataEntry UFix16Array_Val = new(new float[] { 1, 2, 3 });
         public static readonly byte[] UFix16Array_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UFix16_1,
             IccTestDataPrimitives.UFix16_2,
@@ -622,7 +623,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UFix16Array_Arr, UFix16Array_Val, 20u },
         };
 
-        public static readonly IccUInt16ArrayTagDataEntry UInt16Array_Val = new IccUInt16ArrayTagDataEntry(new ushort[] { 1, 2, 3 });
+        public static readonly IccUInt16ArrayTagDataEntry UInt16Array_Val = new(new ushort[] { 1, 2, 3 });
         public static readonly byte[] UInt16Array_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt16_1,
             IccTestDataPrimitives.UInt16_2,
@@ -633,7 +634,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt16Array_Arr, UInt16Array_Val, 14u },
         };
 
-        public static readonly IccUInt32ArrayTagDataEntry UInt32Array_Val = new IccUInt32ArrayTagDataEntry(new uint[] { 1, 2, 3 });
+        public static readonly IccUInt32ArrayTagDataEntry UInt32Array_Val = new(new uint[] { 1, 2, 3 });
         public static readonly byte[] UInt32Array_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_1,
             IccTestDataPrimitives.UInt32_2,
@@ -644,7 +645,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt32Array_Arr, UInt32Array_Val, 20u },
         };
 
-        public static readonly IccUInt64ArrayTagDataEntry UInt64Array_Val = new IccUInt64ArrayTagDataEntry(new ulong[] { 1, 2, 3 });
+        public static readonly IccUInt64ArrayTagDataEntry UInt64Array_Val = new(new ulong[] { 1, 2, 3 });
         public static readonly byte[] UInt64Array_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt64_1,
             IccTestDataPrimitives.UInt64_2,
@@ -655,7 +656,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt64Array_Arr, UInt64Array_Val, 32u },
         };
 
-        public static readonly IccUInt8ArrayTagDataEntry UInt8Array_Val = new IccUInt8ArrayTagDataEntry(new byte[] { 1, 2, 3 });
+        public static readonly IccUInt8ArrayTagDataEntry UInt8Array_Val = new(new byte[] { 1, 2, 3 });
         public static readonly byte[] UInt8Array_Arr = { 1, 2, 3 };
 
         public static readonly object[][] UInt8ArrayTagDataEntryTestData =
@@ -663,7 +664,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt8Array_Arr, UInt8Array_Val, 11u },
         };
 
-        public static readonly IccViewingConditionsTagDataEntry ViewingConditions_Val = new IccViewingConditionsTagDataEntry(
+        public static readonly IccViewingConditionsTagDataEntry ViewingConditions_Val = new(
             IccTestDataNonPrimitives.XyzNumber_ValVar1,
             IccTestDataNonPrimitives.XyzNumber_ValVar2,
             IccStandardIlluminant.D50);
@@ -678,7 +679,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ViewingConditions_Arr, ViewingConditions_Val },
         };
 
-        public static readonly IccXyzTagDataEntry XYZ_Val = new IccXyzTagDataEntry(new Vector3[]
+        public static readonly IccXyzTagDataEntry XYZ_Val = new(new Vector3[]
         {
             IccTestDataNonPrimitives.XyzNumber_ValVar1,
             IccTestDataNonPrimitives.XyzNumber_ValVar2,
@@ -695,7 +696,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { XYZ_Arr, XYZ_Val, 44u },
         };
 
-        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry(
+        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new(
             IccTestDataPrimitives.Ascii_ValRand,
             IccTestDataPrimitives.Unicode_ValRand1,
             ArrayHelper.Fill('A', 66),
@@ -714,7 +715,7 @@ namespace SixLabors.ImageSharp.Tests
             ArrayHelper.Fill((byte)0x41, 66),
             new byte[] { 0x00 }); // Null terminator
 
-        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val2 = new IccTextDescriptionTagDataEntry(IccTestDataPrimitives.Ascii_ValRand, null, null, 0, 0);
+        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val2 = new(IccTestDataPrimitives.Ascii_ValRand, null, null, 0, 0);
         public static readonly byte[] TextDescription_Arr2 = ArrayHelper.Concat(
             new byte[] { 0x00, 0x00, 0x00, 0x0B },  // 11
             IccTestDataPrimitives.Ascii_Rand,
@@ -730,7 +731,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { TextDescription_Arr2, TextDescription_Val2 },
         };
 
-        public static readonly IccCrdInfoTagDataEntry CrdInfo_Val = new IccCrdInfoTagDataEntry(
+        public static readonly IccCrdInfoTagDataEntry CrdInfo_Val = new(
             IccTestDataPrimitives.Ascii_ValRand4,
             IccTestDataPrimitives.Ascii_ValRand1,
             IccTestDataPrimitives.Ascii_ValRand2,
@@ -759,7 +760,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { CrdInfo_Arr, CrdInfo_Val },
         };
 
-        public static readonly IccScreeningTagDataEntry Screening_Val = new IccScreeningTagDataEntry(
+        public static readonly IccScreeningTagDataEntry Screening_Val = new(
             IccScreeningFlag.DefaultScreens | IccScreeningFlag.UnitLinesPerCm,
             new IccScreeningChannel[] { IccTestDataNonPrimitives.ScreeningChannel_ValRand1, IccTestDataNonPrimitives.ScreeningChannel_ValRand2 });
 
@@ -774,7 +775,7 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Screening_Arr, Screening_Val },
         };
 
-        public static readonly IccUcrBgTagDataEntry UcrBg_Val = new IccUcrBgTagDataEntry(
+        public static readonly IccUcrBgTagDataEntry UcrBg_Val = new(
             new ushort[] { 3, 4, 6 },
             new ushort[] { 9, 7, 2, 5 },
             IccTestDataPrimitives.Ascii_ValRand);
@@ -809,12 +810,12 @@ namespace SixLabors.ImageSharp.Tests
             MultiLocalizedUnicode_Arr,
             new byte[] { 0x00, 0x00 }); // padding
 
-        public static readonly IccTagTableEntry TagDataEntry_MultiLocalizedUnicodeTable = new IccTagTableEntry(
+        public static readonly IccTagTableEntry TagDataEntry_MultiLocalizedUnicodeTable = new(
             IccProfileTag.Unknown,
             0,
             (uint)TagDataEntry_MultiLocalizedUnicodeArr.Length - 2);
 
-        public static readonly IccTagTableEntry TagDataEntry_CurveTable = new IccTagTableEntry(IccProfileTag.Unknown, 0, (uint)TagDataEntry_CurveArr.Length - 2);
+        public static readonly IccTagTableEntry TagDataEntry_CurveTable = new(IccProfileTag.Unknown, 0, (uint)TagDataEntry_CurveArr.Length - 2);
 
         public static readonly object[][] TagDataEntryTestData =
         {

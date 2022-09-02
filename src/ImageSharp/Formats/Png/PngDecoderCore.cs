@@ -519,26 +519,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
-        {
-            switch (this.pngColorType)
+            => this.pngColorType
+            switch
             {
-                case PngColorType.Grayscale:
-                    return this.header.BitDepth == 16 ? 2 : 1;
-
-                case PngColorType.GrayscaleWithAlpha:
-                    return this.header.BitDepth == 16 ? 4 : 2;
-
-                case PngColorType.Palette:
-                    return 1;
-
-                case PngColorType.Rgb:
-                    return this.header.BitDepth == 16 ? 6 : 3;
-
-                case PngColorType.RgbWithAlpha:
-                default:
-                    return this.header.BitDepth == 16 ? 8 : 4;
-            }
-        }
+                PngColorType.Grayscale => this.header.BitDepth == 16 ? 2 : 1,
+                PngColorType.GrayscaleWithAlpha => this.header.BitDepth == 16 ? 4 : 2,
+                PngColorType.Palette => 1,
+                PngColorType.Rgb => this.header.BitDepth == 16 ? 6 : 3,
+                _ => this.header.BitDepth == 16 ? 8 : 4,
+            };
 
         /// <summary>
         /// Calculates the scanline length.
@@ -1229,11 +1218,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             fixed (byte* compressedDataBase = compressedData)
             {
-                using (IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize))
-                using (var memoryStreamOutput = new MemoryStream(compressedData.Length))
-                using (var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length))
-                using (var bufferedStream = new BufferedReadStream(this.configuration, memoryStreamInput))
-                using (var inflateStream = new ZlibInflateStream(bufferedStream))
+                using IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
+                using var memoryStreamOutput = new MemoryStream(compressedData.Length);
+                using var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length);
+                using var bufferedStream = new BufferedReadStream(this.configuration, memoryStreamInput);
+                using var inflateStream = new ZlibInflateStream(bufferedStream);
+
+                Span<byte> destUncompressedData = destBuffer.GetSpan();
+                if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                 {
                     uncompressedBytesArray = Array.Empty<byte>();
                     return false;

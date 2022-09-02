@@ -102,6 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [WithFile(TestImages.Png.Bradley01, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bradley02, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Issue2217, PixelTypes.Rgba32)]
         public void AdaptiveThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

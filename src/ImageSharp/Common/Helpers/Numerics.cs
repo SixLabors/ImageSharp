@@ -837,38 +837,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Calculates floored log of the specified value, base 2.
-        /// Note that by convention, input value 0 returns 0 since Log(0) is undefined.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Log2(uint value) => BitOperations.Log2(value);
-
-        /// <summary>
         /// Fast division with ceiling for <see cref="uint"/> numbers.
         /// </summary>
         /// <param name="value">Divident value.</param>
         /// <param name="divisor">Divisor value.</param>
         /// <returns>Ceiled division result.</returns>
         public static uint DivideCeil(uint value, uint divisor) => (value + divisor - 1) / divisor;
-
-        /// <summary>
-        /// Rotates the specified value left by the specified number of bits.
-        /// </summary>
-        /// <param name="value">The value to rotate.</param>
-        /// <param name="offset">The number of bits to rotate with.</param>
-        /// <returns>The rotated value.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint RotateLeft(uint value, int offset) => BitOperations.RotateLeft(value, offset);
-
-        /// <summary>
-        /// Rotates the specified value right by the specified number of bits.
-        /// </summary>
-        /// <param name="value">The value to rotate.</param>
-        /// <param name="offset">The number of bits to rotate with.</param>
-        /// <returns>The rotated value.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint RotateRight(uint value, int offset) => BitOperations.RotateRight(value, offset);
 
         /// <summary>
         /// Tells whether input value is outside of the given range.

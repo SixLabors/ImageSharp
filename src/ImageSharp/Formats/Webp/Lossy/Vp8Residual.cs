@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -62,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // The position of the most significant non-zero bit indicates the position of
                 // the last non-zero value.
-                this.Last = mask != 0 ? Numerics.Log2(mask) : -1;
+                this.Last = mask != 0 ? BitOperations.Log2(mask) : -1;
             }
             else
             {

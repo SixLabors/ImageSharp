@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -34,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             uint value = 0;
             int expected = 0;
-            int actual = Numerics.Log2(value);
+            int actual = BitOperations.Log2(value);
 
             Assert.Equal(expected, actual);
         }
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 // from 2^0 to 2^32
                 uint value = (uint)(1 << i);
                 int expected = i;
-                int actual = Numerics.Log2(value);
+                int actual = BitOperations.Log2(value);
 
                 Assert.Equal(expected, actual);
             }
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 rng.NextBytes(bytes);
                 uint value = BitConverter.ToUInt32(bytes, 0);
                 int expected = Log2_ReferenceImplementation(value);
-                int actual = Numerics.Log2(value);
+                int actual = BitOperations.Log2(value);
 
                 Assert.Equal(expected, actual);
             }

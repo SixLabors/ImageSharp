@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
@@ -382,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // If using a color cache, do not have it bigger than the number of colors.
                     if (useCache && this.PaletteSize < 1 << WebpConstants.MaxColorCacheBits)
                     {
-                        this.CacheBits = Numerics.Log2((uint)this.PaletteSize) + 1;
+                        this.CacheBits = BitOperations.Log2((uint)this.PaletteSize) + 1;
                     }
                 }
 
@@ -951,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
                 else
                 {
-                    int nBits = Numerics.Log2((uint)trimmedLength - 2);
+                    int nBits = BitOperations.Log2((uint)trimmedLength - 2);
                     int nBitPairs = (nBits / 2) + 1;
                     this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
                     this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);

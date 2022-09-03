@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -1041,7 +1042,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private static int PrefixEncodeBitsNoLut(int distance, ref int extraBits)
         {
-            int highestBit = Numerics.Log2((uint)--distance);
+            int highestBit = BitOperations.Log2((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             int code = (2 * highestBit) + secondHighestBit;
@@ -1050,7 +1051,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static int PrefixEncodeNoLut(int distance, ref int extraBits, ref int extraBitsValue)
         {
-            int highestBit = Numerics.Log2((uint)--distance);
+            int highestBit = BitOperations.Log2((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             extraBitsValue = distance & ((1 << extraBits) - 1);

@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -111,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
                 range = split + 1;
             }
 
-            int shift = 7 ^ Numerics.Log2(range);
+            int shift = 7 ^ BitOperations.Log2(range);
             range <<= shift;
             this.bits -= shift;
 

@@ -155,12 +155,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
                 if (this.pixelBuffer.DangerousTryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
                 {
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, destRow);
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, destRow);
                 }
                 else
                 {
                     Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.configuration, r, g, b, proxyRow);
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, proxyRow);
                     proxyRow[..width].CopyTo(this.pixelBuffer.DangerousGetRowSpan(yy));
                 }
             }

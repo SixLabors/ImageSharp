@@ -24,13 +24,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             /// <inheritdoc />
             internal override void PackFromRgbPlanes(
-                Configuration configuration,
                 ReadOnlySpan<byte> redChannel,
                 ReadOnlySpan<byte> greenChannel,
                 ReadOnlySpan<byte> blueChannel,
                 Span<Rgb24> destination)
             {
-                Guard.NotNull(configuration, nameof(configuration));
                 int count = redChannel.Length;
                 GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 

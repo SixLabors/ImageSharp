@@ -1057,7 +1057,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void PackFromRgbPlanes(int count)
             => SimdUtilsTests.TestPackFromRgbPlanes<TPixel>(
                 count,
-                (r, g, b, actual) => PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.Configuration, r, g, b, actual));
+                (r, g, b, actual) => PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, actual));
 
         public delegate void RefAction<T1>(ref T1 arg1);
 

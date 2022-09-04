@@ -17,10 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly MedianBlurProcessor definition;
 
         public MedianBlurProcessor(Configuration configuration, MedianBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            : base(configuration, source, sourceRectangle) => this.definition = definition;
 
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
@@ -31,13 +28,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             source.CopyTo(targetPixels);
 
-            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // We use a rectangle with width set to 2 * kernelSize^2 + width, to allocate a buffer big enough
             // for kernel source and target bulk pixel conversion.
-            Rectangle operationBounds = new Rectangle(interest.X, interest.Y, (2 * (kernelSize * kernelSize)) + interest.Width, interest.Height);
+            var operationBounds = new Rectangle(interest.X, interest.Y, (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width), interest.Height);
 
-            using KernelSamplingMap map = new KernelSamplingMap(this.Configuration.MemoryAllocator);
+            using var map = new KernelSamplingMap(this.Configuration.MemoryAllocator);
             map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);
 
             var operation = new MedianRowOperation<TPixel>(

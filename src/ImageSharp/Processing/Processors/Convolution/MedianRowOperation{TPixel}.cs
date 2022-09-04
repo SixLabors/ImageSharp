@@ -85,7 +85,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
                     for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        int currentYIndex = Unsafe.Add(ref sampleRowBase, kY);
                         Span<Vector4> sourceRow = sourceVectorBuffer.Slice(kY * boundsWidth);
                         ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                         for (int kX = 0; kX < state.Kernel.Columns; kX++)
@@ -98,7 +97,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     }
 
                     target = this.FindMedian3(state.Kernel.Span, xChannel, yChannel, zChannel, kernelCount);
-                    state.Kernel.Clear();
                 }
             }
             else
@@ -111,7 +109,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
                     for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        int currentYIndex = Unsafe.Add(ref sampleRowBase, kY);
                         Span<Vector4> sourceRow = sourceVectorBuffer.Slice(kY * boundsWidth);
                         ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                         for (int kX = 0; kX < state.Kernel.Columns; kX++)
@@ -124,7 +121,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     }
 
                     target = this.FindMedian4(state.Kernel.Span, xChannel, yChannel, zChannel, wChannel, kernelCount);
-                    state.Kernel.Clear();
                 }
             }
 

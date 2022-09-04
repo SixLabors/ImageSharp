@@ -30,9 +30,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            // We use a rectangle with width set to 2 * kernelSize^2 + width, to allocate a buffer big enough
-            // for kernel source and target bulk pixel conversion.
-            var operationBounds = new Rectangle(interest.X, interest.Y, (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width), interest.Height);
+            // We use a rectangle with width set wider, to allocate a buffer big enough
+            // for kernel source, channel buffers, source rows and target bulk pixel conversion.
+            int operationWidth = (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width);
+            var operationBounds = new Rectangle(interest.X, interest.Y, operationWidth, interest.Height);
 
             using var map = new KernelSamplingMap(this.Configuration.MemoryAllocator);
             map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);

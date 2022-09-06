@@ -199,46 +199,46 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         {
             codeLength = 0;
 
-            if (WhiteLen5MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen5MakeupCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 5;
-                return WhiteLen5MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen6MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen6MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return WhiteLen6MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen7MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen7MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return WhiteLen7MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen8MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen8MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return WhiteLen8MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen9MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen9MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 9;
-                return WhiteLen9MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen11MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen11MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return WhiteLen11MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen12MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen12MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return WhiteLen12MakeupCodes[runLength];
+                return value;
             }
 
             return 0;
@@ -248,28 +248,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         {
             codeLength = 0;
 
-            if (BlackLen10MakeupCodes.ContainsKey(runLength))
+            if (BlackLen10MakeupCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 10;
-                return BlackLen10MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen11MakeupCodes.ContainsKey(runLength))
+            if (BlackLen11MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return BlackLen11MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen12MakeupCodes.ContainsKey(runLength))
+            if (BlackLen12MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return BlackLen12MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen13MakeupCodes.ContainsKey(runLength))
+            if (BlackLen13MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 13;
-                return BlackLen13MakeupCodes[runLength];
+                return value;
             }
 
             return 0;
@@ -279,34 +279,34 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         {
             codeLength = 0;
 
-            if (WhiteLen4TermCodes.ContainsKey(runLength))
+            if (WhiteLen4TermCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 4;
-                return WhiteLen4TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen5TermCodes.ContainsKey(runLength))
+            if (WhiteLen5TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 5;
-                return WhiteLen5TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen6TermCodes.ContainsKey(runLength))
+            if (WhiteLen6TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return WhiteLen6TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen7TermCodes.ContainsKey(runLength))
+            if (WhiteLen7TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return WhiteLen7TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen8TermCodes.ContainsKey(runLength))
+            if (WhiteLen8TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return WhiteLen8TermCodes[runLength];
+                return value;
             }
 
             return 0;
@@ -316,70 +316,70 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         {
             codeLength = 0;
 
-            if (BlackLen2TermCodes.ContainsKey(runLength))
+            if (BlackLen2TermCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 2;
-                return BlackLen2TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen3TermCodes.ContainsKey(runLength))
+            if (BlackLen3TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 3;
-                return BlackLen3TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen4TermCodes.ContainsKey(runLength))
+            if (BlackLen4TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 4;
-                return BlackLen4TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen5TermCodes.ContainsKey(runLength))
+            if (BlackLen5TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 5;
-                return BlackLen5TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen6TermCodes.ContainsKey(runLength))
+            if (BlackLen6TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return BlackLen6TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen7TermCodes.ContainsKey(runLength))
+            if (BlackLen7TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return BlackLen7TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen8TermCodes.ContainsKey(runLength))
+            if (BlackLen8TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return BlackLen8TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen9TermCodes.ContainsKey(runLength))
+            if (BlackLen9TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 9;
-                return BlackLen9TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen10TermCodes.ContainsKey(runLength))
+            if (BlackLen10TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 10;
-                return BlackLen10TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen11TermCodes.ContainsKey(runLength))
+            if (BlackLen11TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return BlackLen11TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen12TermCodes.ContainsKey(runLength))
+            if (BlackLen12TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return BlackLen12TermCodes[runLength];
+                return value;
             }
 
             return 0;

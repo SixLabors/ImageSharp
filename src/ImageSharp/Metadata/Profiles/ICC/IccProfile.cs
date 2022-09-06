@@ -113,9 +113,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
             Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
 
-#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
-            using MD5 md5 = MD5.Create();
-#pragma warning restore CA5351 // Do Not Use Broken Cryptographic Algorithms
             try
             {
                 // Zero out some values
@@ -124,7 +121,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 Array.Clear(data, profileIdPos, 16);
 
                 // Calculate hash
-                byte[] hash = md5.ComputeHash(data);
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+                byte[] hash = MD5.HashData(data);
+#pragma warning restore CA5351 // Do Not Use Broken Cryptographic Algorithms
 
                 // Read values from hash
                 IccDataReader reader = new(hash);

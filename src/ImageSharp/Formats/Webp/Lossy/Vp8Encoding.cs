@@ -103,19 +103,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // second half of the vectors will just contain random value we'll never
                 // use nor store.
                 ref short inputRef = ref MemoryMarshal.GetReference(input);
-                var in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+                Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
+                Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
+                Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
+                Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
 
                 // a00 a10 a20 a30   x x x x
                 // a01 a11 a21 a31   x x x x
                 // a02 a12 a22 a32   x x x x
                 // a03 a13 a23 a33   x x x x
-                var inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 16)), 0);
-                var inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 20)), 0);
-                var inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 24)), 0);
-                var inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 28)), 0);
+                Vector128<long> inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 16)), 0);
+                Vector128<long> inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 20)), 0);
+                Vector128<long> inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 24)), 0);
+                Vector128<long> inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 28)), 0);
 
                 in0 = Sse2.UnpackLow(in0, inb0);
                 in1 = Sse2.UnpackLow(in1, inb1);
@@ -196,10 +196,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // second half of the vectors will just contain random value we'll never
                 // use nor store.
                 ref short inputRef = ref MemoryMarshal.GetReference(input);
-                var in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+                Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
+                Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
+                Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
+                Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
 
                 // a00 a10 a20 a30   x x x x
                 // a01 a11 a21 a31   x x x x
@@ -374,16 +374,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
                 // Load src.
-                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
                 // Load ref.
-                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
                 // Convert both to 16 bit.
                 Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
@@ -434,16 +434,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
                 // Load src.
-                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
                 // Load ref.
-                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
                 // 00 01 02 03 *
                 // 10 11 12 13 *
@@ -654,7 +654,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // luma 16x16 prediction (paragraph 12.3).
         public static void EncPredLuma16(Span<byte> dst, Span<byte> left, Span<byte> top)
         {
-            DcMode(dst[..], left, top, 16, 16, 5);
+            DcMode(dst, left, top, 16, 16, 5);
             VerticalPred(dst[I16VE16..], top, 16);
             HorizontalPred(dst[I16HE16..], left, 16);
             TrueMotion(dst[I16TM16..], left, top, 16);

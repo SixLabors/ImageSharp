@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -1258,7 +1259,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="span">The <see cref="int"/> to parse.</param>
         /// <returns>The parsed <see cref="int"/>.</returns>
-        private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span);
+        private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span, provider: CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,
@@ -1358,8 +1359,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else if (IsXmpTextData(keywordBytes))
             {
-                XmpProfile xmpProfile = new(data[dataStartIdx..].ToArray());
-                metadata.XmpProfile = xmpProfile;
+                metadata.XmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
             }
             else
             {

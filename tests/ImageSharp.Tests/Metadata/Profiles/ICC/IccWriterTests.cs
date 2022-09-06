@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc
             {
                 Header = IccTestDataProfiles.Header_Random_Write
             };
-            byte[] output = writer.Write(profile);
+            byte[] output = IccWriter.Write(profile);
 
             Assert.Equal(IccTestDataProfiles.Header_Random_Array, output);
         }
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc
         {
             IccWriter writer = this.CreateWriter();
 
-            byte[] output = writer.Write(IccTestDataProfiles.Profile_Random_Val);
+            byte[] output = IccWriter.Write(IccTestDataProfiles.Profile_Random_Val);
 
             Assert.Equal(IccTestDataProfiles.Profile_Random_Array, output);
         }

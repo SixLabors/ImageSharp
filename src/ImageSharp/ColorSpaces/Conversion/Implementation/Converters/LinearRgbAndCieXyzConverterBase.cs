@@ -28,25 +28,22 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             float yb = chromaticity.B.Y;
 
             float mXr = xr / yr;
-            const float Yr = 1;
             float mZr = (1 - xr - yr) / yr;
 
             float mXg = xg / yg;
-            const float Yg = 1;
             float mZg = (1 - xg - yg) / yg;
 
             float mXb = xb / yb;
-            const float Yb = 1;
             float mZb = (1 - xb - yb) / yb;
 
-            var xyzMatrix = new Matrix4x4
+            Matrix4x4 xyzMatrix = new()
             {
                 M11 = mXr,
                 M21 = mXg,
                 M31 = mXb,
-                M12 = Yr,
-                M22 = Yg,
-                M32 = Yb,
+                M12 = 1F,
+                M22 = 1F,
+                M32 = 1F,
                 M13 = mZr,
                 M23 = mZg,
                 M33 = mZb,
@@ -55,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 
             Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
-            var vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
+            Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
 
             // Use transposed Rows/Columns
             // TODO: Is there a built in method for this multiplication?
@@ -64,9 +61,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 M11 = vector.X * mXr,
                 M21 = vector.Y * mXg,
                 M31 = vector.Z * mXb,
-                M12 = vector.X * Yr,
-                M22 = vector.Y * Yg,
-                M32 = vector.Z * Yb,
+                M12 = vector.X * 1,
+                M22 = vector.Y * 1,
+                M32 = vector.Z * 1,
                 M13 = vector.X * mZr,
                 M23 = vector.Y * mZg,
                 M33 = vector.Z * mZb,

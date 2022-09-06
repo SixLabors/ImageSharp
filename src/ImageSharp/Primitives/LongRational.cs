@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -67,22 +67,20 @@ namespace SixLabors.ImageSharp
         public bool IsZero => this.Denominator == 1 && this.Numerator == 0;
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is LongRational longRational && this.Equals(longRational);
+
+        /// <inheritdoc/>
         public bool Equals(LongRational other)
-        {
-            return this.Numerator == other.Numerator && this.Denominator == other.Denominator;
-        }
+            => this.Numerator == other.Numerator && this.Denominator == other.Denominator;
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return ((this.Numerator * 397) ^ this.Denominator).GetHashCode();
-        }
+            => HashCode.Combine(this.Numerator, this.Denominator);
 
         /// <inheritdoc/>
         public override string ToString()
-        {
-            return this.ToString(CultureInfo.InvariantCulture);
-        }
+            => this.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Converts the numeric value of this instance to its equivalent string representation using
@@ -119,10 +117,11 @@ namespace SixLabors.ImageSharp
                 return this.Numerator.ToString(provider);
             }
 
-            var sb = new StringBuilder();
-            sb.Append(this.Numerator.ToString(provider));
-            sb.Append('/');
-            sb.Append(this.Denominator.ToString(provider));
+            StringBuilder sb = new();
+            sb.Append(this.Numerator.ToString(provider))
+              .Append('/')
+              .Append(this.Denominator.ToString(provider));
+
             return sb.ToString();
         }
 

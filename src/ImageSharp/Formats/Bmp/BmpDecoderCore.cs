@@ -491,7 +491,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             int max = cmd[1];
                             int bytesToRead = (max + 1) / 2;
 
-                            var run = new byte[bytesToRead];
+                            byte[] run = new byte[bytesToRead];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -501,13 +501,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                 byte twoPixels = run[idx];
                                 if (i % 2 == 0)
                                 {
-                                    byte leftPixel = (byte)((twoPixels >> 4) & 0xF);
-                                    buffer[count++] = leftPixel;
+                                    buffer[count++] = (byte)((twoPixels >> 4) & 0xF);
                                 }
                                 else
                                 {
-                                    byte rightPixel = (byte)(twoPixels & 0xF);
-                                    buffer[count++] = rightPixel;
+                                    buffer[count++] = (byte)(twoPixels & 0xF);
                                     idx++;
                                 }
                             }
@@ -597,7 +595,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            var run = new byte[length];
+                            byte[] run = new byte[length];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -676,7 +674,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             // Take this number of bytes from the stream as uncompressed data.
                             int length = cmd[1];
 
-                            var run = new byte[length * 3];
+                            byte[] run = new byte[length * 3];
 
                             this.stream.Read(run, 0, run.Length);
 
@@ -909,7 +907,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int r = (redMaskBits == 5) ? GetBytesFrom5BitValue((temp & redMask) >> rightShiftRedMask) : GetBytesFrom6BitValue((temp & redMask) >> rightShiftRedMask);
                     int g = (greenMaskBits == 5) ? GetBytesFrom5BitValue((temp & greenMask) >> rightShiftGreenMask) : GetBytesFrom6BitValue((temp & greenMask) >> rightShiftGreenMask);
                     int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
-                    var rgb = new Rgb24((byte)r, (byte)g, (byte)b);
+                    Rgb24 rgb = new((byte)r, (byte)g, (byte)b);
 
                     color.FromRgb24(rgb);
                     pixelRow[x] = color;
@@ -1164,7 +1162,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         uint g = (uint)(temp & greenMask) >> rightShiftGreenMask;
                         uint b = (uint)(temp & blueMask) >> rightShiftBlueMask;
                         float alpha = alphaMask != 0 ? invMaxValueAlpha * ((uint)(temp & alphaMask) >> rightShiftAlphaMask) : 1.0f;
-                        var vector4 = new Vector4(
+                        Vector4 vector4 = new(
                             r * invMaxValueRed,
                             g * invMaxValueGreen,
                             b * invMaxValueBlue,
@@ -1246,7 +1244,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
 
             int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
-            if (headerSize < BmpInfoHeader.CoreSize || headerSize > BmpInfoHeader.MaxHeaderSize)
+            if (headerSize is < BmpInfoHeader.CoreSize or > BmpInfoHeader.MaxHeaderSize)
             {
                 BmpThrowHelper.ThrowNotSupportedException($"ImageSharp does not support this BMP file. HeaderSize is '{headerSize}'.");
             }
@@ -1277,7 +1275,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // color masks for each color channel follow the info header.
                 if (this.infoHeader.Compression == BmpCompression.BitFields)
                 {
-                    var bitfieldsBuffer = new byte[12];
+                    byte[] bitfieldsBuffer = new byte[12];
                     this.stream.Read(bitfieldsBuffer, 0, 12);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
@@ -1286,7 +1284,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
                 else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
                 {
-                    var bitfieldsBuffer = new byte[16];
+                    byte[] bitfieldsBuffer = new byte[16];
                     this.stream.Read(bitfieldsBuffer, 0, 16);
                     Span<byte> data = bitfieldsBuffer.AsSpan();
                     this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
@@ -1396,6 +1394,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reads the <see cref="BmpFileHeader"/> and <see cref="BmpInfoHeader"/> from the stream and sets the corresponding fields.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="inverted">Whether the image orientation is inverted.</param>
+        /// <param name="palette">The color palette.</param>
         /// <returns>Bytes per color palette entry. Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
         /// the bytes per color palette entry's can be 3 bytes instead of 4.</returns>
         private int ReadImageHeaders(BufferedReadStream stream, out bool inverted, out byte[] palette)

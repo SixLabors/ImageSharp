@@ -336,7 +336,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="HunterLab"/></returns>
         public HunterLab ToHunterLab(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            var xyzColor = ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 

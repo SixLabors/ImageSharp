@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -38,6 +38,28 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         public int Patch { get; }
 
+        /// <summary>
+        /// Returns a value indicating whether the two values are equal.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the two value are equal; otherwise, <see langword="false"/>.</returns>
+        public static bool operator ==(IccVersion left, IccVersion right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Returns a value indicating whether the two values are not equal.
+        /// </summary>
+        /// <param name="left">The first value.</param>
+        /// <param name="right">The second value.</param>
+        /// <returns><see langword="true"/> if the two value are not equal; otherwise, <see langword="false"/>.</returns>
+        public static bool operator !=(IccVersion left, IccVersion right)
+            => !(left == right);
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is IccVersion iccVersion && this.Equals(iccVersion);
+
         /// <inheritdoc/>
         public bool Equals(IccVersion other) =>
             this.Major == other.Major &&
@@ -46,8 +68,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override string ToString()
-        {
-            return string.Join(".", this.Major, this.Minor, this.Patch);
-        }
+            => string.Join(".", this.Major, this.Minor, this.Patch);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => HashCode.Combine(this.Major, this.Minor, this.Patch);
     }
 }

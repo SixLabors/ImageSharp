@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see cref="Rectangle"/> that has X, Y, Width, and Height values set to zero.
         /// </summary>
-        public static readonly Rectangle Empty = default;
+        public static readonly Rectangle Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rectangle"/> struct.

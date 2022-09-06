@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-            int cdfMin = this.CalculateCdf(
+            int cdfMin = CalculateCdf(
                 ref MemoryMarshal.GetReference(cdfBuffer.GetSpan()),
                 ref MemoryMarshal.GetReference(histogram),
                 histogram.Length - 1);

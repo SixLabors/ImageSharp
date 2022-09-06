@@ -14,22 +14,26 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public int HeaderSize => 12;
 
         /// <inheritdoc />
-        public IImageFormat DetectFormat(ReadOnlySpan<byte> header) => this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
+        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+            => this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
 
-        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header) => header.Length >= this.HeaderSize && this.IsRiffContainer(header) && this.IsWebpFile(header);
+        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
+            => header.Length >= this.HeaderSize && IsRiffContainer(header) && IsWebpFile(header);
 
         /// <summary>
         /// Checks, if the header starts with a valid RIFF FourCC.
         /// </summary>
         /// <param name="header">The header bytes.</param>
         /// <returns>True, if its a valid RIFF FourCC.</returns>
-        private bool IsRiffContainer(ReadOnlySpan<byte> header) => header[..4].SequenceEqual(WebpConstants.RiffFourCc);
+        private static bool IsRiffContainer(ReadOnlySpan<byte> header)
+            => header[..4].SequenceEqual(WebpConstants.RiffFourCc);
 
         /// <summary>
         /// Checks if 'WEBP' is present in the header.
         /// </summary>
         /// <param name="header">The header bytes.</param>
         /// <returns>True, if its a webp file.</returns>
-        private bool IsWebpFile(ReadOnlySpan<byte> header) => header.Slice(8, 4).SequenceEqual(WebpConstants.WebpHeader);
+        private static bool IsWebpFile(ReadOnlySpan<byte> header)
+            => header.Slice(8, 4).SequenceEqual(WebpConstants.WebpHeader);
     }
 }

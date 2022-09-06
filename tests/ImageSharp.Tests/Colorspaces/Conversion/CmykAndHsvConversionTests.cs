@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             Span<Hsv> actualSpan = new Hsv[5];
 
             // Act
-            var actual = Converter.ToHsv(input);
-            Converter.Convert(inputSpan, actualSpan);
+            var actual = ColorSpaceConverter.ToHsv(input);
+            ColorSpaceConverter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             Span<Cmyk> actualSpan = new Cmyk[5];
 
             // Act
-            var actual = Converter.ToCmyk(input);
-            Converter.Convert(inputSpan, actualSpan);
+            var actual = ColorSpaceConverter.ToCmyk(input);
+            ColorSpaceConverter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);

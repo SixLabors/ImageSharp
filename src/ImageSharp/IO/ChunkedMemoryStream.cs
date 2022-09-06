@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.IO
                 this.isDisposed = true;
                 if (disposing)
                 {
-                    this.ReleaseMemoryChunks(this.memoryChunk);
+                    ReleaseMemoryChunks(this.memoryChunk);
                 }
 
                 this.memoryChunk = null;
@@ -530,7 +530,7 @@ namespace SixLabors.ImageSharp.IO
             };
         }
 
-        private void ReleaseMemoryChunks(MemoryChunk chunk)
+        private static void ReleaseMemoryChunks(MemoryChunk chunk)
         {
             while (chunk != null)
             {

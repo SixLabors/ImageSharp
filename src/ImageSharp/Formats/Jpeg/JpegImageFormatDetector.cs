@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -15,22 +15,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
-        {
-            return this.IsSupportedFileFormat(header) ? JpegFormat.Instance : null;
-        }
+            => this.IsSupportedFileFormat(header) ? JpegFormat.Instance : null;
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-        {
-            return header.Length >= this.HeaderSize &&
-                   (this.IsJfif(header) || this.IsExif(header) || this.IsJpeg(header));
-        }
+            => header.Length >= this.HeaderSize
+            && (IsJfif(header) || IsExif(header) || IsJpeg(header));
 
         /// <summary>
         /// Returns a value indicating whether the given bytes identify Jfif data.
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJfif(ReadOnlySpan<byte> header) =>
+        private static bool IsJfif(ReadOnlySpan<byte> header) =>
             header[6] == 0x4A && // J
             header[7] == 0x46 && // F
             header[8] == 0x49 && // I
@@ -42,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsExif(ReadOnlySpan<byte> header) =>
+        private static bool IsExif(ReadOnlySpan<byte> header) =>
             header[6] == 0x45 && // E
             header[7] == 0x78 && // X
             header[8] == 0x69 && // I
@@ -55,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJpeg(ReadOnlySpan<byte> header) =>
+        private static bool IsJpeg(ReadOnlySpan<byte> header) =>
             header[0] == 0xFF && // 255
             header[1] == 0xD8; // 216
     }

@@ -1,6 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -62,8 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         /// <inheritdoc/>
         public override string ToString()
-        {
-            return this.Marker.ToString("X");
-        }
+            => this.Marker.ToString("X", CultureInfo.InvariantCulture);
     }
 }

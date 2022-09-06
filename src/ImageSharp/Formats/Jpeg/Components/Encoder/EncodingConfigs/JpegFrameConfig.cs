@@ -39,6 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
         public int MaxVerticalSamplingFactor { get; }
 
-        public byte? AdobeColorTransformMarkerFlag { get; set; } = null;
+        public byte? AdobeColorTransformMarkerFlag { get; set; }
     }
 }

@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public IccProfile DeepClone() => new IccProfile(this);
+        public IccProfile DeepClone() => new(this);
 
         /// <summary>
         /// Calculates the MD5 hash value of an ICC profile
@@ -108,33 +108,33 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             const int profileIdPos = 84;
 
             // need to copy some values because they need to be zero for the hashing
-            var temp = new byte[24];
+            byte[] temp = new byte[24];
             Buffer.BlockCopy(data, profileFlagPos, temp, 0, 4);
             Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
             Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
 
-            using (var md5 = MD5.Create())
+#pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+            using MD5 md5 = MD5.Create();
+#pragma warning restore CA5351 // Do Not Use Broken Cryptographic Algorithms
+            try
             {
-                try
-                {
-                    // Zero out some values
-                    Array.Clear(data, profileFlagPos, 4);
-                    Array.Clear(data, renderingIntentPos, 4);
-                    Array.Clear(data, profileIdPos, 16);
+                // Zero out some values
+                Array.Clear(data, profileFlagPos, 4);
+                Array.Clear(data, renderingIntentPos, 4);
+                Array.Clear(data, profileIdPos, 16);
 
-                    // Calculate hash
-                    byte[] hash = md5.ComputeHash(data);
+                // Calculate hash
+                byte[] hash = md5.ComputeHash(data);
 
-                    // Read values from hash
-                    var reader = new IccDataReader(hash);
-                    return reader.ReadProfileId();
-                }
-                finally
-                {
-                    Buffer.BlockCopy(temp, 0, data, profileFlagPos, 4);
-                    Buffer.BlockCopy(temp, 4, data, renderingIntentPos, 4);
-                    Buffer.BlockCopy(temp, 8, data, profileIdPos, 16);
-                }
+                // Read values from hash
+                IccDataReader reader = new(hash);
+                return reader.ReadProfileId();
+            }
+            finally
+            {
+                Buffer.BlockCopy(temp, 0, data, profileFlagPos, 4);
+                Buffer.BlockCopy(temp, 4, data, renderingIntentPos, 4);
+                Buffer.BlockCopy(temp, 8, data, profileIdPos, 16);
             }
         }
 
@@ -171,15 +171,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             if (this.data != null)
             {
-                var copy = new byte[this.data.Length];
+                byte[] copy = new byte[this.data.Length];
                 Buffer.BlockCopy(this.data, 0, copy, 0, copy.Length);
                 return copy;
             }
-            else
-            {
-                var writer = new IccWriter();
-                return writer.Write(this);
-            }
+
+            IccWriter writer = new();
+            return IccWriter.Write(this);
         }
 
         private void InitializeHeader()
@@ -195,8 +193,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return;
             }
 
-            var reader = new IccReader();
-            this.header = reader.ReadHeader(this.data);
+            IccReader reader = new();
+            this.header = IccReader.ReadHeader(this.data);
         }
 
         private void InitializeEntries()
@@ -212,8 +210,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return;
             }
 
-            var reader = new IccReader();
-            this.entries = reader.ReadTagData(this.data);
+            IccReader reader = new();
+            this.entries = IccReader.ReadTagData(this.data);
         }
     }
 }

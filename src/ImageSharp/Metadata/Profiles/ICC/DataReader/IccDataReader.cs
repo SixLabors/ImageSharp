@@ -25,9 +25,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="data">The data to read</param>
         public IccDataReader(byte[] data)
-        {
-            this.data = data ?? throw new ArgumentNullException(nameof(data));
-        }
+            => this.data = data ?? throw new ArgumentNullException(nameof(data));
 
         /// <summary>
         /// Gets the length in bytes of the raw data
@@ -39,9 +37,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="index">The new index position</param>
         public void SetIndex(int index)
-        {
-            this.currentIndex = Numerics.Clamp(index, 0, this.data.Length);
-        }
+            => this.currentIndex = Numerics.Clamp(index, 0, this.data.Length);
 
         /// <summary>
         /// Returns the current <see cref="currentIndex"/> without increment and adds the given increment
@@ -59,9 +55,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// Calculates the 4 byte padding and adds it to the <see cref="currentIndex"/> variable
         /// </summary>
         private void AddPadding()
-        {
-            this.currentIndex += this.CalcPadding();
-        }
+            => this.currentIndex += this.CalcPadding();
 
         /// <summary>
         /// Calculates the 4 byte padding
@@ -79,9 +73,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="value">The value from where the bit will be extracted</param>
         /// <param name="position">Position of the bit. Zero based index from left to right.</param>
         /// <returns>The bit value at specified position</returns>
-        private bool GetBit(byte value, int position)
-        {
-            return ((value >> (7 - position)) & 1) == 1;
-        }
+        private static bool GetBit(byte value, int position)
+            => ((value >> (7 - position)) & 1) == 1;
     }
 }

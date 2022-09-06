@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void GetConverterThrowsExceptionOnInvalidColorSpace()
         {
             var invalidColorSpace = (JpegColorSpace)(-1);
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
+            Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
         }
 
         [Fact]
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             // Valid precisions: 8 & 12 bit
             int invalidPrecision = 9;
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, invalidPrecision));
+            Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, invalidPrecision));
         }
 
         [Theory]

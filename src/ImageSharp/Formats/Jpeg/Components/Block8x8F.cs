@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             if (Avx.IsSupported)
             {
-                var valueVec = Vector256.Create(value);
+                Vector256<float> valueVec = Vector256.Create(value);
                 this.V0 = Avx.Multiply(this.V0, valueVec);
                 this.V1 = Avx.Multiply(this.V1, valueVec);
                 this.V2 = Avx.Multiply(this.V2, valueVec);
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
             else
             {
-                var valueVec = new Vector4(value);
+                Vector4 valueVec = new(value);
                 this.V0L *= valueVec;
                 this.V0R *= valueVec;
                 this.V1L *= valueVec;
@@ -196,6 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Multiply all elements of the block by the corresponding elements of 'other'.
         /// </summary>
+        /// <param name="other">The other block.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public unsafe void MultiplyInPlace(ref Block8x8F other)
         {
@@ -240,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             if (Avx.IsSupported)
             {
-                var valueVec = Vector256.Create(value);
+                Vector256<float> valueVec = Vector256.Create(value);
                 this.V0 = Avx.Add(this.V0, valueVec);
                 this.V1 = Avx.Add(this.V1, valueVec);
                 this.V2 = Avx.Add(this.V2, valueVec);
@@ -252,7 +253,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
             else
             {
-                var valueVec = new Vector4(value);
+                Vector4 valueVec = new(value);
                 this.V0L += valueVec;
                 this.V0R += valueVec;
                 this.V1L += valueVec;
@@ -330,6 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
         /// </summary>
+        /// <param name="maximum">The maximum value.</param>
         public void NormalizeColorsAndRoundInPlace(float maximum)
         {
             if (SimdUtils.HasVector8)
@@ -421,7 +423,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             {
                 const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
 
-                var targetVector = Vector256.Create(value);
+                Vector256<int> targetVector = Vector256.Create(value);
                 ref Vector256<float> blockStride = ref this.V0;
 
                 for (int i = 0; i < RowCount; i++)
@@ -469,19 +471,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             && this.V7R == other.V7R;
 
         /// <inheritdoc />
+        public override bool Equals(object obj) => this.Equals((Block8x8F)obj);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            int left = HashCode.Combine(
+                this.V0L,
+                this.V1L,
+                this.V2L,
+                this.V3L,
+                this.V4L,
+                this.V5L,
+                this.V6L,
+                this.V7L);
+
+            int right = HashCode.Combine(
+                this.V0R,
+                this.V1R,
+                this.V2R,
+                this.V3R,
+                this.V4R,
+                this.V5R,
+                this.V6R,
+                this.V7R);
+
+            return HashCode.Combine(left, right);
+        }
+
+        /// <inheritdoc />
         public override string ToString()
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.Append('[');
             for (int i = 0; i < Size - 1; i++)
             {
-                sb.Append(this[i]);
-                sb.Append(',');
+                sb.Append(this[i]).Append(',');
             }
 
-            sb.Append(this[Size - 1]);
-
-            sb.Append(']');
+            sb.Append(this[Size - 1]).Append(']');
             return sb.ToString();
         }
 

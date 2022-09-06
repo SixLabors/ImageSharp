@@ -382,18 +382,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
         public static BmpInfoHeader ParseOs2Version2(ReadOnlySpan<byte> data)
         {
-            var infoHeader = new BmpInfoHeader(
+            BmpInfoHeader infoHeader = new(
                 headerSize: BinaryPrimitives.ReadInt32LittleEndian(data[..4]),
                 width: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4)),
                 height: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4)),
                 planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(12, 2)),
                 bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(14, 2)));
 
-            int compression = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4));
-
             // The compression value in OS/2 bitmap has a different meaning than in windows bitmaps.
             // Map the OS/2 value to the windows values.
-            switch (compression)
+            switch (BinaryPrimitives.ReadInt32LittleEndian(data.Slice(16, 4)))
             {
                 case 0:
                     infoHeader.Compression = BmpCompression.RGB;
@@ -465,11 +463,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed header.</returns>
         /// <seealso href="https://docs.microsoft.com/de-de/windows/win32/api/wingdi/ns-wingdi-bitmapv5header?redirectedfrom=MSDN"/>
+        /// <exception cref="ArgumentException">Invalid size.</exception>
         public static BmpInfoHeader ParseV5(ReadOnlySpan<byte> data)
         {
             if (data.Length < SizeV5)
             {
-                throw new ArgumentException(nameof(data), $"Must be {SizeV5} bytes. Was {data.Length} bytes.");
+                throw new ArgumentException($"Must be {SizeV5} bytes. Was {data.Length} bytes.", nameof(data));
             }
 
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
@@ -545,13 +544,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         internal void VerifyDimensions()
         {
-            const int MaximumBmpDimension = 65535;
+            const int maximumBmpDimension = 65535;
 
-            if (this.Width > MaximumBmpDimension || this.Height > MaximumBmpDimension)
+            if (this.Width > maximumBmpDimension || this.Height > maximumBmpDimension)
             {
                 throw new InvalidOperationException(
                     $"The input bmp '{this.Width}x{this.Height}' is "
-                    + $"bigger then the max allowed size '{MaximumBmpDimension}x{MaximumBmpDimension}'");
+                    + $"bigger then the max allowed size '{maximumBmpDimension}x{maximumBmpDimension}'");
             }
         }
     }

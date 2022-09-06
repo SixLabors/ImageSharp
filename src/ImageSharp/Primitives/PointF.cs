@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see cref="PointF"/> that has X and Y values set to zero.
         /// </summary>
-        public static readonly PointF Empty = default;
+        public static readonly PointF Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PointF"/> struct.
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Vector2"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator PointF(Vector2 vector) => new PointF(vector.X, vector.Y);
+        public static implicit operator PointF(Vector2 vector) => new(vector.X, vector.Y);
 
         /// <summary>
         /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Vector2"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector2(PointF point) => new Vector2(point.X, point.Y);
+        public static implicit operator Vector2(PointF point) => new(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Point"/> with the coordinates of the specified <see cref="PointF"/> by truncating each of the coordinates.
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="value">The source point.</param>
         /// <returns>The negated point.</returns>
-        public static PointF operator -(PointF value) => new PointF(-value.X, -value.Y);
+        public static PointF operator -(PointF value) => new(-value.X, -value.Y);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by a given <see cref="SizeF"/>.
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">Divisor of type <see cref="int"/>.</param>
         /// <returns>Result of type <see cref="PointF"/>.</returns>
         public static PointF operator /(PointF left, float right)
-            => new PointF(left.X / right, left.Y / right);
+            => new(left.X / right, left.Y / right);
 
         /// <summary>
         /// Compares two <see cref="PointF"/> objects for equality.
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Add(PointF point, SizeF size) => new PointF(point.X + size.Width, point.Y + size.Height);
+        public static PointF Add(PointF point, SizeF size) => new(point.X + size.Width, point.Y + size.Height);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the given <see cref="PointF"/>.
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp
         /// <param name="pointb">The point on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Add(PointF point, PointF pointb) => new PointF(point.X + pointb.X, point.Y + pointb.Y);
+        public static PointF Add(PointF point, PointF pointb) => new(point.X + pointb.X, point.Y + pointb.Y);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="SizeF"/>.
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Subtract(PointF point, SizeF size) => new PointF(point.X - size.Width, point.Y - size.Height);
+        public static PointF Subtract(PointF point, SizeF size) => new(point.X - size.Width, point.Y - size.Height);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the negative of a given <see cref="PointF"/>.
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp
         /// <param name="pointb">The point on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Subtract(PointF point, PointF pointb) => new PointF(point.X - pointb.X, point.Y - pointb.Y);
+        public static PointF Subtract(PointF point, PointF pointb) => new(point.X - pointb.X, point.Y - pointb.Y);
 
         /// <summary>
         /// Translates a <see cref="PointF"/> by the multiplying the X and Y by the given value.
@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">The value on the right hand of the operand.</param>
         /// <returns>The <see cref="PointF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Multiply(PointF point, float right) => new PointF(point.X * right, point.Y * right);
+        public static PointF Multiply(PointF point, float right) => new(point.X * right, point.Y * right);
 
         /// <summary>
         /// Transforms a point by a specified 3x2 matrix.
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp
         public override string ToString() => $"PointF [ X={this.X}, Y={this.Y} ]";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is PointF && this.Equals((PointF)obj);
+        public override bool Equals(object obj) => obj is PointF pointF && this.Equals(pointF);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

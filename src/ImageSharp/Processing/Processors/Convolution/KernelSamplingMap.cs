@@ -60,8 +60,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int minX = bounds.X;
             int maxX = bounds.Right - 1;
 
-            this.BuildOffsets(this.yOffsets, bounds.Height, kernelHeight, minY, maxY, yBorderMode);
-            this.BuildOffsets(this.xOffsets, bounds.Width, kernelWidth, minX, maxX, xBorderMode);
+            BuildOffsets(this.yOffsets, bounds.Height, kernelHeight, minY, maxY, yBorderMode);
+            BuildOffsets(this.xOffsets, bounds.Width, kernelWidth, minX, maxX, xBorderMode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildOffsets(IMemoryOwner<int> offsets, int boundsSize, int kernelSize, int min, int max, BorderWrappingMode borderMode)
+        private static void BuildOffsets(IMemoryOwner<int> offsets, int boundsSize, int kernelSize, int min, int max, BorderWrappingMode borderMode)
         {
             int radius = kernelSize >> 1;
             Span<int> span = offsets.GetSpan();
@@ -97,13 +97,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 }
             }
 
-            this.CorrectBorder(span, kernelSize, min, max, borderMode);
+            CorrectBorder(span, kernelSize, min, max, borderMode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CorrectBorder(Span<int> span, int kernelSize, int min, int max, BorderWrappingMode borderMode)
+        private static void CorrectBorder(Span<int> span, int kernelSize, int min, int max, BorderWrappingMode borderMode)
         {
-            var affectedSize = (kernelSize >> 1) * kernelSize;
+            int affectedSize = (kernelSize >> 1) * kernelSize;
             ref int spanBase = ref MemoryMarshal.GetReference(span);
             if (affectedSize > 0)
             {
@@ -114,20 +114,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Numerics.Clamp(span[^affectedSize..], min, max);
                         break;
                     case BorderWrappingMode.Mirror:
-                        var min2dec = min + min - 1;
+                        int min2dec = min + min - 1;
                         for (int i = 0; i < affectedSize; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value < min)
                             {
                                 span[i] = min2dec - value;
                             }
                         }
 
-                        var max2inc = max + max + 1;
+                        int max2inc = max + max + 1;
                         for (int i = span.Length - affectedSize; i < span.Length; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value > max)
                             {
                                 span[i] = max2inc - value;
@@ -136,20 +136,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         break;
                     case BorderWrappingMode.Bounce:
-                        var min2 = min + min;
+                        int min2 = min + min;
                         for (int i = 0; i < affectedSize; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value < min)
                             {
                                 span[i] = min2 - value;
                             }
                         }
 
-                        var max2 = max + max;
+                        int max2 = max + max;
                         for (int i = span.Length - affectedSize; i < span.Length; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value > max)
                             {
                                 span[i] = max2 - value;
@@ -158,10 +158,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         break;
                     case BorderWrappingMode.Wrap:
-                        var diff = max - min + 1;
+                        int diff = max - min + 1;
                         for (int i = 0; i < affectedSize; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value < min)
                             {
                                 span[i] = diff + value;
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                         for (int i = span.Length - affectedSize; i < span.Length; i++)
                         {
-                            var value = span[i];
+                            int value = span[i];
                             if (value > max)
                             {
                                 span[i] = value - diff;

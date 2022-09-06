@@ -18,13 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         public int HeaderSize => 2;
 
         /// <inheritdoc/>
-        public IImageFormat DetectFormat(ReadOnlySpan<byte> header) => this.IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
+        public IImageFormat DetectFormat(ReadOnlySpan<byte> header) => IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
 
-        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
+        private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-#pragma warning disable SA1131 // Use readable conditions
-            if (1 < (uint)header.Length)
-#pragma warning restore SA1131 // Use readable conditions
+            if ((uint)header.Length > 1)
             {
                 // Signature should be between P1 and P6.
                 return header[0] == P && (uint)(header[1] - Zero - 1) < (Seven - Zero - 1);

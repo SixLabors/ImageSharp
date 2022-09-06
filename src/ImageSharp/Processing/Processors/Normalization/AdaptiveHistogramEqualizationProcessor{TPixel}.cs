@@ -628,7 +628,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 this.processor.ClipHistogram(histogram, this.processor.ClipLimit);
                             }
 
-                            cdfMinSpan[cdfX] += this.processor.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
+                            cdfMinSpan[cdfX] += CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
                             cdfX++;
                         }

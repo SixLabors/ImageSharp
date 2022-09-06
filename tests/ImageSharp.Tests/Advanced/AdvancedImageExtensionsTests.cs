@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -50,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 image.Mutate(c => c.Resize(8, 8));
 
                 Assert.False(memoryGroup.IsValid);
-                Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memoryGroup.First());
+                Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memoryGroup[0]);
                 Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory.Span);
             }
 

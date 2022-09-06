@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
             this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
-            Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
+            Color.ToPixel(sourcePalette, this.paletteOwner.Memory.Span);
 
             this.ditherProcessor = new DitherProcessor(
                 this.Configuration,
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             this.dither.ApplyPaletteDither(in this.ditherProcessor, source, interest);
         }
 
@@ -74,6 +75,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
         /// <remarks>Internal for AOT</remarks>
+        [SuppressMessage(
+            "Design",
+            "CA1001:Types that own disposable fields should be disposable",
+            Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
         internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>, IDisposable
         {
             private readonly EuclideanPixelMap<TPixel> pixelMap;

@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             this.bitPosition = 0;
         }
 
-        private uint GetWhiteMakeupCode(uint runLength, out uint codeLength)
+        private static uint GetWhiteMakeupCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             return 0;
         }
 
-        private uint GetBlackMakeupCode(uint runLength, out uint codeLength)
+        private static uint GetBlackMakeupCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             return 0;
         }
 
-        private uint GetWhiteTermCode(uint runLength, out uint codeLength)
+        private static uint GetWhiteTermCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             return 0;
         }
 
-        private uint GetBlackTermCode(uint runLength, out uint codeLength)
+        private static uint GetBlackTermCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// </summary>
         /// <param name="runLength">A run length needing a makeup code</param>
         /// <returns>The makeup length for <paramref name="runLength"/>.</returns>
-        protected uint GetBestFittingMakeupRunLength(uint runLength)
+        protected static uint GetBestFittingMakeupRunLength(uint runLength)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(runLength, MakeupRunLength[0], nameof(runLength));
 
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                 }
             }
 
-            return MakeupRunLength[MakeupRunLength.Length - 1];
+            return MakeupRunLength[^1];
         }
 
         /// <summary>
@@ -413,14 +413,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <param name="isWhiteRun">If <c>true</c>, the run is of white pixels.
         /// If <c>false</c> the run is of black pixels</param>
         /// <returns>The terminating code for a run of length <paramref name="runLength"/></returns>
-        protected uint GetTermCode(uint runLength, out uint codeLength, bool isWhiteRun)
+        protected static uint GetTermCode(uint runLength, out uint codeLength, bool isWhiteRun)
         {
             if (isWhiteRun)
             {
-                return this.GetWhiteTermCode(runLength, out codeLength);
+                return GetWhiteTermCode(runLength, out codeLength);
             }
 
-            return this.GetBlackTermCode(runLength, out codeLength);
+            return GetBlackTermCode(runLength, out codeLength);
         }
 
         /// <summary>
@@ -431,14 +431,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <param name="isWhiteRun">If <c>true</c>, the run is of white pixels.
         /// If <c>false</c> the run is of black pixels</param>
         /// <returns>The makeup code for a run of length <paramref name="runLength"/></returns>
-        protected uint GetMakeupCode(uint runLength, out uint codeLength, bool isWhiteRun)
+        protected static uint GetMakeupCode(uint runLength, out uint codeLength, bool isWhiteRun)
         {
             if (isWhiteRun)
             {
-                return this.GetWhiteMakeupCode(runLength, out codeLength);
+                return GetWhiteMakeupCode(runLength, out codeLength);
             }
 
-            return this.GetBlackMakeupCode(runLength, out codeLength);
+            return GetBlackMakeupCode(runLength, out codeLength);
         }
 
         /// <summary>
@@ -494,12 +494,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <summary>
         /// Writes a image compressed with CCITT T6 to the stream.
         /// </summary>
-        /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
+        /// <param name="rows">The pixels as 8-bit gray array.</param>
         /// <param name="height">The strip height.</param>
-        public override void CompressStrip(Span<byte> pixelsAsGray, int height)
+        public override void CompressStrip(Span<byte> rows, int height)
         {
-            DebugGuard.IsTrue(pixelsAsGray.Length / height == this.Width, "Values must be equals");
-            DebugGuard.IsTrue(pixelsAsGray.Length % height == 0, "Values must be equals");
+            DebugGuard.IsTrue(rows.Length / height == this.Width, "Values must be equals");
+            DebugGuard.IsTrue(rows.Length % height == 0, "Values must be equals");
 
             this.compressedDataBuffer.Clear();
             Span<byte> compressedData = this.compressedDataBuffer.GetSpan();
@@ -507,7 +507,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             this.bytePosition = 0;
             this.bitPosition = 0;
 
-            this.CompressStrip(pixelsAsGray, height, compressedData);
+            this.CompressStrip(rows, height, compressedData);
 
             // Write the compressed data to the stream.
             int bytesToWrite = this.bitPosition != 0 ? this.bytePosition + 1 : this.bytePosition;

@@ -123,10 +123,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
             this.spatialNoiseShaping = Numerics.Clamp(spatialNoiseShaping, 0, 100);
             this.alphaCompression = alphaCompression;
-            this.rdOptLevel = method is WebpEncodingMethod.BestQuality ? Vp8RdLevel.RdOptTrellisAll
-                : method >= WebpEncodingMethod.Level5 ? Vp8RdLevel.RdOptTrellis
-                : method >= WebpEncodingMethod.Level3 ? Vp8RdLevel.RdOptBasic
-                : Vp8RdLevel.RdOptNone;
+            if (method is WebpEncodingMethod.BestQuality)
+            {
+                this.rdOptLevel = Vp8RdLevel.RdOptTrellisAll;
+            }
+            else if (method >= WebpEncodingMethod.Level5)
+            {
+                this.rdOptLevel = Vp8RdLevel.RdOptTrellis;
+            }
+            else if (method >= WebpEncodingMethod.Level3)
+            {
+                this.rdOptLevel = Vp8RdLevel.RdOptBasic;
+            }
+            else
+            {
+                this.rdOptLevel = Vp8RdLevel.RdOptNone;
+            }
 
             int pixelCount = width * height;
             this.Mbw = (width + 15) >> 4;
@@ -142,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.TopDerr = new sbyte[this.Mbw * 4];
 
             // TODO: make partition_limit configurable?
-            int limit = 100; // original code: limit = 100 - config->partition_limit;
+            const int limit = 100; // original code: limit = 100 - config->partition_limit;
             this.maxI4HeaderBits =
                 256 * 16 * 16 * limit * limit / (100 * 100);  // ... modulated with a quadratic curve.
 
@@ -307,7 +319,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
 
-            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+            Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
             int[] alphas = new int[WebpConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
             int totalMb = this.Mbw * this.Mbw;
@@ -327,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Extract and encode alpha channel data, if present.
             int alphaDataSize = 0;
             bool alphaCompressionSucceeded = false;
-            using var alphaEncoder = new AlphaEncoder();
+            using AlphaEncoder alphaEncoder = new();
             Span<byte> alphaData = Span<byte>.Empty;
             if (hasAlpha)
             {
@@ -344,9 +356,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // Stats-collection loop.
             this.StatLoop(width, height, yStride, uvStride);
             it.Init();
-            it.InitFilter();
-            var info = new Vp8ModeScore();
-            var residual = new Vp8Residual();
+            Vp8EncIterator.InitFilter();
+            Vp8ModeScore info = new();
+            Vp8Residual residual = new();
             do
             {
                 bool dontUseSkip = !this.Proba.UseSkipProba;
@@ -399,17 +411,21 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// This is used for deciding optimal probabilities. It also modifies the
         /// quantizer value if some target (size, PSNR) was specified.
         /// </summary>
+        /// <param name="width">The image width.</param>
+        /// <param name="height">The image height.</param>
+        /// <param name="yStride">The y-luminance stride.</param>
+        /// <param name="uvStride">The uv stride.</param>
         private void StatLoop(int width, int height, int yStride, int uvStride)
         {
-            int targetSize = 0; // TODO: target size is hardcoded.
-            float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
-            bool doSearch = targetSize > 0 || targetPsnr > 0;
+            const int targetSize = 0; // TODO: target size is hardcoded.
+            const float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
+            const bool doSearch = targetSize > 0 || targetPsnr > 0;
             bool fastProbe = (this.method == 0 || this.method == WebpEncodingMethod.Level3) && !doSearch;
             int numPassLeft = this.entropyPasses;
             Vp8RdLevel rdOpt = this.method >= WebpEncodingMethod.Level3 || doSearch ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
             int nbMbs = this.Mbw * this.Mbh;
 
-            var stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
+            PassStats stats = new(targetSize, targetPsnr, QMin, QMax, this.quality);
             this.Proba.ResetTokenStats();
 
             // Fast mode: quick analysis pass over few mbs. Better than nothing.
@@ -450,7 +466,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // If no target size: just do several pass without changing 'q'
                 if (doSearch)
                 {
+                    // Unreachable due to hardcoding above.
+#pragma warning disable CS0162 // Unreachable code detected
                     stats.ComputeNextQ();
+#pragma warning restore CS0162 // Unreachable code detected
                     if (MathF.Abs(stats.Dq) <= DqLimit)
                     {
                         break;
@@ -474,7 +493,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
-            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+            Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
             long size = 0;
             long sizeP0 = 0;
             long distortion = 0;
@@ -482,7 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             it.Init();
             this.SetLoopParams(stats.Q);
-            var info = new Vp8ModeScore();
+            Vp8ModeScore info = new();
             do
             {
                 info.Clear();
@@ -540,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                     // this '>> 3' accounts for some inverse WHT scaling
                     int delta = (dqm.MaxEdge * dqm.Y2.Q[1]) >> 3;
-                    int level = this.FilterStrengthFromDelta(this.FilterHeader.Sharpness, delta);
+                    int level = FilterStrengthFromDelta(this.FilterHeader.Sharpness, delta);
                     if (level > dqm.FStrength)
                     {
                         dqm.FStrength = level;
@@ -757,8 +776,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         private void SetupFilterStrength()
         {
-            int filterSharpness = 0; // TODO: filterSharpness is hardcoded
-            int filterType = 1; // TODO: filterType is hardcoded
+            const int filterSharpness = 0; // TODO: filterSharpness is hardcoded
+            const int filterType = 1; // TODO: filterType is hardcoded
 
             // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
             int level0 = 5 * this.filterStrength;
@@ -768,11 +787,22 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 // We focus on the quantization of AC coeffs.
                 int qstep = WebpLookupTables.AcTable[Numerics.Clamp(m.Quant, 0, 127)] >> 2;
-                int baseStrength = this.FilterStrengthFromDelta(this.FilterHeader.Sharpness, qstep);
+                int baseStrength = FilterStrengthFromDelta(this.FilterHeader.Sharpness, qstep);
 
                 // Segments with lower complexity ('beta') will be less filtered.
                 int f = baseStrength * level0 / (256 + m.Beta);
-                m.FStrength = f < WebpConstants.FilterStrengthCutoff ? 0 : f > 63 ? 63 : f;
+                if (f < WebpConstants.FilterStrengthCutoff)
+                {
+                    m.FStrength = 0;
+                }
+                else if (f > 63)
+                {
+                    m.FStrength = 63;
+                }
+                else
+                {
+                    m.FStrength = f;
+                }
             }
 
             // We record the initial strength (mainly for the case of 1-segment only).
@@ -1027,10 +1057,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// Same as CodeResiduals, but doesn't actually write anything.
         /// Instead, it just records the event distribution.
         /// </summary>
+        /// <param name="it">The iterator.</param>
+        /// <param name="rd">The score accumulator.</param>
         private void RecordResiduals(Vp8EncIterator it, Vp8ModeScore rd)
         {
             int x, y, ch;
-            var residual = new Vp8Residual();
+            Vp8Residual residual = new();
             bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
 
             it.NzToBytes();
@@ -1096,6 +1128,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// is around q=75. Internally, our "good" middle is around c=50. So we
         /// map accordingly using linear piece-wise function
         /// </summary>
+        /// <param name="c">The compression level.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private static double QualityToCompression(double c)
         {
@@ -1107,13 +1140,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             // this power-law: quant ~= compression ^ 1/3. This law holds well for
             // low quant. Finer modeling for high-quant would make use of AcTable[]
             // more explicitly.
-            double v = Math.Pow(linearC, 1 / 3.0d);
-
-            return v;
+            return (double)Math.Pow(linearC, 1 / 3.0d);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int FilterStrengthFromDelta(int sharpness, int delta)
+        private static int FilterStrengthFromDelta(int sharpness, int delta)
         {
             int pos = delta < WebpConstants.MaxDelzaSize ? delta : WebpConstants.MaxDelzaSize - 1;
             return WebpLookupTables.LevelsFromDelta[sharpness, pos];

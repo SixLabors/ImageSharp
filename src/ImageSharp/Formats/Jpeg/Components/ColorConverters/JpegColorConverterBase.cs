@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverterBase"/> class.
         /// </summary>
+        /// <param name="colorSpace">The color space.</param>
+        /// <param name="precision">The precision in bits.</param>
         protected JpegColorConverterBase(JpegColorSpace colorSpace, int precision)
         {
             this.ColorSpace = colorSpace;
@@ -66,6 +68,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/> corresponding to the given <see cref="JpegColorSpace"/>
         /// </summary>
+        /// <param name="colorSpace">The color space.</param>
+        /// <param name="precision">The precision in bits.</param>
+        /// <exception cref="InvalidImageContentException">Invalid colorspace.</exception>
         public static JpegColorConverterBase GetConverter(JpegColorSpace colorSpace, int precision)
         {
             JpegColorConverterBase converter = Array.Find(
@@ -75,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
             if (converter is null)
             {
-                throw new Exception($"Could not find any converter for JpegColorSpace {colorSpace}!");
+                throw new InvalidImageContentException($"Could not find any converter for JpegColorSpace {colorSpace}!");
             }
 
             return converter;
@@ -104,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // 5 color types with 2 supported precisions: 8 bit & 12 bit
             const int colorConvertersCount = 5 * 2;
 
-            var converters = new JpegColorConverterBase[colorConvertersCount];
+            JpegColorConverterBase[] converters = new JpegColorConverterBase[colorConvertersCount];
 
             // 8-bit converters
             converters[0] = GetYCbCrConverter(8);
@@ -126,6 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the YCbCr colorspace.
         /// </summary>
+        /// <param name="precision">The precision in bits.</param>
         private static JpegColorConverterBase GetYCbCrConverter(int precision)
         {
             if (JpegColorConverterAvx.IsSupported)
@@ -144,6 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
         /// </summary>
+        /// <param name="precision">The precision in bits.</param>
         private static JpegColorConverterBase GetYccKConverter(int precision)
         {
             if (JpegColorConverterAvx.IsSupported)
@@ -162,6 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
         /// </summary>
+        /// <param name="precision">The precision in bits.</param>
         private static JpegColorConverterBase GetCmykConverter(int precision)
         {
             if (JpegColorConverterAvx.IsSupported)
@@ -180,6 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
         /// </summary>
+        /// <param name="precision">The precision in bits.</param>
         private static JpegColorConverterBase GetGrayScaleConverter(int precision)
         {
             if (JpegColorConverterAvx.IsSupported)
@@ -198,6 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
         /// </summary>
+        /// <param name="precision">The precision in bits.</param>
         private static JpegColorConverterBase GetRgbConverter(int precision)
         {
             if (JpegColorConverterAvx.IsSupported)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         public IccDataTagDataEntry(byte[] data, bool isAscii, IccProfileTag tagSignature)
             : base(IccTypeSignature.Data, tagSignature)
         {
-            this.Data = data ?? throw new ArgumentException(nameof(data));
+            this.Data = data ?? throw new ArgumentNullException(nameof(data));
             this.IsAscii = isAscii;
         }
 
@@ -62,9 +62,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccDataTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccDataTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccDataTagDataEntry other)
@@ -84,17 +82,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is IccDataTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccDataTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Signature,
                 this.Data,
                 this.IsAscii);
-        }
     }
 }

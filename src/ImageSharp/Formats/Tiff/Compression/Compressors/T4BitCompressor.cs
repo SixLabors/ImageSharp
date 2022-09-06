@@ -93,14 +93,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                     uint codeLength;
                     if (runLength <= 63)
                     {
-                        code = this.GetTermCode(runLength, out codeLength, isWhiteRun);
+                        code = GetTermCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
                     }
                     else
                     {
-                        runLength = this.GetBestFittingMakeupRunLength(runLength);
-                        code = this.GetMakeupCode(runLength, out codeLength, isWhiteRun);
+                        runLength = GetBestFittingMakeupRunLength(runLength);
+                        code = GetMakeupCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
 

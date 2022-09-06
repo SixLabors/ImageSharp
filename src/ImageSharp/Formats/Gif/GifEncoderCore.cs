@@ -108,10 +108,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
             // Write the header.
-            this.WriteHeader(stream);
+            WriteHeader(stream);
 
             // Write the LSD.
-            int index = this.GetTransparentIndex(quantized);
+            int index = GetTransparentIndex(quantized);
             this.WriteLogicalScreenDescriptor(metadata, image.Width, image.Height, index, useGlobalTable, stream);
 
             if (useGlobalTable)
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
                                               && frameMetadata.ColorTableLength > 0)
                     {
-                        var options = new QuantizerOptions
+                        QuantizerOptions options = new()
                         {
                             Dither = this.quantizer.Options.Dither,
                             DitherScale = this.quantizer.Options.DitherScale,
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-                this.WriteGraphicalControlExtension(frameMetadata, this.GetTransparentIndex(quantized), stream);
+                this.WriteGraphicalControlExtension(frameMetadata, GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
                 this.WriteImageData(quantized, stream);
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)
+        private static int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette.
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber);
+        private static void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber);
 
         /// <summary>
         /// Writes the logical screen descriptor to the stream.
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
             }
 
-            var descriptor = new GifLogicalScreenDescriptor(
+            GifLogicalScreenDescriptor descriptor = new(
                 width: (ushort)width,
                 height: (ushort)height,
                 packed: packedValue,
@@ -332,14 +332,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Application Extension: Loop repeat count.
             if (frameCount > 1 && repeatCount != 1)
             {
-                var loopingExtension = new GifNetscapeLoopingApplicationExtension(repeatCount);
+                GifNetscapeLoopingApplicationExtension loopingExtension = new(repeatCount);
                 this.WriteExtension(loopingExtension, stream);
             }
 
             // Application Extension: XMP Profile.
             if (xmpProfile != null)
             {
-                var xmpExtension = new GifXmpApplicationExtension(xmpProfile.Data);
+                GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data);
                 this.WriteExtension(xmpExtension, stream);
             }
         }
@@ -411,7 +411,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 disposalMethod: metadata.DisposalMethod,
                 transparencyFlag: transparencyIndex > -1);
 
-            var extension = new GifGraphicControlExtension(
+            GifGraphicControlExtension extension = new(
                 packed: packedValue,
                 delayTime: (ushort)metadata.FrameDelay,
                 transparencyIndex: unchecked((byte)transparencyIndex));
@@ -422,6 +422,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Writes the provided extension to the stream.
         /// </summary>
+        /// <typeparam name="TGifExtension">The type of gif extension.</typeparam>
         /// <param name="extension">The extension to write to the stream.</param>
         /// <param name="stream">The stream to write to.</param>
         private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
@@ -472,7 +473,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 sortFlag: false,
                 localColorTableSize: this.bitDepth - 1);
 
-            var descriptor = new GifImageDescriptor(
+            GifImageDescriptor descriptor = new(
                 left: 0,
                 top: 0,
                 width: (ushort)image.Width,
@@ -517,7 +518,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteImageData<TPixel>(IndexedImageFrame<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth);
+            using LzwEncoder encoder = new(this.memoryAllocator, (byte)this.bitDepth);
             encoder.Encode(((IPixelSource)image).PixelBuffer, stream);
         }
     }

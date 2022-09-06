@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.IO
         public override bool CanSeek { get; } = true;
 
         /// <inheritdoc/>
-        public override bool CanWrite { get; } = false;
+        public override bool CanWrite { get; }
 
         /// <summary>
         /// Gets remaining byte count available to read.

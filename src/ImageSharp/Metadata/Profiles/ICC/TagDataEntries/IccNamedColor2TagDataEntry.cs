@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -121,9 +121,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccNamedColor2TagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccNamedColor2TagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccNamedColor2TagDataEntry other)
@@ -140,28 +138,24 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
             return base.Equals(other)
                 && this.CoordinateCount == other.CoordinateCount
-                && string.Equals(this.Prefix, other.Prefix)
-                && string.Equals(this.Suffix, other.Suffix)
+                && string.Equals(this.Prefix, other.Prefix, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.Suffix, other.Suffix, StringComparison.OrdinalIgnoreCase)
                 && this.VendorFlags == other.VendorFlags
                 && this.Colors.AsSpan().SequenceEqual(other.Colors);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is IccNamedColor2TagDataEntry other && this.Equals(other);
-        }
+            => obj is IccNamedColor2TagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Signature,
                 this.CoordinateCount,
                 this.Prefix,
                 this.Suffix,
                 this.VendorFlags,
                 this.Colors);
-        }
     }
 }

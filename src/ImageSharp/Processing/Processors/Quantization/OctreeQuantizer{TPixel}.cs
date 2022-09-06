@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -16,6 +17,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [SuppressMessage(
+        "Design",
+        "CA1001:Types that own disposable fields should be disposable",
+        Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
     public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -48,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.pixelMap = default;
             this.palette = default;
-            this.isDithering = !(this.Options.Dither is null);
+            this.isDithering = this.Options.Dither is not null;
             this.isDisposed = false;
         }
 
@@ -473,7 +478,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     if (this.leaf)
                     {
                         // Set the color of the palette entry
-                        var vector = Vector3.Clamp(
+                        Vector3 vector = Vector3.Clamp(
                             new Vector3(this.red, this.green, this.blue) / this.pixelCount,
                             Vector3.Zero,
                             new Vector3(255));

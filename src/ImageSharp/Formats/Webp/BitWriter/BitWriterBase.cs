@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
@@ -38,6 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
         /// Used internally for cloning.
         /// </summary>
+        /// <param name="buffer">The byte buffer.</param>
         private protected BitWriterBase(byte[] buffer) => this.buffer = buffer;
 
         public byte[] Buffer => this.buffer;
@@ -102,12 +102,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="metadataBytes">The metadata profile bytes.</param>
         /// <returns>The metadata chunk size in bytes.</returns>
-        protected uint MetadataChunkSize(byte[] metadataBytes)
+        protected static uint MetadataChunkSize(byte[] metadataBytes)
         {
             uint metaSize = (uint)metadataBytes.Length;
-            uint metaChunkSize = WebpConstants.ChunkHeaderSize + metaSize + (metaSize & 1);
-
-            return metaChunkSize;
+            return WebpConstants.ChunkHeaderSize + metaSize + (metaSize & 1);
         }
 
         /// <summary>
@@ -115,12 +113,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         /// </summary>
         /// <param name="alphaBytes">The alpha chunk bytes.</param>
         /// <returns>The alpha data chunk size in bytes.</returns>
-        protected uint AlphaChunkSize(Span<byte> alphaBytes)
+        protected static uint AlphaChunkSize(Span<byte> alphaBytes)
         {
             uint alphaSize = (uint)alphaBytes.Length + 1;
-            uint alphaChunkSize = WebpConstants.ChunkHeaderSize + alphaSize + (alphaSize & 1);
-
-            return alphaChunkSize;
+            return WebpConstants.ChunkHeaderSize + alphaSize + (alphaSize & 1);
         }
 
         /// <summary>

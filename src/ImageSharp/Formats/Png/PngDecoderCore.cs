@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var metadata = new ImageMetadata();
+            ImageMetadata metadata = new();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            var metadata = new ImageMetadata();
+            ImageMetadata metadata = new();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
@@ -434,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The data containing physical data.</param>
         private static void ReadPhysicalChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
         {
-            var physicalChunk = PhysicalChunkData.Parse(data);
+            PhysicalChunkData physicalChunk = PhysicalChunkData.Parse(data);
 
             metadata.ResolutionUnits = physicalChunk.UnitSpecifier == byte.MinValue
                 ? PixelResolutionUnit.AspectRatio
@@ -560,7 +560,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
+            using ZlibInflateStream deframeStream = new(this.currentStream, this.ReadNextDataChunk);
             deframeStream.AllocateNewBytes(chunk.Length, true);
             DeflateStream dataStream = deframeStream.CompressedStream;
 
@@ -1018,7 +1018,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string value = PngConstants.Encoding.GetString(data[(zeroIndex + 1)..]);
 
-            if (!this.TryReadTextChunkMetadata(baseMetadata, name, value))
+            if (!TryReadTextChunkMetadata(baseMetadata, name, value))
             {
                 metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
             }
@@ -1058,8 +1058,8 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed) &&
-                !this.TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed)
+                && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
             {
                 metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
             }
@@ -1074,10 +1074,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>True if metadata was successfully parsed from the text chunk. False if the
         /// text chunk was not identified as metadata, and should be stored in the metadata
         /// object unmodified.</returns>
-        private bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
+        private static bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
         {
             if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
-                this.TryReadLegacyExifTextChunk(baseMetadata, chunkText))
+                TryReadLegacyExifTextChunk(baseMetadata, chunkText))
             {
                 // Successfully parsed legacy exif data from text
                 return true;
@@ -1096,7 +1096,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
         /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
-        private bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+        private static bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
         {
             ReadOnlySpan<char> dataSpan = data.AsSpan();
             dataSpan = dataSpan.TrimStart();
@@ -1219,10 +1219,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             fixed (byte* compressedDataBase = compressedData)
             {
                 using IMemoryOwner<byte> destBuffer = this.memoryAllocator.Allocate<byte>(this.configuration.StreamProcessingBufferSize);
-                using var memoryStreamOutput = new MemoryStream(compressedData.Length);
-                using var memoryStreamInput = new UnmanagedMemoryStream(compressedDataBase, compressedData.Length);
-                using var bufferedStream = new BufferedReadStream(this.configuration, memoryStreamInput);
-                using var inflateStream = new ZlibInflateStream(bufferedStream);
+                using MemoryStream memoryStreamOutput = new(compressedData.Length);
+                using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
+                using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
+                using ZlibInflateStream inflateStream = new(bufferedStream);
 
                 Span<byte> destUncompressedData = destBuffer.GetSpan();
                 if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
@@ -1358,7 +1358,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else if (IsXmpTextData(keywordBytes))
             {
-                var xmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
+                XmpProfile xmpProfile = new(data[dataStartIdx..].ToArray());
                 metadata.XmpProfile = xmpProfile;
             }
             else
@@ -1561,18 +1561,17 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 return (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
             }
-            else
-            {
-                PngThrowHelper.ThrowInvalidChunkType();
 
-                // The IDE cannot detect the throw here.
-                return default;
-            }
+            PngThrowHelper.ThrowInvalidChunkType();
+
+            // The IDE cannot detect the throw here.
+            return default;
         }
 
         /// <summary>
         /// Attempts to read the length of the next chunk.
         /// </summary>
+        /// <param name="result">The result length. If the return type is <see langword="false"/> this parameter is passed uninitialized.</param>
         /// <returns>
         /// Whether the length was read.
         /// </returns>
@@ -1613,10 +1612,13 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Keywords should not be empty or have leading or trailing whitespace.
             name = PngConstants.Encoding.GetString(keywordBytes);
-            return !string.IsNullOrWhiteSpace(name) && !name.StartsWith(" ") && !name.EndsWith(" ");
+            return !string.IsNullOrWhiteSpace(name)
+                && !name.StartsWith(" ", StringComparison.Ordinal)
+                && !name.EndsWith(" ", StringComparison.Ordinal);
         }
 
-        private static bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes) => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
+        private static bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes)
+            => keywordBytes.SequenceEqual(PngConstants.XmpKeyword);
 
         private void SwapScanlineBuffers()
             => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);

@@ -15,25 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     public readonly struct YCbCr : IEquatable<YCbCr>
     {
         private static readonly Vector3 Min = Vector3.Zero;
-        private static readonly Vector3 Max = new Vector3(255);
-
-        /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the Cb chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public readonly float Cb;
-
-        /// <summary>
-        /// Gets the Cr chroma component.
-        /// <remarks>A value ranging between 0 and 255.</remarks>
-        /// </summary>
-        public readonly float Cr;
+        private static readonly Vector3 Max = new(255);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
@@ -59,6 +41,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.Cb = vector.Y;
             this.Cr = vector.Z;
         }
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public readonly float Y { get; }
+
+        /// <summary>
+        /// Gets the Cb chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public readonly float Cb { get; }
+
+        /// <summary>
+        /// Gets the Cr chroma component.
+        /// <remarks>A value ranging between 0 and 255.</remarks>
+        /// </summary>
+        public readonly float Cr { get; }
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects for equality.
@@ -94,10 +94,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(YCbCr other)
-        {
-            return this.Y.Equals(other.Y)
-                && this.Cb.Equals(other.Cb)
-                && this.Cr.Equals(other.Cr);
-        }
+            => this.Y.Equals(other.Y)
+            && this.Cb.Equals(other.Cb)
+            && this.Cr.Equals(other.Cr);
     }
 }

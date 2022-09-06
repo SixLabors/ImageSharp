@@ -160,10 +160,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
 
-            this.WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
             this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
             this.WriteImage(stream, image.Frames.RootFrame);
-            this.WriteColorProfile(stream, iccProfileData, buffer);
+            WriteColorProfile(stream, iccProfileData, buffer);
 
             stream.Flush();
         }
@@ -184,34 +184,33 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int hResolution = 0;
             int vResolution = 0;
 
-            if (metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            if (metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio
+                && metadata.HorizontalResolution > 0
+                && metadata.VerticalResolution > 0)
             {
-                if (metadata.HorizontalResolution > 0 && metadata.VerticalResolution > 0)
+                switch (metadata.ResolutionUnits)
                 {
-                    switch (metadata.ResolutionUnits)
-                    {
-                        case PixelResolutionUnit.PixelsPerInch:
+                    case PixelResolutionUnit.PixelsPerInch:
 
-                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.VerticalResolution));
-                            break;
+                        hResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.HorizontalResolution));
+                        vResolution = (int)Math.Round(UnitConverter.InchToMeter(metadata.VerticalResolution));
+                        break;
 
-                        case PixelResolutionUnit.PixelsPerCentimeter:
+                    case PixelResolutionUnit.PixelsPerCentimeter:
 
-                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.HorizontalResolution));
-                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.VerticalResolution));
-                            break;
+                        hResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.HorizontalResolution));
+                        vResolution = (int)Math.Round(UnitConverter.CmToMeter(metadata.VerticalResolution));
+                        break;
 
-                        case PixelResolutionUnit.PixelsPerMeter:
-                            hResolution = (int)Math.Round(metadata.HorizontalResolution);
-                            vResolution = (int)Math.Round(metadata.VerticalResolution);
+                    case PixelResolutionUnit.PixelsPerMeter:
+                        hResolution = (int)Math.Round(metadata.HorizontalResolution);
+                        vResolution = (int)Math.Round(metadata.VerticalResolution);
 
-                            break;
-                    }
+                        break;
                 }
             }
 
-            var infoHeader = new BmpInfoHeader(
+            BmpInfoHeader infoHeader = new(
                 headerSize: infoHeaderSize,
                 height: height,
                 width: width,
@@ -248,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The stream to write to.</param>
         /// <param name="iccProfileData">The color profile data.</param>
         /// <param name="buffer">The buffer.</param>
-        private void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
+        private static void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
         {
             if (iccProfileData != null)
             {
@@ -270,9 +269,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="iccProfileSize">The size in bytes of the color profile.</param>
         /// <param name="infoHeader">The information header to write.</param>
         /// <param name="buffer">The buffer to write to.</param>
-        private void WriteBitmapFileHeader(Stream stream, int infoHeaderSize, int colorPaletteSize, int iccProfileSize, BmpInfoHeader infoHeader, Span<byte> buffer)
+        private static void WriteBitmapFileHeader(Stream stream, int infoHeaderSize, int colorPaletteSize, int iccProfileSize, BmpInfoHeader infoHeader, Span<byte> buffer)
         {
-            var fileHeader = new BmpFileHeader(
+            BmpFileHeader fileHeader = new(
                 type: BmpConstants.TypeMarkers.Bitmap,
                 fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + iccProfileSize + infoHeader.ImageSize,
                 reserved: 0,
@@ -555,7 +554,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 if (pixelRowSpan.Length % 2 != 0)
                 {
-                    stream.WriteByte((byte)((pixelRowSpan[pixelRowSpan.Length - 1] << 4) | 0));
+                    stream.WriteByte((byte)((pixelRowSpan[^1] << 4) | 0));
                 }
 
                 for (int i = 0; i < rowPadding; i++)

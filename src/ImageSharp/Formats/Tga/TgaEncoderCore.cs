@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using SixLabors.ImageSharp.Advanced;
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 imageDescriptor |= 0x1;
             }
 
-            var fileHeader = new TgaFileHeader(
+            TgaFileHeader fileHeader = new(
                 idLength: 0,
                 colorMapType: 0,
                 imageType: imageType,
@@ -158,8 +159,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 case TgaBitsPerPixel.Pixel32:
                     this.Write32Bit(stream, pixels);
                     break;
-                default:
-                    break;
             }
         }
 
@@ -181,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     TPixel currentPixel = pixelRow[x];
                     currentPixel.ToRgba32(ref color);
-                    byte equalPixelCount = this.FindEqualPixels(pixelRow, x);
+                    byte equalPixelCount = FindEqualPixels(pixelRow, x);
 
                     if (equalPixelCount > 0)
                     {
@@ -193,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     else
                     {
                         // Write Raw Packet (i.e., Non-Run-Length Encoded):
-                        byte unEqualPixelCount = this.FindUnEqualPixels(pixelRow, x);
+                        byte unEqualPixelCount = FindUnEqualPixels(pixelRow, x);
                         stream.WriteByte(unEqualPixelCount);
                         this.WritePixel(stream, currentPixel, color);
                         x++;
@@ -227,7 +226,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     break;
 
                 case TgaBitsPerPixel.Pixel16:
-                    var bgra5551 = new Bgra5551(color.ToVector4());
+                    Bgra5551 bgra5551 = new(color.ToVector4());
                     BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
                     stream.WriteByte(this.buffer[0]);
                     stream.WriteByte(this.buffer[1]);
@@ -246,8 +245,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     stream.WriteByte(color.R);
                     stream.WriteByte(color.A);
                     break;
-                default:
-                    break;
             }
         }
 
@@ -258,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixelRow">A pixel row of the image to encode.</param>
         /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
+        private static byte FindEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte equalPixelCount = 0;
@@ -291,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixelRow">A pixel row of the image to encode.</param>
         /// <param name="xStart">X coordinate to start searching for the unequal pixels.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindUnEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
+        private static byte FindUnEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte unEqualPixelCount = 0;
@@ -419,12 +416,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
         /// </summary>
+        /// <typeparam name="TPixel">The type of pixel format.</typeparam>
         /// <param name="sourcePixel">The pixel to get the luminance from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance<TPixel>(TPixel sourcePixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var vector = sourcePixel.ToVector4();
+            Vector4 vector = sourcePixel.ToVector4();
             return ColorNumerics.GetBT709Luminance(ref vector, 256);
         }
     }

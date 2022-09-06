@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -41,8 +41,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc />
         public bool Equals(IccSampledCurveElement other)
-        {
-            return this.Equals((IccCurveSegment)other);
-        }
+            => this.Equals((IccCurveSegment)other);
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+            => this.Equals(obj as IccSampledCurveElement);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+            => HashCode.Combine(base.GetHashCode(), this.CurveEntries);
     }
 }

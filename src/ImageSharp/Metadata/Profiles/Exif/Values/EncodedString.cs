@@ -79,6 +79,28 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <param name="encodedString">The <see cref="EncodedString"/> to convert.</param>
         public static explicit operator string(EncodedString encodedString) => encodedString.Text;
 
+        /// <summary>
+        /// Checks whether two <see cref="EncodedString"/> structures are equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="EncodedString"/> operand.</param>
+        /// <param name="right">The right hand <see cref="EncodedString"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
+        public static bool operator ==(EncodedString left, EncodedString right) => left.Equals(right);
+
+        /// <summary>
+        /// Checks whether two <see cref="EncodedString"/> structures are not equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="EncodedString"/> operand.</param>
+        /// <param name="right">The right hand <see cref="EncodedString"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
+        public static bool operator !=(EncodedString left, EncodedString right) => !(left == right);
+
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is EncodedString other && this.Equals(other);
 

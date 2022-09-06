@@ -34,7 +34,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// </summary>
         private readonly int predsWidth;
 
-        // Array to record the position of the top sample to pass to the prediction functions.
+        /// <summary>
+        /// Array to record the position of the top sample to pass to the prediction functions.
+        /// </summary>
         private readonly byte[] vp8TopLeftI4 =
         {
             17, 21, 25, 29,
@@ -46,9 +48,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         private int currentMbIdx;
 
         private int nzIdx;
-
-        private int predIdx;
-
         private int yTopIdx;
 
         private int uvTopIdx;
@@ -69,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.yTopIdx = 0;
             this.uvTopIdx = 0;
             this.predsWidth = (4 * mbw) + 1;
-            this.predIdx = this.predsWidth;
+            this.PredIdx = this.predsWidth;
             this.YuvIn = new byte[WebpConstants.Bps * 16];
             this.YuvOut = new byte[WebpConstants.Bps * 16];
             this.YuvOut2 = new byte[WebpConstants.Bps * 16];
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Scratch3 = new int[16];
 
             // To match the C initial values of the reference implementation, initialize all with 204.
-            byte defaultInitVal = 204;
+            const byte defaultInitVal = 204;
             this.YuvIn.AsSpan().Fill(defaultInitVal);
             this.YuvOut.AsSpan().Fill(defaultInitVal);
             this.YuvOut2.AsSpan().Fill(defaultInitVal);
@@ -160,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         /// <summary>
         /// Gets the current start index of the intra mode predictors.
         /// </summary>
-        public int PredIdx => this.predIdx;
+        public int PredIdx { get; private set; }
 
         /// <summary>
         /// Gets the non-zero pattern.
@@ -238,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void Init() => this.Reset();
 
-        public void InitFilter()
+        public static void InitFilter()
         {
             // TODO: add support for autofilter
         }
@@ -299,9 +298,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> yuvIn = this.YuvIn.AsSpan(YOffEnc);
             Span<byte> uIn = this.YuvIn.AsSpan(UOffEnc);
             Span<byte> vIn = this.YuvIn.AsSpan(VOffEnc);
-            this.ImportBlock(ySrc, yStride, yuvIn, w, h, 16);
-            this.ImportBlock(uSrc, uvStride, uIn, uvw, uvh, 8);
-            this.ImportBlock(vSrc, uvStride, vIn, uvw, uvh, 8);
+            ImportBlock(ySrc, yStride, yuvIn, w, h, 16);
+            ImportBlock(uSrc, uvStride, uIn, uvw, uvh, 8);
+            ImportBlock(vSrc, uvStride, vIn, uvw, uvh, 8);
 
             if (!importBoundarySamples)
             {
@@ -331,9 +330,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     vLeft[0] = v[uvStartIdx - 1 - uvStride];
                 }
 
-                this.ImportLine(y[(yStartIdx - 1)..], yStride, yLeft[1..], h, 16);
-                this.ImportLine(u[(uvStartIdx - 1)..], uvStride, uLeft[1..], uvh, 8);
-                this.ImportLine(v[(uvStartIdx - 1)..], uvStride, vLeft[1..], uvh, 8);
+                ImportLine(y[(yStartIdx - 1)..], yStride, yLeft[1..], h, 16);
+                ImportLine(u[(uvStartIdx - 1)..], uvStride, uLeft[1..], uvh, 8);
+                ImportLine(v[(uvStartIdx - 1)..], uvStride, vLeft[1..], uvh, 8);
             }
 
             Span<byte> yTop = this.YTop.AsSpan(this.yTopIdx, 16);
@@ -344,9 +343,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
             else
             {
-                this.ImportLine(y[(yStartIdx - yStride)..], 1, yTop, w, 16);
-                this.ImportLine(u[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx, 8), uvw, 8);
-                this.ImportLine(v[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx + 8, 8), uvw, 8);
+                ImportLine(y[(yStartIdx - yStride)..], 1, yTop, w, 16);
+                ImportLine(u[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx, 8), uvw, 8);
+                ImportLine(v[(uvStartIdx - uvStride)..], 1, this.UvTop.AsSpan(this.uvTopIdx + 8, 8), uvw, 8);
             }
         }
 
@@ -386,7 +385,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public int MbAnalyzeBestIntra16Mode()
         {
-            int maxMode = MaxIntra16Mode;
+            const int maxMode = MaxIntra16Mode;
             int mode;
             int bestAlpha = DefaultAlpha;
             int bestMode = 0;
@@ -394,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.MakeLuma16Preds();
             for (mode = 0; mode < maxMode; mode++)
             {
-                var histo = new Vp8Histogram();
+                Vp8Histogram histo = new();
                 histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)
@@ -411,15 +410,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public int MbAnalyzeBestIntra4Mode(int bestAlpha)
         {
             byte[] modes = new byte[16];
-            int maxMode = MaxIntra4Mode;
-            var totalHisto = new Vp8Histogram();
+            const int maxMode = MaxIntra4Mode;
+            Vp8Histogram totalHisto = new();
             int curHisto = 0;
             this.StartI4();
             do
             {
                 int mode;
                 int bestModeAlpha = DefaultAlpha;
-                var histos = new Vp8Histogram[2];
+                Vp8Histogram[] histos = new Vp8Histogram[2];
                 Span<byte> src = this.YuvIn.AsSpan(YOffEnc + WebpLookupTables.Vp8Scan[this.I4]);
 
                 this.MakeIntra4Preds();
@@ -459,13 +458,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             int bestAlpha = DefaultAlpha;
             int smallestAlpha = 0;
             int bestMode = 0;
-            int maxMode = MaxUvMode;
+            const int maxMode = MaxUvMode;
             int mode;
 
             this.MakeChroma8Preds();
             for (mode = 0; mode < maxMode; ++mode)
             {
-                var histo = new Vp8Histogram();
+                Vp8Histogram histo = new();
                 histo.CollectHistogram(this.YuvIn.AsSpan(UOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]), 16, 16 + 4 + 4);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)
@@ -487,7 +486,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public void SetIntra16Mode(int mode)
         {
-            Span<byte> preds = this.Preds.AsSpan(this.predIdx);
+            Span<byte> preds = this.Preds.AsSpan(this.PredIdx);
             for (int y = 0; y < 4; y++)
             {
                 preds[..4].Fill((byte)mode);
@@ -500,7 +499,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public void SetIntra4Mode(byte[] modes)
         {
             int modesIdx = 0;
-            int predIdx = this.predIdx;
+            int predIdx = this.PredIdx;
             for (int y = 4; y > 0; y--)
             {
                 modes.AsSpan(modesIdx, 4).CopyTo(this.Preds.AsSpan(predIdx));
@@ -542,7 +541,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         public short[] GetCostModeI4(byte[] modes)
         {
             int predsWidth = this.predsWidth;
-            int predIdx = this.predIdx;
+            int predIdx = this.PredIdx;
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
             int left = x == 0 ? this.Preds[predIdx + (y * predsWidth) - 1] : modes[this.I4 - 1];
@@ -635,7 +634,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             {
                 this.currentMbIdx++;
                 this.nzIdx++;
-                this.predIdx += 4;
+                this.PredIdx += 4;
                 this.yTopIdx += 16;
                 this.uvTopIdx += 16;
             }
@@ -772,35 +771,35 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<int> leftNz = this.LeftNz;
 
             // Top-Y
-            topNz[0] = this.Bit(tnz, 12);
-            topNz[1] = this.Bit(tnz, 13);
-            topNz[2] = this.Bit(tnz, 14);
-            topNz[3] = this.Bit(tnz, 15);
+            topNz[0] = Bit(tnz, 12);
+            topNz[1] = Bit(tnz, 13);
+            topNz[2] = Bit(tnz, 14);
+            topNz[3] = Bit(tnz, 15);
 
             // Top-U
-            topNz[4] = this.Bit(tnz, 18);
-            topNz[5] = this.Bit(tnz, 19);
+            topNz[4] = Bit(tnz, 18);
+            topNz[5] = Bit(tnz, 19);
 
             // Top-V
-            topNz[6] = this.Bit(tnz, 22);
-            topNz[7] = this.Bit(tnz, 23);
+            topNz[6] = Bit(tnz, 22);
+            topNz[7] = Bit(tnz, 23);
 
             // DC
-            topNz[8] = this.Bit(tnz, 24);
+            topNz[8] = Bit(tnz, 24);
 
             // left-Y
-            leftNz[0] = this.Bit(lnz, 3);
-            leftNz[1] = this.Bit(lnz, 7);
-            leftNz[2] = this.Bit(lnz, 11);
-            leftNz[3] = this.Bit(lnz, 15);
+            leftNz[0] = Bit(lnz, 3);
+            leftNz[1] = Bit(lnz, 7);
+            leftNz[2] = Bit(lnz, 11);
+            leftNz[3] = Bit(lnz, 15);
 
             // left-U
-            leftNz[4] = this.Bit(lnz, 17);
-            leftNz[5] = this.Bit(lnz, 19);
+            leftNz[4] = Bit(lnz, 17);
+            leftNz[5] = Bit(lnz, 19);
 
             // left-V
-            leftNz[6] = this.Bit(lnz, 21);
-            leftNz[7] = this.Bit(lnz, 23);
+            leftNz[6] = Bit(lnz, 21);
+            leftNz[7] = Bit(lnz, 23);
 
             // left-DC is special, iterated separately.
         }
@@ -826,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.Nz[this.nzIdx] = nz;
         }
 
-        private void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)
+        private static void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)
         {
             int dstIdx = 0;
             int srcIdx = 0;
@@ -852,7 +851,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-        private void ImportLine(Span<byte> src, int srcStride, Span<byte> dst, int len, int totalLen)
+        private static void ImportLine(Span<byte> src, int srcStride, Span<byte> dst, int len, int totalLen)
         {
             int i;
             int srcIdx = 0;
@@ -892,7 +891,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.nzIdx = 1; // note: in reference source nz starts at -1.
             this.yTopIdx = 0;
             this.uvTopIdx = 0;
-            this.predIdx = this.predsWidth + (y * 4 * this.predsWidth);
+            this.PredIdx = this.predsWidth + (y * 4 * this.predsWidth);
 
             this.InitLeft();
         }
@@ -931,7 +930,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.TopDerr.AsSpan().Clear();
         }
 
-        private int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;
+        private static int Bit(uint nz, int n) => (nz & (1 << n)) != 0 ? 1 : 0;
 
         /// <summary>
         /// Set count down.

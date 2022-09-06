@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
     /// the rest can be used for vendor specific values
     /// </summary>
     [Flags]
-    public enum IccProfileFlag : int
+    public enum IccProfileFlag
     {
         /// <summary>
         /// No flags (equivalent to NotEmbedded and Independent)
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         Embedded = 1 << 0,
 
         /// <summary>
-        /// Profile is embedded within another file
+        /// Profile is not embedded within another file
         /// </summary>
         NotEmbedded = 0,
 

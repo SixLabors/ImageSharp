@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color ParseHex(string hex)
         {
-            var rgba = Rgba32.ParseHex(hex);
+            Rgba32 rgba = Rgba32.ParseHex(hex);
 
             return new Color(rgba);
         }
@@ -193,6 +193,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
+        /// <exception cref="ArgumentException">Input string is not in the correct format.</exception>
         public static Color Parse(string input)
         {
             Guard.NotNull(input, nameof(input));
@@ -241,7 +242,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The color having it's alpha channel altered.</returns>
         public Color WithAlpha(float alpha)
         {
-            var v = (Vector4)this;
+            Vector4 v = (Vector4)this;
             v.W = alpha;
             return new Color(v);
         }
@@ -286,14 +287,10 @@ namespace SixLabors.ImageSharp
         /// Bulk converts a span of <see cref="Color"/> to a span of a specified <typeparamref name="TPixel"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="source">The source color span.</param>
         /// <param name="destination">The destination pixel span.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void ToPixel<TPixel>(
-            Configuration configuration,
-            ReadOnlySpan<Color> source,
-            Span<TPixel> destination)
+        public static void ToPixel<TPixel>(ReadOnlySpan<Color> source, Span<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));

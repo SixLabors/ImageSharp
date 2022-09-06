@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
     /// </summary>
-    internal sealed class CieLchToCieLabConverter
+    internal static class CieLchToCieLabConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="CieLch"/> input to an instance of <see cref="CieLab"/> type.
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CieLab Convert(in CieLch input)
+        public static CieLab Convert(in CieLch input)
         {
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC

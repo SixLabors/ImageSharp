@@ -225,10 +225,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             for (int i = 0; i < this.components.Length; i++)
             {
-                var component = this.components[i] as ArithmeticDecodingComponent;
-                this.dcDecodingTables[i] = this.GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
+                ArithmeticDecodingComponent component = this.components[i] as ArithmeticDecodingComponent;
+                this.dcDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
                 component.DcStatistics = this.CreateOrGetStatisticsBin(true, component.DcTableId);
-                this.acDecodingTables[i] = this.GetArithmeticTable(arithmeticDecodingTables, false, component.AcTableId);
+                this.acDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, false, component.AcTableId);
                 component.AcStatistics = this.CreateOrGetStatisticsBin(false, component.AcTableId);
             }
         }
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.spectralConverter.InjectFrameData(frame, jpegData);
         }
 
-        private ArithmeticDecodingTable GetArithmeticTable(List<ArithmeticDecodingTable> arithmeticDecodingTables, bool isDcTable, int identifier)
+        private static ArithmeticDecodingTable GetArithmeticTable(List<ArithmeticDecodingTable> arithmeticDecodingTables, bool isDcTable, int identifier)
         {
             int tableClass = isDcTable ? 0 : 1;
 
@@ -306,15 +306,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 }
             }
 
-            var statistic = new ArithmeticStatistics(dc, identifier);
+            ArithmeticStatistics statistic = new(dc, identifier);
             this.statistics.Add(statistic);
             return statistic;
         }
 
         private void ParseBaselineData()
         {
-            foreach (ArithmeticDecodingComponent component in this.components)
+            for (int i = 0; i < this.components.Length; i++)
             {
+                ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
                 component.DcPredictor = 0;
                 component.DcContext = 0;
                 component.DcStatistics?.Reset();
@@ -441,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int k = 0; k < this.scanComponentCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
-                        var component = this.components[order] as ArithmeticDecodingComponent;
+                        ArithmeticDecodingComponent component = this.components[order] as ArithmeticDecodingComponent;
 
                         ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
                         ref ArithmeticDecodingTable acDecodingTable = ref this.acDecodingTables[component.AcTableId];
@@ -491,7 +492,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineDataSingleComponent()
         {
-            var component = this.frame.Components[0] as ArithmeticDecodingComponent;
+            ArithmeticDecodingComponent component = this.frame.Components[0] as ArithmeticDecodingComponent;
             int mcuLines = this.frame.McusPerColumn;
             int w = component.WidthInBlocks;
             int h = component.SamplingFactors.Height;
@@ -537,7 +538,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseBaselineDataNonInterleaved()
         {
-            var component = (ArithmeticDecodingComponent)this.components[this.frame.ComponentOrder[0]];
+            ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[this.frame.ComponentOrder[0]];
             ref JpegBitReader reader = ref this.scanBuffer;
 
             int w = component.WidthInBlocks;
@@ -586,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     for (int k = 0; k < this.scanComponentCount; k++)
                     {
                         int order = this.frame.ComponentOrder[k];
-                        var component = this.components[order] as ArithmeticDecodingComponent;
+                        ArithmeticDecodingComponent component = this.components[order] as ArithmeticDecodingComponent;
                         ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
 
                         int h = component.HorizontalSamplingFactor;
@@ -628,7 +629,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private void ParseProgressiveDataNonInterleaved()
         {
-            var component = this.components[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
+            ArithmeticDecodingComponent component = this.components[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
             ref JpegBitReader reader = ref this.scanBuffer;
 
             int w = component.WidthInBlocks;
@@ -1140,7 +1141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             for (int i = 0; i < this.components.Length; i++)
             {
-                var component = this.components[i] as ArithmeticDecodingComponent;
+                ArithmeticDecodingComponent component = this.components[i] as ArithmeticDecodingComponent;
                 component.DcPredictor = 0;
             }
 

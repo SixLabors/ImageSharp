@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
+
 namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
@@ -8,7 +10,8 @@ namespace SixLabors.ImageSharp.Advanced
     /// The only thing that matters is the class name.
     /// There is no need to use or inherit from the PreserveAttribute class in each environment.
     /// </summary>
-    internal sealed class PreserveAttribute : System.Attribute
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class PreserveAttribute : Attribute
     {
     }
 }

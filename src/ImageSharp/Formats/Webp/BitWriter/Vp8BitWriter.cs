@@ -433,27 +433,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 isVp8X = true;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += this.MetadataChunkSize(exifBytes);
+                riffSize += MetadataChunkSize(exifBytes);
             }
 
             if (xmpProfile != null)
             {
                 isVp8X = true;
                 xmpBytes = xmpProfile.Data;
-                riffSize += this.MetadataChunkSize(xmpBytes);
+                riffSize += MetadataChunkSize(xmpBytes);
             }
 
             if (iccProfile != null)
             {
                 isVp8X = true;
                 iccProfileBytes = iccProfile.ToByteArray();
-                riffSize += this.MetadataChunkSize(iccProfileBytes);
+                riffSize += MetadataChunkSize(iccProfileBytes);
             }
 
             if (hasAlpha)
             {
                 isVp8X = true;
-                riffSize += this.AlphaChunkSize(alphaData);
+                riffSize += AlphaChunkSize(alphaData);
             }
 
             if (isVp8X)

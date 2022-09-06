@@ -20,11 +20,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private static readonly Lazy<PixelTypeInfo> LazyInfo = new(() => PixelTypeInfo.Create<TPixel>(), true);
+        private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(() => default(TPixel).CreatePixelOperations(), true);
 
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
-        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
+#pragma warning disable CA1000 // Do not declare static members on generic types
+        public static PixelOperations<TPixel> Instance => LazyInstance.Value;
+#pragma warning restore CA1000 // Do not declare static members on generic types
 
         /// <summary>
         /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.

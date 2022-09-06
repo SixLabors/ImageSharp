@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -14,30 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     {
         private static readonly Vector4 Min = Vector4.Zero;
         private static readonly Vector4 Max = Vector4.One;
-
-        /// <summary>
-        /// Gets the cyan color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float C;
-
-        /// <summary>
-        /// Gets the magenta color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float M;
-
-        /// <summary>
-        /// Gets the yellow color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the keyline black color component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float K;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
@@ -65,6 +41,30 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.Y = vector.Z;
             this.K = vector.W;
         }
+
+        /// <summary>
+        /// Gets the cyan color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float C { get; }
+
+        /// <summary>
+        /// Gets the magenta color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float M { get; }
+
+        /// <summary>
+        /// Gets the yellow color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Y { get; }
+
+        /// <summary>
+        /// Gets the keyline black color component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float K { get; }
 
         /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for equality.
@@ -101,11 +101,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Cmyk other)
-        {
-            return this.C.Equals(other.C)
-                && this.M.Equals(other.M)
-                && this.Y.Equals(other.Y)
-                && this.K.Equals(other.K);
-        }
+            => this.C.Equals(other.C)
+            && this.M.Equals(other.M)
+            && this.Y.Equals(other.Y)
+            && this.K.Equals(other.K);
     }
 }

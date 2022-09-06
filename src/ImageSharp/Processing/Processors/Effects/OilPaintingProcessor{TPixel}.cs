@@ -30,24 +30,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public OilPaintingProcessor(Configuration configuration, OilPaintingProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            int brushSize = this.definition.BrushSize;
-            if (brushSize <= 0 || brushSize > source.Height || brushSize > source.Width)
-            {
-                throw new ArgumentOutOfRangeException(nameof(brushSize));
-            }
+            int brushSize = Math.Clamp(this.definition.BrushSize, 1, Math.Min(source.Width, source.Height));
 
             using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size());
 
             source.CopyTo(targetPixels);
 
-            var operation = new RowIntervalOperation(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, this.definition.Levels);
+            RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, this.definition.Levels);
             ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 this.SourceRectangle,
@@ -147,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                 int offsetX = x + fxr;
                                 offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
-                                var vector = sourceOffsetRow[offsetX].ToVector4();
+                                Vector4 vector = sourceOffsetRow[offsetX].ToVector4();
 
                                 float sourceRed = vector.X;
                                 float sourceBlue = vector.Z;

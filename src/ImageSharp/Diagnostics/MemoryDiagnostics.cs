@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Diagnostics
     /// <summary>
     /// Represents the method to handle <see cref="MemoryDiagnostics.UndisposedAllocation"/>.
     /// </summary>
+    /// <param name="allocationStackTrace">The allocation stack trace.</param>
     public delegate void UndisposedAllocationDelegate(string allocationStackTrace);
 
     /// <summary>

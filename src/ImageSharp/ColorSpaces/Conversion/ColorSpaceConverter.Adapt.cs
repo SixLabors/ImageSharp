@@ -150,9 +150,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var linearInput = this.ToLinearRgb(color);
+            var linearInput = ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
-            return this.ToRgb(linearOutput);
+            return ToRgb(linearOutput);
         }
     }
 }

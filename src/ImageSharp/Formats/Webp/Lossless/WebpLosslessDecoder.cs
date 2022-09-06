@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var decoder = new Vp8LDecoder(width, height, this.memoryAllocator))
+            using (Vp8LDecoder decoder = new(width, height, this.memoryAllocator))
             {
                 this.DecodeImageStream(decoder, width, height, true);
                 this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 decoder.Metadata.ColorCacheSize = 0;
             }
 
-            this.UpdateDecoder(decoder, transformXSize, transformYSize);
+            UpdateDecoder(decoder, transformXSize, transformYSize);
             if (isLevel0)
             {
                 // level 0 complete.
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
         {
-            int lastPixel = 0;
+            const int lastPixel = 0;
             int width = decoder.Width;
             int height = decoder.Height;
             int row = lastPixel / width;
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 if (hTreeGroup[0].IsTrivialCode)
                 {
                     pixelData[decodedPixels] = hTreeGroup[0].LiteralArb;
-                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                    AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                     continue;
                 }
 
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                     if (code == PackedNonLiteralCode)
                     {
-                        this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                        AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                         continue;
                     }
                 }
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         pixelData[decodedPixels] = (uint)(((byte)alpha << 24) | ((byte)red << 16) | ((byte)code << 8) | (byte)blue);
                     }
 
-                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                    AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                 }
                 else if (code < lenCodeLimit)
                 {
@@ -333,7 +333,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     pixelData[decodedPixels] = colorCache.Lookup(key);
-                    this.AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                    AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
                 }
                 else
                 {
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
         }
 
-        private void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, Span<uint> pixelData, ref int lastCached)
+        private static void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, Span<uint> pixelData, ref int lastCached)
         {
             col++;
             decodedPixels++;
@@ -414,8 +414,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             int tableSize = TableSize[colorCacheBits];
-            var huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
-            var hTreeGroups = new HTreeGroup[numHTreeGroups];
+            HuffmanCode[] huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
+            HTreeGroup[] hTreeGroups = new HTreeGroup[numHTreeGroups];
             Span<HuffmanCode> huffmanTable = huffmanTables.AsSpan();
             int[] codeLengths = new int[maxAlphabetSize];
             for (int i = 0; i < numHTreeGroupsMax; i++)
@@ -488,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 hTreeGroup.UsePackedTable = !hTreeGroup.IsTrivialCode && maxBits < HuffmanUtils.HuffmanPackedBits;
                 if (hTreeGroup.UsePackedTable)
                 {
-                    this.BuildPackedTable(hTreeGroup);
+                    BuildPackedTable(hTreeGroup);
                 }
             }
 
@@ -546,9 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
-            int size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
-
-            return size;
+            return HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
         }
 
         private void ReadHuffmanCodeLengths(Span<HuffmanCode> table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
@@ -622,8 +620,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="decoder">Vp8LDecoder where the transformations will be stored.</param>
         private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
         {
-            var transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
-            var transform = new Vp8LTransform(transformType, xSize, ySize);
+            Vp8LTransformType transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
+            Vp8LTransform transform = new(transformType, xSize, ySize);
 
             // Each transform is allowed to be used only once.
             foreach (Vp8LTransform decoderTransform in decoder.Transforms)
@@ -643,11 +641,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // The transform data contains color table size and the entries in the color table.
                     // 8 bit value for color table size.
                     uint numColors = this.bitReader.ReadValue(8) + 1;
-                    int bits = numColors > 16 ? 0
-                                     : numColors > 4 ? 1
-                                     : numColors > 2 ? 2
-                                     : 3;
-                    transform.Bits = bits;
+                    if (numColors > 16)
+                    {
+                        transform.Bits = 0;
+                    }
+                    else if (numColors > 4)
+                    {
+                        transform.Bits = 1;
+                    }
+                    else if (numColors > 2)
+                    {
+                        transform.Bits = 2;
+                    }
+                    else
+                    {
+                        transform.Bits = 3;
+                    }
+
                     using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
                     {
                         int finalNumColors = 1 << (8 >> transform.Bits);
@@ -660,15 +670,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 case Vp8LTransformType.PredictorTransform:
                 case Vp8LTransformType.CrossColorTransform:
-                {
+
                     // The first 3 bits of prediction data define the block width and height in number of bits.
                     transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
                     int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
                     int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
-                    IMemoryOwner<uint> transformData = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
-                    transform.Data = transformData;
+                    transform.Data = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
                     break;
-                }
             }
 
             decoder.Transforms.Add(transform);
@@ -687,8 +695,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             for (int i = transforms.Count - 1; i >= 0; i--)
             {
                 Vp8LTransform transform = transforms[i];
-                Vp8LTransformType transformType = transform.TransformType;
-                switch (transformType)
+                switch (transform.TransformType)
                 {
                     case Vp8LTransformType.PredictorTransform:
                         using (IMemoryOwner<uint> output = memoryAllocator.Allocate<uint>(pixelData.Length, AllocationOptions.Clean))
@@ -806,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             dec.ExtractPalettedAlphaRows(row > lastRow ? lastRow : row);
         }
 
-        private void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
+        private static void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
         {
             int numBits = decoder.Metadata.HuffmanSubSampleBits;
             decoder.Width = width;
@@ -831,7 +838,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             return code.Value;
         }
 
-        private void BuildPackedTable(HTreeGroup hTreeGroup)
+        private static void BuildPackedTable(HTreeGroup hTreeGroup)
         {
             for (uint code = 0; code < HuffmanUtils.HuffmanPackedTableSize; code++)
             {
@@ -859,6 +866,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// Decodes the next Huffman code from the bit-stream.
         /// FillBitWindow() needs to be called at minimum every second call to ReadSymbol, in order to pre-fetch enough bits.
         /// </summary>
+        /// <param name="table">The Huffman table.</param>
         private uint ReadSymbol(Span<HuffmanCode> table)
         {
             uint val = (uint)this.bitReader.PrefetchBits();

@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// </content>
     public partial class ColorSpaceConverter
     {
-        private static readonly YCbCrAndRgbConverter YCbCrAndRgbConverter = new YCbCrAndRgbConverter();
-
         /// <summary>
         /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="YCbCr"/>.
         /// </summary>
@@ -124,7 +122,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Cmyk> source, Span<YCbCr> destination)
+        public static void Convert(ReadOnlySpan<Cmyk> source, Span<YCbCr> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -136,7 +134,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Cmyk sp = ref Unsafe.Add(ref sourceRef, i);
                 ref YCbCr dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToYCbCr(sp);
+                dp = ToYCbCr(sp);
             }
         }
 
@@ -145,7 +143,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Hsl> source, Span<YCbCr> destination)
+        public static void Convert(ReadOnlySpan<Hsl> source, Span<YCbCr> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -157,7 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Hsl sp = ref Unsafe.Add(ref sourceRef, i);
                 ref YCbCr dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToYCbCr(sp);
+                dp = ToYCbCr(sp);
             }
         }
 
@@ -166,7 +164,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Hsv> source, Span<YCbCr> destination)
+        public static void Convert(ReadOnlySpan<Hsv> source, Span<YCbCr> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -178,7 +176,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Hsv sp = ref Unsafe.Add(ref sourceRef, i);
                 ref YCbCr dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToYCbCr(sp);
+                dp = ToYCbCr(sp);
             }
         }
 
@@ -208,7 +206,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<LinearRgb> source, Span<YCbCr> destination)
+        public static void Convert(ReadOnlySpan<LinearRgb> source, Span<YCbCr> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -220,7 +218,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref LinearRgb sp = ref Unsafe.Add(ref sourceRef, i);
                 ref YCbCr dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToYCbCr(sp);
+                dp = ToYCbCr(sp);
             }
         }
 
@@ -250,7 +248,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Rgb> source, Span<YCbCr> destination)
+        public static void Convert(ReadOnlySpan<Rgb> source, Span<YCbCr> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -262,7 +260,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Rgb sp = ref Unsafe.Add(ref sourceRef, i);
                 ref YCbCr dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToYCbCr(sp);
+                dp = ToYCbCr(sp);
             }
         }
 
@@ -273,7 +271,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in CieLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -285,7 +283,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in CieLch color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -297,7 +295,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in CieLuv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -309,7 +307,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -321,7 +319,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in CieXyz color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = this.ToRgb(color);
 
             return YCbCrAndRgbConverter.Convert(rgb);
         }
@@ -331,9 +329,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in Cmyk color)
+        public static YCbCr ToYCbCr(in Cmyk color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return YCbCrAndRgbConverter.Convert(rgb);
         }
@@ -343,9 +341,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in Hsl color)
+        public static YCbCr ToYCbCr(in Hsl color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return YCbCrAndRgbConverter.Convert(rgb);
         }
@@ -355,9 +353,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in Hsv color)
+        public static YCbCr ToYCbCr(in Hsv color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return YCbCrAndRgbConverter.Convert(rgb);
         }
@@ -369,7 +367,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in HunterLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -379,9 +377,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in LinearRgb color)
+        public static YCbCr ToYCbCr(in LinearRgb color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return YCbCrAndRgbConverter.Convert(rgb);
         }
@@ -393,7 +391,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="YCbCr"/></returns>
         public YCbCr ToYCbCr(in Lms color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToYCbCr(xyzColor);
         }
@@ -403,6 +401,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(in Rgb color) => YCbCrAndRgbConverter.Convert(color);
+        public static YCbCr ToYCbCr(in Rgb color) => YCbCrAndRgbConverter.Convert(color);
     }
 }

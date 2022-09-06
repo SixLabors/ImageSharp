@@ -72,9 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator ==(PngTextData left, PngTextData right)
-        {
-            return left.Equals(right);
-        }
+            => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="PngTextData"/> objects. The result specifies whether the values
@@ -90,9 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         public static bool operator !=(PngTextData left, PngTextData right)
-        {
-            return !(left == right);
-        }
+            => !(left == right);
 
         /// <summary>
         /// Indicates whether this instance and a specified object are equal.
@@ -105,9 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// same value; otherwise, false.
         /// </returns>
         public override bool Equals(object obj)
-        {
-            return obj is PngTextData other && this.Equals(other);
-        }
+            => obj is PngTextData other && this.Equals(other);
 
         /// <summary>
         /// Returns the hash code for this instance.
@@ -115,7 +109,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
-        public override int GetHashCode() => HashCode.Combine(this.Keyword, this.Value, this.LanguageTag, this.TranslatedKeyword);
+        public override int GetHashCode()
+            => HashCode.Combine(this.Keyword, this.Value, this.LanguageTag, this.TranslatedKeyword);
 
         /// <summary>
         /// Returns the fully qualified type name of this instance.
@@ -123,7 +118,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>
         /// A <see cref="T:System.String"/> containing a fully qualified type name.
         /// </returns>
-        public override string ToString() => $"PngTextData [ Name={this.Keyword}, Value={this.Value} ]";
+        public override string ToString()
+            => $"PngTextData [ Name={this.Keyword}, Value={this.Value} ]";
 
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.
@@ -133,11 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </returns>
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(PngTextData other)
-        {
-            return this.Keyword.Equals(other.Keyword)
-                   && this.Value.Equals(other.Value)
-                   && this.LanguageTag.Equals(other.LanguageTag)
-                   && this.TranslatedKeyword.Equals(other.TranslatedKeyword);
-        }
+            => this.Keyword.Equals(other.Keyword, StringComparison.OrdinalIgnoreCase)
+            && this.Value.Equals(other.Value, StringComparison.OrdinalIgnoreCase)
+            && this.LanguageTag.Equals(other.LanguageTag, StringComparison.OrdinalIgnoreCase)
+            && this.TranslatedKeyword.Equals(other.TranslatedKeyword, StringComparison.OrdinalIgnoreCase);
     }
 }

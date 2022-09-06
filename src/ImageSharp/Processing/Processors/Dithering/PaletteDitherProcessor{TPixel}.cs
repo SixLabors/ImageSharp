@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
             this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
-            Color.ToPixel(sourcePalette, this.paletteOwner.Memory.Span);
+            Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
 
             this.ditherProcessor = new DitherProcessor(
                 this.Configuration,

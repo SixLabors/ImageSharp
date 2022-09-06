@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             int length = Math.Min(this.colorPalette.Length, options.MaxColors);
             TPixel[] palette = new TPixel[length];
 
-            Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
+            Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
             return new PaletteQuantizer<TPixel>(configuration, options, palette);
         }
     }

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static float[] Create8x8FloatData()
         {
-            var result = new float[64];
+            float[] result = new float[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8IntData()
         {
-            var result = new int[64];
+            int[] result = new int[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static short[] Create8x8ShortData()
         {
-            var result = new short[64];
+            short[] result = new short[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
         {
             var rnd = new Random(seed);
-            var result = new int[64];
+            int[] result = new int[64];
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -222,7 +222,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             using var ms = new MemoryStream(bytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
-            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            JpegDecoderOptions options = new();
+            var decoder = new JpegDecoderCore(options);
             if (metaDataOnly)
             {
                 decoder.Identify(bufferedStream, cancellationToken: default);

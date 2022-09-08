@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
@@ -50,24 +51,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffFrameMetadata_CloneIsDeep<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                TiffFrameMetadata meta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-                var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
-                VerifyExpectedTiffFrameMetaDataIsPresent(cloneSameAsSampleMetaData);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            TiffFrameMetadata meta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+            var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
+            VerifyExpectedTiffFrameMetaDataIsPresent(cloneSameAsSampleMetaData);
 
-                var clone = (TiffFrameMetadata)meta.DeepClone();
+            var clone = (TiffFrameMetadata)meta.DeepClone();
 
-                clone.BitsPerPixel = TiffBitsPerPixel.Bit8;
-                clone.Compression = TiffCompression.None;
-                clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
-                clone.Predictor = TiffPredictor.Horizontal;
+            clone.BitsPerPixel = TiffBitsPerPixel.Bit8;
+            clone.Compression = TiffCompression.None;
+            clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
+            clone.Predictor = TiffPredictor.Horizontal;
 
-                Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
-                Assert.False(meta.Compression == clone.Compression);
-                Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
-                Assert.False(meta.Predictor == clone.Predictor);
-            }
+            Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
+            Assert.False(meta.Compression == clone.Compression);
+            Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
+            Assert.False(meta.Predictor == clone.Predictor);
         }
 
         private static void VerifyExpectedTiffFrameMetaDataIsPresent(TiffFrameMetadata frameMetaData)
@@ -119,23 +118,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void MetadataProfiles<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
           where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = ignoreMetadata }))
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+            using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+            TiffMetadata meta = image.Metadata.GetTiffMetadata();
+            ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
+
+            Assert.NotNull(meta);
+            if (ignoreMetadata)
             {
-                TiffMetadata meta = image.Metadata.GetTiffMetadata();
-                ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
-                Assert.NotNull(meta);
-                if (ignoreMetadata)
-                {
-                    Assert.Null(rootFrameMetaData.XmpProfile);
-                    Assert.Null(rootFrameMetaData.ExifProfile);
-                }
-                else
-                {
-                    Assert.NotNull(rootFrameMetaData.XmpProfile);
-                    Assert.NotNull(rootFrameMetaData.ExifProfile);
-                    Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
-                    Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
-                }
+                Assert.Null(rootFrameMetaData.XmpProfile);
+                Assert.Null(rootFrameMetaData.ExifProfile);
+            }
+            else
+            {
+                Assert.NotNull(rootFrameMetaData.XmpProfile);
+                Assert.NotNull(rootFrameMetaData.ExifProfile);
+                Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
+                Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
             }
         }
 
@@ -158,63 +157,61 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void BaselineTags<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
-                Assert.Equal(32, rootFrame.Width);
-                Assert.Equal(32, rootFrame.Height);
-                Assert.NotNull(rootFrame.Metadata.XmpProfile);
-                Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
+            Assert.Equal(32, rootFrame.Width);
+            Assert.Equal(32, rootFrame.Height);
+            Assert.NotNull(rootFrame.Metadata.XmpProfile);
+            Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
 
-                ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
-                TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
-                Assert.NotNull(exifProfile);
+            ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
+            TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
+            Assert.NotNull(exifProfile);
 
-                // The original exifProfile has 30 values, but 4 of those values will be stored in the TiffFrameMetaData
-                // and removed from the profile on decode.
-                Assert.Equal(26, exifProfile.Values.Count);
-                Assert.Equal(TiffBitsPerPixel.Bit4, tiffFrameMetadata.BitsPerPixel);
-                Assert.Equal(TiffCompression.Lzw, tiffFrameMetadata.Compression);
-                Assert.Equal("This is Название", exifProfile.GetValue(ExifTag.ImageDescription).Value);
-                Assert.Equal("This is Изготовитель камеры", exifProfile.GetValue(ExifTag.Make).Value);
-                Assert.Equal("This is Модель камеры", exifProfile.GetValue(ExifTag.Model).Value);
-                Assert.Equal("IrfanView", exifProfile.GetValue(ExifTag.Software).Value);
-                Assert.Null(exifProfile.GetValue(ExifTag.DateTime)?.Value);
-                Assert.Equal("This is author1;Author2", exifProfile.GetValue(ExifTag.Artist).Value);
-                Assert.Null(exifProfile.GetValue(ExifTag.HostComputer)?.Value);
-                Assert.Equal("This is Авторские права", exifProfile.GetValue(ExifTag.Copyright).Value);
-                Assert.Equal(4, exifProfile.GetValue(ExifTag.Rating).Value);
-                Assert.Equal(75, exifProfile.GetValue(ExifTag.RatingPercent).Value);
-                var expectedResolution = new Rational(10000, 1000, simplify: false);
-                Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
-                Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
-                Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
-                Assert.Equal(new Number[] { 297u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
-                Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples)?.Value);
-                Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
-                Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat));
-                Assert.Equal(TiffPredictor.None, tiffFrameMetadata.Predictor);
-                Assert.Equal(PixelResolutionUnit.PixelsPerInch, UnitConverter.ExifProfileToResolutionUnit(exifProfile));
-                ushort[] colorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
-                Assert.NotNull(colorMap);
-                Assert.Equal(48, colorMap.Length);
-                Assert.Equal(10537, colorMap[0]);
-                Assert.Equal(14392, colorMap[1]);
-                Assert.Equal(58596, colorMap[46]);
-                Assert.Equal(3855, colorMap[47]);
-                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffFrameMetadata.PhotometricInterpretation);
-                Assert.Equal(1u, exifProfile.GetValue(ExifTag.SamplesPerPixel).Value);
+            // The original exifProfile has 30 values, but 4 of those values will be stored in the TiffFrameMetaData
+            // and removed from the profile on decode.
+            Assert.Equal(26, exifProfile.Values.Count);
+            Assert.Equal(TiffBitsPerPixel.Bit4, tiffFrameMetadata.BitsPerPixel);
+            Assert.Equal(TiffCompression.Lzw, tiffFrameMetadata.Compression);
+            Assert.Equal("This is Название", exifProfile.GetValue(ExifTag.ImageDescription).Value);
+            Assert.Equal("This is Изготовитель камеры", exifProfile.GetValue(ExifTag.Make).Value);
+            Assert.Equal("This is Модель камеры", exifProfile.GetValue(ExifTag.Model).Value);
+            Assert.Equal("IrfanView", exifProfile.GetValue(ExifTag.Software).Value);
+            Assert.Null(exifProfile.GetValue(ExifTag.DateTime)?.Value);
+            Assert.Equal("This is author1;Author2", exifProfile.GetValue(ExifTag.Artist).Value);
+            Assert.Null(exifProfile.GetValue(ExifTag.HostComputer)?.Value);
+            Assert.Equal("This is Авторские права", exifProfile.GetValue(ExifTag.Copyright).Value);
+            Assert.Equal(4, exifProfile.GetValue(ExifTag.Rating).Value);
+            Assert.Equal(75, exifProfile.GetValue(ExifTag.RatingPercent).Value);
+            var expectedResolution = new Rational(10000, 1000, simplify: false);
+            Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
+            Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
+            Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
+            Assert.Equal(new Number[] { 297u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
+            Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples)?.Value);
+            Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
+            Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat));
+            Assert.Equal(TiffPredictor.None, tiffFrameMetadata.Predictor);
+            Assert.Equal(PixelResolutionUnit.PixelsPerInch, UnitConverter.ExifProfileToResolutionUnit(exifProfile));
+            ushort[] colorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
+            Assert.NotNull(colorMap);
+            Assert.Equal(48, colorMap.Length);
+            Assert.Equal(10537, colorMap[0]);
+            Assert.Equal(14392, colorMap[1]);
+            Assert.Equal(58596, colorMap[46]);
+            Assert.Equal(3855, colorMap[47]);
+            Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffFrameMetadata.PhotometricInterpretation);
+            Assert.Equal(1u, exifProfile.GetValue(ExifTag.SamplesPerPixel).Value);
 
-                ImageMetadata imageMetaData = image.Metadata;
-                Assert.NotNull(imageMetaData);
-                Assert.Equal(PixelResolutionUnit.PixelsPerInch, imageMetaData.ResolutionUnits);
-                Assert.Equal(10, imageMetaData.HorizontalResolution);
-                Assert.Equal(10, imageMetaData.VerticalResolution);
+            ImageMetadata imageMetaData = image.Metadata;
+            Assert.NotNull(imageMetaData);
+            Assert.Equal(PixelResolutionUnit.PixelsPerInch, imageMetaData.ResolutionUnits);
+            Assert.Equal(10, imageMetaData.HorizontalResolution);
+            Assert.Equal(10, imageMetaData.VerticalResolution);
 
-                TiffMetadata tiffMetaData = image.Metadata.GetTiffMetadata();
-                Assert.NotNull(tiffMetaData);
-                Assert.Equal(ByteOrder.LittleEndian, tiffMetaData.ByteOrder);
-            }
+            TiffMetadata tiffMetaData = image.Metadata.GetTiffMetadata();
+            Assert.NotNull(tiffMetaData);
+            Assert.Equal(ByteOrder.LittleEndian, tiffMetaData.ByteOrder);
         }
 
         [Theory]
@@ -222,23 +219,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void SubfileType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                TiffMetadata meta = image.Metadata.GetTiffMetadata();
-                Assert.NotNull(meta);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            TiffMetadata meta = image.Metadata.GetTiffMetadata();
+            Assert.NotNull(meta);
 
-                Assert.Equal(2, image.Frames.Count);
+            Assert.Equal(2, image.Frames.Count);
 
-                ExifProfile frame0Exif = image.Frames[0].Metadata.ExifProfile;
-                Assert.Equal(TiffNewSubfileType.FullImage, (TiffNewSubfileType)frame0Exif.GetValue(ExifTag.SubfileType).Value);
-                Assert.Equal(255, image.Frames[0].Width);
-                Assert.Equal(255, image.Frames[0].Height);
+            ExifProfile frame0Exif = image.Frames[0].Metadata.ExifProfile;
+            Assert.Equal(TiffNewSubfileType.FullImage, (TiffNewSubfileType)frame0Exif.GetValue(ExifTag.SubfileType).Value);
+            Assert.Equal(255, image.Frames[0].Width);
+            Assert.Equal(255, image.Frames[0].Height);
 
-                ExifProfile frame1Exif = image.Frames[1].Metadata.ExifProfile;
-                Assert.Equal(TiffNewSubfileType.Preview, (TiffNewSubfileType)frame1Exif.GetValue(ExifTag.SubfileType).Value);
-                Assert.Equal(255, image.Frames[1].Width);
-                Assert.Equal(255, image.Frames[1].Height);
-            }
+            ExifProfile frame1Exif = image.Frames[1].Metadata.ExifProfile;
+            Assert.Equal(TiffNewSubfileType.Preview, (TiffNewSubfileType)frame1Exif.GetValue(ExifTag.SubfileType).Value);
+            Assert.Equal(255, image.Frames[1].Width);
+            Assert.Equal(255, image.Frames[1].Height);
         }
 
         [Theory]
@@ -247,7 +242,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Load Tiff image
-            using Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = false });
+            DecoderOptions options = new() { SkipMetadata = false };
+            using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
 
             ImageMetadata inputMetaData = image.Metadata;
             ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;

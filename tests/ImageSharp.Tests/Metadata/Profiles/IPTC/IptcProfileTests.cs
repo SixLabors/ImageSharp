@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 {
     public class IptcProfileTests
     {
-        private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
+        private static JpegDecoder JpegDecoder => new();
 
-        private static TiffDecoder TiffDecoder => new TiffDecoder() { IgnoreMetadata = false };
+        private static TiffDecoder TiffDecoder => new();
 
         public static IEnumerable<object[]> AllIptcTags()
         {
@@ -27,13 +27,29 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             }
         }
 
+        [Fact]
+        public void IptcProfile_WithUtf8Data_WritesEnvelopeRecord_Works()
+        {
+            // arrange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.City, "ESPAÑA");
+            profile.UpdateData();
+            byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
+
+            // act
+            byte[] profileBytes = profile.Data;
+
+            // assert
+            Assert.True(profileBytes.AsSpan(0, 8).SequenceEqual(expectedEnvelopeData));
+        }
+
         [Theory]
         [MemberData(nameof(AllIptcTags))]
         public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)
         {
             // arrange
             var profile = new IptcProfile();
-            var value = new string('s', tag.MaxLength() + 1);
+            string value = new('s', tag.MaxLength() + 1);
             int expectedLength = tag.MaxLength();
 
             // act
@@ -50,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var value = new string('s', tag.MaxLength() + 1);
+            string value = new('s', tag.MaxLength() + 1);
             int expectedLength = value.Length;
 
             // act
@@ -164,8 +180,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var expectedCaptionWriter = "unittest";
-            var expectedCaption = "test";
+            const string expectedCaptionWriter = "unittest";
+            const string expectedCaption = "test";
             profile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
             profile.SetValue(IptcTag.Caption, expectedCaption);
 
@@ -185,8 +201,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var captionWriter = "unittest";
-            var caption = "test";
+            const string captionWriter = "unittest";
+            const string caption = "test";
             profile.SetValue(IptcTag.CaptionWriter, captionWriter);
             profile.SetValue(IptcTag.Caption, caption);
 
@@ -222,8 +238,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             // arrange
             var image = new Image<Rgba32>(1, 1);
             image.Metadata.IptcProfile = new IptcProfile();
-            var expectedCaptionWriter = "unittest";
-            var expectedCaption = "test";
+            const string expectedCaptionWriter = "unittest";
+            const string expectedCaption = "test";
             image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
             image.Metadata.IptcProfile.SetValue(IptcTag.Caption, expectedCaption);
 
@@ -257,8 +273,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var expectedValue1 = "test";
-            var expectedValue2 = "another one";
+            const string expectedValue1 = "test";
+            const string expectedValue2 = "another one";
             profile.SetValue(tag, expectedValue1, false);
 
             // act
@@ -309,7 +325,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var expectedValue = "another one";
+            const string expectedValue = "another one";
             profile.SetValue(tag, "test", false);
 
             // act
@@ -330,7 +346,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             profile.SetValue(IptcTag.Byline, "test2");
 
             // act
-            var result = profile.RemoveValue(IptcTag.Byline);
+            bool result = profile.RemoveValue(IptcTag.Byline);
 
             // assert
             Assert.True(result, "removed result should be true");
@@ -346,7 +362,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             profile.SetValue(IptcTag.Byline, "test2");
 
             // act
-            var result = profile.RemoveValue(IptcTag.Byline, "test2");
+            bool result = profile.RemoveValue(IptcTag.Byline, "test2");
 
             // assert
             Assert.True(result, "removed result should be true");

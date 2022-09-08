@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class WebpMetaDataTests
     {
-        private static WebpDecoder WebpDecoder => new() { IgnoreMetadata = false };
+        private static WebpDecoder WebpDecoder => new();
 
         [Theory]
         [WithFile(TestImages.Webp.Lossy.BikeWithExif, PixelTypes.Rgba32, false)]
@@ -23,9 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLossyImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
-
-            using Image<TPixel> image = provider.GetImage(decoder);
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+            using Image<TPixel> image = provider.GetImage(WebpDecoder, options);
             if (ignoreMetadata)
             {
                 Assert.Null(image.Metadata.ExifProfile);
@@ -45,9 +45,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void IgnoreMetadata_ControlsWhetherExifIsParsed_WithLosslessImage<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
-
-            using Image<TPixel> image = provider.GetImage(decoder);
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+            using Image<TPixel> image = provider.GetImage(WebpDecoder, options);
             if (ignoreMetadata)
             {
                 Assert.Null(image.Metadata.ExifProfile);
@@ -71,9 +70,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void IgnoreMetadata_ControlsWhetherIccpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
-
-            using Image<TPixel> image = provider.GetImage(decoder);
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+            using Image<TPixel> image = provider.GetImage(WebpDecoder, options);
             if (ignoreMetadata)
             {
                 Assert.Null(image.Metadata.IccProfile);
@@ -91,9 +89,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public async Task IgnoreMetadata_ControlsWhetherXmpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
-
-            using Image<TPixel> image = await provider.GetImageAsync(decoder);
+            DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
+            using Image<TPixel> image = await provider.GetImageAsync(WebpDecoder, options);
             if (ignoreMetadata)
             {
                 Assert.Null(image.Metadata.XmpProfile);
@@ -178,29 +175,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType fileFormat)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> input = provider.GetImage(new WebpDecoder()))
+            using Image<TPixel> input = provider.GetImage(WebpDecoder);
+            ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
+            byte[] expectedProfileBytes = expectedProfile.ToByteArray();
+
+            using var memStream = new MemoryStream();
+            input.Save(memStream, new WebpEncoder()
             {
-                ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
-                byte[] expectedProfileBytes = expectedProfile.ToByteArray();
+                FileFormat = fileFormat
+            });
 
-                using (var memStream = new MemoryStream())
-                {
-                    input.Save(memStream, new WebpEncoder()
-                    {
-                        FileFormat = fileFormat
-                    });
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
+            byte[] actualProfileBytes = actualProfile.ToByteArray();
 
-                    memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
-                    {
-                        ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
-                        byte[] actualProfileBytes = actualProfile.ToByteArray();
-
-                        Assert.NotNull(actualProfile);
-                        Assert.Equal(expectedProfileBytes, actualProfileBytes);
-                    }
-                }
-            }
+            Assert.NotNull(actualProfile);
+            Assert.Equal(expectedProfileBytes, actualProfileBytes);
         }
 
         [Theory]

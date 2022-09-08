@@ -125,6 +125,12 @@ namespace SixLabors.ImageSharp.Tests
             // Discussion 1875: https://github.com/SixLabors/ImageSharp/discussions/1875
             public const string Issue1875 = "Png/raw-profile-type-exif.png";
 
+            // Issue 2217: https://github.com/SixLabors/ImageSharp/issues/2217
+            public const string Issue2217 = "Png/issues/Issue_2217_AdaptiveThresholdProcessor.png";
+
+            // Issue 2209: https://github.com/SixLabors/ImageSharp/issues/2209
+            public const string Issue2209IndexedWithTransparency = "Png/issues/Issue_2209.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -344,6 +350,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string RLE4Delta = "Bmp/pal4rletrns.bmp";
             public const string Rle4Delta320240 = "Bmp/rle4-delta-320x240.bmp";
             public const string Bit1 = "Bmp/pal1.bmp";
+            public const string Bit2 = "Bmp/pal2.bmp";
+            public const string Bit2Color = "Bmp/pal2color.bmp";
             public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
             public const string Bit4 = "Bmp/pal4.bmp";
             public const string Bit8 = "Bmp/test8.bmp";

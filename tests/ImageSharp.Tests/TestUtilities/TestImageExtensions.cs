@@ -327,7 +327,8 @@ namespace SixLabors.ImageSharp.Tests
 
             decoder ??= TestEnvironment.GetReferenceDecoder(referenceOutputFile);
 
-            return Image.Load<TPixel>(referenceOutputFile, decoder);
+            using FileStream stream = File.OpenRead(referenceOutputFile);
+            return decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
         }
 
         public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(
@@ -355,7 +356,8 @@ namespace SixLabors.ImageSharp.Tests
                     throw new Exception("Reference output file missing: " + path);
                 }
 
-                var tempImage = Image.Load<TPixel>(path, decoder);
+                using FileStream stream = File.OpenRead(path);
+                Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
                 temporaryFrameImages.Add(tempImage);
             }
 
@@ -383,13 +385,11 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
+            using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName))
-            {
-                return comparer.CompareImages(referenceImage, image);
-            }
+                appendPixelTypeToFileName);
+            return comparer.CompareImages(referenceImage, image);
         }
 
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(
@@ -534,9 +534,10 @@ namespace SixLabors.ImageSharp.Tests
 
             var testFile = TestFile.Create(path);
 
-            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+            referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
-            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            using var stream = new MemoryStream(testFile.Bytes);
+            using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
             {
                 comparer.VerifySimilarity(original, image);
             }
@@ -559,9 +560,10 @@ namespace SixLabors.ImageSharp.Tests
 
             var testFile = TestFile.Create(path);
 
-            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+            referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
-            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            using var stream = new MemoryStream(testFile.Bytes);
+            using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
             {
                 comparer.VerifySimilarity(original, image);
             }
@@ -584,23 +586,21 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                operation(image);
+            using Image<TPixel> image = provider.GetImage();
+            operation(image);
 
-                image.DebugSave(
-                    provider,
-                    testOutputDetails,
-                    appendPixelTypeToFileName: appendPixelTypeToFileName,
-                    appendSourceFileOrDescription: appendSourceFileOrDescription);
+            image.DebugSave(
+                provider,
+                testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName,
+                appendSourceFileOrDescription: appendSourceFileOrDescription);
 
-                image.CompareToReferenceOutput(
-                    comparer,
-                    provider,
-                    testOutputDetails,
-                    appendPixelTypeToFileName: appendPixelTypeToFileName,
-                    appendSourceFileOrDescription: appendSourceFileOrDescription);
-            }
+            image.CompareToReferenceOutput(
+                comparer,
+                provider,
+                testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName,
+                appendSourceFileOrDescription: appendSourceFileOrDescription);
         }
 
         /// <summary>
@@ -683,11 +683,11 @@ namespace SixLabors.ImageSharp.Tests
 
             referenceDecoder ??= TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-            using (var encodedImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
-            {
-                ImageComparer comparer = customComparer ?? ImageComparer.Exact;
-                comparer.VerifySimilarity(encodedImage, image);
-            }
+            using FileStream stream = File.OpenRead(actualOutputFile);
+            using Image<TPixel> encodedImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+
+            ImageComparer comparer = customComparer ?? ImageComparer.Exact;
+            comparer.VerifySimilarity(encodedImage, image);
 
             return actualOutputFile;
         }

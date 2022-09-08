@@ -33,6 +33,30 @@ namespace SixLabors.ImageSharp.Tests.Processing
         }
 
         [Theory]
+        [WithFile(TestImages.Png.Bradley01, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Bradley02, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Ducky, PixelTypes.Rgba32)]
+        public void CalculateIntegralImage_WithBounds_Rgba32Works(TestImageProvider<Rgba32> provider)
+        {
+            using Image<Rgba32> image = provider.GetImage();
+
+            Rectangle interest = new(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+
+            // Act:
+            Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage(interest);
+
+            // Assert:
+            VerifySumValues(provider, integralBuffer, interest, (Rgba32 pixel) =>
+            {
+                L8 outputPixel = default;
+
+                outputPixel.FromRgba32(pixel);
+
+                return outputPixel.PackedValue;
+            });
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.Bradley01, PixelTypes.L8)]
         [WithFile(TestImages.Png.Bradley02, PixelTypes.L8)]
         public void CalculateIntegralImage_L8Works(TestImageProvider<L8> provider)
@@ -43,7 +67,23 @@ namespace SixLabors.ImageSharp.Tests.Processing
             Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage();
 
             // Assert:
-            VerifySumValues(provider, integralBuffer, (L8 pixel) => { return pixel.PackedValue; });
+            VerifySumValues(provider, integralBuffer, (L8 pixel) => pixel.PackedValue);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Bradley01, PixelTypes.L8)]
+        [WithFile(TestImages.Png.Bradley02, PixelTypes.L8)]
+        public void CalculateIntegralImage_WithBounds_L8Works(TestImageProvider<L8> provider)
+        {
+            using Image<L8> image = provider.GetImage();
+
+            Rectangle interest = new(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+
+            // Act:
+            Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage(interest);
+
+            // Assert:
+            VerifySumValues(provider, integralBuffer, interest, (L8 pixel) => pixel.PackedValue);
         }
 
         private static void VerifySumValues<TPixel>(
@@ -51,8 +91,16 @@ namespace SixLabors.ImageSharp.Tests.Processing
             Buffer2D<ulong> integralBuffer,
             System.Func<TPixel, ulong> getPixel)
             where TPixel : unmanaged, IPixel<TPixel>
+            => VerifySumValues(provider, integralBuffer, integralBuffer.Bounds(), getPixel);
+
+        private static void VerifySumValues<TPixel>(
+            TestImageProvider<TPixel> provider,
+            Buffer2D<ulong> integralBuffer,
+            Rectangle bounds,
+            System.Func<TPixel, ulong> getPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            Image<TPixel> image = provider.GetImage();
+            Buffer2DRegion<TPixel> image = provider.GetImage().GetRootFramePixelBuffer().GetRegion(bounds);
 
             // Check top-left corner
             Assert.Equal(getPixel(image[0, 0]), integralBuffer[0, 0]);

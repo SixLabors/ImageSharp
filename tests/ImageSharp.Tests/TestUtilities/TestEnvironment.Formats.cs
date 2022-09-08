@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static partial class TestEnvironment
     {
-        private static readonly Lazy<Configuration> ConfigurationLazy = new Lazy<Configuration>(CreateDefaultConfiguration);
+        private static readonly Lazy<Configuration> ConfigurationLazy = new(CreateDefaultConfiguration);
 
         internal static Configuration Configuration => ConfigurationLazy.Value;
 
@@ -63,8 +63,8 @@ namespace SixLabors.ImageSharp.Tests
                 new WebpConfigurationModule(),
                 new TiffConfigurationModule());
 
-            IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
-            IImageEncoder bmpEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
+            IImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
+            IImageEncoder bmpEncoder = IsWindows ? SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
             // Magick codecs should work on all platforms
             cfg.ConfigureCodecs(
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
 
             cfg.ConfigureCodecs(
                 BmpFormat.Instance,
-                IsWindows ? (IImageDecoder)SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+                IsWindows ? SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
                 bmpEncoder,
                 new BmpImageFormatDetector());
 

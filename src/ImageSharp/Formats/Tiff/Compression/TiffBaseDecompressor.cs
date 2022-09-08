@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -34,13 +35,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="stripByteCount">The number of bytes to read from the input stream.</param>
         /// <param name="stripHeight">The height of the strip.</param>
         /// <param name="buffer">The output buffer for uncompressed data.</param>
-        public void Decompress(BufferedReadStream stream, ulong stripOffset, ulong stripByteCount, int stripHeight, Span<byte> buffer)
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        public void Decompress(BufferedReadStream stream, ulong stripOffset, ulong stripByteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
         {
             DebugGuard.MustBeLessThanOrEqualTo(stripOffset, (ulong)long.MaxValue, nameof(stripOffset));
             DebugGuard.MustBeLessThanOrEqualTo(stripByteCount, (ulong)long.MaxValue, nameof(stripByteCount));
 
             stream.Seek((long)stripOffset, SeekOrigin.Begin);
-            this.Decompress(stream, (int)stripByteCount, stripHeight, buffer);
+            this.Decompress(stream, (int)stripByteCount, stripHeight, buffer, cancellationToken);
 
             if ((long)stripOffset + (long)stripByteCount < stream.Position)
             {
@@ -55,6 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="byteCount">The number of bytes to read from the input stream.</param>
         /// <param name="stripHeight">The height of the strip.</param>
         /// <param name="buffer">The output buffer for uncompressed data.</param>
-        protected abstract void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer);
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        protected abstract void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken);
     }
 }

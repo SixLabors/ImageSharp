@@ -66,16 +66,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public const int HeaderSizeSize = 4;
 
-        /// <summary>
-        /// Maximum dimensions of a bitmap with or height: 2**31 - 1, since width and height are int32
-        /// </summary>
-        private const int MaximumBmpDimension = 2147483647;
-
-        /// <summary>
-        /// Maximum size of a bitmap width * height: 2**32, since size is uint32.
-        /// </summary>
-        private const long MaximumBmpSize = 4294967296;
-
         public BmpInfoHeader(
             int headerSize,
             int width,

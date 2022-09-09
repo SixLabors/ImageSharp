@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -348,6 +349,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
             Assert.NotNull(actualProfile);
             Assert.Equal(expectedProfileBytes, actualProfileBytes);
+        }
+
+        [Theory]
+        [InlineData(1, 66535)]
+        [InlineData(66535, 1)]
+        public void Encode_WorksWithSizeGreaterThen65k(int width, int height)
+        {
+            Exception exception = Record.Exception(() =>
+            {
+                using Image image = new Image<Rgba32>(width, height);
+                using var memStream = new MemoryStream();
+                image.Save(memStream, BmpEncoder);
+            });
+
+            Assert.Null(exception);
         }
 
         [Theory]

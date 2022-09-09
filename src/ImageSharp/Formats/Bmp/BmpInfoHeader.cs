@@ -542,17 +542,5 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             dest = this;
         }
-
-        internal void VerifyDimensions()
-        {
-            const int MaximumBmpDimension = 65535;
-
-            if (this.Width > MaximumBmpDimension || this.Height > MaximumBmpDimension)
-            {
-                throw new InvalidOperationException(
-                    $"The input bmp '{this.Width}x{this.Height}' is "
-                    + $"bigger then the max allowed size '{MaximumBmpDimension}x{MaximumBmpDimension}'");
-            }
-        }
     }
 }

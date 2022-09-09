@@ -1472,8 +1472,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
             }
 
-            this.infoHeader.VerifyDimensions();
-
             int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
             if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
             {

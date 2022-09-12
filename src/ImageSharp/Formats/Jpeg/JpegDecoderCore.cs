@@ -744,9 +744,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             stream.Read(this.temp, 0, JFifMarker.Length);
-            remaining -= JFifMarker.Length;
+            if (!JFifMarker.TryParse(this.temp, out this.jFif))
+            {
+                JpegThrowHelper.ThrowNotSupportedException("Unknown App0 Marker - Expected JFIF.");
+            }
 
-            _ = JFifMarker.TryParse(this.temp, out this.jFif);
+            remaining -= JFifMarker.Length;
 
             // TODO: thumbnail
             if (remaining > 0)

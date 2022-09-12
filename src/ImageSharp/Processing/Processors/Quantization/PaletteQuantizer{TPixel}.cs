@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,6 +14,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [SuppressMessage(
+        "Design",
+        "CA1001:Types that own disposable fields should be disposable",
+        Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
     internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {

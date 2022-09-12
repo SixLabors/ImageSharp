@@ -6,13 +6,11 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
@@ -143,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 Span<byte> alphaSpan = this.Alpha.Memory.Span;
                 if (this.AlphaFilterType == WebpAlphaFilterType.None)
                 {
-                    dataSpan.Slice(0, pixelCount).CopyTo(alphaSpan);
+                    dataSpan[..pixelCount].CopyTo(alphaSpan);
                     return;
                 }
 
@@ -166,8 +164,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     }
 
                     prev = dst;
-                    deltas = deltas.Slice(this.Width);
-                    dst = dst.Slice(this.Width);
+                    deltas = deltas[this.Width..];
+                    dst = dst[this.Width..];
                 }
             }
             else
@@ -199,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             Span<byte> alphaSpan = this.Alpha.Memory.Span;
-            Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
+            Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan[(this.Width * this.PrevRow)..];
             for (int y = firstRow; y < lastRow; y++)
             {
                 switch (this.AlphaFilterType)
@@ -216,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
 
                 prev = dst;
-                dst = dst.Slice(stride);
+                dst = dst[stride..];
             }
 
             this.PrevRow = lastRow - 1;
@@ -234,8 +232,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 Span<byte> output = this.Alpha.Memory.Span;
                 Span<uint> pixelData = this.Vp8LDec.Pixels.Memory.Span;
                 Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
-                Span<byte> dst = output.Slice(this.Width * firstRow);
-                Span<byte> input = pixelDataAsBytes.Slice(this.Vp8LDec.Width * firstRow);
+                Span<byte> dst = output[(this.Width * firstRow)..];
+                Span<byte> input = pixelDataAsBytes[(this.Vp8LDec.Width * firstRow)..];
 
                 if (this.Vp8LDec.Transforms.Count == 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
                 {
@@ -311,7 +309,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
@@ -345,7 +342,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
             }
             else
-#endif
             {
                 byte pred = (byte)(prev.IsEmpty ? 0 : prev[0]);
 
@@ -366,7 +362,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
             else
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
                 if (Avx2.IsSupported)
                 {
                     nint i;
@@ -386,7 +381,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
                     }
                 }
                 else
-#endif
                 {
                     for (int i = 0; i < width; i++)
                     {

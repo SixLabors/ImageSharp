@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             buffer[0] = GifConstants.ImageDescriptorLabel;
 
-            ref GifImageDescriptor dest = ref Unsafe.As<byte, GifImageDescriptor>(ref MemoryMarshal.GetReference(buffer.Slice(1)));
+            ref GifImageDescriptor dest = ref Unsafe.As<byte, GifImageDescriptor>(ref MemoryMarshal.GetReference(buffer[1..]));
 
             dest = this;
         }

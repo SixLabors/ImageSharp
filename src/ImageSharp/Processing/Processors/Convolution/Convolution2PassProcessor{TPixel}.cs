@@ -166,8 +166,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
-                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+                Span<Vector4> sourceBuffer = span[..this.bounds.Width];
+                Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
@@ -228,8 +228,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
-                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+                Span<Vector4> sourceBuffer = span[..this.bounds.Width];
+                Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
@@ -327,8 +327,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
-                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+                Span<Vector4> sourceBuffer = span[..this.bounds.Width];
+                Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
                 ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
 
@@ -392,8 +392,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
-                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+                Span<Vector4> sourceBuffer = span[..this.bounds.Width];
+                Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
                 ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
 

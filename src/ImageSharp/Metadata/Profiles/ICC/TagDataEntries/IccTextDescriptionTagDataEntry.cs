@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
             return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
 
-            CultureInfo GetCulture(uint value)
+            static CultureInfo GetCulture(uint value)
             {
                 if (value == 0)
                 {
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                     && p3 >= 0x41 && p3 <= 0x5A
                     && p4 >= 0x41 && p4 <= 0x5A)
                 {
-                    var culture = new string(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
+                    string culture = new(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
                     return new CultureInfo(culture);
                 }
 
@@ -132,9 +132,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc />
         public bool Equals(IccTextDescriptionTagDataEntry other)
@@ -150,29 +148,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
 
             return base.Equals(other)
-                && string.Equals(this.Ascii, other.Ascii)
-                && string.Equals(this.Unicode, other.Unicode)
-                && string.Equals(this.ScriptCode, other.ScriptCode)
+                && string.Equals(this.Ascii, other.Ascii, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.Unicode, other.Unicode, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.ScriptCode, other.ScriptCode, StringComparison.OrdinalIgnoreCase)
                 && this.UnicodeLanguageCode == other.UnicodeLanguageCode
                 && this.ScriptCodeCode == other.ScriptCodeCode;
         }
 
         /// <inheritdoc />
         public override bool Equals(object obj)
-        {
-            return obj is IccTextDescriptionTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccTextDescriptionTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Signature,
                 this.Ascii,
                 this.Unicode,
                 this.ScriptCode,
                 this.UnicodeLanguageCode,
                 this.ScriptCodeCode);
-        }
     }
 }

@@ -20,11 +20,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private static readonly Lazy<PixelTypeInfo> LazyInfo = new(() => PixelTypeInfo.Create<TPixel>(), true);
+        private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(() => default(TPixel).CreatePixelOperations(), true);
 
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
         /// </summary>
-        public static PixelOperations<TPixel> Instance { get; } = default(TPixel).CreatePixelOperations();
+#pragma warning disable CA1000 // Do not declare static members on generic types
+        public static PixelOperations<TPixel> Instance => LazyInstance.Value;
+#pragma warning restore CA1000 // Do not declare static members on generic types
 
         /// <summary>
         /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
@@ -134,9 +137,9 @@ namespace SixLabors.ImageSharp.PixelFormats
             int remainder = sourcePixels.Length - endOfCompleteSlices;
             if (remainder > 0)
             {
-                ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(endOfCompleteSlices);
-                Span<TPixel> d = destinationPixels.Slice(endOfCompleteSlices);
-                vectorSpan = vectorSpan.Slice(0, remainder);
+                ReadOnlySpan<TSourcePixel> s = sourcePixels[endOfCompleteSlices..];
+                Span<TPixel> d = destinationPixels[endOfCompleteSlices..];
+                vectorSpan = vectorSpan[..remainder];
                 PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
                 this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
             }
@@ -166,20 +169,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Bulk operation that packs 3 seperate RGB channels to <paramref name="destination"/>.
         /// The destination must have a padding of 3.
         /// </summary>
-        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
         /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
         /// <param name="blueChannel">A <see cref="ReadOnlySpan{T}"/> to the blue values.</param>
         /// <param name="destination">A <see cref="Span{T}"/> to the destination pixels.</param>
         internal virtual void PackFromRgbPlanes(
-            Configuration configuration,
             ReadOnlySpan<byte> redChannel,
             ReadOnlySpan<byte> greenChannel,
             ReadOnlySpan<byte> blueChannel,
             Span<TPixel> destination)
         {
-            Guard.NotNull(configuration, nameof(configuration));
-
             int count = redChannel.Length;
             GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 

@@ -195,191 +195,191 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             this.bitPosition = 0;
         }
 
-        private uint GetWhiteMakeupCode(uint runLength, out uint codeLength)
+        private static uint GetWhiteMakeupCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
-            if (WhiteLen5MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen5MakeupCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 5;
-                return WhiteLen5MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen6MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen6MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return WhiteLen6MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen7MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen7MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return WhiteLen7MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen8MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen8MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return WhiteLen8MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen9MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen9MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 9;
-                return WhiteLen9MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen11MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen11MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return WhiteLen11MakeupCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen12MakeupCodes.ContainsKey(runLength))
+            if (WhiteLen12MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return WhiteLen12MakeupCodes[runLength];
+                return value;
             }
 
             return 0;
         }
 
-        private uint GetBlackMakeupCode(uint runLength, out uint codeLength)
+        private static uint GetBlackMakeupCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
-            if (BlackLen10MakeupCodes.ContainsKey(runLength))
+            if (BlackLen10MakeupCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 10;
-                return BlackLen10MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen11MakeupCodes.ContainsKey(runLength))
+            if (BlackLen11MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return BlackLen11MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen12MakeupCodes.ContainsKey(runLength))
+            if (BlackLen12MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return BlackLen12MakeupCodes[runLength];
+                return value;
             }
 
-            if (BlackLen13MakeupCodes.ContainsKey(runLength))
+            if (BlackLen13MakeupCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 13;
-                return BlackLen13MakeupCodes[runLength];
+                return value;
             }
 
             return 0;
         }
 
-        private uint GetWhiteTermCode(uint runLength, out uint codeLength)
+        private static uint GetWhiteTermCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
-            if (WhiteLen4TermCodes.ContainsKey(runLength))
+            if (WhiteLen4TermCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 4;
-                return WhiteLen4TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen5TermCodes.ContainsKey(runLength))
+            if (WhiteLen5TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 5;
-                return WhiteLen5TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen6TermCodes.ContainsKey(runLength))
+            if (WhiteLen6TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return WhiteLen6TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen7TermCodes.ContainsKey(runLength))
+            if (WhiteLen7TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return WhiteLen7TermCodes[runLength];
+                return value;
             }
 
-            if (WhiteLen8TermCodes.ContainsKey(runLength))
+            if (WhiteLen8TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return WhiteLen8TermCodes[runLength];
+                return value;
             }
 
             return 0;
         }
 
-        private uint GetBlackTermCode(uint runLength, out uint codeLength)
+        private static uint GetBlackTermCode(uint runLength, out uint codeLength)
         {
             codeLength = 0;
 
-            if (BlackLen2TermCodes.ContainsKey(runLength))
+            if (BlackLen2TermCodes.TryGetValue(runLength, out uint value))
             {
                 codeLength = 2;
-                return BlackLen2TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen3TermCodes.ContainsKey(runLength))
+            if (BlackLen3TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 3;
-                return BlackLen3TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen4TermCodes.ContainsKey(runLength))
+            if (BlackLen4TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 4;
-                return BlackLen4TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen5TermCodes.ContainsKey(runLength))
+            if (BlackLen5TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 5;
-                return BlackLen5TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen6TermCodes.ContainsKey(runLength))
+            if (BlackLen6TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 6;
-                return BlackLen6TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen7TermCodes.ContainsKey(runLength))
+            if (BlackLen7TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 7;
-                return BlackLen7TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen8TermCodes.ContainsKey(runLength))
+            if (BlackLen8TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 8;
-                return BlackLen8TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen9TermCodes.ContainsKey(runLength))
+            if (BlackLen9TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 9;
-                return BlackLen9TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen10TermCodes.ContainsKey(runLength))
+            if (BlackLen10TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 10;
-                return BlackLen10TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen11TermCodes.ContainsKey(runLength))
+            if (BlackLen11TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 11;
-                return BlackLen11TermCodes[runLength];
+                return value;
             }
 
-            if (BlackLen12TermCodes.ContainsKey(runLength))
+            if (BlackLen12TermCodes.TryGetValue(runLength, out value))
             {
                 codeLength = 12;
-                return BlackLen12TermCodes[runLength];
+                return value;
             }
 
             return 0;
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// </summary>
         /// <param name="runLength">A run length needing a makeup code</param>
         /// <returns>The makeup length for <paramref name="runLength"/>.</returns>
-        protected uint GetBestFittingMakeupRunLength(uint runLength)
+        protected static uint GetBestFittingMakeupRunLength(uint runLength)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(runLength, MakeupRunLength[0], nameof(runLength));
 
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                 }
             }
 
-            return MakeupRunLength[MakeupRunLength.Length - 1];
+            return MakeupRunLength[^1];
         }
 
         /// <summary>
@@ -413,14 +413,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <param name="isWhiteRun">If <c>true</c>, the run is of white pixels.
         /// If <c>false</c> the run is of black pixels</param>
         /// <returns>The terminating code for a run of length <paramref name="runLength"/></returns>
-        protected uint GetTermCode(uint runLength, out uint codeLength, bool isWhiteRun)
+        protected static uint GetTermCode(uint runLength, out uint codeLength, bool isWhiteRun)
         {
             if (isWhiteRun)
             {
-                return this.GetWhiteTermCode(runLength, out codeLength);
+                return GetWhiteTermCode(runLength, out codeLength);
             }
 
-            return this.GetBlackTermCode(runLength, out codeLength);
+            return GetBlackTermCode(runLength, out codeLength);
         }
 
         /// <summary>
@@ -431,14 +431,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <param name="isWhiteRun">If <c>true</c>, the run is of white pixels.
         /// If <c>false</c> the run is of black pixels</param>
         /// <returns>The makeup code for a run of length <paramref name="runLength"/></returns>
-        protected uint GetMakeupCode(uint runLength, out uint codeLength, bool isWhiteRun)
+        protected static uint GetMakeupCode(uint runLength, out uint codeLength, bool isWhiteRun)
         {
             if (isWhiteRun)
             {
-                return this.GetWhiteMakeupCode(runLength, out codeLength);
+                return GetWhiteMakeupCode(runLength, out codeLength);
             }
 
-            return this.GetBlackMakeupCode(runLength, out codeLength);
+            return GetBlackMakeupCode(runLength, out codeLength);
         }
 
         /// <summary>
@@ -494,12 +494,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <summary>
         /// Writes a image compressed with CCITT T6 to the stream.
         /// </summary>
-        /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
+        /// <param name="rows">The pixels as 8-bit gray array.</param>
         /// <param name="height">The strip height.</param>
-        public override void CompressStrip(Span<byte> pixelsAsGray, int height)
+        public override void CompressStrip(Span<byte> rows, int height)
         {
-            DebugGuard.IsTrue(pixelsAsGray.Length / height == this.Width, "Values must be equals");
-            DebugGuard.IsTrue(pixelsAsGray.Length % height == 0, "Values must be equals");
+            DebugGuard.IsTrue(rows.Length / height == this.Width, "Values must be equals");
+            DebugGuard.IsTrue(rows.Length % height == 0, "Values must be equals");
 
             this.compressedDataBuffer.Clear();
             Span<byte> compressedData = this.compressedDataBuffer.GetSpan();
@@ -507,11 +507,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             this.bytePosition = 0;
             this.bitPosition = 0;
 
-            this.CompressStrip(pixelsAsGray, height, compressedData);
+            this.CompressStrip(rows, height, compressedData);
 
             // Write the compressed data to the stream.
             int bytesToWrite = this.bitPosition != 0 ? this.bytePosition + 1 : this.bytePosition;
-            this.Output.Write(compressedData.Slice(0, bytesToWrite));
+            this.Output.Write(compressedData[..bytesToWrite]);
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Color converter between HSV and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.
     /// </summary>
-    internal sealed class HsvAndRgbConverter
+    internal static class HsvAndRgbConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="Hsv"/> input to an instance of <see cref="Rgb"/> type.
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb Convert(in Hsv input)
+        public static Rgb Convert(in Hsv input)
         {
             float s = input.S;
             float v = input.V;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Hsv Convert(in Rgb input)
+        public static Hsv Convert(in Rgb input)
         {
             float r = input.R;
             float g = input.G;

@@ -25,9 +25,7 @@ namespace SixLabors.ImageSharp
         {
             VerifyShuffle4SpanInput(source, dest);
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Shuffle4Reduce(ref source, ref dest, control);
-#endif
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -52,9 +50,7 @@ namespace SixLabors.ImageSharp
         {
             VerifyShuffle4SpanInput(source, dest);
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Shuffle4Reduce(ref source, ref dest, shuffle.Control);
-#endif
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -80,9 +76,7 @@ namespace SixLabors.ImageSharp
             // Source length should be smaller than dest length, and divisible by 3.
             VerifyShuffle3SpanInput(source, dest);
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Shuffle3Reduce(ref source, ref dest, shuffle.Control);
-#endif
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -107,9 +101,7 @@ namespace SixLabors.ImageSharp
         {
             VerifyPad3Shuffle4SpanInput(source, dest);
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, shuffle.Control);
-#endif
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -134,9 +126,7 @@ namespace SixLabors.ImageSharp
         {
             VerifyShuffle4Slice3SpanInput(source, dest);
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, shuffle.Control);
-#endif
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -266,10 +256,10 @@ namespace SixLabors.ImageSharp
                 out int p1,
                 out int p0)
             {
-                p3 = control >> 6 & 0x3;
-                p2 = control >> 4 & 0x3;
-                p1 = control >> 2 & 0x3;
-                p0 = control >> 0 & 0x3;
+                p3 = (control >> 6) & 0x3;
+                p2 = (control >> 4) & 0x3;
+                p1 = (control >> 2) & 0x3;
+                p0 = (control >> 0) & 0x3;
             }
         }
     }

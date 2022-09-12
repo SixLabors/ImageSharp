@@ -51,7 +51,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             return data;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void RunCalculateAdlerTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateAdlerTest, HwIntrinsics.AllowAll);
 
@@ -69,6 +68,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 CalculateAdlerAndCompareToReference(testData[i]);
             }
         }
-#endif
     }
 }

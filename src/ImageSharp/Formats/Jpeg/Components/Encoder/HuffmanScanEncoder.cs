@@ -541,7 +541,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         internal static int GetHuffmanEncodingLength(uint value)
         {
             DebugGuard.IsTrue(value <= (1 << 16), "Huffman encoder is supposed to encode a value of 16bit size max");
-#if SUPPORTS_BITOPERATIONS
+
             // This should have been implemented as (BitOperations.Log2(value) + 1) as in non-intrinsic implementation
             // But internal log2 is implemented like this: (31 - (int)Lzcnt.LeadingZeroCount(value))
 
@@ -550,19 +550,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // Fallback code if Lzcnt is not supported still use if-check
             // But most modern CPUs support this instruction so this should not be a problem
             return 32 - BitOperations.LeadingZeroCount(value);
-#else
-            // Ideally:
-            // if 0 - return 0 in this case
-            // else - return log2(value) + 1
-            //
-            // Hack based on input value constraint:
-            // We know that input values are guaranteed to be maximum 16 bit large for huffman encoding
-            // We can safely shift input value for one bit -> log2(value << 1)
-            // Because of the 16 bit value constraint it won't overflow
-            // With that input value change we no longer need to add 1 before returning
-            // And this eliminates need to check if input value is zero - it is a standard convention which Log2SoftwareFallback adheres to
-            return Numerics.Log2(value << 1);
-#endif
         }
 
         /// <summary>

@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         {
             if (TryDetect(buffer, out CharacterCode code))
             {
-                string text = GetEncoding(code).GetString(buffer.Slice(CharacterCodeBytesLength));
+                string text = GetEncoding(code).GetString(buffer[CharacterCodeBytesLength..]);
                 encodedString = new EncodedString(code, text);
                 return true;
             }
@@ -74,30 +74,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             GetCodeBytes(encodedString.Code).CopyTo(destination);
 
             string text = encodedString.Text;
-            int count = Write(GetEncoding(encodedString.Code), text, destination.Slice(CharacterCodeBytesLength));
+            int count = Write(GetEncoding(encodedString.Code), text, destination[CharacterCodeBytesLength..]);
 
             return CharacterCodeBytesLength + count;
         }
 
         public static unsafe int Write(Encoding encoding, string value, Span<byte> destination)
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER || NET
             => encoding.GetBytes(value.AsSpan(), destination);
-#else
-        {
-            if (value.Length == 0)
-            {
-                return 0;
-            }
-
-            fixed (char* c = value)
-            {
-                fixed (byte* b = destination)
-                {
-                    return encoding.GetBytes(c, value.Length, b, destination.Length);
-                }
-            }
-        }
-#endif
 
         private static bool TryDetect(ReadOnlySpan<byte> buffer, out CharacterCode code)
         {

@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets or sets the target size to decode the image into.
         /// </summary>
-        public Size? TargetSize { get; set; } = null;
+        public Size? TargetSize { get; set; }
 
         /// <summary>
         /// Gets or sets the sampler to use when resizing during decoding.
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <summary>
         /// Gets or sets a value indicating whether to ignore encoded metadata when decoding.
         /// </summary>
-        public bool SkipMetadata { get; set; } = false;
+        public bool SkipMetadata { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum number of image frames to decode, inclusive.

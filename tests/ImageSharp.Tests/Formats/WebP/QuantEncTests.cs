@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void QuantizeBlock_Works() => RunQuantizeBlockTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void QuantizeBlock_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.AllowAll);
 
@@ -51,6 +50,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void QuantizeBlock_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunQuantizeBlockTest, HwIntrinsics.DisableAVX2);
-#endif
     }
 }

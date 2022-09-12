@@ -20,9 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
         private TgaMetadata(TgaMetadata other)
-        {
-            this.BitsPerPixel = other.BitsPerPixel;
-        }
+            => this.BitsPerPixel = other.BitsPerPixel;
 
         /// <summary>
         /// Gets or sets the number of bits per pixel.
@@ -30,9 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public TgaBitsPerPixel BitsPerPixel { get; set; } = TgaBitsPerPixel.Pixel24;
 
         /// <summary>
-        /// Gets or sets the the number of alpha bits per pixel.
+        /// Gets or sets the number of alpha bits per pixel.
         /// </summary>
-        public byte AlphaChannelBits { get; set; } = 0;
+        public byte AlphaChannelBits { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TgaMetadata(this);

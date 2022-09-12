@@ -22,29 +22,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
-        /// Gets the red component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float R;
-
-        /// <summary>
-        /// Gets the green component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float G;
-
-        /// <summary>
-        /// Gets the blue component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float B;
-
-        /// <summary>
-        /// Gets the LinearRgb color space <seealso cref="RgbWorkingSpaces"/>
-        /// </summary>
-        public readonly RgbWorkingSpace WorkingSpace;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="LinearRgb"/> struct.
         /// </summary>
         /// <param name="r">The red component ranging between 0 and 1.</param>
@@ -96,6 +73,29 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Gets the red component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float R { get; }
+
+        /// <summary>
+        /// Gets the green component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float G { get; }
+
+        /// <summary>
+        /// Gets the blue component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float B { get; }
+
+        /// <summary>
+        /// Gets the LinearRgb color space <seealso cref="RgbWorkingSpaces"/>
+        /// </summary>
+        public readonly RgbWorkingSpace WorkingSpace { get; }
+
+        /// <summary>
         /// Compares two <see cref="LinearRgb"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="LinearRgb"/> on the left side of the operand.</param>
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector3 ToVector3() => new Vector3(this.R, this.G, this.B);
+        public Vector3 ToVector3() => new(this.R, this.G, this.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -137,10 +137,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(LinearRgb other)
-        {
-            return this.R.Equals(other.R)
-                && this.G.Equals(other.G)
-                && this.B.Equals(other.B);
-        }
+            => this.R.Equals(other.R)
+            && this.G.Equals(other.G)
+            && this.B.Equals(other.B);
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -15,9 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="signature">The signature of this segment</param>
         protected IccCurveSegment(IccCurveSegmentSignature signature)
-        {
-            this.Signature = signature;
-        }
+            => this.Signature = signature;
 
         /// <summary>
         /// Gets the signature of this segment
@@ -39,5 +37,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
             return this.Signature == other.Signature;
         }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => this.Equals(obj as IccCurveSegment);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => this.Signature.GetHashCode();
     }
 }

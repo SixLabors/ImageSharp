@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -73,11 +72,9 @@ namespace SixLabors.ImageSharp.Memory
             this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
         }
 
-#if NETCOREAPP3_1_OR_GREATER
         // This delegate allows overriding the method returning the available system memory,
         // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
         internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-#endif
 
         /// <inheritdoc />
         protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
@@ -151,11 +148,9 @@ namespace SixLabors.ImageSharp.Memory
 
         private static long GetDefaultMaxPoolSizeBytes()
         {
-#if NETCOREAPP3_1_OR_GREATER
-            // On 64 bit .NET Core 3.1+, set the pool size to a portion of the total available memory.
-            // There is a bug in GC.GetGCMemoryInfo() on .NET 5 + 32 bit, making TotalAvailableMemoryBytes unreliable:
+            // On 64 bit set the pool size to a portion of the total available memory.
             // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327
-            if (Environment.Is64BitProcess || !RuntimeInformation.FrameworkDescription.StartsWith(".NET 5.0"))
+            if (Environment.Is64BitProcess)
             {
                 long total = GetTotalAvailableMemoryBytes();
 
@@ -165,7 +160,6 @@ namespace SixLabors.ImageSharp.Memory
                     return total / 8;
                 }
             }
-#endif
 
             // Stick to a conservative value of 128 Megabytes on other platforms and 32 bit .NET 5.0:
             return 128 * OneMegabyte;

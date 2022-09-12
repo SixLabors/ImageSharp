@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -87,9 +87,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccCrdInfoTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccCrdInfoTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccCrdInfoTagDataEntry other)
@@ -105,29 +103,25 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
 
             return base.Equals(other)
-                && string.Equals(this.PostScriptProductName, other.PostScriptProductName)
-                && string.Equals(this.RenderingIntent0Crd, other.RenderingIntent0Crd)
-                && string.Equals(this.RenderingIntent1Crd, other.RenderingIntent1Crd)
-                && string.Equals(this.RenderingIntent2Crd, other.RenderingIntent2Crd)
-                && string.Equals(this.RenderingIntent3Crd, other.RenderingIntent3Crd);
+                && string.Equals(this.PostScriptProductName, other.PostScriptProductName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.RenderingIntent0Crd, other.RenderingIntent0Crd, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.RenderingIntent1Crd, other.RenderingIntent1Crd, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.RenderingIntent2Crd, other.RenderingIntent2Crd, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(this.RenderingIntent3Crd, other.RenderingIntent3Crd, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is IccCrdInfoTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccCrdInfoTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Signature,
                 this.PostScriptProductName,
                 this.RenderingIntent0Crd,
                 this.RenderingIntent1Crd,
                 this.RenderingIntent2Crd,
                 this.RenderingIntent3Crd);
-        }
     }
 }

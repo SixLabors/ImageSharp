@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             Span<byte> greenData = data[1].GetSpan();
             Span<byte> blueData = data[2].GetSpan();
             Span<byte> alphaData = data[3].GetSpan();
-            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
+            Span<byte> bufferSpan = buffer[bufferStartIdx..];
 
             bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
             int offset = 0;

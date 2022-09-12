@@ -340,7 +340,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     0x0A, // Line ending CRLF
                     0x1A, // EOF
                     0x0A // LF
-                };
+            };
 
             Assert.Equal(expected, data);
         }

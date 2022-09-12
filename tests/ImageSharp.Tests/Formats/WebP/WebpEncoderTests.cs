@@ -326,13 +326,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void RunEncodeLossy_WithPeakImage_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.AllowAll);
 
         [Fact]
         public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
-#endif
 
         private static ImageComparer GetComparer(int quality)
         {

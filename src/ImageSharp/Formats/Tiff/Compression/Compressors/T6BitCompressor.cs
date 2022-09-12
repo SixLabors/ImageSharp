@@ -61,12 +61,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             {
                 Span<byte> row = pixelsAsGray.Slice(y * this.Width, this.Width);
                 uint a0 = 0;
-                uint a1 = row[0] == 0 ? 0 : this.FindRunEnd(row, 0);
-                uint b1 = referenceLine[0] == 0 ? 0 : this.FindRunEnd(referenceLine, 0);
+                uint a1 = row[0] == 0 ? 0 : FindRunEnd(row, 0);
+                uint b1 = referenceLine[0] == 0 ? 0 : FindRunEnd(referenceLine, 0);
 
                 while (true)
                 {
-                    uint b2 = this.FindRunEnd(referenceLine, b1);
+                    uint b2 = FindRunEnd(referenceLine, b1);
                     if (b2 < a1)
                     {
                         // Pass mode.
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                             d = -(int)(a1 - b1);
                         }
 
-                        if ((d >= -3) && (d <= 3))
+                        if (d is >= -3 and <= 3)
                         {
                             // Vertical mode.
                             (uint length, uint code) = VerticalCodes[d + 3];
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                             // Horizontal mode.
                             this.WriteCode(3, 1, compressedData);
 
-                            uint a2 = this.FindRunEnd(row, a1);
+                            uint a2 = FindRunEnd(row, a1);
                             if ((a0 + a1 == 0) || (row[(int)a0] != 0))
                             {
                                 this.WriteRun(a1 - a0, true, compressedData);
@@ -119,9 +119,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                     }
 
                     byte thisPixel = row[(int)a0];
-                    a1 = this.FindRunEnd(row, a0, thisPixel);
-                    b1 = this.FindRunEnd(referenceLine, a0, (byte)~thisPixel);
-                    b1 = this.FindRunEnd(referenceLine, b1, thisPixel);
+                    a1 = FindRunEnd(row, a0, thisPixel);
+                    b1 = FindRunEnd(referenceLine, a0, (byte)~thisPixel);
+                    b1 = FindRunEnd(referenceLine, b1, thisPixel);
                 }
 
                 // This row is now the reference line.
@@ -149,14 +149,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
         /// <returns>The index of the first pixel at or after <paramref name="startIndex"/>
         /// that does not match <paramref name="color"/>, or the length of <paramref name="row"/>,
         /// whichever comes first.</returns>
-        private uint FindRunEnd(Span<byte> row, uint startIndex, byte? color = null)
+        private static uint FindRunEnd(Span<byte> row, uint startIndex, byte? color = null)
         {
             if (startIndex >= row.Length)
             {
                 return (uint)row.Length;
             }
 
-            byte colorValue = color.GetValueOrDefault(row[(int)startIndex]);
+            byte colorValue = color ?? row[(int)startIndex];
             for (int i = (int)startIndex; i < row.Length; i++)
             {
                 if (row[i] != colorValue)
@@ -188,13 +188,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             uint codeLength;
             while (runLength > 63)
             {
-                uint makeupLength = this.GetBestFittingMakeupRunLength(runLength);
-                code = this.GetMakeupCode(makeupLength, out codeLength, isWhiteRun);
+                uint makeupLength = GetBestFittingMakeupRunLength(runLength);
+                code = GetMakeupCode(makeupLength, out codeLength, isWhiteRun);
                 this.WriteCode(codeLength, code, compressedData);
                 runLength -= makeupLength;
             }
 
-            code = this.GetTermCode(runLength, out codeLength, isWhiteRun);
+            code = GetTermCode(runLength, out codeLength, isWhiteRun);
             this.WriteCode(codeLength, code, compressedData);
         }
     }

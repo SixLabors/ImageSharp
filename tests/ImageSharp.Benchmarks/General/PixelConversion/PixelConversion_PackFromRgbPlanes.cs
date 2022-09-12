@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -200,7 +198,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark(Baseline = true)]
         public void Rgba32_Avx2_Float()
         {
@@ -261,7 +258,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             Span<Rgba32> rgb = this.rgbaBuf;
             SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
         }
-#endif
 
 #pragma warning disable SA1132
         private struct Byte8

@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             buffer.Clear();
 
             using System.Buffers.IMemoryOwner<byte> scanLineBuffer = this.Allocator.Allocate<byte>(this.width * 2);
-            Span<byte> scanLine = scanLineBuffer.GetSpan().Slice(0, this.width);
+            Span<byte> scanLine = scanLineBuffer.GetSpan()[..this.width];
             Span<byte> referenceScanLineSpan = scanLineBuffer.GetSpan().Slice(this.width, this.width);
 
             var bitReader = new T6BitReader(stream, this.FillOrder, byteCount);
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.Pass:
                         int b2 = referenceScanline.FindB2(b1);
-                        scanline.Slice(unpacked, b2 - unpacked).Fill(fillByte);
+                        scanline[unpacked..b2].Fill(fillByte);
                         unpacked = b2;
                         a0 = b2;
                         break;
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.Vertical0:
                         a1 = b1;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalR1:
                         a1 = b1 + 1;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalR2:
                         a1 = b1 + 2;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalR3:
                         a1 = b1 + 3;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalL1:
                         a1 = b1 - 1;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalL2:
                         a1 = b1 - 2;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 
                     case CcittTwoDimensionalCodeType.VerticalL3:
                         a1 = b1 - 3;
-                        scanline.Slice(unpacked, a1 - unpacked).Fill(fillByte);
+                        scanline[unpacked..a1].Fill(fillByte);
                         unpacked = a1;
                         a0 = a1;
                         fillByte = (byte)~fillByte;

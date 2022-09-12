@@ -30,7 +30,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0b10010000
         };
 
-        private static readonly Rgba32[][] BilevelResult4X4 = {
+        private static readonly Rgba32[][] BilevelResult4X4 =
+        {
             new[] { Bit0, Bit1, Bit0, Bit1 },
             new[] { Bit1, Bit1, Bit1, Bit1 },
             new[] { Bit0, Bit1, Bit1, Bit1 },
@@ -154,41 +155,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         [MemberData(nameof(Grayscale4_Data))]
         [MemberData(nameof(Grayscale8_Data))]
         public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
-                {
-                    new BlackIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
-                });
-        }
+            => AssertDecode(
+                expectedResult,
+                pixels => new BlackIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height));
 
         [Theory]
         [MemberData(nameof(BilevelData))]
         public void Decode_WritesPixelData_Bilevel(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
-                {
-                    new BlackIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
-                });
-        }
+            => AssertDecode(expectedResult, pixels => new BlackIsZero1TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height));
 
         [Theory]
         [MemberData(nameof(Grayscale4_Data))]
         public void Decode_WritesPixelData_4Bit(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
-                {
-                    new BlackIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
-                });
-        }
+            => AssertDecode(
+                expectedResult,
+                pixels => new BlackIsZero4TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height));
 
         [Theory]
         [MemberData(nameof(Grayscale8_Data))]
         public void Decode_WritesPixelData_8Bit(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
-                {
-                    new BlackIsZero8TiffColor<Rgba32>(Configuration.Default).Decode(inputData, pixels, left, top, width, height);
-                });
-        }
+            => AssertDecode(expectedResult, pixels => new BlackIsZero8TiffColor<Rgba32>(Configuration.Default).Decode(inputData, pixels, left, top, width, height));
     }
 }

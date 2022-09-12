@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             {
                 Span<byte> row = rows.Slice(i * this.BytesPerRow, this.BytesPerRow);
                 int size = PackBitsWriter.PackBits(row, span);
-                this.Output.Write(span.Slice(0, size));
+                this.Output.Write(span[..size]);
             }
         }
 

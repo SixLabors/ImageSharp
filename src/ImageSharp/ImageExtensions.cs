@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -106,12 +107,12 @@ namespace SixLabors.ImageSharp
 
             if (encoder is null)
             {
-                var sb = new StringBuilder();
+                StringBuilder sb = new();
                 sb.AppendLine("No encoder was found for the provided mime type. Registered encoders include:");
 
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
                 }
 
                 throw new NotSupportedException(sb.ToString());
@@ -150,12 +151,12 @@ namespace SixLabors.ImageSharp
 
             if (encoder is null)
             {
-                var sb = new StringBuilder();
+                StringBuilder sb = new();
                 sb.AppendLine("No encoder was found for the provided mime type. Registered encoders include:");
 
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
                 }
 
                 throw new NotSupportedException(sb.ToString());
@@ -182,7 +183,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(format, nameof(format));
 
-            using var stream = new MemoryStream();
+            using MemoryStream stream = new();
             source.Save(stream, format);
 
             // Always available.

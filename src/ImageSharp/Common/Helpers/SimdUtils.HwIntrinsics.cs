@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -67,12 +66,12 @@ namespace SixLabors.ImageSharp
                     if (adjustedCount > 0)
                     {
                         Shuffle4(
-                            source.Slice(0, adjustedCount),
-                            dest.Slice(0, adjustedCount),
+                            source[..adjustedCount],
+                            dest[..adjustedCount],
                             control);
 
-                        source = source.Slice(adjustedCount);
-                        dest = dest.Slice(adjustedCount);
+                        source = source[adjustedCount..];
+                        dest = dest[adjustedCount..];
                     }
                 }
             }
@@ -101,12 +100,12 @@ namespace SixLabors.ImageSharp
                     if (adjustedCount > 0)
                     {
                         Shuffle4(
-                            source.Slice(0, adjustedCount),
-                            dest.Slice(0, adjustedCount),
+                            source[..adjustedCount],
+                            dest[..adjustedCount],
                             control);
 
-                        source = source.Slice(adjustedCount);
-                        dest = dest.Slice(adjustedCount);
+                        source = source[adjustedCount..];
+                        dest = dest[adjustedCount..];
                     }
                 }
             }
@@ -133,12 +132,12 @@ namespace SixLabors.ImageSharp
                     if (adjustedCount > 0)
                     {
                         Shuffle3(
-                            source.Slice(0, adjustedCount),
-                            dest.Slice(0, adjustedCount),
+                            source[..adjustedCount],
+                            dest[..adjustedCount],
                             control);
 
-                        source = source.Slice(adjustedCount);
-                        dest = dest.Slice(adjustedCount);
+                        source = source[adjustedCount..];
+                        dest = dest[adjustedCount..];
                     }
                 }
             }
@@ -166,12 +165,12 @@ namespace SixLabors.ImageSharp
                     if (sourceCount > 0)
                     {
                         Pad3Shuffle4(
-                            source.Slice(0, sourceCount),
-                            dest.Slice(0, destCount),
+                            source[..sourceCount],
+                            dest[..destCount],
                             control);
 
-                        source = source.Slice(sourceCount);
-                        dest = dest.Slice(destCount);
+                        source = source[sourceCount..];
+                        dest = dest[destCount..];
                     }
                 }
             }
@@ -199,12 +198,12 @@ namespace SixLabors.ImageSharp
                     if (sourceCount > 0)
                     {
                         Shuffle4Slice3(
-                            source.Slice(0, sourceCount),
-                            dest.Slice(0, destCount),
+                            source[..sourceCount],
+                            dest[..destCount],
                             control);
 
-                        source = source.Slice(sourceCount);
-                        dest = dest.Slice(destCount);
+                        source = source[sourceCount..];
+                        dest = dest[destCount..];
                     }
                 }
             }
@@ -607,10 +606,10 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
-                        ByteToNormalizedFloat(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
+                        ByteToNormalizedFloat(source[..adjustedCount], dest[..adjustedCount]);
 
-                        source = source.Slice(adjustedCount);
-                        dest = dest.Slice(adjustedCount);
+                        source = source[adjustedCount..];
+                        dest = dest[adjustedCount..];
                     }
                 }
             }
@@ -740,11 +739,11 @@ namespace SixLabors.ImageSharp
                     if (adjustedCount > 0)
                     {
                         NormalizedFloatToByteSaturate(
-                            source.Slice(0, adjustedCount),
-                            dest.Slice(0, adjustedCount));
+                            source[..adjustedCount],
+                            dest[..adjustedCount]);
 
-                        source = source.Slice(adjustedCount);
-                        dest = dest.Slice(adjustedCount);
+                        source = source[adjustedCount..];
+                        dest = dest[adjustedCount..];
                     }
                 }
             }
@@ -848,13 +847,12 @@ namespace SixLabors.ImageSharp
 
                 int count = redChannel.Length / Vector256<byte>.Count;
 
-                ref byte control1Bytes = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
+                ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
                 Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
 
                 ref byte control2Bytes = ref MemoryMarshal.GetReference(PermuteMaskShiftAlpha8x32);
                 Vector256<uint> control2 = Unsafe.As<byte, Vector256<uint>>(ref control2Bytes);
-
-                Vector256<byte> a = Vector256.Create((byte)255);
+                var a = Vector256.Create((byte)255);
 
                 Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
 
@@ -902,10 +900,10 @@ namespace SixLabors.ImageSharp
                 }
 
                 int slice = count * Vector256<byte>.Count;
-                redChannel = redChannel.Slice(slice);
-                greenChannel = greenChannel.Slice(slice);
-                blueChannel = blueChannel.Slice(slice);
-                destination = destination.Slice(slice);
+                redChannel = redChannel[slice..];
+                greenChannel = greenChannel[slice..];
+                blueChannel = blueChannel[slice..];
+                destination = destination[slice..];
             }
 
             internal static void PackFromRgbPlanesAvx2Reduce(
@@ -920,16 +918,9 @@ namespace SixLabors.ImageSharp
                 ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 int count = redChannel.Length / Vector256<byte>.Count;
-
-                ref byte control1Bytes = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
+                ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
                 Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
-
-                ref byte control2Bytes = ref MemoryMarshal.GetReference(PermuteMaskShiftAlpha8x32);
-                Vector256<uint> control2 = Unsafe.As<byte, Vector256<uint>>(ref control2Bytes);
-
-                Vector256<byte> a = Vector256.Create((byte)255);
-
-                Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
+                var a = Vector256.Create((byte)255);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -961,10 +952,10 @@ namespace SixLabors.ImageSharp
                 }
 
                 int slice = count * Vector256<byte>.Count;
-                redChannel = redChannel.Slice(slice);
-                greenChannel = greenChannel.Slice(slice);
-                blueChannel = blueChannel.Slice(slice);
-                destination = destination.Slice(slice);
+                redChannel = redChannel[slice..];
+                greenChannel = greenChannel[slice..];
+                blueChannel = blueChannel[slice..];
+                destination = destination[slice..];
             }
 
             internal static void UnpackToRgbPlanesAvx2Reduce(
@@ -1012,4 +1003,3 @@ namespace SixLabors.ImageSharp
         }
     }
 }
-#endif

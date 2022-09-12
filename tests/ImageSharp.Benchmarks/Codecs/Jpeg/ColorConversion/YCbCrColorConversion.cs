@@ -30,7 +30,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             new JpegColorConverterBase.YCbCrVector(8).ConvertToRgbInplace(values);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
         public void SimdVectorAvx()
         {
@@ -38,6 +37,5 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
             new JpegColorConverterBase.YCbCrAvx(8).ConvertToRgbInplace(values);
         }
-#endif
     }
 }

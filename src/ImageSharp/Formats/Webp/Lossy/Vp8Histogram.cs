@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -54,10 +52,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             this.distribution.AsSpan().Clear();
             for (j = startBlock; j < endBlock; j++)
             {
-                Vp8Encoding.FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), this.output, this.scratch);
+                Vp8Encoding.FTransform(reference[WebpLookupTables.Vp8DspScan[j]..], pred[WebpLookupTables.Vp8DspScan[j]..], this.output, this.scratch);
 
                 // Convert coefficients to bin.
-#if SUPPORTS_RUNTIME_INTRINSICS
                 if (Avx2.IsSupported)
                 {
                     // Load.
@@ -81,7 +78,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     }
                 }
                 else
-#endif
                 {
                     for (int k = 0; k < 16; ++k)
                     {

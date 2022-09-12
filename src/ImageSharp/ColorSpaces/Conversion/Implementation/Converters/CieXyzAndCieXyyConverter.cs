@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Color converter between CIE XYZ and CIE xyY.
     /// <see href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
-    internal sealed class CieXyzAndCieXyyConverter
+    internal static class CieXyzAndCieXyyConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="CieXyy"/> type.
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CieXyy Convert(in CieXyz input)
+        public static CieXyy Convert(in CieXyz input)
         {
             float x = input.X / (input.X + input.Y + input.Z);
             float y = input.Y / (input.X + input.Y + input.Z);
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CieXyz Convert(in CieXyy input)
+        public static CieXyz Convert(in CieXyy input)
         {
             if (MathF.Abs(input.Y) < Constants.Epsilon)
             {

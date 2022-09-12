@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Color converter between <see cref="YCbCr"/> and <see cref="Rgb"/>
     /// See <see href="https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion"/> for formulas.
     /// </summary>
-    internal sealed class YCbCrAndRgbConverter
+    internal static class YCbCrAndRgbConverter
     {
-        private static readonly Vector3 MaxBytes = new Vector3(255F);
+        private static readonly Vector3 MaxBytes = new(255F);
 
         /// <summary>
         /// Performs the conversion from the <see cref="YCbCr"/> input to an instance of <see cref="Rgb"/> type.
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb Convert(in YCbCr input)
+        public static Rgb Convert(in YCbCr input)
         {
             float y = input.Y;
             float cb = input.Cb - 128F;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public YCbCr Convert(in Rgb input)
+        public static YCbCr Convert(in Rgb input)
         {
             Vector3 rgb = input.ToVector3() * MaxBytes;
             float r = rgb.X;

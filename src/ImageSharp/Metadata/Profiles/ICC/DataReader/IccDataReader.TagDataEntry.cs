@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             byte b = this.data[this.AddIndex(1)];
 
             // last bit of 4th byte is either 0 = ASCII or 1 = binary
-            bool ascii = this.GetBit(b, 7);
+            bool ascii = GetBit(b, 7);
             int length = (int)size - 12;
             byte[] cdata = this.ReadBytes(length);
 

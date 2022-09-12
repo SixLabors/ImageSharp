@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -43,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref Vector256<float> bBase = ref b.V0;
 
             ref Vector256<short> destRef = ref dest.V01;
-            Vector256<int> multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
+            var multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
 
             for (nint i = 0; i < 8; i += 2)
             {
@@ -145,4 +144,3 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
     }
 }
-#endif

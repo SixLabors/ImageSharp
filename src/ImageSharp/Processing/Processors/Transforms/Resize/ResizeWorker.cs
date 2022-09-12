@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
-            => this.transposedFirstPassBuffer.DangerousGetRowSpan(x).Slice(startY - this.currentWindow.Min);
+            => this.transposedFirstPassBuffer.DangerousGetRowSpan(x)[(startY - this.currentWindow.Min)..];
 
         public void Initialize()
             => this.CalculateFirstPassValues(this.currentWindow);

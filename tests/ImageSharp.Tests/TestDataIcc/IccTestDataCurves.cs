@@ -8,7 +8,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataCurves
     {
-#pragma warning disable SA1118 // Parameter should not span multiple lines
         /// <summary>
         /// Channels: 3
         /// </summary>
@@ -26,7 +25,6 @@ namespace SixLabors.ImageSharp.Tests
                 new IccResponseNumber[] { IccTestDataNonPrimitives.ResponseNumber_Val3, IccTestDataNonPrimitives.ResponseNumber_Val4 },
                 new IccResponseNumber[] { IccTestDataNonPrimitives.ResponseNumber_Val5, IccTestDataNonPrimitives.ResponseNumber_Val6 },
             });
-#pragma warning restore SA1118 // Parameter should not span multiple lines
 
         /// <summary>
         /// Channels: 3

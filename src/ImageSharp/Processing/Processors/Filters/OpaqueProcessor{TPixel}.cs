@@ -51,8 +51,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Scale);
+                Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y)[this.bounds.X..];
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale);
                 ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
                 for (int x = 0; x < this.bounds.Width; x++)

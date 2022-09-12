@@ -1,11 +1,9 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
@@ -109,7 +107,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 }
             }
 
-#if NETCOREAPP3_1_OR_GREATER
             public static readonly bool Is32BitProcess = !Environment.Is64BitProcess;
             private static readonly List<byte[]> PressureArrays = new();
 
@@ -121,21 +118,21 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                 static void RunTest()
                 {
                     Assert.False(Environment.Is64BitProcess);
-                    const int OneMb = 1 << 20;
+                    const int oneMb = 1 << 20;
 
                     var trimSettings = new UniformUnmanagedMemoryPool.TrimSettings { HighPressureThresholdRate = 0.2f };
 
                     GCMemoryInfo memInfo = GC.GetGCMemoryInfo();
-                    int highLoadThreshold = (int)(memInfo.HighMemoryLoadThresholdBytes / OneMb);
+                    int highLoadThreshold = (int)(memInfo.HighMemoryLoadThresholdBytes / oneMb);
                     highLoadThreshold = (int)(trimSettings.HighPressureThresholdRate * highLoadThreshold);
 
-                    var pool = new UniformUnmanagedMemoryPool(OneMb, 16, trimSettings);
+                    var pool = new UniformUnmanagedMemoryPool(oneMb, 16, trimSettings);
                     pool.Return(pool.Rent(16));
                     Assert.Equal(16, UnmanagedMemoryHandle.TotalOutstandingHandles);
 
                     for (int i = 0; i < highLoadThreshold; i++)
                     {
-                        byte[] array = new byte[OneMb];
+                        byte[] array = new byte[oneMb];
                         TouchPage(array);
                         PressureArrays.Add(array);
                     }
@@ -163,7 +160,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
                     }
                 }
             }
-#endif
         }
     }
 }

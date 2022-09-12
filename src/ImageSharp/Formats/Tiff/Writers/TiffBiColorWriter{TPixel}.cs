@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                         grayRowIdx++;
                     }
 
-                    compressor.CompressStrip(pixelAsGraySpan.Slice(0, stripPixels), height);
+                    compressor.CompressStrip(pixelAsGraySpan[..stripPixels], height);
                 });
             }
             else
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                 {
                     int bitIndex = 0;
                     int byteIndex = 0;
-                    Span<byte> outputRow = rows.Slice(outputRowIdx * this.BytesPerRow);
+                    Span<byte> outputRow = rows[(outputRowIdx * this.BytesPerRow)..];
                     Span<TPixel> pixelsBlackWhiteRow = blackWhiteBuffer.DangerousGetRowSpan(row);
                     PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhiteRow, pixelAsGraySpan, width);
                     for (int x = 0; x < this.Image.Width; x++)

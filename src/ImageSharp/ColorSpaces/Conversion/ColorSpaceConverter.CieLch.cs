@@ -13,11 +13,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     public partial class ColorSpaceConverter
     {
         /// <summary>
-        /// The converter for converting between CieLab to CieLch.
-        /// </summary>
-        private static readonly CieLabToCieLchConverter CieLabToCieLchConverter = new CieLabToCieLchConverter();
-
-        /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="CieLch"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
@@ -123,7 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            var xyzColor = ToCieXyz(color);
 
             return this.ToCieLch(xyzColor);
         }

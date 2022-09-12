@@ -4,11 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -35,19 +32,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // With pixels positioned like this:
             //  prev:  c b
             //  row:   a d
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported && bytesPerPixel is 4)
             {
                 DecodeSse2(scanline, previousScanline);
             }
             else
-#endif
             {
                 DecodeScalar(scanline, previousScanline, bytesPerPixel);
             }
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
         {
@@ -81,7 +75,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 offset += 4;
             }
         }
-#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
@@ -139,7 +132,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 Vector256<byte> zero = Vector256<byte>.Zero;
@@ -210,7 +202,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
 
                 sum += Numerics.ReduceSum(sumAccumulator);
             }
-#endif
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {

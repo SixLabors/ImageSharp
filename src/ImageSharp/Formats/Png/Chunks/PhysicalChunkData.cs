@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
         /// <returns>The parsed PhysicalChunkData.</returns>
         public static PhysicalChunkData Parse(ReadOnlySpan<byte> data)
         {
-            uint hResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(0, 4));
+            uint hResolution = BinaryPrimitives.ReadUInt32BigEndian(data[..4]);
             uint vResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(4, 4));
             byte unit = data[8];
 
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks
         /// <param name="buffer">The buffer.</param>
         public void WriteTo(Span<byte> buffer)
         {
-            BinaryPrimitives.WriteUInt32BigEndian(buffer.Slice(0, 4), this.XAxisPixelsPerUnit);
+            BinaryPrimitives.WriteUInt32BigEndian(buffer[..4], this.XAxisPixelsPerUnit);
             BinaryPrimitives.WriteUInt32BigEndian(buffer.Slice(4, 4), this.YAxisPixelsPerUnit);
             buffer[8] = this.UnitSpecifier;
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -27,9 +27,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="tagSignature">Tag Signature</param>
         public IccSignatureTagDataEntry(string signatureData, IccProfileTag tagSignature)
             : base(IccTypeSignature.Signature, tagSignature)
-        {
-            this.SignatureData = signatureData ?? throw new ArgumentNullException(nameof(signatureData));
-        }
+            => this.SignatureData = signatureData ?? throw new ArgumentNullException(nameof(signatureData));
 
         /// <summary>
         /// Gets the signature data
@@ -38,9 +36,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccSignatureTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccSignatureTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc />
         public bool Equals(IccSignatureTagDataEntry other)
@@ -55,14 +51,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && string.Equals(this.SignatureData, other.SignatureData);
+            return base.Equals(other)
+                && string.Equals(this.SignatureData, other.SignatureData, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc />
         public override bool Equals(object obj)
-        {
-            return obj is IccSignatureTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccSignatureTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode() => HashCode.Combine(this.Signature, this.SignatureData);

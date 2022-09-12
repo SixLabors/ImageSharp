@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -20,29 +20,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Used when reference white is not specified explicitly.
         /// </summary>
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
-
-        /// <summary>
-        /// Gets the lightness dimension
-        /// <remarks>A value usually ranging between 0 and 100.</remarks>
-        /// </summary>
-        public readonly float L;
-
-        /// <summary>
-        /// Gets the blue-yellow chromaticity coordinate of the given whitepoint.
-        /// <remarks>A value usually ranging between -100 and 100.</remarks>
-        /// </summary>
-        public readonly float U;
-
-        /// <summary>
-        /// Gets the red-green chromaticity coordinate of the given whitepoint.
-        /// <remarks>A value usually ranging between -100 and 100.</remarks>
-        /// </summary>
-        public readonly float V;
-
-        /// <summary>
-        /// Gets the reference white point of this color
-        /// </summary>
-        public readonly CieXyz WhitePoint;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieLuv"/> struct.
@@ -97,6 +74,29 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Gets the lightness dimension
+        /// <remarks>A value usually ranging between 0 and 100.</remarks>
+        /// </summary>
+        public readonly float L { get; }
+
+        /// <summary>
+        /// Gets the blue-yellow chromaticity coordinate of the given whitepoint.
+        /// <remarks>A value usually ranging between -100 and 100.</remarks>
+        /// </summary>
+        public readonly float U { get; }
+
+        /// <summary>
+        /// Gets the red-green chromaticity coordinate of the given whitepoint.
+        /// <remarks>A value usually ranging between -100 and 100.</remarks>
+        /// </summary>
+        public readonly float V { get; }
+
+        /// <summary>
+        /// Gets the reference white point of this color
+        /// </summary>
+        public readonly CieXyz WhitePoint { get; }
+
+        /// <summary>
         /// Compares two <see cref="CieLuv"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="CieLuv"/> on the left side of the operand.</param>
@@ -130,11 +130,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLuv other)
-        {
-            return this.L.Equals(other.L)
-                && this.U.Equals(other.U)
-                && this.V.Equals(other.V)
-                && this.WhitePoint.Equals(other.WhitePoint);
-        }
+            => this.L.Equals(other.L)
+            && this.U.Equals(other.U)
+            && this.V.Equals(other.V)
+            && this.WhitePoint.Equals(other.WhitePoint);
     }
 }

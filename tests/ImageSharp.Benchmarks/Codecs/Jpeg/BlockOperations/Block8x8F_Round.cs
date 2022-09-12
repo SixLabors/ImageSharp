@@ -5,10 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -136,7 +134,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             row3 = SimdUtils.FastRound(row3);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
         public void Sse41_V1()
         {
@@ -491,6 +488,5 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             Sse.StoreAligned(p6, v6);
             Sse.StoreAligned(p7, v7);
         }
-#endif
     }
 }

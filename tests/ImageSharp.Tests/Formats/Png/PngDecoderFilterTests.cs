@@ -147,7 +147,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Fact]
         public void PaethFilter_Works() => RunPaethFilterTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void AverageFilter_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAverageFilterTest, HwIntrinsics.AllowAll);
 
@@ -174,6 +173,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Fact]
         public void PaethFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

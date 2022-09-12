@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             int[] x = { 3, 5, 2, 5, 3, 1, 2, 2, 3, 3, 1, 2, 1, 2, 1, 1, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 1, 0, 0, 2, 1, 1, 0, 3, 1, 2, 3, 2, 3 };
             int[] y = { 11, 12, 8, 3, 4, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 2, 1, 1, 2, 4, 6, 4 };
-            float expected = 884.7585f;
+            const float expected = 884.7585f;
 
             float actual = LosslessUtils.CombinedShannonEntropy(x, y);
 
@@ -147,9 +147,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             // arrange
             uint[] topData = { 4278258949, 4278258949 };
-            uint left = 4294839812;
+            const uint left = 4294839812;
             short[] scratch = new short[8];
-            uint expectedResult = 4294839812;
+            const uint expectedResult = 4294839812;
 
             // act
             unsafe
@@ -168,8 +168,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             // arrange
             uint[] topData = { 4294844413, 4294779388 };
-            uint left = 4294844413;
-            uint expectedResult = 4294779388;
+            const uint left = 4294844413;
+            const uint expectedResult = 4294779388;
 
             // act
             unsafe
@@ -188,8 +188,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             // arrange
             uint[] topData = { 4278193922, 4278193666 };
-            uint left = 4278193410;
-            uint expectedResult = 4278193154;
+            const uint left = 4278193410;
+            const uint expectedResult = 4278193154;
 
             // act
             unsafe
@@ -228,7 +228,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void CombinedShannonEntropy_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCombinedShannonEntropyTest, HwIntrinsics.AllowAll);
 
@@ -288,6 +287,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void TransformColorInverse_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableAVX2);
-#endif
     }
 }

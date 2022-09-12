@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -13,24 +13,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieXyz : IEquatable<CieXyz>
     {
-        /// <summary>
-        /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float X;
-
-        /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float Z;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
@@ -55,6 +37,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.Y = vector.Y;
             this.Z = vector.Z;
         }
+
+        /// <summary>
+        /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float X { get; }
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Y { get; }
+
+        /// <summary>
+        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Z { get; }
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector3 ToVector3() => new Vector3(this.X, this.Y, this.Z);
+        public Vector3 ToVector3() => new(this.X, this.Y, this.Z);
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(this.X, this.Y, this.Z);
@@ -97,10 +97,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieXyz other)
-        {
-            return this.X.Equals(other.X)
-                && this.Y.Equals(other.Y)
-                && this.Z.Equals(other.Z);
-        }
+            => this.X.Equals(other.X)
+            && this.Y.Equals(other.Y)
+            && this.Z.Equals(other.Z);
     }
 }

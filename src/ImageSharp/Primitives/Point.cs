@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see cref="Point"/> that has X and Y values set to zero.
         /// </summary>
-        public static readonly Point Empty = default;
+        public static readonly Point Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Point"/> struct.
@@ -77,28 +77,28 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator PointF(Point point) => new PointF(point.X, point.Y);
+        public static implicit operator PointF(Point point) => new(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="Point"/>.
         /// </summary>
         /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector2(Point point) => new Vector2(point.X, point.Y);
+        public static implicit operator Vector2(Point point) => new(point.X, point.Y);
 
         /// <summary>
         /// Creates a <see cref="Size"/> with the coordinates of the specified <see cref="Point"/>.
         /// </summary>
         /// <param name="point">The point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Size(Point point) => new Size(point.X, point.Y);
+        public static explicit operator Size(Point point) => new(point.X, point.Y);
 
         /// <summary>
         /// Negates the given point by multiplying all values by -1.
         /// </summary>
         /// <param name="value">The source point.</param>
         /// <returns>The negated point.</returns>
-        public static Point operator -(Point value) => new Point(-value.X, -value.Y);
+        public static Point operator -(Point value) => new(-value.X, -value.Y);
 
         /// <summary>
         /// Translates a <see cref="Point"/> by a given <see cref="Size"/>.
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">Divisor of type <see cref="int"/>.</param>
         /// <returns>Result of type <see cref="Point"/>.</returns>
         public static Point operator /(Point left, int right)
-            => new Point(left.X / right, left.Y / right);
+            => new(left.X / right, left.Y / right);
 
         /// <summary>
         /// Compares two <see cref="Point"/> objects for equality.
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Add(Point point, Size size) => new Point(unchecked(point.X + size.Width), unchecked(point.Y + size.Height));
+        public static Point Add(Point point, Size size) => new(unchecked(point.X + size.Width), unchecked(point.Y + size.Height));
 
         /// <summary>
         /// Translates a <see cref="Point"/> by the negative of a given value.
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The value on the right hand of the operand.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Multiply(Point point, int value) => new Point(unchecked(point.X * value), unchecked(point.Y * value));
+        public static Point Multiply(Point point, int value) => new(unchecked(point.X * value), unchecked(point.Y * value));
 
         /// <summary>
         /// Translates a <see cref="Point"/> by the negative of a given <see cref="Size"/>.
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp
         /// <param name="size">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Subtract(Point point, Size size) => new Point(unchecked(point.X - size.Width), unchecked(point.Y - size.Height));
+        public static Point Subtract(Point point, Size size) => new(unchecked(point.X - size.Width), unchecked(point.Y - size.Height));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a ceiling operation on all the coordinates.
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp
         /// <param name="point">The point.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Ceiling(PointF point) => new Point(unchecked((int)MathF.Ceiling(point.X)), unchecked((int)MathF.Ceiling(point.Y)));
+        public static Point Ceiling(PointF point) => new(unchecked((int)MathF.Ceiling(point.X)), unchecked((int)MathF.Ceiling(point.Y)));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp
         /// <param name="point">The point.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Round(PointF point) => new Point(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
+        public static Point Round(PointF point) => new(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
 
         /// <summary>
         /// Converts a <see cref="Vector2"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp
         /// <param name="vector">The vector.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Round(Vector2 vector) => new Point(unchecked((int)MathF.Round(vector.X)), unchecked((int)MathF.Round(vector.Y)));
+        public static Point Round(Vector2 vector) => new(unchecked((int)MathF.Round(vector.X)), unchecked((int)MathF.Round(vector.Y)));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a truncate operation on all the coordinates.
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp
         /// <param name="point">The point.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Truncate(PointF point) => new Point(unchecked((int)point.X), unchecked((int)point.Y));
+        public static Point Truncate(PointF point) => new(unchecked((int)point.X), unchecked((int)point.Y));
 
         /// <summary>
         /// Transforms a point by a specified 3x2 matrix.

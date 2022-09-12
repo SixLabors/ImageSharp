@@ -23,7 +23,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     {
         private Rgba32[] rgbaPalette;
 
-        // Do not make this readonly! Struct value would be always copied on non-readonly method calls.
+        /// <summary>
+        /// Do not make this readonly! Struct value would be always copied on non-readonly method calls.
+        /// </summary>
         private ColorDistanceCache cache;
         private readonly Configuration configuration;
 

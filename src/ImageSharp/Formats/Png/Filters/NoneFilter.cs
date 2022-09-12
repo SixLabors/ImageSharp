@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             // Insert a byte before the data.
             result[0] = 0;
-            result = result.Slice(1);
-            scanline.Slice(0, Math.Min(scanline.Length, result.Length)).CopyTo(result);
+            result = result[1..];
+            scanline[..Math.Min(scanline.Length, result.Length)].CopyTo(result);
         }
     }
 }

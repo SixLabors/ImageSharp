@@ -240,6 +240,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
+        /// <exception cref="ArgumentException">Hexadecimal string is not in the correct format.</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Rgba32 ParseHex(string hex)
         {
@@ -432,7 +433,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public readonly string ToHex()
         {
             uint hexOrder = (uint)((this.A << 0) | (this.B << 8) | (this.G << 16) | (this.R << 24));
-            return hexOrder.ToString("X8");
+            return hexOrder.ToString("X8", CultureInfo.InvariantCulture);
         }
 
         /// <inheritdoc/>
@@ -517,7 +518,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             if (hex[0] == '#')
             {
-                hex = hex.Substring(1);
+                hex = hex[1..];
             }
 
             if (hex.Length == 8)

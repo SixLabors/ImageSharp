@@ -295,8 +295,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
+                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Premultiply);
                 ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
                 for (int x = 0; x < this.bounds.Width; x++)
@@ -335,9 +335,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
 
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Premultiply);
 
                 Numerics.CubePowOnXYZ(span);
 
@@ -378,8 +378,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 low = Vector4.Zero;
                 var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
 
-                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
-                Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
+                Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y)[this.bounds.X..];
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                 for (int x = 0; x < this.bounds.Width; x++)
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     v.Z = MathF.Pow(clamp.Z, this.inverseGamma);
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan[..this.bounds.Width], targetPixelSpan, PixelConversionModifiers.Premultiply);
             }
         }
 
@@ -428,9 +428,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, float.PositiveInfinity);
                 Numerics.CubeRootOnXYZ(sourceRowSpan);
 
-                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X);
+                Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan[..this.bounds.Width], targetPixelSpan, PixelConversionModifiers.Premultiply);
             }
         }
     }

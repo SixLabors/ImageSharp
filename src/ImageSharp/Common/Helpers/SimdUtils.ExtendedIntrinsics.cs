@@ -21,12 +21,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static class ExtendedIntrinsics
         {
-            public static bool IsAvailable { get; } =
-#if SUPPORTS_EXTENDED_INTRINSICS
-                Vector.IsHardwareAccelerated;
-#else
-                false;
-#endif
+            public static bool IsAvailable { get; } = Vector.IsHardwareAccelerated;
 
             /// <summary>
             /// Widen and convert a vector of <see cref="short"/> values into 2 vectors of <see cref="float"/>-s.
@@ -62,10 +57,10 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    ByteToNormalizedFloat(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
+                    ByteToNormalizedFloat(source[..adjustedCount], dest[..adjustedCount]);
 
-                    source = source.Slice(adjustedCount);
-                    dest = dest.Slice(adjustedCount);
+                    source = source[adjustedCount..];
+                    dest = dest[adjustedCount..];
                 }
             }
 
@@ -89,12 +84,10 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    NormalizedFloatToByteSaturate(
-                        source.Slice(0, adjustedCount),
-                        dest.Slice(0, adjustedCount));
+                    NormalizedFloatToByteSaturate(source[..adjustedCount], dest[..adjustedCount]);
 
-                    source = source.Slice(adjustedCount);
-                    dest = dest.Slice(adjustedCount);
+                    source = source[adjustedCount..];
+                    dest = dest[adjustedCount..];
                 }
             }
 
@@ -160,12 +153,10 @@ namespace SixLabors.ImageSharp
                     Vector<uint> w2 = ConvertToUInt32(f2);
                     Vector<uint> w3 = ConvertToUInt32(f3);
 
-                    Vector<ushort> u0 = Vector.Narrow(w0, w1);
-                    Vector<ushort> u1 = Vector.Narrow(w2, w3);
+                    var u0 = Vector.Narrow(w0, w1);
+                    var u1 = Vector.Narrow(w2, w3);
 
-                    Vector<byte> b = Vector.Narrow(u0, u1);
-
-                    Unsafe.Add(ref destBase, i) = b;
+                    Unsafe.Add(ref destBase, i) = Vector.Narrow(u0, u1);
                 }
             }
 
@@ -176,15 +167,15 @@ namespace SixLabors.ImageSharp
                 vf *= maxBytes;
                 vf += new Vector<float>(0.5f);
                 vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), maxBytes);
-                Vector<int> vi = Vector.ConvertToInt32(vf);
+                var vi = Vector.ConvertToInt32(vf);
                 return Vector.AsVectorUInt32(vi);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static Vector<float> ConvertToSingle(Vector<uint> u)
             {
-                Vector<int> vi = Vector.AsVectorInt32(u);
-                Vector<float> v = Vector.ConvertToSingle(vi);
+                var vi = Vector.AsVectorInt32(u);
+                var v = Vector.ConvertToSingle(vi);
                 v *= new Vector<float>(1f / 255f);
                 return v;
             }

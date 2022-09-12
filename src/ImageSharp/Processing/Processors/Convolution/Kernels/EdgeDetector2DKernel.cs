@@ -13,30 +13,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// An edge detection kernel containing two Kayyali operators.
         /// </summary>
-        public static EdgeDetector2DKernel KayyaliKernel = new EdgeDetector2DKernel(KayyaliKernels.KayyaliX, KayyaliKernels.KayyaliY);
+        public static readonly EdgeDetector2DKernel KayyaliKernel = new(KayyaliKernels.KayyaliX, KayyaliKernels.KayyaliY);
 
         /// <summary>
         /// An edge detection kernel containing two Prewitt operators.
         /// <see href="https://en.wikipedia.org/wiki/Prewitt_operator"/>.
         /// </summary>
-        public static EdgeDetector2DKernel PrewittKernel = new EdgeDetector2DKernel(PrewittKernels.PrewittX, PrewittKernels.PrewittY);
+        public static readonly EdgeDetector2DKernel PrewittKernel = new(PrewittKernels.PrewittX, PrewittKernels.PrewittY);
 
         /// <summary>
         /// An edge detection kernel containing two Roberts-Cross operators.
         /// <see href="https://en.wikipedia.org/wiki/Roberts_cross"/>.
         /// </summary>
-        public static EdgeDetector2DKernel RobertsCrossKernel = new EdgeDetector2DKernel(RobertsCrossKernels.RobertsCrossX, RobertsCrossKernels.RobertsCrossY);
+        public static readonly EdgeDetector2DKernel RobertsCrossKernel = new(RobertsCrossKernels.RobertsCrossX, RobertsCrossKernels.RobertsCrossY);
 
         /// <summary>
         /// An edge detection kernel containing two Scharr operators.
         /// </summary>
-        public static EdgeDetector2DKernel ScharrKernel = new EdgeDetector2DKernel(ScharrKernels.ScharrX, ScharrKernels.ScharrY);
+        public static readonly EdgeDetector2DKernel ScharrKernel = new(ScharrKernels.ScharrX, ScharrKernels.ScharrY);
 
         /// <summary>
         /// An edge detection kernel containing two Sobel operators.
         /// <see href="https://en.wikipedia.org/wiki/Sobel_operator"/>.
         /// </summary>
-        public static EdgeDetector2DKernel SobelKernel = new EdgeDetector2DKernel(SobelKernels.SobelX, SobelKernels.SobelY);
+        public static readonly EdgeDetector2DKernel SobelKernel = new(SobelKernels.SobelX, SobelKernels.SobelY);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetector2DKernel"/> struct.

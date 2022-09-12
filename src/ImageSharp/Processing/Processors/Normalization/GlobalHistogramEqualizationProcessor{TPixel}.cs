@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Calculate the cumulative distribution function, which will map each input pixel to a new value.
-            int cdfMin = this.CalculateCdf(
+            int cdfMin = CalculateCdf(
                 ref MemoryMarshal.GetReference(cdfBuffer.GetSpan()),
                 ref MemoryMarshal.GetReference(histogram),
                 histogram.Length - 1);
@@ -107,12 +107,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             /// <inheritdoc/>
-#if NETSTANDARD2_0
-            // https://github.com/SixLabors/ImageSharp/issues/1204
-            [MethodImpl(MethodImplOptions.NoOptimization)]
-#else
             [MethodImpl(InliningOptions.ShortMethod)]
-#endif
             public void Invoke(int y)
             {
                 ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
@@ -156,12 +151,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             /// <inheritdoc/>
-#if NETSTANDARD2_0
-            // https://github.com/SixLabors/ImageSharp/issues/1204
-            [MethodImpl(MethodImplOptions.NoOptimization)]
-#else
             [MethodImpl(InliningOptions.ShortMethod)]
-#endif
             public void Invoke(int y)
             {
                 ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());

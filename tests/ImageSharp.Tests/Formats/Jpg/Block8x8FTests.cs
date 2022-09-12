@@ -4,9 +4,7 @@
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
 using System;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -424,7 +422,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             static void RunTest(string serializedEqualsTo)
             {
                 int equalsTo = FeatureTestRunner.Deserialize<int>(serializedEqualsTo);
-                int offValue = 0;
+                const int offValue = 0;
 
                 // Fill matrix with valid value
                 Block8x8F block = default;

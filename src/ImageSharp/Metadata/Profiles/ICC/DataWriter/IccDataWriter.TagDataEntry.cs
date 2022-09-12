@@ -34,116 +34,46 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             int count = this.WriteTagDataEntryHeader(entry.Signature);
 
-            switch (entry.Signature)
+            count += entry.Signature switch
             {
-                case IccTypeSignature.Chromaticity:
-                    count += this.WriteChromaticityTagDataEntry((IccChromaticityTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ColorantOrder:
-                    count += this.WriteColorantOrderTagDataEntry((IccColorantOrderTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ColorantTable:
-                    count += this.WriteColorantTableTagDataEntry((IccColorantTableTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Curve:
-                    count += this.WriteCurveTagDataEntry((IccCurveTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Data:
-                    count += this.WriteDataTagDataEntry((IccDataTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.DateTime:
-                    count += this.WriteDateTimeTagDataEntry((IccDateTimeTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Lut16:
-                    count += this.WriteLut16TagDataEntry((IccLut16TagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Lut8:
-                    count += this.WriteLut8TagDataEntry((IccLut8TagDataEntry)entry);
-                    break;
-                case IccTypeSignature.LutAToB:
-                    count += this.WriteLutAtoBTagDataEntry((IccLutAToBTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.LutBToA:
-                    count += this.WriteLutBtoATagDataEntry((IccLutBToATagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Measurement:
-                    count += this.WriteMeasurementTagDataEntry((IccMeasurementTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.MultiLocalizedUnicode:
-                    count += this.WriteMultiLocalizedUnicodeTagDataEntry((IccMultiLocalizedUnicodeTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.MultiProcessElements:
-                    count += this.WriteMultiProcessElementsTagDataEntry((IccMultiProcessElementsTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.NamedColor2:
-                    count += this.WriteNamedColor2TagDataEntry((IccNamedColor2TagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ParametricCurve:
-                    count += this.WriteParametricCurveTagDataEntry((IccParametricCurveTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ProfileSequenceDesc:
-                    count += this.WriteProfileSequenceDescTagDataEntry((IccProfileSequenceDescTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ProfileSequenceIdentifier:
-                    count += this.WriteProfileSequenceIdentifierTagDataEntry((IccProfileSequenceIdentifierTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ResponseCurveSet16:
-                    count += this.WriteResponseCurveSet16TagDataEntry((IccResponseCurveSet16TagDataEntry)entry);
-                    break;
-                case IccTypeSignature.S15Fixed16Array:
-                    count += this.WriteFix16ArrayTagDataEntry((IccFix16ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Signature:
-                    count += this.WriteSignatureTagDataEntry((IccSignatureTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Text:
-                    count += this.WriteTextTagDataEntry((IccTextTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.U16Fixed16Array:
-                    count += this.WriteUFix16ArrayTagDataEntry((IccUFix16ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.UInt16Array:
-                    count += this.WriteUInt16ArrayTagDataEntry((IccUInt16ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.UInt32Array:
-                    count += this.WriteUInt32ArrayTagDataEntry((IccUInt32ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.UInt64Array:
-                    count += this.WriteUInt64ArrayTagDataEntry((IccUInt64ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.UInt8Array:
-                    count += this.WriteUInt8ArrayTagDataEntry((IccUInt8ArrayTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.ViewingConditions:
-                    count += this.WriteViewingConditionsTagDataEntry((IccViewingConditionsTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Xyz:
-                    count += this.WriteXyzTagDataEntry((IccXyzTagDataEntry)entry);
-                    break;
+                IccTypeSignature.Chromaticity => this.WriteChromaticityTagDataEntry((IccChromaticityTagDataEntry)entry),
+                IccTypeSignature.ColorantOrder => this.WriteColorantOrderTagDataEntry((IccColorantOrderTagDataEntry)entry),
+                IccTypeSignature.ColorantTable => this.WriteColorantTableTagDataEntry((IccColorantTableTagDataEntry)entry),
+                IccTypeSignature.Curve => this.WriteCurveTagDataEntry((IccCurveTagDataEntry)entry),
+                IccTypeSignature.Data => this.WriteDataTagDataEntry((IccDataTagDataEntry)entry),
+                IccTypeSignature.DateTime => this.WriteDateTimeTagDataEntry((IccDateTimeTagDataEntry)entry),
+                IccTypeSignature.Lut16 => this.WriteLut16TagDataEntry((IccLut16TagDataEntry)entry),
+                IccTypeSignature.Lut8 => this.WriteLut8TagDataEntry((IccLut8TagDataEntry)entry),
+                IccTypeSignature.LutAToB => this.WriteLutAtoBTagDataEntry((IccLutAToBTagDataEntry)entry),
+                IccTypeSignature.LutBToA => this.WriteLutBtoATagDataEntry((IccLutBToATagDataEntry)entry),
+                IccTypeSignature.Measurement => this.WriteMeasurementTagDataEntry((IccMeasurementTagDataEntry)entry),
+                IccTypeSignature.MultiLocalizedUnicode => this.WriteMultiLocalizedUnicodeTagDataEntry((IccMultiLocalizedUnicodeTagDataEntry)entry),
+                IccTypeSignature.MultiProcessElements => this.WriteMultiProcessElementsTagDataEntry((IccMultiProcessElementsTagDataEntry)entry),
+                IccTypeSignature.NamedColor2 => this.WriteNamedColor2TagDataEntry((IccNamedColor2TagDataEntry)entry),
+                IccTypeSignature.ParametricCurve => this.WriteParametricCurveTagDataEntry((IccParametricCurveTagDataEntry)entry),
+                IccTypeSignature.ProfileSequenceDesc => this.WriteProfileSequenceDescTagDataEntry((IccProfileSequenceDescTagDataEntry)entry),
+                IccTypeSignature.ProfileSequenceIdentifier => this.WriteProfileSequenceIdentifierTagDataEntry((IccProfileSequenceIdentifierTagDataEntry)entry),
+                IccTypeSignature.ResponseCurveSet16 => this.WriteResponseCurveSet16TagDataEntry((IccResponseCurveSet16TagDataEntry)entry),
+                IccTypeSignature.S15Fixed16Array => this.WriteFix16ArrayTagDataEntry((IccFix16ArrayTagDataEntry)entry),
+                IccTypeSignature.Signature => this.WriteSignatureTagDataEntry((IccSignatureTagDataEntry)entry),
+                IccTypeSignature.Text => this.WriteTextTagDataEntry((IccTextTagDataEntry)entry),
+                IccTypeSignature.U16Fixed16Array => this.WriteUFix16ArrayTagDataEntry((IccUFix16ArrayTagDataEntry)entry),
+                IccTypeSignature.UInt16Array => this.WriteUInt16ArrayTagDataEntry((IccUInt16ArrayTagDataEntry)entry),
+                IccTypeSignature.UInt32Array => this.WriteUInt32ArrayTagDataEntry((IccUInt32ArrayTagDataEntry)entry),
+                IccTypeSignature.UInt64Array => this.WriteUInt64ArrayTagDataEntry((IccUInt64ArrayTagDataEntry)entry),
+                IccTypeSignature.UInt8Array => this.WriteUInt8ArrayTagDataEntry((IccUInt8ArrayTagDataEntry)entry),
+                IccTypeSignature.ViewingConditions => this.WriteViewingConditionsTagDataEntry((IccViewingConditionsTagDataEntry)entry),
+                IccTypeSignature.Xyz => this.WriteXyzTagDataEntry((IccXyzTagDataEntry)entry),
 
                 // V2 Types:
-                case IccTypeSignature.TextDescription:
-                    count += this.WriteTextDescriptionTagDataEntry((IccTextDescriptionTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.CrdInfo:
-                    count += this.WriteCrdInfoTagDataEntry((IccCrdInfoTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.Screening:
-                    count += this.WriteScreeningTagDataEntry((IccScreeningTagDataEntry)entry);
-                    break;
-                case IccTypeSignature.UcrBg:
-                    count += this.WriteUcrBgTagDataEntry((IccUcrBgTagDataEntry)entry);
-                    break;
+                IccTypeSignature.TextDescription => this.WriteTextDescriptionTagDataEntry((IccTextDescriptionTagDataEntry)entry),
+                IccTypeSignature.CrdInfo => this.WriteCrdInfoTagDataEntry((IccCrdInfoTagDataEntry)entry),
+                IccTypeSignature.Screening => this.WriteScreeningTagDataEntry((IccScreeningTagDataEntry)entry),
+                IccTypeSignature.UcrBg => this.WriteUcrBgTagDataEntry((IccUcrBgTagDataEntry)entry),
 
                 // Unsupported or unknown
-                case IccTypeSignature.DeviceSettings:
-                case IccTypeSignature.NamedColor:
-                case IccTypeSignature.Unknown:
-                default:
-                    count += this.WriteUnknownTagDataEntry(entry as IccUnknownTagDataEntry);
-                    break;
-            }
-
+                _ => this.WriteUnknownTagDataEntry(entry as IccUnknownTagDataEntry),
+            };
             return count;
         }
 
@@ -153,10 +83,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="signature">The signature of the entry</param>
         /// <returns>The number of bytes written</returns>
         public int WriteTagDataEntryHeader(IccTypeSignature signature)
-        {
-            return this.WriteUInt32((uint)signature)
-                 + this.WriteEmpty(4);
-        }
+            => this.WriteUInt32((uint)signature) + this.WriteEmpty(4);
 
         /// <summary>
         /// Writes a <see cref="IccUnknownTagDataEntry"/>
@@ -190,10 +117,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
         public int WriteColorantOrderTagDataEntry(IccColorantOrderTagDataEntry value)
-        {
-            return this.WriteUInt32((uint)value.ColorantNumber.Length)
-                 + this.WriteArray(value.ColorantNumber);
-        }
+            => this.WriteUInt32((uint)value.ColorantNumber.Length)
+            + this.WriteArray(value.ColorantNumber);
 
         /// <summary>
         /// Writes a <see cref="IccColorantTableTagDataEntry"/>
@@ -255,11 +180,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
         public int WriteDataTagDataEntry(IccDataTagDataEntry value)
-        {
-            return this.WriteEmpty(3)
-                 + this.WriteByte((byte)(value.IsAscii ? 0x01 : 0x00))
-                 + this.WriteArray(value.Data);
-        }
+            => this.WriteEmpty(3)
+            + this.WriteByte((byte)(value.IsAscii ? 0x01 : 0x00))
+            + this.WriteArray(value.Data);
 
         /// <summary>
         /// Writes a <see cref="IccDateTimeTagDataEntry"/>
@@ -531,13 +454,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
         public int WriteMeasurementTagDataEntry(IccMeasurementTagDataEntry value)
-        {
-            return this.WriteUInt32((uint)value.Observer)
-                 + this.WriteXyzNumber(value.XyzBacking)
-                 + this.WriteUInt32((uint)value.Geometry)
-                 + this.WriteUFix16(value.Flare)
-                 + this.WriteUInt32((uint)value.Illuminant);
-        }
+            => this.WriteUInt32((uint)value.Observer)
+            + this.WriteXyzNumber(value.XyzBacking)
+            + this.WriteUInt32((uint)value.Geometry)
+            + this.WriteUFix16(value.Flare)
+            + this.WriteUInt32((uint)value.Illuminant);
 
         /// <summary>
         /// Writes a <see cref="IccMultiLocalizedUnicodeTagDataEntry"/>
@@ -560,8 +481,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             // TODO: Investigate cost of Linq GroupBy
             IGrouping<string, IccLocalizedString>[] texts = value.Texts.GroupBy(t => t.Text).ToArray();
 
-            var offset = new uint[texts.Length];
-            var lengths = new int[texts.Length];
+            uint[] offset = new uint[texts.Length];
+            int[] lengths = new int[texts.Length];
 
             for (int i = 0; i < texts.Length; i++)
             {
@@ -582,11 +503,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                         count += this.WriteAsciiString("xx", 2, false);
                         count += this.WriteAsciiString("\0\0", 2, false);
                     }
-                    else if (cultureName.Contains("-"))
+                    else if (cultureName.Contains('-'))
                     {
                         string[] code = cultureName.Split('-');
-                        count += this.WriteAsciiString(code[0].ToLower(), 2, false);
-                        count += this.WriteAsciiString(code[1].ToUpper(), 2, false);
+                        count += this.WriteAsciiString(code[0].ToLower(localizedString.Culture), 2, false);
+                        count += this.WriteAsciiString(code[1].ToUpper(localizedString.Culture), 2, false);
                     }
                     else
                     {
@@ -620,7 +541,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             long tpos = this.dataStream.Position;
             this.dataStream.Position += value.Data.Length * 8;
 
-            var posTable = new IccPositionNumber[value.Data.Length];
+            IccPositionNumber[] posTable = new IccPositionNumber[value.Data.Length];
             for (int i = 0; i < value.Data.Length; i++)
             {
                 uint offset = (uint)(this.dataStream.Position - start);
@@ -704,7 +625,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             // Jump over position table
             long tablePosition = this.dataStream.Position;
             this.dataStream.Position += length * 8;
-            var table = new IccPositionNumber[length];
+            IccPositionNumber[] table = new IccPositionNumber[length];
 
             for (int i = 0; i < length; i++)
             {
@@ -746,7 +667,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             long tablePosition = this.dataStream.Position;
             this.dataStream.Position += value.Curves.Length * 4;
 
-            var offset = new uint[value.Curves.Length];
+            uint[] offset = new uint[value.Curves.Length];
 
             for (int i = 0; i < value.Curves.Length; i++)
             {
@@ -844,11 +765,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="value">The entry to write</param>
         /// <returns>The number of bytes written</returns>
         public int WriteViewingConditionsTagDataEntry(IccViewingConditionsTagDataEntry value)
-        {
-            return this.WriteXyzNumber(value.IlluminantXyz)
-                 + this.WriteXyzNumber(value.SurroundXyz)
-                 + this.WriteUInt32((uint)value.Illuminant);
-        }
+            => this.WriteXyzNumber(value.IlluminantXyz)
+            + this.WriteXyzNumber(value.SurroundXyz)
+            + this.WriteUInt32((uint)value.Illuminant);
 
         /// <summary>
         /// Writes a <see cref="IccXyzTagDataEntry"/>

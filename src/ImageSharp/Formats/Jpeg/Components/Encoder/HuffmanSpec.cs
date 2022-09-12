@@ -123,16 +123,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             });
 
         /// <summary>
-        ///     Gets count[i] - The number of codes of length i bits.
-        /// </summary>
-        public readonly byte[] Count;
-
-        /// <summary>
-        ///     Gets value[i] - The decoded value of the codeword at the given index.
-        /// </summary>
-        public readonly byte[] Values;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanSpec"/> struct.
         /// </summary>
         /// <param name="count">
@@ -146,5 +136,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.Count = count;
             this.Values = values;
         }
+
+        /// <summary>
+        /// Gets the count[i] - The number of codes of length i bits.
+        /// </summary>
+        public readonly byte[] Count { get; }
+
+        /// <summary>
+        /// Gets the value[i] - The decoded value of the codeword at the given index.
+        /// </summary>
+        public readonly byte[] Values { get; }
     }
 }

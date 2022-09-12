@@ -27,10 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public FlipProcessor(Configuration configuration, FlipProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            : base(configuration, source, sourceRectangle) => this.definition = definition;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -39,10 +36,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 // No default needed as we have already set the pixels.
                 case FlipMode.Vertical:
-                    this.FlipX(source.PixelBuffer, this.Configuration);
+                    FlipX(source.PixelBuffer, this.Configuration);
                     break;
                 case FlipMode.Horizontal:
-                    this.FlipY(source, this.Configuration);
+                    FlipY(source, this.Configuration);
                     break;
             }
         }
@@ -52,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
         /// <param name="configuration">The configuration.</param>
-        private void FlipX(Buffer2D<TPixel> source, Configuration configuration)
+        private static void FlipX(Buffer2D<TPixel> source, Configuration configuration)
         {
             int height = source.Height;
             using IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width);
@@ -74,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
         /// <param name="configuration">The configuration.</param>
-        private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
+        private static void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
             var operation = new RowOperation(source.PixelBuffer);
             ParallelRowIterator.IterateRows(

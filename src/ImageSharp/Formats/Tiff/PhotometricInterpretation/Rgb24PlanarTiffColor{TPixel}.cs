@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             Span<byte> redData = data[0].GetSpan();
             Span<byte> greenData = data[1].GetSpan();
             Span<byte> blueData = data[2].GetSpan();
-            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
+            Span<byte> bufferSpan = buffer[bufferStartIdx..];
 
             int offset = 0;
             for (int y = top; y < top + height; y++)

@@ -4,10 +4,8 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
@@ -15,21 +13,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
     {
         public static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && tileWidth >= 16)
             {
                 const int span = 16;
                 Span<ushort> values = stackalloc ushort[span];
-                Vector256<byte> collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
-                Vector256<byte> collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
-                Vector256<byte> collectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-                Vector256<byte> collectColorBlueTransformsGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                Vector256<byte> collectColorBlueTransformsBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-                Vector256<short> multsr = Vector256.Create(LosslessUtils.Cst5b(redToBlue));
-                Vector256<short> multsg = Vector256.Create(LosslessUtils.Cst5b(greenToBlue));
+                var collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
+                var collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
+                var collectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+                var collectColorBlueTransformsGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var collectColorBlueTransformsBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var multsr = Vector256.Create(LosslessUtils.Cst5b(redToBlue));
+                var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToBlue));
                 for (int y = 0; y < tileHeight; y++)
                 {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    Span<uint> srcSpan = bgra[(y * stride)..];
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
                     for (nint x = 0; x <= tileWidth - span; x += span)
                     {
@@ -63,23 +60,23 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
                 {
-                    CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
+                    CollectColorBlueTransformsNoneVectorized(bgra[(tileWidth - leftOver)..], stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
                 }
             }
             else if (Sse41.IsSupported)
             {
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
-                Vector128<byte> collectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
-                Vector128<byte> collectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
-                Vector128<byte> collectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-                Vector128<byte> collectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                Vector128<byte> collectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-                Vector128<short> multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
-                Vector128<short> multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
+                var collectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
+                var collectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+                var collectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+                var collectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var collectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
+                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
                 for (int y = 0; y < tileHeight; y++)
                 {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    Span<uint> srcSpan = bgra[(y * stride)..];
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
                     for (nint x = 0; x <= tileWidth - span; x += span)
                     {
@@ -113,11 +110,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
                 {
-                    CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
+                    CollectColorBlueTransformsNoneVectorized(bgra[(tileWidth - leftOver)..], stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
                 }
             }
             else
-#endif
             {
                 CollectColorBlueTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
             }
@@ -140,17 +136,16 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && tileWidth >= 16)
             {
                 Vector256<byte> collectColorRedTransformsGreenMask256 = Vector256.Create(0x00ff00).AsByte();
                 Vector256<byte> collectColorRedTransformsAndMask256 = Vector256.Create((short)0xff).AsByte();
-                Vector256<short> multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
+                var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
                 const int span = 16;
                 Span<ushort> values = stackalloc ushort[span];
                 for (int y = 0; y < tileHeight; y++)
                 {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    Span<uint> srcSpan = bgra[(y * stride)..];
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
                     for (nint x = 0; x <= tileWidth - span; x += span)
                     {
@@ -181,19 +176,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
                 {
-                    CollectColorRedTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToRed, histo);
+                    CollectColorRedTransformsNoneVectorized(bgra[(tileWidth - leftOver)..], stride, leftOver, tileHeight, greenToRed, histo);
                 }
             }
             else if (Sse41.IsSupported)
             {
                 Vector128<byte> collectColorRedTransformsGreenMask = Vector128.Create(0x00ff00).AsByte();
                 Vector128<byte> collectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
-                Vector128<short> multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
+                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
                 for (int y = 0; y < tileHeight; y++)
                 {
-                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    Span<uint> srcSpan = bgra[(y * stride)..];
                     ref uint inputRef = ref MemoryMarshal.GetReference(srcSpan);
                     for (nint x = 0; x <= tileWidth - span; x += span)
                     {
@@ -224,11 +219,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 int leftOver = tileWidth & (span - 1);
                 if (leftOver > 0)
                 {
-                    CollectColorRedTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToRed, histo);
+                    CollectColorRedTransformsNoneVectorized(bgra[(tileWidth - leftOver)..], stride, leftOver, tileHeight, greenToRed, histo);
                 }
             }
             else
-#endif
             {
                 CollectColorRedTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToRed, histo);
             }

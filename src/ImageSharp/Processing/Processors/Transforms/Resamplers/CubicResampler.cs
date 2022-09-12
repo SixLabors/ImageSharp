@@ -23,31 +23,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// This filter produces a reasonably sharp edge, but without a the pronounced gradient change on large
         /// scale image enlargements that a 'Lagrange' filter can produce.
         /// </summary>
-        public static CubicResampler CatmullRom = new CubicResampler(2, 0, .5F);
+        public static readonly CubicResampler CatmullRom = new(2, 0, .5F);
 
         /// <summary>
         /// The Hermite filter is type of smoothed triangular interpolation Filter,
         /// This filter rounds off strong edges while preserving flat 'color levels' in the original image.
         /// </summary>
-        public static CubicResampler Hermite = new CubicResampler(2, 0, 0);
+        public static readonly CubicResampler Hermite = new(2, 0, 0);
 
         /// <summary>
         /// The function implements the Mitchell-Netravali algorithm as described on
         /// <see href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</see>
         /// </summary>
-        public static CubicResampler MitchellNetravali = new CubicResampler(2, .3333333F, .3333333F);
+        public static readonly CubicResampler MitchellNetravali = new(2, .3333333F, .3333333F);
 
         /// <summary>
         /// The function implements the Robidoux algorithm.
         /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
         /// </summary>
-        public static CubicResampler Robidoux = new CubicResampler(2, .37821575509399867F, .31089212245300067F);
+        public static readonly CubicResampler Robidoux = new(2, .37821575509399867F, .31089212245300067F);
 
         /// <summary>
         /// The function implements the Robidoux Sharp algorithm.
         /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
         /// </summary>
-        public static CubicResampler RobidouxSharp = new CubicResampler(2, .2620145123990142F, .3689927438004929F);
+        public static readonly CubicResampler RobidouxSharp = new(2, .2620145123990142F, .3689927438004929F);
 
         /// <summary>
         /// The function implements the spline algorithm.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// The function implements the Robidoux Sharp algorithm.
         /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
         /// </summary>
-        public static CubicResampler Spline = new CubicResampler(2, 1, 0);
+        public static readonly CubicResampler Spline = new(2, 1, 0);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CubicResampler"/> struct.

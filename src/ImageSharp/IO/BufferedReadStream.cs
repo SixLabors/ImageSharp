@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.IO
         public override bool CanSeek { get; } = true;
 
         /// <inheritdoc/>
-        public override bool CanWrite { get; } = false;
+        public override bool CanWrite { get; }
 
         /// <summary>
         /// Gets remaining byte count available to read.
@@ -175,7 +175,6 @@ namespace SixLabors.ImageSharp.IO
             return this.ReadToBufferViaCopyFast(buffer, offset, count);
         }
 
-#if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int Read(Span<byte> buffer)
@@ -196,7 +195,6 @@ namespace SixLabors.ImageSharp.IO
 
             return this.ReadToBufferViaCopyFast(buffer);
         }
-#endif
 
         /// <inheritdoc/>
         public override void Flush()
@@ -354,7 +352,7 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = baseStream.Read(buffer.Slice(n, count - n));
+                i = baseStream.Read(buffer[n..count]);
                 n += i;
             }
             while (n < count && i > 0);

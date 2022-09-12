@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
     /// Screening flags. Can be combined with a logical OR.
     /// </summary>
     [Flags]
-    internal enum IccScreeningFlag : int
+    internal enum IccScreeningFlag
     {
         /// <summary>
         /// No flags (equivalent to NotDefaultScreens and UnitLinesPerCm)

@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
 
@@ -102,7 +103,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// <returns>The values found with the specified tag.</returns>
         public List<IptcValue> GetValues(IptcTag tag)
         {
-            var iptcValues = new List<IptcValue>();
+            List<IptcValue> iptcValues = new();
             foreach (IptcValue iptcValue in this.Values)
             {
                 if (iptcValue.Tag == tag)
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             bool removed = false;
             for (int i = this.values.Count - 1; i >= 0; i--)
             {
-                if (this.values[i].Tag == tag && this.values[i].Value.Equals(value))
+                if (this.values[i].Tag == tag && this.values[i].Value.Equals(value, StringComparison.OrdinalIgnoreCase))
                 {
                     this.values.RemoveAt(i);
                     removed = true;
@@ -226,16 +227,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
         /// <param name="dateTimeOffset">The datetime.</param>
+        /// <exception cref="ArgumentException">Iptc tag is not a time or date type.</exception>
         public void SetDateTimeValue(IptcTag tag, DateTimeOffset dateTimeOffset)
         {
             if (!tag.IsDate() && !tag.IsTime())
             {
-                throw new ArgumentException("iptc tag is not a time or date type");
+                throw new ArgumentException("Iptc tag is not a time or date type.");
             }
 
             string formattedDate = tag.IsDate()
-                ? dateTimeOffset.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
-                : dateTimeOffset.ToString("HHmmsszzzz", System.Globalization.CultureInfo.InvariantCulture)
+                ? dateTimeOffset.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+                : dateTimeOffset.ToString("HHmmsszzzz", CultureInfo.InvariantCulture)
                     .Replace(":", string.Empty);
 
             this.SetValue(tag, Encoding.UTF8, formattedDate);
@@ -329,7 +331,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 bool isValidTagMarker = this.Data[offset++] == IptcTagMarkerByte;
                 byte recordNumber = this.Data[offset++];
                 bool isValidRecordNumber = recordNumber is >= 1 and <= 9;
-                var tag = (IptcTag)this.Data[offset++];
+                IptcTag tag = (IptcTag)this.Data[offset++];
                 bool isValidEntry = isValidTagMarker && isValidRecordNumber;
                 bool isApplicationRecord = recordNumber == (byte)IptcRecordNumber.Application;
 

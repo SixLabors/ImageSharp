@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Generic;
@@ -16,20 +16,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="profile">The ICC profile to write</param>
         /// <returns>The ICC profile as a byte array</returns>
-        public byte[] Write(IccProfile profile)
+        public static byte[] Write(IccProfile profile)
         {
             Guard.NotNull(profile, nameof(profile));
 
-            using (var writer = new IccDataWriter())
-            {
-                IccTagTableEntry[] tagTable = this.WriteTagData(writer, profile.Entries);
-                this.WriteTagTable(writer, tagTable);
-                this.WriteHeader(writer, profile.Header);
-                return writer.GetData();
-            }
+            using IccDataWriter writer = new();
+            IccTagTableEntry[] tagTable = WriteTagData(writer, profile.Entries);
+            WriteTagTable(writer, tagTable);
+            WriteHeader(writer, profile.Header);
+            return writer.GetData();
         }
 
-        private void WriteHeader(IccDataWriter writer, IccProfileHeader header)
+        private static void WriteHeader(IccDataWriter writer, IccProfileHeader header)
         {
             writer.SetIndex(0);
 
@@ -54,7 +52,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             writer.WriteProfileId(id);
         }
 
-        private void WriteTagTable(IccDataWriter writer, IccTagTableEntry[] table)
+        private static void WriteTagTable(IccDataWriter writer, IccTagTableEntry[] table)
         {
             // 128 = size of ICC header
             writer.SetIndex(128);
@@ -68,7 +66,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
         }
 
-        private IccTagTableEntry[] WriteTagData(IccDataWriter writer, IccTagDataEntry[] entries)
+        private static IccTagTableEntry[] WriteTagData(IccDataWriter writer, IccTagDataEntry[] entries)
         {
             // TODO: Investigate cost of Linq GroupBy
             IEnumerable<IGrouping<IccTagDataEntry, IccTagDataEntry>> grouped = entries.GroupBy(t => t);
@@ -76,7 +74,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             // (Header size) + (entry count) + (nr of entries) * (size of table entry)
             writer.SetIndex(128 + 4 + (entries.Length * 12));
 
-            var table = new List<IccTagTableEntry>();
+            List<IccTagTableEntry> table = new();
             foreach (IGrouping<IccTagDataEntry, IccTagDataEntry> group in grouped)
             {
                 writer.WriteTagDataEntry(group.Key, out IccTagTableEntry tableEntry);

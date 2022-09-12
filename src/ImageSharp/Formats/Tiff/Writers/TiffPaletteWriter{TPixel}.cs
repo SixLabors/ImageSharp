@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                     }
                 }
 
-                compressor.CompressStrip(rows4bit.Slice(0, idx4bitRows), height);
+                compressor.CompressStrip(rows4bit[..idx4bitRows], height);
             }
             else
             {
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
                     indexedPixelsRowIdx++;
                 }
 
-                compressor.CompressStrip(indexedPixels.Slice(0, stripPixels), height);
+                compressor.CompressStrip(indexedPixels[..stripPixels], height);
             }
         }
 
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             int quantizedColorBytes = quantizedColors.Length * 3 * 2;
 
             // In the ColorMap, black is represented by 0, 0, 0 and white is represented by 65535, 65535, 65535.
-            Span<Rgb48> quantizedColorRgb48 = MemoryMarshal.Cast<byte, Rgb48>(colorPalette.Slice(0, quantizedColorBytes));
+            Span<Rgb48> quantizedColorRgb48 = MemoryMarshal.Cast<byte, Rgb48>(colorPalette[..quantizedColorBytes]);
             PixelOperations<TPixel>.Instance.ToRgb48(this.Configuration, quantizedColors, quantizedColorRgb48);
 
             // It can happen that the quantized colors are less than the expected maximum per channel.

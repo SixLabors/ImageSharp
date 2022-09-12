@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see cref="RectangleF"/> that has X, Y, Width, and Height values set to zero.
         /// </summary>
-        public static readonly RectangleF Empty = default;
+        public static readonly RectangleF Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RectangleF"/> struct.
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp
         public PointF Location
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new PointF(this.X, this.Y);
+            get => new(this.X, this.Y);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp
         public SizeF Size
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new SizeF(this.Width, this.Height);
+            get => new(this.Width, this.Height);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         // ReSharper disable once InconsistentNaming
-        public static RectangleF FromLTRB(float left, float top, float right, float bottom) => new RectangleF(left, top, right - left, bottom - top);
+        public static RectangleF FromLTRB(float left, float top, float right, float bottom) => new(left, top, right - left, bottom - top);
 
         /// <summary>
         /// Returns the center point of the given <see cref="RectangleF"/>.
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rectangle">The rectangle.</param>
         /// <returns>The <see cref="Point"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Center(RectangleF rectangle) => new PointF(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+        public static PointF Center(RectangleF rectangle) => new(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
 
         /// <summary>
         /// Creates a rectangle that represents the intersection between <paramref name="a"/> and
@@ -372,15 +372,11 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(this.X, this.Y, this.Width, this.Height);
-        }
+            => HashCode.Combine(this.X, this.Y, this.Width, this.Height);
 
         /// <inheritdoc/>
         public override string ToString()
-        {
-            return $"RectangleF [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
-        }
+            => $"RectangleF [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is RectangleF other && this.Equals(other);

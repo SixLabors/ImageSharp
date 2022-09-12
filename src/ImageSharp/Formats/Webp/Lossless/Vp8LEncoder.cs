@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
@@ -343,7 +344,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
                 bgra.CopyTo(encodedData);
-                bool useCache = true;
+                const bool useCache = true;
                 this.UsePalette = crunchConfig.EntropyIdx is EntropyIx.Palette or EntropyIx.PaletteAndSpatial;
                 this.UseSubtractGreenTransform = crunchConfig.EntropyIdx is EntropyIx.SubGreen or EntropyIx.SpatialSubGreen;
                 this.UsePredictorTransform = crunchConfig.EntropyIdx is EntropyIx.Spatial or EntropyIx.SpatialSubGreen;
@@ -382,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // If using a color cache, do not have it bigger than the number of colors.
                     if (useCache && this.PaletteSize < 1 << WebpConstants.MaxColorCacheBits)
                     {
-                        this.CacheBits = Numerics.Log2((uint)this.PaletteSize) + 1;
+                        this.CacheBits = BitOperations.Log2((uint)this.PaletteSize) + 1;
                     }
                 }
 
@@ -417,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
                 {
                     bestSize = this.bitWriter.NumBytes();
-                    this.BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
+                    BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
                 }
 
                 // Reset the bit writer for the following iteration if any.
@@ -429,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 isFirstConfig = false;
             }
 
-            this.BitWriterSwap(ref bitWriterBest, ref this.bitWriter);
+            BitWriterSwap(ref bitWriterBest, ref this.bitWriter);
         }
 
         /// <summary>
@@ -484,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
             bool doNotCache = false;
-            var crunchConfigs = new List<CrunchConfig>();
+            List<CrunchConfig> crunchConfigs = new();
 
             if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
             {
@@ -539,7 +540,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> bgra = this.EncodedData.GetSpan();
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, this.HistoBits) * LosslessUtils.SubSampleSize(height, this.HistoBits);
             ushort[] histogramSymbols = new ushort[histogramImageXySize];
-            var huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
+            HuffmanTree[] huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
                 huffTree[i] = default;
@@ -582,8 +583,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
                 this.bitWriter.Reset(bwInit);
-                var tmpHisto = new Vp8LHistogram(cacheBits);
-                var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
+                Vp8LHistogram tmpHisto = new(cacheBits);
+                List<Vp8LHistogram> histogramImage = new(histogramImageXySize);
                 for (int i = 0; i < histogramImageXySize; i++)
                 {
                     histogramImage.Add(new Vp8LHistogram(cacheBits));
@@ -595,7 +596,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 // Create Huffman bit lengths and codes for each histogram image.
                 int histogramImageSize = histogramImage.Count;
                 int bitArraySize = 5 * histogramImageSize;
-                var huffmanCodes = new HuffmanTreeCode[bitArraySize];
+                HuffmanTreeCode[] huffmanCodes = new HuffmanTreeCode[bitArraySize];
                 for (int i = 0; i < huffmanCodes.Length; i++)
                 {
                     huffmanCodes[i] = default;
@@ -656,7 +657,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
                 }
 
-                var tokens = new HuffmanTreeToken[maxTokens];
+                HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
                 for (int i = 0; i < tokens.Length; i++)
                 {
                     tokens[i] = new HuffmanTreeToken();
@@ -766,13 +767,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int cacheBits = 0;
             ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
 
-            var huffmanCodes = new HuffmanTreeCode[5];
+            HuffmanTreeCode[] huffmanCodes = new HuffmanTreeCode[5];
             for (int i = 0; i < huffmanCodes.Length; i++)
             {
                 huffmanCodes[i] = default;
             }
 
-            var huffTree = new HuffmanTree[3UL * WebpConstants.CodeLengthCodes];
+            HuffmanTree[] huffTree = new HuffmanTree[3UL * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
                 huffTree[i] = default;
@@ -793,7 +794,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 refsTmp1,
                 refsTmp2);
 
-            var histogramImage = new List<Vp8LHistogram>()
+            List<Vp8LHistogram> histogramImage = new()
             {
                 new(cacheBits)
             };
@@ -818,7 +819,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
 
-            var tokens = new HuffmanTreeToken[maxTokens];
+            HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
             for (int i = 0; i < tokens.Length; i++)
             {
                 tokens[i] = new HuffmanTreeToken();
@@ -841,8 +842,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int count = 0;
             Span<int> symbols = this.scratch.AsSpan(0, 2);
             symbols.Clear();
-            int maxBits = 8;
-            int maxSymbol = 1 << maxBits;
+            const int maxBits = 8;
+            const int maxSymbol = 1 << maxBits;
 
             // Check whether it's a small tree.
             for (int i = 0; i < huffmanCode.NumSymbols && count < 3; i++)
@@ -895,7 +896,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             int i;
             byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
             short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
-            var huffmanCode = new HuffmanTreeCode
+            HuffmanTreeCode huffmanCode = new()
             {
                 NumSymbols = WebpConstants.CodeLengthCodes,
                 CodeLengths = codeLengthBitDepth,
@@ -951,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
                 else
                 {
-                    int nBits = Numerics.Log2((uint)trimmedLength - 2);
+                    int nBits = BitOperations.Log2((uint)trimmedLength - 2);
                     int nBitPairs = (nBits / 2) + 1;
                     this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
                     this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);
@@ -1098,31 +1099,31 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     uint pix = currentRow[x];
                     uint pixDiff = LosslessUtils.SubPixels(pix, pixPrev);
                     pixPrev = pix;
-                    if (pixDiff == 0 || (prevRow != null && pix == prevRow[x]))
+                    if (pixDiff == 0 || (prevRow.Length > 0 && pix == prevRow[x]))
                     {
                         continue;
                     }
 
                     AddSingle(
                         pix,
-                        histo.Slice((int)HistoIx.HistoAlpha * 256),
-                        histo.Slice((int)HistoIx.HistoRed * 256),
-                        histo.Slice((int)HistoIx.HistoGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBlue * 256));
+                        histo[..],
+                        histo[((int)HistoIx.HistoRed * 256)..],
+                        histo[((int)HistoIx.HistoGreen * 256)..],
+                        histo[((int)HistoIx.HistoBlue * 256)..]);
                     AddSingle(
                         pixDiff,
-                        histo.Slice((int)HistoIx.HistoAlphaPred * 256),
-                        histo.Slice((int)HistoIx.HistoRedPred * 256),
-                        histo.Slice((int)HistoIx.HistoGreenPred * 256),
-                        histo.Slice((int)HistoIx.HistoBluePred * 256));
+                        histo[((int)HistoIx.HistoAlphaPred * 256)..],
+                        histo[((int)HistoIx.HistoRedPred * 256)..],
+                        histo[((int)HistoIx.HistoGreenPred * 256)..],
+                        histo[((int)HistoIx.HistoBluePred * 256)..]);
                     AddSingleSubGreen(
                         pix,
-                        histo.Slice((int)HistoIx.HistoRedSubGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBlueSubGreen * 256));
+                        histo[((int)HistoIx.HistoRedSubGreen * 256)..],
+                        histo[((int)HistoIx.HistoBlueSubGreen * 256)..]);
                     AddSingleSubGreen(
                         pixDiff,
-                        histo.Slice((int)HistoIx.HistoRedPredSubGreen * 256),
-                        histo.Slice((int)HistoIx.HistoBluePredSubGreen * 256));
+                        histo[((int)HistoIx.HistoRedPredSubGreen * 256)..],
+                        histo[((int)HistoIx.HistoBluePredSubGreen * 256)..]);
 
                     // Approximate the palette by the entropy of the multiplicative hash.
                     uint hash = HashPix(pix);
@@ -1146,7 +1147,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             histo[(int)HistoIx.HistoBluePred * 256]++;
             histo[(int)HistoIx.HistoAlphaPred * 256]++;
 
-            var bitEntropy = new Vp8LBitEntropy();
+            Vp8LBitEntropy bitEntropy = new();
             for (int j = 0; j < (int)HistoIx.HistoTotal; j++)
             {
                 bitEntropy.Init();
@@ -1213,8 +1214,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
                 new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
             };
-            Span<uint> redHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][0]);
-            Span<uint> blueHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][1]);
+            Span<uint> redHisto = histo[(256 * histoPairs[(int)minEntropyIx][0])..];
+            Span<uint> blueHisto = histo[(256 * histoPairs[(int)minEntropyIx][1])..];
             for (int i = 1; i < 256; i++)
             {
                 if ((redHisto[i] | blueHisto[i]) != 0)
@@ -1238,21 +1239,15 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private bool AnalyzeAndCreatePalette(ReadOnlySpan<uint> bgra, int width, int height)
         {
             Span<uint> palette = this.Palette.Memory.Span;
-            this.PaletteSize = this.GetColorPalette(bgra, width, height, palette);
+            this.PaletteSize = GetColorPalette(bgra, width, height, palette);
             if (this.PaletteSize > WebpConstants.MaxPaletteSize)
             {
                 this.PaletteSize = 0;
                 return false;
             }
 
-#if NET5_0_OR_GREATER
-            var paletteSlice = palette.Slice(0, this.PaletteSize);
+            Span<uint> paletteSlice = palette[..this.PaletteSize];
             paletteSlice.Sort();
-#else
-            uint[] paletteArray = palette.Slice(0, this.PaletteSize).ToArray();
-            Array.Sort(paletteArray);
-            paletteArray.CopyTo(palette);
-#endif
 
             if (PaletteHasNonMonotonousDeltas(palette, this.PaletteSize))
             {
@@ -1270,9 +1265,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="height">The image height.</param>
         /// <param name="palette">The span to store the palette into.</param>
         /// <returns>The number of palette entries.</returns>
-        private int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
+        private static int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
         {
-            var colors = new HashSet<uint>();
+            HashSet<uint> colors = new();
             for (int y = 0; y < height; y++)
             {
                 ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);
@@ -1352,8 +1347,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     BundleColorMap(tmpRow, width, xBits, dst);
-                    src = src.Slice(srcStride);
-                    dst = dst.Slice(dstStride);
+                    src = src[srcStride..];
+                    dst = dst[dstStride..];
                 }
             }
             else
@@ -1449,8 +1444,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice(srcStride);
-                dst = dst.Slice(dstStride);
+                src = src[srcStride..];
+                dst = dst[dstStride..];
             }
         }
 
@@ -1474,8 +1469,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice(srcStride);
-                dst = dst.Slice(dstStride);
+                src = src[srcStride..];
+                dst = dst[dstStride..];
             }
         }
 
@@ -1484,7 +1479,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private static void PrepareMapToPalette(Span<uint> palette, int numColors, uint[] sorted, uint[] idxMap)
         {
-            palette.Slice(0, numColors).CopyTo(sorted);
+            palette[..numColors].CopyTo(sorted);
             Array.Sort(sorted, PaletteCompareColorsForSort);
             for (int i = 0; i < numColors; i++)
             {
@@ -1552,7 +1547,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <returns>True, if the palette has no monotonous deltas.</returns>
         private static bool PaletteHasNonMonotonousDeltas(Span<uint> palette, int numColors)
         {
-            uint predict = 0x000000;
+            const uint predict = 0x000000;
             byte signFound = 0x00;
             for (int i = 0; i < numColors; i++)
             {
@@ -1642,7 +1637,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             // Create Huffman trees.
             bool[] bufRle = new bool[maxNumSymbols];
-            var huffTree = new HuffmanTree[3 * maxNumSymbols];
+            HuffmanTree[] huffTree = new HuffmanTree[3 * maxNumSymbols];
             for (int i = 0; i < huffTree.Length; i++)
             {
                 huffTree[i] = default;
@@ -1670,7 +1665,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         private static uint PaletteColorDistance(uint col1, uint col2)
         {
             uint diff = LosslessUtils.SubPixels(col1, col2);
-            uint moreWeightForRGBThanForAlpha = 9;
+            const uint moreWeightForRGBThanForAlpha = 9;
             uint score = PaletteComponentDistance((diff >> 0) & 0xff);
             score += PaletteComponentDistance((diff >> 8) & 0xff);
             score += PaletteComponentDistance((diff >> 16) & 0xff);
@@ -1735,7 +1730,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void BitWriterSwap(ref Vp8LBitWriter src, ref Vp8LBitWriter dst)
+        private static void BitWriterSwap(ref Vp8LBitWriter src, ref Vp8LBitWriter dst)
         {
             Vp8LBitWriter tmp = src;
             src = dst;

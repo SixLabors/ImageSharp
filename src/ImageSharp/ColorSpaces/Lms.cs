@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -14,24 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct Lms : IEquatable<Lms>
     {
-        /// <summary>
-        /// Gets the L long component.
-        /// <remarks>A value usually ranging between -1 and 1.</remarks>
-        /// </summary>
-        public readonly float L;
-
-        /// <summary>
-        /// Gets the M medium component.
-        /// <remarks>A value usually ranging between -1 and 1.</remarks>
-        /// </summary>
-        public readonly float M;
-
-        /// <summary>
-        /// Gets the S short component.
-        /// <remarks>A value usually ranging between -1 and 1.</remarks>
-        /// </summary>
-        public readonly float S;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
@@ -56,6 +38,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.M = vector.Y;
             this.S = vector.Z;
         }
+
+        /// <summary>
+        /// Gets the L long component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
+        /// </summary>
+        public readonly float L { get; }
+
+        /// <summary>
+        /// Gets the M medium component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
+        /// </summary>
+        public readonly float M { get; }
+
+        /// <summary>
+        /// Gets the S short component.
+        /// <remarks>A value usually ranging between -1 and 1.</remarks>
+        /// </summary>
+        public readonly float S { get; }
 
         /// <summary>
         /// Compares two <see cref="Lms"/> objects for equality.
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector3 ToVector3() => new Vector3(this.L, this.M, this.S);
+        public Vector3 ToVector3() => new(this.L, this.M, this.S);
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(this.L, this.M, this.S);
@@ -98,10 +98,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Lms other)
-        {
-            return this.L.Equals(other.L)
-                && this.M.Equals(other.M)
-                && this.S.Equals(other.S);
-        }
+            => this.L.Equals(other.L)
+            && this.M.Equals(other.M)
+            && this.S.Equals(other.S);
     }
 }

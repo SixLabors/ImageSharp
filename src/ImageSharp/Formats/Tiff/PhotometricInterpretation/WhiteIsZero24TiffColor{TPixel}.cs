@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
             const uint maxValue = 0xFFFFFF;
 
-            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
+            Span<byte> bufferSpan = buffer[bufferStartIdx..];
             int offset = 0;
             for (int y = top; y < top + height; y++)
             {

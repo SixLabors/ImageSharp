@@ -49,14 +49,14 @@ namespace SixLabors.ImageSharp.Formats.Webp
         public Vp8FrameHeader Vp8FrameHeader { get; set; }
 
         /// <summary>
-        /// Gets or sets the VP8L bitreader. Will be null, if its not a lossless image.
+        /// Gets or sets the VP8L bitreader. Will be <see langword="null"/>, if its not a lossless image.
         /// </summary>
-        public Vp8LBitReader Vp8LBitReader { get; set; } = null;
+        public Vp8LBitReader Vp8LBitReader { get; set; }
 
         /// <summary>
-        /// Gets or sets the VP8 bitreader. Will be null, if its not a lossy image.
+        /// Gets or sets the VP8 bitreader. Will be <see langword="null"/>, if its not a lossy image.
         /// </summary>
-        public Vp8BitReader Vp8BitReader { get; set; } = null;
+        public Vp8BitReader Vp8BitReader { get; set; }
 
         /// <inheritdoc/>
         public void Dispose()

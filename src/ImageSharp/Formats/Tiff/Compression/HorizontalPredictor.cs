@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             for (int y = 0; y < height; y++)
             {
                 Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes).Slice(0, width);
+                Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes)[..width];
                 ref Rgb24 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
                 byte r = rowRgbBase.R;
                 byte g = rowRgbBase.G;
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             for (int y = 0; y < height; y++)
             {
                 Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                Span<Rgba32> rowRgb = MemoryMarshal.Cast<byte, Rgba32>(rowBytes).Slice(0, width);
+                Span<Rgba32> rowRgb = MemoryMarshal.Cast<byte, Rgba32>(rowBytes)[..width];
                 ref Rgba32 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
                 byte r = rowRgbBase.R;
                 byte g = rowRgbBase.G;

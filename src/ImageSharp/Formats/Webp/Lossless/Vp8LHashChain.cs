@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 else
                 {
                     // Just move one pixel forward.
-                    hashCode = GetPixPairHash64(bgra.Slice(pos));
+                    hashCode = GetPixPairHash64(bgra[pos..]);
                     chain[pos] = hashToFirstIndex[(int)hashCode];
                     hashToFirstIndex[(int)hashCode] = pos++;
                     bgraComp = bgraCompNext;
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             }
 
             // Process the penultimate pixel.
-            chain[pos] = hashToFirstIndex[(int)GetPixPairHash64(bgra.Slice(pos))];
+            chain[pos] = hashToFirstIndex[(int)GetPixPairHash64(bgra[pos..])];
 
             // Find the best match interval at each pixel, defined by an offset to the
             // pixel and a length. The right-most pixel cannot match anything to the right
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     // Heuristic: use the comparison with the above line as an initialization.
                     if (basePosition >= (uint)xSize)
                     {
-                        currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - xSize), bgra.Slice(bgraStart), bestLength, maxLen);
+                        currLength = LosslessUtils.FindMatchLength(bgra[(bgraStart - xSize)..], bgra[bgraStart..], bestLength, maxLen);
                         if (currLength > bestLength)
                         {
                             bestLength = currLength;
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
 
                     // Heuristic: compare to the previous pixel.
-                    currLength = LosslessUtils.FindMatchLength(bgra.Slice(bgraStart - 1), bgra.Slice(bgraStart), bestLength, maxLen);
+                    currLength = LosslessUtils.FindMatchLength(bgra[(bgraStart - 1)..], bgra[bgraStart..], bestLength, maxLen);
                     if (currLength > bestLength)
                     {
                         bestLength = currLength;
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                     }
                 }
 
-                uint bestBgra = bgra.Slice(bgraStart)[bestLength];
+                uint bestBgra = bgra[bgraStart..][bestLength];
 
                 for (; pos >= minPos && (--iter > 0); pos = chain[pos])
                 {
@@ -193,12 +193,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         continue;
                     }
 
-                    currLength = LosslessUtils.VectorMismatch(bgra.Slice(pos), bgra.Slice(bgraStart), maxLen);
+                    currLength = LosslessUtils.VectorMismatch(bgra[pos..], bgra[bgraStart..], maxLen);
                     if (bestLength < currLength)
                     {
                         bestLength = currLength;
                         bestDistance = (uint)(basePosition - pos);
-                        bestBgra = bgra.Slice(bgraStart)[bestLength];
+                        bestBgra = bgra[bgraStart..][bestLength];
 
                         // Stop if we have reached a good enough length.
                         if (bestLength >= lengthMax)

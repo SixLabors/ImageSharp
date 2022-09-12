@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             Span<byte> buffer = stackalloc byte[4];
             int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
-            Span<byte> bufferSpan = buffer.Slice(bufferStartIdx);
+            Span<byte> bufferSpan = buffer[bufferStartIdx..];
             for (int y = top; y < top + height; y++)
             {
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);

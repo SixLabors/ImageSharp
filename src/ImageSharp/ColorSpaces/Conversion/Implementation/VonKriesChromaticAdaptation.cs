@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 
             if (sourceWhitePoint.Equals(destinationWhitePoint))
             {
-                source.CopyTo(destination.Slice(0, count));
+                source.CopyTo(destination[..count]);
                 return;
             }
 

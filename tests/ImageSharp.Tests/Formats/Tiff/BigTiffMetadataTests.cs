@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         private static void WriteLong8(TiffStreamWriter writer, byte[] buffer, ulong value)
         {
-            if (writer.IsLittleEndian)
+            if (TiffStreamWriter.IsLittleEndian)
             {
                 BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
             }

@@ -26,12 +26,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void RunSetCoeffsTest_Works() => RunSetCoeffsTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void RunSetCoeffsTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.AllowAll);
 
         [Fact]
         public void RunSetCoeffsTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

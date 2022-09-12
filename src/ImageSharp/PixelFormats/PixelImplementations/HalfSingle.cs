@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfSingle"/> struct.
         /// </summary>
-        /// <param name="single">The single component.</param>
-        public HalfSingle(float single) => this.PackedValue = HalfTypeHelper.Pack(single);
+        /// <param name="value">The single component value.</param>
+        public HalfSingle(float value) => this.PackedValue = HalfTypeHelper.Pack(value);
 
         /// <inheritdoc/>
         public ushort PackedValue { get; set; }

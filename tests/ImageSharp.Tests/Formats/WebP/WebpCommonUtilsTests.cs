@@ -5,10 +5,8 @@ using System;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using SixLabors.ImageSharp.Tests.TestUtilities;
-#endif
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
@@ -21,7 +19,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void CheckNonOpaque_WithNoneOpaquePixels_Works() => RunCheckNoneOpaqueWithNoneOpaquePixelsTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void CheckNonOpaque_WithOpaquePixels_WithHardwareIntrinsics_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.AllowAll);
@@ -45,7 +42,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void CheckNonOpaque_WithNoneOpaquePixels_WithoutAvx2_Works()
             => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableAVX2);
-#endif
 
         private static void RunCheckNoneOpaqueWithNoneOpaquePixelsTest()
         {
@@ -200,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             for (int length = 8; length < row.Length; length += 8)
             {
                 // act
-                noneOpaque = WebpCommonUtils.CheckNonOpaque(row.Slice(0, length));
+                noneOpaque = WebpCommonUtils.CheckNonOpaque(row[..length]);
 
                 // assert
                 Assert.False(noneOpaque);

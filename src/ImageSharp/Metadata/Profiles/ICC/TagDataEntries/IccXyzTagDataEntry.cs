@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -28,9 +27,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="tagSignature">Tag Signature</param>
         public IccXyzTagDataEntry(Vector3[] data, IccProfileTag tagSignature)
             : base(IccTypeSignature.Xyz, tagSignature)
-        {
-            this.Data = data ?? throw new ArgumentNullException(nameof(data));
-        }
+            => this.Data = data ?? throw new ArgumentNullException(nameof(data));
 
         /// <summary>
         /// Gets the XYZ numbers.
@@ -50,8 +47,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc />
         public bool Equals(IccXyzTagDataEntry other)
-        {
-            return this.Equals((IccTagDataEntry)other);
-        }
+            => this.Equals((IccTagDataEntry)other);
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+            => this.Equals(obj as IccXyzTagDataEntry);
+
+        public override int GetHashCode()
+            => HashCode.Combine(base.GetHashCode(), this.Data);
     }
 }

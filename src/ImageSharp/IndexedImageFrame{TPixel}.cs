@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
             // Copy the palette over. We want the lifetime of this frame to be independant of any palette source.
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(palette.Length);
             palette.Span.CopyTo(this.paletteOwner.GetSpan());
-            this.Palette = this.paletteOwner.Memory.Slice(0, palette.Length);
+            this.Palette = this.paletteOwner.Memory[..palette.Length];
         }
 
         /// <summary>

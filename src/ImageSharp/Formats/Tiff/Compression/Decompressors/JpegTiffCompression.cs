@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 Span<Rgb24> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
                 Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
-                rgbBytes.CopyTo(buffer.Slice(offset));
+                rgbBytes.CopyTo(buffer[offset..]);
                 offset += rgbBytes.Length;
             }
         }
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             {
                 Span<L8> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
                 Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
-                rgbBytes.CopyTo(buffer.Slice(offset));
+                rgbBytes.CopyTo(buffer[offset..]);
                 offset += rgbBytes.Length;
             }
         }

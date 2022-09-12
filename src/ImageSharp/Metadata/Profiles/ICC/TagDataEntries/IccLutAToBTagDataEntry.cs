@@ -53,13 +53,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             IccProfileTag tagSignature)
         : base(IccTypeSignature.LutAToB, tagSignature)
         {
-            this.VerifyMatrix(matrix3x3, matrix3x1);
+            VerifyMatrix(matrix3x3, matrix3x1);
             this.VerifyCurve(curveA, nameof(curveA));
             this.VerifyCurve(curveB, nameof(curveB));
             this.VerifyCurve(curveM, nameof(curveM));
 
-            this.Matrix3x3 = this.CreateMatrix3x3(matrix3x3);
-            this.Matrix3x1 = this.CreateMatrix3x1(matrix3x1);
+            this.Matrix3x3 = CreateMatrix3x3(matrix3x3);
+            this.Matrix3x1 = CreateMatrix3x1(matrix3x1);
             this.CurveA = curveA;
             this.CurveB = curveB;
             this.CurveM = curveM;
@@ -212,29 +212,23 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         }
 
         private bool IsAClutMMatrixB()
-        {
-            return this.CurveB != null
-                && this.Matrix3x3 != null
-                && this.Matrix3x1 != null
-                && this.CurveM != null
-                && this.ClutValues != null
-                && this.CurveA != null;
-        }
+            => this.CurveB != null
+            && this.Matrix3x3 != null
+            && this.Matrix3x1 != null
+            && this.CurveM != null
+            && this.ClutValues != null
+            && this.CurveA != null;
 
         private bool IsMMatrixB()
-        {
-            return this.CurveB != null
-                && this.Matrix3x3 != null
-                && this.Matrix3x1 != null
-                && this.CurveM != null;
-        }
+            => this.CurveB != null
+            && this.Matrix3x3 != null
+            && this.Matrix3x1 != null
+            && this.CurveM != null;
 
         private bool IsAClutB()
-        {
-            return this.CurveB != null
-                && this.ClutValues != null
-                && this.CurveA != null;
-        }
+            => this.CurveB != null
+            && this.ClutValues != null
+            && this.CurveA != null;
 
         private bool IsB() => this.CurveB != null;
 
@@ -242,12 +236,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             if (curves != null)
             {
-                bool isNotCurve = curves.Any(t => !(t is IccParametricCurveTagDataEntry) && !(t is IccCurveTagDataEntry));
+                bool isNotCurve = curves.Any(t => t is not IccParametricCurveTagDataEntry and not IccCurveTagDataEntry);
                 Guard.IsFalse(isNotCurve, nameof(name), $"{nameof(name)} must be of type {nameof(IccParametricCurveTagDataEntry)} or {nameof(IccCurveTagDataEntry)}");
             }
         }
 
-        private void VerifyMatrix(float[,] matrix3x3, float[] matrix3x1)
+        private static void VerifyMatrix(float[,] matrix3x3, float[] matrix3x1)
         {
             if (matrix3x1 != null)
             {
@@ -261,7 +255,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             }
         }
 
-        private Vector3? CreateMatrix3x1(float[] matrix)
+        private static Vector3? CreateMatrix3x1(float[] matrix)
         {
             if (matrix is null)
             {
@@ -271,7 +265,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             return new Vector3(matrix[0], matrix[1], matrix[2]);
         }
 
-        private Matrix4x4? CreateMatrix3x3(float[,] matrix)
+        private static Matrix4x4? CreateMatrix3x3(float[,] matrix)
         {
             if (matrix is null)
             {

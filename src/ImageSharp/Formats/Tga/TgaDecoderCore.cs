@@ -826,7 +826,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     int bufferIdx = uncompressedPixels * bytesPerPixel;
                     for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                     {
-                        pixel.CopyTo(buffer.Slice(bufferIdx));
+                        pixel.CopyTo(buffer[bufferIdx..]);
                         bufferIdx += bytesPerPixel;
                     }
                 }
@@ -843,7 +843,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
                         }
 
-                        pixel.CopyTo(buffer.Slice(bufferIdx));
+                        pixel.CopyTo(buffer[bufferIdx..]);
                         bufferIdx += bytesPerPixel;
                     }
                 }

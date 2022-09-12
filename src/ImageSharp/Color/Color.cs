@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color ParseHex(string hex)
         {
-            var rgba = Rgba32.ParseHex(hex);
+            Rgba32 rgba = Rgba32.ParseHex(hex);
 
             return new Color(rgba);
         }
@@ -193,6 +193,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="Color"/>.
         /// </returns>
+        /// <exception cref="ArgumentException">Input string is not in the correct format.</exception>
         public static Color Parse(string input)
         {
             Guard.NotNull(input, nameof(input));
@@ -241,7 +242,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The color having it's alpha channel altered.</returns>
         public Color WithAlpha(float alpha)
         {
-            var v = (Vector4)this;
+            Vector4 v = (Vector4)this;
             v.W = alpha;
             return new Color(v);
         }
@@ -290,12 +291,12 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source color span.</param>
         /// <param name="destination">The destination pixel span.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void ToPixel<TPixel>(
-            Configuration configuration,
-            ReadOnlySpan<Color> source,
-            Span<TPixel> destination)
+#pragma warning disable RCS1163 // Unused parameter.
+        public static void ToPixel<TPixel>(Configuration configuration, ReadOnlySpan<Color> source, Span<TPixel> destination)
+#pragma warning restore RCS1163 // Unused parameter.
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // TODO: Investigate bulk operations utilizing configuration parameter here.
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             for (int i = 0; i < source.Length; i++)
             {

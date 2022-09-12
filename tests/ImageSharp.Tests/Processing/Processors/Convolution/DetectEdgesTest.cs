@@ -13,7 +13,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     [Trait("Category", "Processors")]
     [GroupOutput("Convolution")]
-    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "OK. Used for TheoryData compatibility.")]
     public class DetectEdgesTest
     {
         private static readonly ImageComparer OpaqueComparer = ImageComparer.TolerantPercentage(0.01F);

@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Span is 3x bounds.
             int boundsX = this.bounds.X;
             int boundsWidth = this.bounds.Width;
-            Span<Vector4> sourceBuffer = span.Slice(0, boundsWidth);
+            Span<Vector4> sourceBuffer = span[..boundsWidth];
             Span<Vector4> targetYBuffer = span.Slice(boundsWidth, boundsWidth);
             Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Span is 3x bounds.
             int boundsX = this.bounds.X;
             int boundsWidth = this.bounds.Width;
-            Span<Vector4> sourceBuffer = span.Slice(0, boundsWidth);
+            Span<Vector4> sourceBuffer = span[..boundsWidth];
             Span<Vector4> targetYBuffer = span.Slice(boundsWidth, boundsWidth);
             Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -15,9 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="values">The LUT values</param>
         public IccLut(float[] values)
-        {
-            this.Values = values ?? throw new ArgumentNullException(nameof(values));
-        }
+            => this.Values = values ?? throw new ArgumentNullException(nameof(values));
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccLut"/> struct.
@@ -68,5 +66,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
             return this.Values.AsSpan().SequenceEqual(other.Values);
         }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is IccLut iccLut && this.Equals(iccLut);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => this.Values.GetHashCode();
     }
 }

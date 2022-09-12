@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             Span<YCbCr> actualSpan = new YCbCr[5];
 
             // Act
-            var actual = Converter.ToYCbCr(input);
-            Converter.Convert(inputSpan, actualSpan);
+            var actual = ColorSpaceConverter.ToYCbCr(input);
+            ColorSpaceConverter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);

@@ -8,14 +8,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts from <see cref="CieLuv"/> to <see cref="CieXyz"/>.
     /// </summary>
-    internal sealed class CieLuvToCieXyzConverter
+    internal static class CieLuvToCieXyzConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="CieLuv"/> input to an instance of <see cref="CieXyz"/> type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        public CieXyz Convert(in CieLuv input)
+        public static CieXyz Convert(in CieLuv input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Luv_to_XYZ.html
             float l = input.L, u = input.U, v = input.V;

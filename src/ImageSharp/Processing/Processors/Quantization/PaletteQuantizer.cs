@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // since the palette is unchanging. This allows a reduction of memory usage across
             // multi frame gifs using a global palette.
             int length = Math.Min(this.colorPalette.Length, options.MaxColors);
-            var palette = new TPixel[length];
+            TPixel[] palette = new TPixel[length];
 
             Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
             return new PaletteQuantizer<TPixel>(configuration, options, palette);

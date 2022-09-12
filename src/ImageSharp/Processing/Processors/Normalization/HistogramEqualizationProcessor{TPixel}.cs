@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
@@ -67,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="histogramBase">The reference to the histogram of the input image.</param>
         /// <param name="maxIdx">Index of the maximum of the histogram.</param>
         /// <returns>The first none zero value of the cdf.</returns>
-        public int CalculateCdf(ref int cdfBase, ref int histogramBase, int maxIdx)
+        public static int CalculateCdf(ref int cdfBase, ref int histogramBase, int maxIdx)
         {
             int histSum = 0;
             int cdfMin = 0;
@@ -142,7 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             // TODO: We need a bulk per span equivalent.
-            var vector = sourcePixel.ToVector4();
+            Vector4 vector = sourcePixel.ToVector4();
             return ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
         }
     }

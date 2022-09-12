@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.IO
                 this.isDisposed = true;
                 if (disposing)
                 {
-                    this.ReleaseMemoryChunks(this.memoryChunk);
+                    ReleaseMemoryChunks(this.memoryChunk);
                 }
 
                 this.memoryChunk = null;
@@ -236,11 +236,9 @@ namespace SixLabors.ImageSharp.IO
             return this.ReadImpl(buffer.AsSpan(offset, count));
         }
 
-#if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int Read(Span<byte> buffer) => this.ReadImpl(buffer);
-#endif
 
         private int ReadImpl(Span<byte> buffer)
         {
@@ -288,7 +286,7 @@ namespace SixLabors.ImageSharp.IO
                 }
 
                 int readCount = Math.Min(count, chunkSize - this.readOffset);
-                chunkBuffer.Slice(this.readOffset, readCount).CopyTo(buffer.Slice(offset));
+                chunkBuffer.Slice(this.readOffset, readCount).CopyTo(buffer[offset..]);
                 offset += readCount;
                 count -= readCount;
                 this.readOffset += readCount;
@@ -352,11 +350,9 @@ namespace SixLabors.ImageSharp.IO
             this.WriteImpl(buffer.AsSpan(offset, count));
         }
 
-#if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Write(ReadOnlySpan<byte> buffer) => this.WriteImpl(buffer);
-#endif
 
         private void WriteImpl(ReadOnlySpan<byte> buffer)
         {
@@ -386,7 +382,7 @@ namespace SixLabors.ImageSharp.IO
                 }
 
                 int copyCount = Math.Min(count, chunkSize - this.writeOffset);
-                buffer.Slice(offset, copyCount).CopyTo(chunkBuffer.Slice(this.writeOffset));
+                buffer.Slice(offset, copyCount).CopyTo(chunkBuffer[this.writeOffset..]);
 
                 offset += copyCount;
                 count -= copyCount;
@@ -534,7 +530,7 @@ namespace SixLabors.ImageSharp.IO
             };
         }
 
-        private void ReleaseMemoryChunks(MemoryChunk chunk)
+        private static void ReleaseMemoryChunks(MemoryChunk chunk)
         {
             while (chunk != null)
             {

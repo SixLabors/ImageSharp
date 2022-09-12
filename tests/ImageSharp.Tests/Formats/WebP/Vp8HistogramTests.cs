@@ -215,12 +215,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             Assert.Equal(1054, alpha);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void CollectHistogramTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.AllowAll);
 
         [Fact]
         public void CollectHistogramTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectHistogramTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

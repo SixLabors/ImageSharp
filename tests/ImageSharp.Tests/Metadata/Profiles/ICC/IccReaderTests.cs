@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc
         {
             IccReader reader = this.CreateReader();
 
-            IccProfile output = reader.Read(IccTestDataProfiles.Header_Random_Array);
+            IccProfile output = IccReader.Read(IccTestDataProfiles.Header_Random_Array);
 
             Assert.Equal(0, output.Entries.Length);
             Assert.NotNull(output.Header);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc
         {
             IccReader reader = this.CreateReader();
 
-            IccProfile output = reader.Read(IccTestDataProfiles.Profile_Random_Array);
+            IccProfile output = IccReader.Read(IccTestDataProfiles.Profile_Random_Array);
 
             Assert.Equal(2, output.Entries.Length);
             Assert.True(ReferenceEquals(output.Entries[0], output.Entries[1]));

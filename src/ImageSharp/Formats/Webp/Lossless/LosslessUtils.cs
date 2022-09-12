@@ -2,13 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 {
@@ -68,9 +67,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int Code, int ExtraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
-                extraBits = prefixCode.ExtraBits;
-                return prefixCode.Code;
+                (int code, int bits) = WebpLookupTables.PrefixEncodeCode[distance];
+                extraBits = bits;
+                return code;
             }
 
             return PrefixEncodeBitsNoLut(distance, ref extraBits);
@@ -80,11 +79,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int Code, int ExtraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
-                extraBits = prefixCode.ExtraBits;
+                (int code, int bits) = WebpLookupTables.PrefixEncodeCode[distance];
+                extraBits = bits;
                 extraBitsValue = WebpLookupTables.PrefixEncodeExtraBitsValue[distance];
 
-                return prefixCode.Code;
+                return code;
             }
 
             return PrefixEncodeNoLut(distance, ref extraBits, ref extraBitsValue);
@@ -96,10 +95,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="pixelData">The pixel data to apply the transformation.</param>
         public static void AddGreenToBlueAndRed(Span<uint> pixelData)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
-                Vector256<byte> addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+                var addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
@@ -113,12 +111,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
+                    AddGreenToBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else if (Ssse3.IsSupported)
             {
-                Vector128<byte> addGreenToBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+                var addGreenToBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
@@ -132,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
+                    AddGreenToBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else if (Sse2.IsSupported)
@@ -154,11 +152,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    AddGreenToBlueAndRedScalar(pixelData.Slice((int)i));
+                    AddGreenToBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else
-#endif
             {
                 AddGreenToBlueAndRedScalar(pixelData);
             }
@@ -180,10 +177,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
-                Vector256<byte> subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+                var subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 8; i += 8)
@@ -197,12 +193,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else if (Ssse3.IsSupported)
             {
-                Vector128<byte> subtractGreenFromBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+                var subtractGreenFromBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
                 nint i;
                 for (i = 0; i <= numPixels - 4; i += 4)
@@ -216,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else if (Sse2.IsSupported)
@@ -238,11 +234,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (i != numPixels)
                 {
-                    SubtractGreenFromBlueAndRedScalar(pixelData.Slice((int)i));
+                    SubtractGreenFromBlueAndRedScalar(pixelData[(int)i..]);
                 }
             }
             else
-#endif
             {
                 SubtractGreenFromBlueAndRedScalar(pixelData);
             }
@@ -375,11 +370,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="numPixels">The number of pixels to process.</param>
         public static void TransformColor(Vp8LMultipliers m, Span<uint> pixelData, int numPixels)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && numPixels >= 8)
             {
-                Vector256<byte> transformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                Vector256<byte> transformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var transformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var transformColorRedBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
 
@@ -405,13 +399,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != numPixels)
                 {
-                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
+                    TransformColorScalar(m, pixelData[(int)idx..], numPixels - (int)idx);
                 }
             }
             else if (Sse2.IsSupported)
             {
-                Vector128<byte> transformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-                Vector128<byte> transformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var transformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var transformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
                 nint idx;
@@ -436,11 +430,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != numPixels)
                 {
-                    TransformColorScalar(m, pixelData.Slice((int)idx), numPixels - (int)idx);
+                    TransformColorScalar(m, pixelData[(int)idx..], numPixels - (int)idx);
                 }
             }
             else
-#endif
             {
                 TransformColorScalar(m, pixelData, numPixels);
             }
@@ -471,10 +464,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <param name="pixelData">The pixel data to apply the inverse transform on.</param>
         public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && pixelData.Length >= 8)
             {
-                Vector256<byte> transformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var transformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 Vector256<int> multsrb = MkCst32(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector256<int> multsb2 = MkCst32(Cst5b(m.RedToBlue), 0);
                 nint idx;
@@ -500,12 +492,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != pixelData.Length)
                 {
-                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
+                    TransformColorInverseScalar(m, pixelData[(int)idx..]);
                 }
             }
             else if (Sse2.IsSupported)
             {
-                Vector128<byte> transformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var transformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
                 Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
 
@@ -532,11 +524,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
                 if (idx != pixelData.Length)
                 {
-                    TransformColorInverseScalar(m, pixelData.Slice((int)idx));
+                    TransformColorInverseScalar(m, pixelData[(int)idx..]);
                 }
             }
             else
-#endif
             {
                 TransformColorInverseScalar(m, pixelData);
             }
@@ -753,7 +744,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// <returns>Shanon entropy.</returns>
         public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 double retVal = 0.0d;
@@ -906,7 +896,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 return (float)retVal;
             }
             else
-#endif
             {
                 double retVal = 0.0d;
                 uint sumX = 0, sumXY = 0;
@@ -1053,7 +1042,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         /// </summary>
         private static int PrefixEncodeBitsNoLut(int distance, ref int extraBits)
         {
-            int highestBit = Numerics.Log2((uint)--distance);
+            int highestBit = BitOperations.Log2((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             int code = (2 * highestBit) + secondHighestBit;
@@ -1062,7 +1051,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static int PrefixEncodeNoLut(int distance, ref int extraBits, ref int extraBitsValue)
         {
-            int highestBit = Numerics.Log2((uint)--distance);
+            int highestBit = BitOperations.Log2((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             extraBitsValue = distance & ((1 << extraBits) - 1);
@@ -1406,7 +1395,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
@@ -1415,10 +1403,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<short> v1 = Sse2.Add(c0Vec.AsInt16(), c1Vec.AsInt16());
                 Vector128<short> v2 = Sse2.Subtract(v1, c2Vec.AsInt16());
                 Vector128<byte> b = Sse2.PackUnsignedSaturate(v2, v2);
-                uint output = Sse2.ConvertToUInt32(b.AsUInt32());
-                return output;
+                return Sse2.ConvertToUInt32(b.AsUInt32());
             }
-#endif
+
             {
                 int a = AddSubtractComponentFull(
                     (int)(c0 >> 24),
@@ -1439,7 +1426,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
         private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
@@ -1453,10 +1439,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2, 1);
                 Vector128<short> a4 = Sse2.Add(a0, a3).AsInt16();
                 Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
-                uint output = Sse2.ConvertToUInt32(a5.AsUInt32());
-                return output;
+                return Sse2.ConvertToUInt32(a5.AsUInt32());
             }
-#endif
+
             {
                 uint ave = Average2(c0, c1);
                 int a = AddSubtractComponentHalf((int)(ave >> 24), (int)(c2 >> 24));
@@ -1476,17 +1461,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Clip255(uint a) => a < 256 ? a : ~a >> 24;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector256<int> MkCst32(int hi, int lo) => Vector256.Create((hi << 16) | (lo & 0xffff));
-#endif
 
         private static uint Select(uint a, uint b, uint c, Span<short> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 Span<short> output = scratch;
@@ -1510,7 +1492,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 }
             }
             else
-#endif
             {
                 int paMinusPb =
                     Sub3((int)(a >> 24), (int)(b >> 24), (int)(c >> 24)) +

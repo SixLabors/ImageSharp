@@ -26,21 +26,10 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         [Benchmark]
         public void PixelOperations_Base()
-        {
-            new PixelOperations<Rgba32>().ToVector4(
+            => new PixelOperations<Rgba32>().ToVector4(
                 this.Configuration,
                 this.source.GetSpan(),
                 this.destination.GetSpan());
-        }
-
-        [Benchmark(Baseline = true)]
-        public void BasicIntrinsics256()
-        {
-            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
-
-            SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(sBytes, dFloats);
-        }
 
         [Benchmark]
         public void ExtendedIntrinsics()
@@ -51,7 +40,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
         public void HwIntrinsics()
         {
@@ -60,7 +48,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
             SimdUtils.HwIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
         }
-#endif
 
         // [Benchmark]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()
@@ -96,8 +83,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             {
                 ref Vector<float> dRef = ref Unsafe.Add(ref destBase, i);
 
-                Vector<int> du = Vector.AsVectorInt32(dRef);
-                Vector<float> v = Vector.ConvertToSingle(du);
+                var du = Vector.AsVectorInt32(dRef);
+                var v = Vector.ConvertToSingle(du);
                 v *= scale;
 
                 dRef = v;

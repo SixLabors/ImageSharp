@@ -20,13 +20,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
     [Trait("Category", "PixelFormats")]
     public partial class PixelOperationsTests
     {
-#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<T>(TestImageProvider<T> _)
             where T : unmanaged, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
     }
-#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
 
     public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         where TPixel : unmanaged, IPixel<TPixel>
@@ -1059,7 +1057,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         public void PackFromRgbPlanes(int count)
             => SimdUtilsTests.TestPackFromRgbPlanes<TPixel>(
                 count,
-                (r, g, b, actual) => PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.Configuration, r, g, b, actual));
+                (r, g, b, actual) => PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, actual));
 
         public delegate void RefAction<T1>(ref T1 arg1);
 

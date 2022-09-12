@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -13,25 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     public readonly struct Hsv : IEquatable<Hsv>
     {
         private static readonly Vector3 Min = Vector3.Zero;
-        private static readonly Vector3 Max = new Vector3(360, 1, 1);
-
-        /// <summary>
-        /// Gets the hue component.
-        /// <remarks>A value ranging between 0 and 360.</remarks>
-        /// </summary>
-        public readonly float H;
-
-        /// <summary>
-        /// Gets the saturation component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float S;
-
-        /// <summary>
-        /// Gets the value (brightness) component.
-        /// <remarks>A value ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float V;
+        private static readonly Vector3 Max = new(360, 1, 1);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hsv"/> struct.
@@ -57,6 +39,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.S = vector.Y;
             this.V = vector.Z;
         }
+
+        /// <summary>
+        /// Gets the hue component.
+        /// <remarks>A value ranging between 0 and 360.</remarks>
+        /// </summary>
+        public readonly float H { get; }
+
+        /// <summary>
+        /// Gets the saturation component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float S { get; }
+
+        /// <summary>
+        /// Gets the value (brightness) component.
+        /// <remarks>A value ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float V { get; }
 
         /// <summary>
         /// Compares two <see cref="Hsv"/> objects for equality.
@@ -93,10 +93,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Hsv other)
-        {
-            return this.H.Equals(other.H)
-                && this.S.Equals(other.S)
-                && this.V.Equals(other.V);
-        }
+            => this.H.Equals(other.H)
+            && this.S.Equals(other.S)
+            && this.V.Equals(other.V);
     }
 }

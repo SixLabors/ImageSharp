@@ -17,31 +17,6 @@ namespace SixLabors.ImageSharp
         where T : struct, IEquatable<T>
     {
         /// <summary>
-        /// The 1D representation of the dense matrix.
-        /// </summary>
-        public readonly T[] Data;
-
-        /// <summary>
-        /// Gets the number of columns in the dense matrix.
-        /// </summary>
-        public readonly int Columns;
-
-        /// <summary>
-        /// Gets the number of rows in the dense matrix.
-        /// </summary>
-        public readonly int Rows;
-
-        /// <summary>
-        /// Gets the size of the dense matrix.
-        /// </summary>
-        public readonly Size Size;
-
-        /// <summary>
-        /// Gets the number of items in the array.
-        /// </summary>
-        public readonly int Count;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref=" DenseMatrix{T}" /> struct.
         /// </summary>
         /// <param name="length">The length of each side in the matrix.</param>
@@ -118,9 +93,34 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Gets the 1D representation of the dense matrix.
+        /// </summary>
+        public readonly T[] Data { get; }
+
+        /// <summary>
+        /// Gets the number of columns in the dense matrix.
+        /// </summary>
+        public readonly int Columns { get; }
+
+        /// <summary>
+        /// Gets the number of rows in the dense matrix.
+        /// </summary>
+        public readonly int Rows { get; }
+
+        /// <summary>
+        /// Gets the size of the dense matrix.
+        /// </summary>
+        public readonly Size Size { get; }
+
+        /// <summary>
+        /// Gets the number of items in the array.
+        /// </summary>
+        public readonly int Count { get; }
+
+        /// <summary>
         /// Gets a span wrapping the <see cref="Data"/>.
         /// </summary>
-        public Span<T> Span => new Span<T>(this.Data);
+        public Span<T> Span => new(this.Data);
 
         /// <summary>
         /// Gets or sets the item at the specified position.
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="DenseMatrix{T}"/> representation on the source data.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator DenseMatrix<T>(T[,] data) => new DenseMatrix<T>(data);
+        public static implicit operator DenseMatrix<T>(T[,] data) => new(data);
 
         /// <summary>
         /// Performs an implicit conversion from a <see cref="DenseMatrix{T}"/> to a <see cref="T:T[,]" />.
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp
         public static implicit operator T[,](in DenseMatrix<T> data)
 #pragma warning restore SA1008 // Opening parenthesis should be spaced correctly
         {
-            var result = new T[data.Rows, data.Columns];
+            T[,] result = new T[data.Rows, data.Columns];
 
             for (int y = 0; y < data.Rows; y++)
             {
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DenseMatrix<T> Transpose()
         {
-            var result = new DenseMatrix<T>(this.Rows, this.Columns);
+            DenseMatrix<T> result = new DenseMatrix<T>(this.Rows, this.Columns);
 
             for (int y = 0; y < this.Rows; y++)
             {

@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// A stack only, readonly, kernel matrix that can be indexed without
     /// bounds checks when compiled in release mode.
     /// </summary>
+    /// <typeparam name="T">The type of each element in the kernel.</typeparam>
     internal readonly ref struct Kernel<T>
         where T : struct, IEquatable<T>
     {
@@ -39,10 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public ReadOnlySpan<T> Span
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.values;
-            }
+            get => this.values;
         }
 
         public T this[int row, int column]
@@ -54,26 +52,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ref T vBase = ref MemoryMarshal.GetReference(this.values);
                 return Unsafe.Add(ref vBase, (row * this.Columns) + column);
             }
-        }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetValue(int row, int column, T value)
-        {
-            this.SetValue((row * this.Columns) + column, value);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                this.CheckCoordinates(row, column);
+                ref T vBase = ref MemoryMarshal.GetReference(this.values);
+                Unsafe.Add(ref vBase, (row * this.Columns) + column) = value;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(int index, T value)
         {
+            this.CheckIndex(index);
             ref T vBase = ref MemoryMarshal.GetReference(this.values);
             Unsafe.Add(ref vBase, index) = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            this.values.Clear();
-        }
+        public void Clear() => this.values.Clear();
 
         [Conditional("DEBUG")]
         private void CheckCoordinates(int row, int column)
@@ -86,6 +84,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             if (column < 0 || column >= this.Columns)
             {
                 throw new ArgumentOutOfRangeException(nameof(column), column, $"{column} is outside the matrix bounds.");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private void CheckIndex(int index)
+        {
+            if (index < 0 || index >= this.values.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), index, $"{index} is outside the matrix bounds.");
             }
         }
     }

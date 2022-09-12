@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// Applies an median filter.
     /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -49,21 +50,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int boundsX = this.bounds.X;
             int boundsWidth = this.bounds.Width;
             int kernelCount = this.kernelSize * this.kernelSize;
-            Span<Vector4> kernelBuffer = span.Slice(0, kernelCount);
+            Span<Vector4> kernelBuffer = span[..kernelCount];
             Span<Vector4> channelVectorBuffer = span.Slice(kernelCount, kernelCount);
             Span<Vector4> sourceVectorBuffer = span.Slice(kernelCount << 1, this.kernelSize * boundsWidth);
             Span<Vector4> targetBuffer = span.Slice((kernelCount << 1) + sourceVectorBuffer.Length, boundsWidth);
 
             // Stack 4 channels of floats in the space of Vector4's.
             Span<float> channelBuffer = MemoryMarshal.Cast<Vector4, float>(channelVectorBuffer);
-            Span<float> xChannel = channelBuffer.Slice(0, kernelCount);
+            Span<float> xChannel = channelBuffer[..kernelCount];
             Span<float> yChannel = channelBuffer.Slice(this.yChannelStart, kernelCount);
             Span<float> zChannel = channelBuffer.Slice(this.zChannelStart, kernelCount);
 
-            var kernel = new DenseMatrix<Vector4>(this.kernelSize, this.kernelSize, kernelBuffer);
+            DenseMatrix<Vector4> kernel = new(this.kernelSize, this.kernelSize, kernelBuffer);
 
             int row = y - this.bounds.Y;
-            var state = new MedianConvolutionState(in kernel, this.map);
+            MedianConvolutionState state = new(in kernel, this.map);
             ref int sampleRowBase = ref state.GetSampleRow(row);
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
                     for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        Span<Vector4> sourceRow = sourceVectorBuffer.Slice(kY * boundsWidth);
+                        Span<Vector4> sourceRow = sourceVectorBuffer[(kY * boundsWidth)..];
                         ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                         for (int kX = 0; kX < state.Kernel.Columns; kX++)
                         {
@@ -96,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         }
                     }
 
-                    target = this.FindMedian3(state.Kernel.Span, xChannel, yChannel, zChannel, kernelCount);
+                    target = FindMedian3(state.Kernel.Span, xChannel, yChannel, zChannel);
                 }
             }
             else
@@ -109,7 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
                     for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        Span<Vector4> sourceRow = sourceVectorBuffer.Slice(kY * boundsWidth);
+                        Span<Vector4> sourceRow = sourceVectorBuffer[(kY * boundsWidth)..];
                         ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                         for (int kX = 0; kX < state.Kernel.Columns; kX++)
                         {
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         }
                     }
 
-                    target = this.FindMedian4(state.Kernel.Span, xChannel, yChannel, zChannel, wChannel, kernelCount);
+                    target = FindMedian4(state.Kernel.Span, xChannel, yChannel, zChannel, wChannel);
                 }
             }
 
@@ -129,7 +130,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 FindMedian3(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, int stride)
+        private static Vector4 FindMedian3(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel)
         {
             int halfLength = (kernelSpan.Length + 1) >> 1;
 
@@ -152,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 FindMedian4(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, Span<float> wChannel, int stride)
+        private static Vector4 FindMedian4(ReadOnlySpan<Vector4> kernelSpan, Span<float> xChannel, Span<float> yChannel, Span<float> zChannel, Span<float> wChannel)
         {
             int halfLength = (kernelSpan.Length + 1) >> 1;
 

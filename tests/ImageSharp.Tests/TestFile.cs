@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// The image (lazy initialized value)
         /// </summary>
-        private Image<Rgba32> image;
+        private volatile Image<Rgba32> image;
 
         /// <summary>
         /// The image bytes
@@ -65,7 +66,28 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the image with lazy initialization.
         /// </summary>
-        private Image<Rgba32> Image => this.image ??= ImageSharp.Image.Load<Rgba32>(this.Bytes);
+        private Image<Rgba32> Image
+        {
+            get
+            {
+                Image<Rgba32> img = this.image;
+                if (img is null)
+                {
+                    Image<Rgba32> loadedImg = ImageSharp.Image.Load<Rgba32>(this.Bytes);
+                    img = Interlocked.CompareExchange(location1: ref this.image, value: loadedImg, comparand: null);
+                    if (img is not null)
+                    {
+                        loadedImg.Dispose();
+                    }
+                    else
+                    {
+                        img = loadedImg;
+                    }
+                }
+
+                return img;
+            }
+        }
 
         /// <summary>
         /// Gets the input image directory.

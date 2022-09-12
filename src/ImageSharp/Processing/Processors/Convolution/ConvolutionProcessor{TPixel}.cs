@@ -114,8 +114,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Span is 2x bounds.
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
-                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+                Span<Vector4> sourceBuffer = span[..this.bounds.Width];
+                Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
                 ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);

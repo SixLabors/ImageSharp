@@ -14,19 +14,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// An edge detection kernel containing a 3x3 Laplacian operator.
         /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
         /// </summary>
-        public static EdgeDetectorKernel Laplacian3x3 = new EdgeDetectorKernel(LaplacianKernels.Laplacian3x3);
+        public static readonly EdgeDetectorKernel Laplacian3x3 = new(LaplacianKernels.Laplacian3x3);
 
         /// <summary>
         /// An edge detection kernel containing a 5x5 Laplacian operator.
         /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
         /// </summary>
-        public static EdgeDetectorKernel Laplacian5x5 = new EdgeDetectorKernel(LaplacianKernels.Laplacian5x5);
+        public static readonly EdgeDetectorKernel Laplacian5x5 = new(LaplacianKernels.Laplacian5x5);
 
         /// <summary>
         /// An edge detection kernel containing a Laplacian of Gaussian operator.
         /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>.
         /// </summary>
-        public static EdgeDetectorKernel LaplacianOfGaussian = new EdgeDetectorKernel(LaplacianKernels.LaplacianOfGaussianXY);
+        public static readonly EdgeDetectorKernel LaplacianOfGaussian = new(LaplacianKernels.LaplacianOfGaussianXY);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorKernel"/> struct.

@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         BitsUsed = len,
                         Value = (uint)sorted[symbol++]
                     };
-                    ReplicateValue(table.Slice(key), step, tableSize, huffmanCode);
+                    ReplicateValue(table[key..], step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
                 }
 
@@ -426,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                 {
                     if ((key & mask) != low)
                     {
-                        tableSpan = tableSpan.Slice(tableSize);
+                        tableSpan = tableSpan[tableSize..];
                         tablePos += tableSize;
                         tableBits = NextTableBitSize(counts, len, rootBits);
                         tableSize = 1 << tableBits;
@@ -444,7 +444,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
                         BitsUsed = len - rootBits,
                         Value = (uint)sorted[symbol++]
                     };
-                    ReplicateValue(tableSpan.Slice(key >> rootBits), step, tableSize, huffmanCode);
+                    ReplicateValue(tableSpan[(key >> rootBits)..], step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
                 }
             }
@@ -576,8 +576,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
         {
             if (tree[0].PoolIndexLeft >= 0)
             {
-                SetBitDepths(pool.Slice(tree[0].PoolIndexLeft), pool, bitDepths, level + 1);
-                SetBitDepths(pool.Slice(tree[0].PoolIndexRight), pool, bitDepths, level + 1);
+                SetBitDepths(pool[tree[0].PoolIndexLeft..], pool, bitDepths, level + 1);
+                SetBitDepths(pool[tree[0].PoolIndexRight..], pool, bitDepths, level + 1);
             }
             else
             {

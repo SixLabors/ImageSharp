@@ -33,12 +33,10 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    ByteToNormalizedFloat(
-                        source.Slice(0, adjustedCount),
-                        dest.Slice(0, adjustedCount));
+                    ByteToNormalizedFloat(source[..adjustedCount], dest[..adjustedCount]);
 
-                    source = source.Slice(adjustedCount);
-                    dest = dest.Slice(adjustedCount);
+                    source = source[adjustedCount..];
+                    dest = dest[adjustedCount..];
                 }
             }
 
@@ -58,11 +56,11 @@ namespace SixLabors.ImageSharp
                 if (adjustedCount > 0)
                 {
                     NormalizedFloatToByteSaturate(
-                        source.Slice(0, adjustedCount),
-                        dest.Slice(0, adjustedCount));
+                        source[..adjustedCount],
+                        dest[..adjustedCount]);
 
-                    source = source.Slice(adjustedCount);
-                    dest = dest.Slice(adjustedCount);
+                    source = source[adjustedCount..];
+                    dest = dest[adjustedCount..];
                 }
             }
 
@@ -83,7 +81,7 @@ namespace SixLabors.ImageSharp
                 ref ByteVector4 sBase = ref Unsafe.As<byte, ByteVector4>(ref MemoryMarshal.GetReference(source));
                 ref Vector4 dBase = ref Unsafe.As<float, Vector4>(ref MemoryMarshal.GetReference(dest));
 
-                const float Scale = 1f / 255f;
+                const float scale = 1f / 255f;
                 Vector4 d = default;
 
                 for (int i = 0; i < count; i++)
@@ -93,7 +91,7 @@ namespace SixLabors.ImageSharp
                     d.Y = s.Y;
                     d.Z = s.Z;
                     d.W = s.W;
-                    d *= Scale;
+                    d *= scale;
                     Unsafe.Add(ref dBase, i) = d;
                 }
             }

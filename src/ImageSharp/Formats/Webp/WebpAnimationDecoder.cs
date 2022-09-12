@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             WebpImageInfo webpInfo = null;
-            var features = new WebpFeatures();
+            WebpFeatures features = new();
             switch (chunkType)
             {
                 case WebpChunkType.Vp8:
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
 
-                this.SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
+                SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
 
                 imageFrame = image.Frames.RootFrame;
             }
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             {
                 currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
 
-                this.SetFrameMetadata(currentFrame.Metadata, frameData.Duration);
+                SetFrameMetadata(currentFrame.Metadata, frameData.Duration);
 
                 imageFrame = currentFrame;
             }
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             int frameY = (int)(frameData.Y * 2);
             int frameWidth = (int)frameData.Width;
             int frameHeight = (int)frameData.Height;
-            var regionRectangle = Rectangle.FromLTRB(frameX, frameY, frameX + frameWidth, frameY + frameHeight);
+            Rectangle regionRectangle = Rectangle.FromLTRB(frameX, frameY, frameX + frameWidth, frameY + frameHeight);
 
             if (frameData.DisposalMethod is AnimationDisposalMethod.Dispose)
             {
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             }
 
             using Buffer2D<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
-            this.DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
+            DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
 
             if (previousFrame != null && frameData.BlendingMethod is AnimationBlendingMethod.AlphaBlending)
             {
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="meta">The metadata.</param>
         /// <param name="duration">The frame duration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetadata(ImageFrameMetadata meta, uint duration)
+        private static void SetFrameMetadata(ImageFrameMetadata meta, uint duration)
         {
             WebpFrameMetadata frameMetadata = meta.GetWebpMetadata();
             frameMetadata.FrameDuration = duration;
@@ -248,19 +248,19 @@ namespace SixLabors.ImageSharp.Formats.Webp
         private Buffer2D<TPixel> DecodeImageData<TPixel>(AnimationFrameData frameData, WebpImageInfo webpInfo)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decodedImage = new Image<TPixel>((int)frameData.Width, (int)frameData.Height);
+            Image<TPixel> decodedImage = new((int)frameData.Width, (int)frameData.Height);
 
             try
             {
                 Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer;
                 if (webpInfo.IsLossless)
                 {
-                    var losslessDecoder = new WebpLosslessDecoder(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                     losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
                 }
                 else
                 {
-                    var lossyDecoder = new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    WebpLossyDecoder lossyDecoder = new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
                     lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
                 }
 
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         }
 
         /// <summary>
-        /// Draws the decoded image on canvas. The decoded image can be smaller the the canvas.
+        /// Draws the decoded image on canvas. The decoded image can be smaller the canvas.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="decodedImage">The decoded image.</param>
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <param name="frameY">The frame y coordinate.</param>
         /// <param name="frameWidth">The width of the frame.</param>
         /// <param name="frameHeight">The height of the frame.</param>
-        private void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
+        private static void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer;
@@ -295,8 +295,8 @@ namespace SixLabors.ImageSharp.Formats.Webp
             for (int y = frameY; y < frameY + frameHeight; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-                Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++).Slice(0, frameWidth);
-                decodedPixelRow.TryCopyTo(framePixelRow.Slice(frameX));
+                Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++)[..frameWidth];
+                decodedPixelRow.TryCopyTo(framePixelRow[frameX..]);
             }
         }
 
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 return;
             }
 
-            var interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
+            Rectangle interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
             Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
             TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
             pixelRegion.Fill(backgroundPixel);
@@ -354,25 +354,25 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <returns>Animation frame data.</returns>
         private AnimationFrameData ReadFrameHeader(BufferedReadStream stream)
         {
-            var data = new AnimationFrameData
+            AnimationFrameData data = new()
             {
-                DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer)
+                DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer),
+
+                // 3 bytes for the X coordinate of the upper left corner of the frame.
+                X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+
+                // 3 bytes for the Y coordinate of the upper left corner of the frame.
+                Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+
+                // Frame width Minus One.
+                Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+
+                // Frame height Minus One.
+                Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+
+                // Frame duration.
+                Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer)
             };
-
-            // 3 bytes for the X coordinate of the upper left corner of the frame.
-            data.X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer);
-
-            // 3 bytes for the Y coordinate of the upper left corner of the frame.
-            data.Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer);
-
-            // Frame width Minus One.
-            data.Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1;
-
-            // Frame height Minus One.
-            data.Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1;
-
-            // Frame duration.
-            data.Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer);
 
             byte flags = (byte)stream.ReadByte();
             data.DisposalMethod = (flags & 1) == 1 ? AnimationDisposalMethod.Dispose : AnimationDisposalMethod.DoNotDispose;

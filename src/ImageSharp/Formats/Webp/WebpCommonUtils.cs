@@ -3,11 +3,9 @@
 
 using System;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp
 {
@@ -23,7 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
         /// <returns>Returns true if alpha has non-0xff values.</returns>
         public static unsafe bool CheckNonOpaque(Span<Bgra32> row)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
@@ -31,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 int length = (row.Length * 4) - 3;
                 fixed (byte* src = rowBytes)
                 {
-                    Vector256<byte> alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+                    var alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
                     Vector256<byte> all0x80Vector256 = Vector256.Create((byte)0x80).AsByte();
 
                     for (; i + 128 <= length; i += 128)
@@ -113,7 +110,6 @@ namespace SixLabors.ImageSharp.Formats.Webp
                 }
             }
             else
-#endif
             {
                 for (int x = 0; x < row.Length; x++)
                 {
@@ -127,10 +123,9 @@ namespace SixLabors.ImageSharp.Formats.Webp
             return false;
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static unsafe bool IsNoneOpaque64Bytes(byte* src, int i)
         {
-            Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+            var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
             Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
             Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
@@ -145,17 +140,12 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Vector128<byte> d = Sse2.PackSignedSaturate(c0, c1).AsByte();
             Vector128<byte> bits = Sse2.CompareEqual(d, Vector128.Create((byte)0x80).AsByte());
             int mask = Sse2.MoveMask(bits);
-            if (mask != 0xFFFF)
-            {
-                return true;
-            }
-
-            return false;
+            return mask != 0xFFFF;
         }
 
         private static unsafe bool IsNoneOpaque32Bytes(byte* src, int i)
         {
-            Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+            var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
             Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
             Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
@@ -165,13 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Webp
             Vector128<byte> d = Sse2.PackSignedSaturate(c, c).AsByte();
             Vector128<byte> bits = Sse2.CompareEqual(d, Vector128.Create((byte)0x80).AsByte());
             int mask = Sse2.MoveMask(bits);
-            if (mask != 0xFFFF)
-            {
-                return true;
-            }
-
-            return false;
+            return mask != 0xFFFF;
         }
-#endif
     }
 }

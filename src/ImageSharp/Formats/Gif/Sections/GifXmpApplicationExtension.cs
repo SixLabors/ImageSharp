@@ -55,11 +55,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Write "XMP DataXMP"
             ReadOnlySpan<byte> idBytes = GifConstants.XmpApplicationIdentificationBytes;
-            idBytes.CopyTo(buffer.Slice(bytesWritten));
+            idBytes.CopyTo(buffer[bytesWritten..]);
             bytesWritten += idBytes.Length;
 
             // XMP Data itself
-            this.Data.CopyTo(buffer.Slice(bytesWritten));
+            this.Data.CopyTo(buffer[bytesWritten..]);
             bytesWritten += this.Data.Length;
 
             // Write the Magic Trailer

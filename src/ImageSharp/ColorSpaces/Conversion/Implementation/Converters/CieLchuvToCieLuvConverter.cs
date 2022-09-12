@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
     /// </summary>
-    internal sealed class CieLchuvToCieLuvConverter
+    internal static class CieLchuvToCieLuvConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="CieLchuv"/> input to an instance of <see cref="CieLuv"/> type.
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CieLuv Convert(in CieLchuv input)
+        public static CieLuv Convert(in CieLchuv input)
         {
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29

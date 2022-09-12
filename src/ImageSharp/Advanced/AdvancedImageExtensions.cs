@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -34,11 +35,11 @@ namespace SixLabors.ImageSharp.Advanced
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format is null)
             {
-                var sb = new StringBuilder();
-                sb.AppendLine($"No encoder was found for extension '{ext}'. Registered encoders include:");
+                StringBuilder sb = new();
+                sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}'. Registered encoders include:");
                 foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
                 {
-                    sb.AppendFormat(" - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
                 }
 
                 throw new NotSupportedException(sb.ToString());
@@ -48,11 +49,11 @@ namespace SixLabors.ImageSharp.Advanced
 
             if (encoder is null)
             {
-                var sb = new StringBuilder();
-                sb.AppendLine($"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                StringBuilder sb = new();
+                sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    sb.AppendFormat(" - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
                 }
 
                 throw new NotSupportedException(sb.ToString());
@@ -116,6 +117,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// Certain Image Processors may invalidate the returned <see cref="IMemoryGroup{T}"/> and all it's buffers,
         /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="source"/> in <see langword="null"/>.</exception>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : unmanaged, IPixel<TPixel>
             => source?.PixelBuffer.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
@@ -131,13 +133,14 @@ namespace SixLabors.ImageSharp.Advanced
         /// Certain Image Processors may invalidate the returned <see cref="IMemoryGroup{T}"/> and all it's buffers,
         /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
         /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="source"/> in <see langword="null"/>.</exception>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
             where TPixel : unmanaged, IPixel<TPixel>
             => source?.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
@@ -154,8 +157,8 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
-        /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// Gets the representation of the pixels as <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>

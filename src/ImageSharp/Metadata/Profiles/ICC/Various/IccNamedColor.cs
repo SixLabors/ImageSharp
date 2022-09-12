@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -71,20 +71,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public bool Equals(IccNamedColor other)
-        {
-            return this.Name.Equals(other.Name)
-                && this.PcsCoordinates.AsSpan().SequenceEqual(other.PcsCoordinates)
-                && this.DeviceCoordinates.AsSpan().SequenceEqual(other.DeviceCoordinates);
-        }
+            => this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase)
+            && this.PcsCoordinates.AsSpan().SequenceEqual(other.PcsCoordinates)
+            && this.DeviceCoordinates.AsSpan().SequenceEqual(other.DeviceCoordinates);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Name,
                 this.PcsCoordinates,
                 this.DeviceCoordinates);
-        }
 
         /// <inheritdoc/>
         public override string ToString() => this.Name;

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private const int TestBufferLength = 40;
 
-        private static readonly HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
+        private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
 
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 
@@ -31,9 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
         public JpegColorConverterTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+            => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -41,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void GetConverterThrowsExceptionOnInvalidColorSpace()
         {
             var invalidColorSpace = (JpegColorSpace)(-1);
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
+            Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
         }
 
         [Fact]
@@ -49,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             // Valid precisions: 8 & 12 bit
             int invalidPrecision = 9;
-            Assert.Throws<Exception>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, invalidPrecision));
+            Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, invalidPrecision));
         }
 
         [Theory]

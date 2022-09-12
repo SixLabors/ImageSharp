@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Color converter between HSL and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.
     /// </summary>
-    internal sealed class HslAndRgbConverter
+    internal static class HslAndRgbConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="Hsl"/> input to an instance of <see cref="Rgb"/> type.
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb Convert(in Hsl input)
+        public static Rgb Convert(in Hsl input)
         {
             float rangedH = input.H / 360F;
             float r = 0;
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Hsl Convert(in Rgb input)
+        public static Hsl Convert(in Rgb input)
         {
             float r = input.R;
             float g = input.G;

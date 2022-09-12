@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             using (var writer = new TiffStreamWriter(stream))
             {
-                long firstIfdMarker = encoder.WriteHeader(writer);
+                long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
             }
 
             Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0x00, 0x00, 0x00, 0x00 }, stream.ToArray());
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             using (var writer = new TiffStreamWriter(stream))
             {
-                long firstIfdMarker = encoder.WriteHeader(writer);
+                long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
                 Assert.Equal(4, firstIfdMarker);
             }
         }

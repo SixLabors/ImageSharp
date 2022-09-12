@@ -86,9 +86,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left);
+                Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y)[this.bounds.Left..];
                 Span<TPixel> targetRow = this.destination.DangerousGetRowSpan(y - this.bounds.Top);
-                sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
+                sourceRow[..this.bounds.Width].CopyTo(targetRow);
             }
         }
     }

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         {
             using var stream = new MemoryStream();
             using var writer = new TiffStreamWriter(stream);
-            Assert.True(writer.IsLittleEndian);
+            Assert.True(TiffStreamWriter.IsLittleEndian);
         }
 
         [Theory]

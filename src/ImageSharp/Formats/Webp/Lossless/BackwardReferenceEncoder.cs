@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
 
             BackwardReferencesHashChainDistanceOnly(xSize, ySize, memoryAllocator, bgra, cacheBits, hashChain, refsSrc, distArrayBuffer);
             int chosenPathSize = TraceBackwards(distArray, distArraySize);
-            Span<ushort> chosenPath = distArray.Slice(distArraySize - chosenPathSize);
+            Span<ushort> chosenPath = distArray[(distArraySize - chosenPathSize)..];
             BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
         }
 
@@ -741,8 +741,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             while (i < pixelCount)
             {
                 int maxLen = LosslessUtils.MaxFindCopyLength(pixelCount - i);
-                int rleLen = LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - 1), 0, maxLen);
-                int prevRowLen = i < xSize ? 0 : LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
+                int rleLen = LosslessUtils.FindMatchLength(bgra[i..], bgra[(i - 1)..], 0, maxLen);
+                int prevRowLen = i < xSize ? 0 : LosslessUtils.FindMatchLength(bgra[i..], bgra[(i - xSize)..], 0, maxLen);
                 if (rleLen >= prevRowLen && rleLen >= MinLength)
                 {
                     refs.Add(PixOrCopy.CreateCopy(1, (ushort)rleLen));

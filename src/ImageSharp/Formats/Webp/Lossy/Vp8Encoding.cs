@@ -5,10 +5,8 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -81,7 +79,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // Does two inverse transforms.
         public static void ITransformTwo(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // This implementation makes use of 16-bit fixed point versions of two
@@ -106,19 +103,19 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // second half of the vectors will just contain random value we'll never
                 // use nor store.
                 ref short inputRef = ref MemoryMarshal.GetReference(input);
-                var in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+                Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
+                Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
+                Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
+                Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
 
                 // a00 a10 a20 a30   x x x x
                 // a01 a11 a21 a31   x x x x
                 // a02 a12 a22 a32   x x x x
                 // a03 a13 a23 a33   x x x x
-                var inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 16)), 0);
-                var inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 20)), 0);
-                var inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 24)), 0);
-                var inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 28)), 0);
+                Vector128<long> inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 16)), 0);
+                Vector128<long> inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 20)), 0);
+                Vector128<long> inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 24)), 0);
+                Vector128<long> inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 28)), 0);
 
                 in0 = Sse2.UnpackLow(in0, inb0);
                 in1 = Sse2.UnpackLow(in1, inb1);
@@ -184,16 +181,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = ref3.GetLower();
             }
             else
-#endif
             {
                 ITransformOne(reference, input, dst, scratch);
-                ITransformOne(reference.Slice(4), input.Slice(16), dst.Slice(4), scratch);
+                ITransformOne(reference[4..], input[16..], dst[4..], scratch);
             }
         }
 
         public static void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 // Load and concatenate the transform coefficients (we'll do two inverse
@@ -201,10 +196,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // second half of the vectors will just contain random value we'll never
                 // use nor store.
                 ref short inputRef = ref MemoryMarshal.GetReference(input);
-                var in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-                var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-                var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-                var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+                Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
+                Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
+                Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
+                Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
 
                 // a00 a10 a20 a30   x x x x
                 // a01 a11 a21 a31   x x x x
@@ -272,10 +267,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = output3;
             }
             else
-#endif
             {
                 int i;
-                Span<int> tmp = scratch.Slice(0, 16);
+                Span<int> tmp = scratch[..16];
                 for (i = 0; i < 4; i++)
                 {
                     // vertical pass.
@@ -287,8 +281,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     tmp[1] = b + c;
                     tmp[2] = b - c;
                     tmp[3] = a - d;
-                    tmp = tmp.Slice(4);
-                    input = input.Slice(1);
+                    tmp = tmp[4..];
+                    input = input[1..];
                 }
 
                 tmp = scratch;
@@ -304,12 +298,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     Store(dst, reference, 1, i, b + c);
                     Store(dst, reference, 2, i, b - c);
                     Store(dst, reference, 3, i, a - d);
-                    tmp = tmp.Slice(1);
+                    tmp = tmp[1..];
                 }
             }
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static void InverseTransformVerticalPass(Vector128<long> in0, Vector128<long> in2, Vector128<long> in1, Vector128<long> in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3)
         {
             Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
@@ -372,27 +365,25 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
             shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
         }
-#endif
 
         public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte srcRef = ref MemoryMarshal.GetReference(src);
                 ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
                 // Load src.
-                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
                 // Load ref.
-                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
                 // Convert both to 16 bit.
                 Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
@@ -429,32 +420,30 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 FTransformPass2SSE2(v01h, v32h, output2);
             }
             else
-#endif
             {
                 FTransform(src, reference, output, scratch);
-                FTransform(src.Slice(4), reference.Slice(4), output2, scratch);
+                FTransform(src[4..], reference[4..], output2, scratch);
             }
         }
 
         public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output, Span<int> scratch)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse2.IsSupported)
             {
                 ref byte srcRef = ref MemoryMarshal.GetReference(src);
                 ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
                 // Load src.
-                var src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-                var src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-                var src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-                var src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
+                Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
+                Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
 
                 // Load ref.
-                var ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-                var ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-                var ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-                var ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+                Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
+                Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
+                Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
+                Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
                 // 00 01 02 03 *
                 // 10 11 12 13 *
@@ -486,10 +475,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 FTransformPass2SSE2(v01, v32, output);
             }
             else
-#endif
             {
                 int i;
-                Span<int> tmp = scratch.Slice(0, 16);
+                Span<int> tmp = scratch[..16];
 
                 int srcIdx = 0;
                 int refIdx = 0;
@@ -530,7 +518,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             }
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         public static void FTransformPass1SSE2(Vector128<short> row01, Vector128<short> row23, out Vector128<int> out01, out Vector128<int> out32)
         {
             // *in01 = 00 01 10 11 02 03 12 13
@@ -621,11 +608,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Unsafe.As<short, Vector128<short>>(ref outputRef) = d0g1.AsInt16();
             Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref outputRef, 8)) = d2f3.AsInt16();
         }
-#endif
 
         public static void FTransformWht(Span<short> input, Span<short> output, Span<int> scratch)
         {
-            Span<int> tmp = scratch.Slice(0, 16);
+            Span<int> tmp = scratch[..16];
 
             int i;
             int inputIdx = 0;
@@ -668,62 +654,62 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         // luma 16x16 prediction (paragraph 12.3).
         public static void EncPredLuma16(Span<byte> dst, Span<byte> left, Span<byte> top)
         {
-            DcMode(dst.Slice(I16DC16), left, top, 16, 16, 5);
-            VerticalPred(dst.Slice(I16VE16), top, 16);
-            HorizontalPred(dst.Slice(I16HE16), left, 16);
-            TrueMotion(dst.Slice(I16TM16), left, top, 16);
+            DcMode(dst, left, top, 16, 16, 5);
+            VerticalPred(dst[I16VE16..], top, 16);
+            HorizontalPred(dst[I16HE16..], left, 16);
+            TrueMotion(dst[I16TM16..], left, top, 16);
         }
 
         // Chroma 8x8 prediction (paragraph 12.2).
         public static void EncPredChroma8(Span<byte> dst, Span<byte> left, Span<byte> top)
         {
             // U block.
-            DcMode(dst.Slice(C8DC8), left, top, 8, 8, 4);
-            VerticalPred(dst.Slice(C8VE8), top, 8);
-            HorizontalPred(dst.Slice(C8HE8), left, 8);
-            TrueMotion(dst.Slice(C8TM8), left, top, 8);
+            DcMode(dst[C8DC8..], left, top, 8, 8, 4);
+            VerticalPred(dst[C8VE8..], top, 8);
+            HorizontalPred(dst[C8HE8..], left, 8);
+            TrueMotion(dst[C8TM8..], left, top, 8);
 
             // V block.
-            dst = dst.Slice(8);
-            if (top != null)
+            dst = dst[8..];
+            if (top != default)
             {
-                top = top.Slice(8);
+                top = top[8..];
             }
 
-            if (left != null)
+            if (left != default)
             {
-                left = left.Slice(16);
+                left = left[16..];
             }
 
-            DcMode(dst.Slice(C8DC8), left, top, 8, 8, 4);
-            VerticalPred(dst.Slice(C8VE8), top, 8);
-            HorizontalPred(dst.Slice(C8HE8), left, 8);
-            TrueMotion(dst.Slice(C8TM8), left, top, 8);
+            DcMode(dst[C8DC8..], left, top, 8, 8, 4);
+            VerticalPred(dst[C8VE8..], top, 8);
+            HorizontalPred(dst[C8HE8..], left, 8);
+            TrueMotion(dst[C8TM8..], left, top, 8);
         }
 
         // Left samples are top[-5 .. -2], top_left is top[-1], top are
         // located at top[0..3], and top right is top[4..7]
         public static void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset, Span<byte> vals)
         {
-            Dc4(dst.Slice(I4DC4), top, topOffset);
-            Tm4(dst.Slice(I4TM4), top, topOffset);
-            Ve4(dst.Slice(I4VE4), top, topOffset, vals);
-            He4(dst.Slice(I4HE4), top, topOffset);
-            Rd4(dst.Slice(I4RD4), top, topOffset);
-            Vr4(dst.Slice(I4VR4), top, topOffset);
-            Ld4(dst.Slice(I4LD4), top, topOffset);
-            Vl4(dst.Slice(I4VL4), top, topOffset);
-            Hd4(dst.Slice(I4HD4), top, topOffset);
-            Hu4(dst.Slice(I4HU4), top, topOffset);
+            Dc4(dst[I4DC4..], top, topOffset);
+            Tm4(dst[I4TM4..], top, topOffset);
+            Ve4(dst[I4VE4..], top, topOffset, vals);
+            He4(dst[I4HE4..], top, topOffset);
+            Rd4(dst[I4RD4..], top, topOffset);
+            Vr4(dst[I4VR4..], top, topOffset);
+            Ld4(dst[I4LD4..], top, topOffset);
+            Vl4(dst[I4VL4..], top, topOffset);
+            Hd4(dst[I4HD4..], top, topOffset);
+            Hu4(dst[I4HU4..], top, topOffset);
         }
 
         private static void VerticalPred(Span<byte> dst, Span<byte> top, int size)
         {
-            if (top != null)
+            if (top != default)
             {
                 for (int j = 0; j < size; j++)
                 {
-                    top.Slice(0, size).CopyTo(dst.Slice(j * WebpConstants.Bps));
+                    top[..size].CopyTo(dst[(j * WebpConstants.Bps)..]);
                 }
             }
             else
@@ -734,9 +720,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void HorizontalPred(Span<byte> dst, Span<byte> left, int size)
         {
-            if (left != null)
+            if (left != default)
             {
-                left = left.Slice(1); // in the reference implementation, left starts at - 1.
+                left = left[1..]; // in the reference implementation, left starts at - 1.
                 for (int j = 0; j < size; j++)
                 {
                     dst.Slice(j * WebpConstants.Bps, size).Fill(left[j]);
@@ -750,20 +736,20 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
         public static void TrueMotion(Span<byte> dst, Span<byte> left, Span<byte> top, int size)
         {
-            if (left != null)
+            if (left != default)
             {
-                if (top != null)
+                if (top != default)
                 {
                     Span<byte> clip = Clip1.AsSpan(255 - left[0]); // left [0] instead of left[-1], original left starts at -1
                     for (int y = 0; y < size; y++)
                     {
-                        Span<byte> clipTable = clip.Slice(left[y + 1]); // left[y]
+                        Span<byte> clipTable = clip[left[y + 1]..]; // left[y]
                         for (int x = 0; x < size; x++)
                         {
                             dst[x] = clipTable[top[x]];
                         }
 
-                        dst = dst.Slice(WebpConstants.Bps);
+                        dst = dst[WebpConstants.Bps..];
                     }
                 }
                 else
@@ -777,7 +763,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 // is equivalent to VE prediction where you just copy the top samples.
                 // Note that if top samples are not available, the default value is
                 // then 129, and not 127 as in the VerticalPred case.
-                if (top != null)
+                if (top != default)
                 {
                     VerticalPred(dst, top, size);
                 }
@@ -792,17 +778,17 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         {
             int dc = 0;
             int j;
-            if (top != null)
+            if (top != default)
             {
                 for (j = 0; j < size; j++)
                 {
                     dc += top[j];
                 }
 
-                if (left != null)
+                if (left != default)
                 {
                     // top and left present.
-                    left = left.Slice(1); // in the reference implementation, left starts at -1.
+                    left = left[1..]; // in the reference implementation, left starts at -1.
                     for (j = 0; j < size; j++)
                     {
                         dc += left[j];
@@ -816,10 +802,10 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 dc = (dc + round) >> shift;
             }
-            else if (left != null)
+            else if (left != default)
             {
                 // left but no top.
-                left = left.Slice(1); // in the reference implementation, left starts at -1.
+                left = left[1..]; // in the reference implementation, left starts at -1.
                 for (j = 0; j < size; j++)
                 {
                     dc += left[j];
@@ -854,13 +840,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> clip = Clip1.AsSpan(255 - top[topOffset - 1]);
             for (int y = 0; y < 4; y++)
             {
-                Span<byte> clipTable = clip.Slice(top[topOffset - 2 - y]);
+                Span<byte> clipTable = clip[top[topOffset - 2 - y]..];
                 for (int x = 0; x < 4; x++)
                 {
                     dst[x] = clipTable[top[topOffset + x]];
                 }
 
-                dst = dst.Slice(WebpConstants.Bps);
+                dst = dst[WebpConstants.Bps..];
             }
         }
 
@@ -873,7 +859,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             vals[3] = LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4]);
             for (int i = 0; i < 4; i++)
             {
-                vals.CopyTo(dst.Slice(i * WebpConstants.Bps));
+                vals.CopyTo(dst[(i * WebpConstants.Bps)..]);
             }
         }
 
@@ -889,11 +875,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             uint val = 0x01010101U * LossyUtils.Avg3(x, i, j);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
             val = 0x01010101U * LossyUtils.Avg3(i, j, k);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[(1 * WebpConstants.Bps)..], val);
             val = 0x01010101U * LossyUtils.Avg3(j, k, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[(2 * WebpConstants.Bps)..], val);
             val = 0x01010101U * LossyUtils.Avg3(k, l, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebpConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst[(3 * WebpConstants.Bps)..], val);
         }
 
         private static void Rd4(Span<byte> dst, Span<byte> top, int topOffset)

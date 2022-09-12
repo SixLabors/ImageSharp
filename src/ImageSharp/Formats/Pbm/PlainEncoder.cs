@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan[written..], out int bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
                 }
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].PackedValue, plainSpan[written..], out int bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
                 }
@@ -160,13 +160,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan[written..], out int bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
-                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan[written..], out bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
-                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan[written..], out bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
                 }
@@ -199,13 +199,13 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                 int written = 0;
                 for (int x = 0; x < width; x++)
                 {
-                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan.Slice(written), out int bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].R, plainSpan[written..], out int bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
-                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].G, plainSpan[written..], out bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
-                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan.Slice(written), out bytesWritten, DecimalFormat);
+                    Utf8Formatter.TryFormat(rowSpan[x].B, plainSpan[written..], out bytesWritten, DecimalFormat);
                     written += bytesWritten;
                     plainSpan[written++] = Space;
                 }

@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             IExifValue exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
             IExifValue gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
 
-            uint ifdLength = this.GetLength(this.ifdValues);
-            uint exifLength = this.GetLength(this.exifValues);
-            uint gpsLength = this.GetLength(this.gpsValues);
+            uint ifdLength = GetLength(this.ifdValues);
+            uint exifLength = GetLength(this.exifValues);
+            uint gpsLength = GetLength(this.gpsValues);
 
             uint length = ifdLength + exifLength + gpsLength;
 
@@ -100,14 +100,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private static unsafe int WriteSingle(float value, Span<byte> destination, int offset)
         {
-            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), *((int*)&value));
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), *(int*)&value);
 
             return offset + 4;
         }
 
         private static unsafe int WriteDouble(double value, Span<byte> destination, int offset)
         {
-            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), *((long*)&value));
+            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), *(long*)&value);
 
             return offset + 8;
         }
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private List<IExifValue> GetPartValues(ExifParts part)
         {
-            var result = new List<IExifValue>();
+            List<IExifValue> result = new();
 
             if (!EnumUtils.HasFlag(this.allowedParts, part))
             {
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return true;
         }
 
-        private uint GetLength(IList<IExifValue> values)
+        private static uint GetLength(IList<IExifValue> values)
         {
             if (values.Count == 0)
             {
@@ -360,20 +360,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             // next IFD offset
-            newOffset = WriteUInt32(0, destination, newOffset);
-
-            return newOffset;
+            return WriteUInt32(0, destination, newOffset);
         }
 
         private static void WriteRational(Span<byte> destination, in Rational value)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination[..4], value.Numerator);
             BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
         private static void WriteSignedRational(Span<byte> destination, in SignedRational value)
         {
-            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteInt32LittleEndian(destination[..4], value.Numerator);
             BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
@@ -413,7 +411,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     WriteRational(destination.Slice(offset, 8), (Rational)value);
                     return offset + 8;
                 case ExifDataType.SignedByte:
-                    destination[offset] = unchecked((byte)((sbyte)value));
+                    destination[offset] = unchecked((byte)(sbyte)value);
                     return offset + 1;
                 case ExifDataType.SignedLong:
                     return WriteInt32((int)value, destination, offset);
@@ -435,11 +433,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
             {
-                return offset + ExifUcs2StringHelpers.Write((string)value, destination.Slice(offset));
+                return offset + ExifUcs2StringHelpers.Write((string)value, destination[offset..]);
             }
             else if (value is EncodedString encodedString)
             {
-                return offset + ExifEncodedStringHelpers.Write(encodedString, destination.Slice(offset));
+                return offset + ExifEncodedStringHelpers.Write(encodedString, destination[offset..]);
             }
 
             if (exifValue.IsArray)

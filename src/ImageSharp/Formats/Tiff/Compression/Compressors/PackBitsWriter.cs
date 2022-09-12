@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
             int literalRunStart = end - literalRunLength;
             sbyte runLength = (sbyte)(literalRunLength - 1);
             compressedRowSpan[compressedRowPos] = (byte)runLength;
-            rowSpan.Slice(literalRunStart, literalRunLength).CopyTo(compressedRowSpan.Slice(compressedRowPos + 1));
+            rowSpan.Slice(literalRunStart, literalRunLength).CopyTo(compressedRowSpan[(compressedRowPos + 1)..]);
         }
 
         private static void WriteRun(ReadOnlySpan<byte> rowSpan, int start, int runLength, Span<byte> compressedRowSpan, int compressedRowPos)

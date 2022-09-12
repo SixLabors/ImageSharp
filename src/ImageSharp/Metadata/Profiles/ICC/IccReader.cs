@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -16,14 +16,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="data">The raw ICC data</param>
         /// <returns>The read ICC profile</returns>
-        public IccProfile Read(byte[] data)
+        public static IccProfile Read(byte[] data)
         {
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
 
-            var reader = new IccDataReader(data);
-            IccProfileHeader header = this.ReadHeader(reader);
-            IccTagDataEntry[] tagData = this.ReadTagData(reader);
+            IccDataReader reader = new(data);
+            IccProfileHeader header = ReadHeader(reader);
+            IccTagDataEntry[] tagData = ReadTagData(reader);
 
             return new IccProfile(header, tagData);
         }
@@ -33,13 +33,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="data">The raw ICC data</param>
         /// <returns>The read ICC profile header</returns>
-        public IccProfileHeader ReadHeader(byte[] data)
+        public static IccProfileHeader ReadHeader(byte[] data)
         {
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
-            var reader = new IccDataReader(data);
-            return this.ReadHeader(reader);
+            IccDataReader reader = new(data);
+            return ReadHeader(reader);
         }
 
         /// <summary>
@@ -47,16 +47,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// </summary>
         /// <param name="data">The raw ICC data</param>
         /// <returns>The read ICC profile tag data</returns>
-        public IccTagDataEntry[] ReadTagData(byte[] data)
+        public static IccTagDataEntry[] ReadTagData(byte[] data)
         {
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid ICC profile");
 
-            var reader = new IccDataReader(data);
-            return this.ReadTagData(reader);
+            IccDataReader reader = new(data);
+            return ReadTagData(reader);
         }
 
-        private IccProfileHeader ReadHeader(IccDataReader reader)
+        private static IccProfileHeader ReadHeader(IccDataReader reader)
         {
             reader.SetIndex(0);
 
@@ -82,11 +82,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             };
         }
 
-        private IccTagDataEntry[] ReadTagData(IccDataReader reader)
+        private static IccTagDataEntry[] ReadTagData(IccDataReader reader)
         {
-            IccTagTableEntry[] tagTable = this.ReadTagTable(reader);
-            var entries = new List<IccTagDataEntry>(tagTable.Length);
-            var store = new Dictionary<uint, IccTagDataEntry>();
+            IccTagTableEntry[] tagTable = ReadTagTable(reader);
+            List<IccTagDataEntry> entries = new(tagTable.Length);
+            Dictionary<uint, IccTagDataEntry> store = new();
 
             foreach (IccTagTableEntry tag in tagTable)
             {
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             return entries.ToArray();
         }
 
-        private IccTagTableEntry[] ReadTagTable(IccDataReader reader)
+        private static IccTagTableEntry[] ReadTagTable(IccDataReader reader)
         {
             reader.SetIndex(128);   // An ICC header is 128 bytes long
 
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return Array.Empty<IccTagTableEntry>();
             }
 
-            var table = new List<IccTagTableEntry>((int)tagCount);
+            List<IccTagTableEntry> table = new((int)tagCount);
             for (int i = 0; i < tagCount; i++)
             {
                 uint tagSignature = reader.ReadUInt32();

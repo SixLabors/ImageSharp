@@ -5,11 +5,10 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 using System.Text;
+using SixLabors.ImageSharp.Common.Helpers;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -160,10 +159,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void MultiplyInPlace(float value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                var valueVec = Vector256.Create(value);
+                Vector256<float> valueVec = Vector256.Create(value);
                 this.V0 = Avx.Multiply(this.V0, valueVec);
                 this.V1 = Avx.Multiply(this.V1, valueVec);
                 this.V2 = Avx.Multiply(this.V2, valueVec);
@@ -174,9 +172,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Multiply(this.V7, valueVec);
             }
             else
-#endif
             {
-                var valueVec = new Vector4(value);
+                Vector4 valueVec = new(value);
                 this.V0L *= valueVec;
                 this.V0R *= valueVec;
                 this.V1L *= valueVec;
@@ -199,10 +196,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Multiply all elements of the block by the corresponding elements of 'other'.
         /// </summary>
+        /// <param name="other">The other block.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public unsafe void MultiplyInPlace(ref Block8x8F other)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 this.V0 = Avx.Multiply(this.V0, other.V0);
@@ -215,7 +212,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Multiply(this.V7, other.V7);
             }
             else
-#endif
             {
                 this.V0L *= other.V0L;
                 this.V0R *= other.V0R;
@@ -243,10 +239,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void AddInPlace(float value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                var valueVec = Vector256.Create(value);
+                Vector256<float> valueVec = Vector256.Create(value);
                 this.V0 = Avx.Add(this.V0, valueVec);
                 this.V1 = Avx.Add(this.V1, valueVec);
                 this.V2 = Avx.Add(this.V2, valueVec);
@@ -257,9 +252,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 this.V7 = Avx.Add(this.V7, valueVec);
             }
             else
-#endif
             {
-                var valueVec = new Vector4(value);
+                Vector4 valueVec = new(value);
                 this.V0L += valueVec;
                 this.V0R += valueVec;
                 this.V1L += valueVec;
@@ -287,7 +281,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="qt">The quantization table.</param>
         public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
@@ -299,7 +292,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 ZigZag.ApplyTransposingZigZagOrderingSsse3(ref dest);
             }
             else
-#endif
             {
                 for (int i = 0; i < Size; i++)
                 {
@@ -339,6 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
         /// </summary>
+        /// <param name="maximum">The maximum value.</param>
         public void NormalizeColorsAndRoundInPlace(float maximum)
         {
             if (SimdUtils.HasVector8)
@@ -379,13 +372,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void LoadFrom(ref Block8x8 source)
         {
-#if SUPPORTS_EXTENDED_INTRINSICS
             if (SimdUtils.HasVector8)
             {
                 this.LoadFromInt16ExtendedAvx2(ref source);
                 return;
             }
-#endif
+
             this.LoadFromInt16Scalar(ref source);
         }
 
@@ -427,12 +419,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="value">Value to compare to.</param>
         public bool EqualsToScalar(int value)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
 
-                var targetVector = Vector256.Create(value);
+                Vector256<int> targetVector = Vector256.Create(value);
                 ref Vector256<float> blockStride = ref this.V0;
 
                 for (int i = 0; i < RowCount; i++)
@@ -446,20 +437,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 return true;
             }
-#endif
+
+            ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
+
+            for (int i = 0; i < Size; i++)
             {
-                ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
-
-                for (int i = 0; i < Size; i++)
+                if ((int)Unsafe.Add(ref scalars, i) != value)
                 {
-                    if ((int)Unsafe.Add(ref scalars, i) != value)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-
-                return true;
             }
+
+            return true;
         }
 
         /// <inheritdoc />
@@ -482,19 +471,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             && this.V7R == other.V7R;
 
         /// <inheritdoc />
+        public override bool Equals(object obj) => this.Equals((Block8x8F)obj);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            int left = HashCode.Combine(
+                this.V0L,
+                this.V1L,
+                this.V2L,
+                this.V3L,
+                this.V4L,
+                this.V5L,
+                this.V6L,
+                this.V7L);
+
+            int right = HashCode.Combine(
+                this.V0R,
+                this.V1R,
+                this.V2R,
+                this.V3R,
+                this.V4R,
+                this.V5R,
+                this.V6R,
+                this.V7R);
+
+            return HashCode.Combine(left, right);
+        }
+
+        /// <inheritdoc />
         public override string ToString()
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.Append('[');
             for (int i = 0; i < Size - 1; i++)
             {
-                sb.Append(this[i]);
-                sb.Append(',');
+                sb.Append(this[i]).Append(',');
             }
 
-            sb.Append(this[Size - 1]);
-
-            sb.Append(']');
+            sb.Append(this[Size - 1]).Append(']');
             return sb.ToString();
         }
 
@@ -504,13 +519,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void TransposeInplace()
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
                 this.TransposeInplace_Avx();
             }
             else
-#endif
             {
                 this.TransposeInplace_Scalar();
             }
@@ -525,53 +538,46 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref this);
 
             // row #0
-            Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
-            Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
-            Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
-            Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
-            Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
-            Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
-            Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
 
             // row #1
-            Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
-            Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
-            Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
-            Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
-            Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
-            Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
 
             // row #2
-            Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
-            Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
-            Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
-            Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
-            Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
 
             // row #3
-            Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
-            Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
-            Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
-            Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
 
             // row #4
-            Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
-            Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
-            Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
 
             // row #5
-            Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
-            Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
 
             // row #6
-            Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
-
-            static void Swap(ref float a, ref float b)
-            {
-                float tmp = a;
-                a = b;
-                b = tmp;
-            }
+            RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

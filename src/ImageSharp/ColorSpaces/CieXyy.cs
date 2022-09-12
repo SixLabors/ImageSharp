@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -13,24 +13,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieXyy : IEquatable<CieXyy>
     {
-        /// <summary>
-        /// Gets the X chrominance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float X;
-
-        /// <summary>
-        /// Gets the Y chrominance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float Y;
-
-        /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float Yl;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyy"/> struct.
         /// </summary>
@@ -59,6 +41,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
             this.Y = vector.Y;
             this.Yl = vector.Z;
         }
+
+        /// <summary>
+        /// Gets the X chrominance component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float X { get; }
+
+        /// <summary>
+        /// Gets the Y chrominance component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Y { get; }
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Yl { get; }
 
         /// <summary>
         /// Compares two <see cref="CieXyy"/> objects for equality.
@@ -94,10 +94,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieXyy other)
-        {
-            return this.X.Equals(other.X)
-                && this.Y.Equals(other.Y)
-                && this.Yl.Equals(other.Yl);
-        }
+            => this.X.Equals(other.X)
+            && this.Y.Equals(other.Y)
+            && this.Yl.Equals(other.Yl);
     }
 }

@@ -7,7 +7,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -129,7 +128,7 @@ namespace SixLabors.ImageSharp.Memory
 
             if (bufferCount > 0)
             {
-                buffers[buffers.Length - 1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
+                buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
             }
 
             return new Owned(buffers, bufferLength, totalLengthInElements, true);
@@ -214,12 +213,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
-            if (source.Length > 0 && source[source.Length - 1].Length > bufferLength)
+            if (source.Length > 0 && source[^1].Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[source.Length - 1].Length : 0;
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Length : 0;
 
             return new Consumed(source, bufferLength, totalLength);
         }
@@ -235,12 +234,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
-            if (source.Length > 0 && source[source.Length - 1].Memory.Length > bufferLength)
+            if (source.Length > 0 && source[^1].Memory.Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[source.Length - 1].Memory.Length : 0;
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Memory.Length : 0;
 
             return new Owned(source, bufferLength, totalLength, false);
         }
@@ -252,15 +251,10 @@ namespace SixLabors.ImageSharp.Memory
             {
                 case SpanCacheMode.SingleArray:
                 {
-#if SUPPORTS_CREATESPAN
                     ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
                     ref T e0 = ref Unsafe.As<byte, T>(ref b0);
                     e0 = ref Unsafe.Add(ref e0, y * width);
                     return MemoryMarshal.CreateSpan(ref e0, width);
-#else
-                    return MemoryMarshal.Cast<byte, T>(this.memoryGroupSpanCache.SingleArray).Slice(y * width, width);
-#endif
-
                 }
 
                 case SpanCacheMode.SinglePointer:
@@ -291,7 +285,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             long bufferIdx = Math.DivRem(start, this.BufferLength, out long bufferStart);
             Memory<T> memory = this[(int)bufferIdx];
-            return memory.Span.Slice((int)bufferStart);
+            return memory.Span[(int)bufferStart..];
         }
 
         public static bool CanSwapContent(MemoryGroup<T> target, MemoryGroup<T> source) =>

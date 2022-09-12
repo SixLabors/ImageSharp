@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 // Port of BCL internal utility:
 // https://github.com/dotnet/runtime/blob/57bfe474518ab5b7cfe6bf7424a79ce3af9d6657/src/libraries/System.Private.CoreLib/src/System/Gen2GcCallback.cs
-#if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
@@ -20,10 +19,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         private readonly Func<object, bool> callback1;
         private GCHandle weakTargetObj;
 
-        private Gen2GcCallback(Func<bool> callback)
-        {
-            this.callback0 = callback;
-        }
+        private Gen2GcCallback(Func<bool> callback) => this.callback0 = callback;
 
         private Gen2GcCallback(Func<object, bool> callback, object targetObj)
         {
@@ -92,24 +88,24 @@ namespace SixLabors.ImageSharp.Memory.Internals
         /// Schedule 'callback' to be called in the next GC.  If the callback returns true it is
         /// rescheduled for the next Gen 2 GC.  Otherwise the callbacks stop.
         /// </summary>
-        public static void Register(Func<bool> callback)
-        {
+        public static void Register(Func<bool> callback) =>
+
             // Create a unreachable object that remembers the callback function and target object.
             _ = new Gen2GcCallback(callback);
-        }
 
         /// <summary>
+        /// <para>
         /// Schedule 'callback' to be called in the next GC.  If the callback returns true it is
         /// rescheduled for the next Gen 2 GC.  Otherwise the callbacks stop.
-        ///
+        /// </para>
+        /// <para>
         /// NOTE: This callback will be kept alive until either the callback function returns false,
         /// or the target object dies.
+        /// </para>
         /// </summary>
-        public static void Register(Func<object, bool> callback, object targetObj)
-        {
+        public static void Register(Func<object, bool> callback, object targetObj) =>
+
             // Create a unreachable object that remembers the callback function and target object.
             _ = new Gen2GcCallback(callback, targetObj);
-        }
     }
 }
-#endif

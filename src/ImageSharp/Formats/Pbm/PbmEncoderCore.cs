@@ -145,17 +145,17 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             buffer[1] = signature;
             buffer[2] = NewLine;
 
-            Utf8Formatter.TryFormat(pixelSize.Width, buffer.Slice(written), out int bytesWritten);
+            Utf8Formatter.TryFormat(pixelSize.Width, buffer[written..], out int bytesWritten);
             written += bytesWritten;
             buffer[written++] = Space;
-            Utf8Formatter.TryFormat(pixelSize.Height, buffer.Slice(written), out bytesWritten);
+            Utf8Formatter.TryFormat(pixelSize.Height, buffer[written..], out bytesWritten);
             written += bytesWritten;
             buffer[written++] = NewLine;
 
             if (this.colorType != PbmColorType.BlackAndWhite)
             {
                 int maxPixelValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
-                Utf8Formatter.TryFormat(maxPixelValue, buffer.Slice(written), out bytesWritten);
+                Utf8Formatter.TryFormat(maxPixelValue, buffer[written..], out bytesWritten);
                 written += bytesWritten;
                 buffer[written++] = NewLine;
             }

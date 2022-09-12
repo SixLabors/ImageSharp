@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> Slice<T>(this IMemoryOwner<T> buffer, int start)
         {
-            return buffer.GetSpan().Slice(start);
+            return buffer.GetSpan()[start..];
         }
 
         /// <summary>

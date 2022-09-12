@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         private const TiffPhotometricInterpretation DefaultPhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
 
-        private readonly List<(long, uint)> frameMarkers = new List<(long, uint)>();
+        private readonly List<(long, uint)> frameMarkers = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
@@ -148,15 +148,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // Make sure, the Encoder options makes sense in combination with each other.
             this.SanitizeAndSetEncoderOptions(bitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation, compression, predictor);
 
-            using var writer = new TiffStreamWriter(stream);
-            long ifdMarker = this.WriteHeader(writer);
+            using TiffStreamWriter writer = new(stream);
+            long ifdMarker = WriteHeader(writer);
 
             Image<TPixel> metadataImage = image;
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
+                TiffNewSubfileType subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
 
                 ifdMarker = this.WriteFrame(writer, frame, image.Metadata, metadataImage, ifdMarker);
                 metadataImage = null;
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <returns>
         /// The marker to write the first IFD offset.
         /// </returns>
-        public long WriteHeader(TiffStreamWriter writer)
+        public static long WriteHeader(TiffStreamWriter writer)
         {
             writer.Write(ByteOrderMarker);
             writer.Write(TiffConstants.HeaderMagicNumber);
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.compressionLevel,
                 this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
 
-            var entriesCollector = new TiffEncoderEntriesCollector();
+            TiffEncoderEntriesCollector entriesCollector = new();
             using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
                 this.PhotometricInterpretation,
                 frame,
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 entriesCollector,
                 (int)this.BitsPerPixel);
 
-            int rowsPerStrip = this.CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow, this.CompressionType);
+            int rowsPerStrip = CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow, this.CompressionType);
 
             colorWriter.Write(compressor, rowsPerStrip);
 
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="bytesPerRow">The number of bytes per row.</param>
         /// <param name="compression">The compression used.</param>
         /// <returns>Number of rows per strip.</returns>
-        private int CalcRowsPerStrip(int height, int bytesPerRow, TiffCompression? compression)
+        private static int CalcRowsPerStrip(int height, int bytesPerRow, TiffCompression? compression)
         {
             DebugGuard.MustBeGreaterThan(height, 0, nameof(height));
             DebugGuard.MustBeGreaterThan(bytesPerRow, 0, nameof(bytesPerRow));
@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             uint dataOffset = (uint)writer.Position + (uint)(6 + (entries.Count * 12));
-            var largeDataBlocks = new List<byte[]>();
+            List<byte[]> largeDataBlocks = new();
 
             entries.Sort((a, b) => (ushort)a.Tag - (ushort)b.Tag);
 
@@ -440,13 +440,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         public static bool IsOneBitCompression(TiffCompression? compression)
-        {
-            if (compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax)
-            {
-                return true;
-            }
-
-            return false;
-        }
+            => compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax;
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -54,9 +54,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccUcrBgTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccUcrBgTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc/>
         public bool Equals(IccUcrBgTagDataEntry other)
@@ -74,23 +72,19 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             return base.Equals(other)
                 && this.UcrCurve.AsSpan().SequenceEqual(other.UcrCurve)
                 && this.BgCurve.AsSpan().SequenceEqual(other.BgCurve)
-                && string.Equals(this.Description, other.Description);
+                && string.Equals(this.Description, other.Description, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is IccUcrBgTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccUcrBgTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Signature,
                 this.UcrCurve,
                 this.BgCurve,
                 this.Description);
-        }
     }
 }

@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         {
             Unsafe.CopyBlockUnaligned(
                 ref this.buffer.Span[this.end],
-                ref MemoryMarshal.GetReference(block.Slice(offset)),
+                ref MemoryMarshal.GetReference(block[offset..]),
                 unchecked((uint)length));
 
             this.end += length;

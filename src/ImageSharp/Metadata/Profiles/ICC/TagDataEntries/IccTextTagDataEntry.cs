@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -26,9 +26,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="tagSignature">Tag Signature</param>
         public IccTextTagDataEntry(string text, IccProfileTag tagSignature)
             : base(IccTypeSignature.Text, tagSignature)
-        {
-            this.Text = text ?? throw new ArgumentNullException(nameof(text));
-        }
+            => this.Text = text ?? throw new ArgumentNullException(nameof(text));
 
         /// <summary>
         /// Gets the Text
@@ -37,9 +35,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
-        {
-            return other is IccTextTagDataEntry entry && this.Equals(entry);
-        }
+            => other is IccTextTagDataEntry entry && this.Equals(entry);
 
         /// <inheritdoc />
         public bool Equals(IccTextTagDataEntry other)
@@ -54,14 +50,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && string.Equals(this.Text, other.Text);
+            return base.Equals(other) && string.Equals(this.Text, other.Text, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc />
         public override bool Equals(object obj)
-        {
-            return obj is IccTextTagDataEntry other && this.Equals(other);
-        }
+            => obj is IccTextTagDataEntry other && this.Equals(other);
 
         /// <inheritdoc />
         public override int GetHashCode() => HashCode.Combine(this.Signature, this.Text);

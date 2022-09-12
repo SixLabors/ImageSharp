@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         [MethodImpl(InliningOptions.ShortMethod)]
         public Lms Convert(in CieXyz input)
         {
-            var vector = Vector3.Transform(input.ToVector3(), this.transformationMatrix);
+            Vector3 vector = Vector3.Transform(input.ToVector3(), this.transformationMatrix);
 
             return new Lms(vector);
         }
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyz Convert(in Lms input)
         {
-            var vector = Vector3.Transform(input.ToVector3(), this.inverseTransformationMatrix);
+            Vector3 vector = Vector3.Transform(input.ToVector3(), this.inverseTransformationMatrix);
 
             return new CieXyz(vector);
         }

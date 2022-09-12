@@ -17,24 +17,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgb24>
         {
             private static readonly Lazy<PixelTypeInfo> LazyInfo =
-                new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<Rgb24>(PixelAlphaRepresentation.None), true);
+                new(() => PixelTypeInfo.Create<Rgb24>(PixelAlphaRepresentation.None), true);
 
             /// <inheritdoc />
             public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
 
             /// <inheritdoc />
             internal override void PackFromRgbPlanes(
-                Configuration configuration,
                 ReadOnlySpan<byte> redChannel,
                 ReadOnlySpan<byte> greenChannel,
                 ReadOnlySpan<byte> blueChannel,
                 Span<Rgb24> destination)
             {
-                Guard.NotNull(configuration, nameof(configuration));
                 int count = redChannel.Length;
                 GuardPackFromRgbPlanes(greenChannel, blueChannel, destination, count);
 
-                SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
+                SimdUtils.PackFromRgbPlanes(redChannel, greenChannel, blueChannel, destination);
             }
 
             /// <inheritdoc />

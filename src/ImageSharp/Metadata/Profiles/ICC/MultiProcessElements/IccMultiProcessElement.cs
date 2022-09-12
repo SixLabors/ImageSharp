@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -58,5 +58,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
                 && this.InputChannelCount == other.InputChannelCount
                 && this.OutputChannelCount == other.OutputChannelCount;
         }
+
+        public override bool Equals(object obj) => this.Equals(obj as IccMultiProcessElement);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+            => HashCode.Combine(this.Signature, this.InputChannelCount, this.OutputChannelCount);
     }
 }

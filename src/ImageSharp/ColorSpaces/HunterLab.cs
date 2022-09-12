@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -18,29 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Used when reference white is not specified explicitly.
         /// </summary>
         public static readonly CieXyz DefaultWhitePoint = Illuminants.C;
-
-        /// <summary>
-        /// Gets the lightness dimension.
-        /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
-        /// </summary>
-        public readonly float L;
-
-        /// <summary>
-        /// Gets the a color component.
-        /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
-        /// </summary>
-        public readonly float A;
-
-        /// <summary>
-        /// Gets the b color component.
-        /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
-        /// </summary>
-        public readonly float B;
-
-        /// <summary>
-        /// Gets the reference white point of this color.
-        /// </summary>
-        public readonly CieXyz WhitePoint;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HunterLab"/> struct.
@@ -95,6 +72,29 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Gets the lightness dimension.
+        /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// </summary>
+        public readonly float L { get; }
+
+        /// <summary>
+        /// Gets the a color component.
+        /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+        /// </summary>
+        public readonly float A { get; }
+
+        /// <summary>
+        /// Gets the b color component.
+        /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+        /// </summary>
+        public readonly float B { get; }
+
+        /// <summary>
+        /// Gets the reference white point of this color.
+        /// </summary>
+        public readonly CieXyz WhitePoint { get; }
+
+        /// <summary>
         /// Compares two <see cref="HunterLab"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="HunterLab"/> on the left side of the operand.</param>
@@ -128,11 +128,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(HunterLab other)
-        {
-            return this.L.Equals(other.L)
-                && this.A.Equals(other.A)
-                && this.B.Equals(other.B)
-                && this.WhitePoint.Equals(other.WhitePoint);
-        }
+            => this.L.Equals(other.L)
+            && this.A.Equals(other.A)
+            && this.B.Equals(other.B)
+            && this.WhitePoint.Equals(other.WhitePoint);
     }
 }

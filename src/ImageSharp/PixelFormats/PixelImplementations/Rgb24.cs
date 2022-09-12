@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The <see cref="Rgb24"/>.</param>
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Color(Rgb24 source) => new Color(source);
+        public static implicit operator Color(Rgb24 source) => new(source);
 
         /// <summary>
         /// Converts a <see cref="Color"/> to <see cref="Rgb24"/>.
@@ -210,17 +210,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgba32(Rgba32 source)
-        {
-#if NETSTANDARD2_0
-            // See https://github.com/SixLabors/ImageSharp/issues/1275
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
-#else
-            this = source.Rgb;
-#endif
-        }
+        public void FromRgba32(Rgba32 source) => this = source.Rgb;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// </content>
     public partial class ColorSpaceConverter
     {
-        private static readonly LinearRgbToRgbConverter LinearRgbToRgbConverter = new LinearRgbToRgbConverter();
-
         /// <summary>
         /// Performs the bulk conversion from <see cref="CieLab"/> into <see cref="Rgb"/>
         /// </summary>
@@ -145,7 +143,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Cmyk> source, Span<Rgb> destination)
+        public static void Convert(ReadOnlySpan<Cmyk> source, Span<Rgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -157,7 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Cmyk sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgb dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToRgb(sp);
+                dp = ToRgb(sp);
             }
         }
 
@@ -166,7 +164,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Hsv> source, Span<Rgb> destination)
+        public static void Convert(ReadOnlySpan<Hsv> source, Span<Rgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -178,7 +176,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Hsv sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgb dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToRgb(sp);
+                dp = ToRgb(sp);
             }
         }
 
@@ -187,7 +185,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Hsl> source, Span<Rgb> destination)
+        public static void Convert(ReadOnlySpan<Hsl> source, Span<Rgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -199,7 +197,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Hsl sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgb dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToRgb(sp);
+                dp = ToRgb(sp);
             }
         }
 
@@ -229,7 +227,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<LinearRgb> source, Span<Rgb> destination)
+        public static void Convert(ReadOnlySpan<LinearRgb> source, Span<Rgb> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -241,7 +239,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref LinearRgb sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgb dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToRgb(sp);
+                dp = ToRgb(sp);
             }
         }
 
@@ -294,7 +292,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in CieLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -305,7 +303,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in CieLch color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -316,7 +314,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in CieLchuv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -327,7 +325,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in CieLuv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -338,7 +336,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -350,10 +348,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public Rgb ToRgb(in CieXyz color)
         {
             // Conversion
-            var linear = this.ToLinearRgb(color);
+            LinearRgb linear = this.ToLinearRgb(color);
 
             // Compand
-            return this.ToRgb(linear);
+            return ToRgb(linear);
         }
 
         /// <summary>
@@ -361,33 +359,21 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(in Cmyk color)
-        {
-            // Conversion
-            return CmykAndRgbConverter.Convert(color);
-        }
+        public static Rgb ToRgb(in Cmyk color) => CmykAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Converts a <see cref="Hsv"/> into a <see cref="Rgb"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(in Hsv color)
-        {
-            // Conversion
-            return HsvAndRgbConverter.Convert(color);
-        }
+        public static Rgb ToRgb(in Hsv color) => HsvAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Converts a <see cref="Hsl"/> into a <see cref="Rgb"/>
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(in Hsl color)
-        {
-            // Conversion
-            return HslAndRgbConverter.Convert(color);
-        }
+        public static Rgb ToRgb(in Hsl color) => HslAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Converts a <see cref="HunterLab"/> into a <see cref="Rgb"/>
@@ -396,7 +382,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in HunterLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 
@@ -405,11 +391,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Rgb"/></returns>
-        public Rgb ToRgb(in LinearRgb color)
-        {
-            // Conversion
-            return LinearRgbToRgbConverter.Convert(color);
-        }
+        public static Rgb ToRgb(in LinearRgb color) => LinearRgbToRgbConverter.Convert(color);
 
         /// <summary>
         /// Converts a <see cref="Lms"/> into a <see cref="Rgb"/>
@@ -418,7 +400,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(in Lms color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToRgb(xyzColor);
         }
 

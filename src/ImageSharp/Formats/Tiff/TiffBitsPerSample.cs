@@ -11,31 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     {
         /// <summary>
-        /// The bits for the channel 0.
-        /// </summary>
-        public readonly ushort Channel0;
-
-        /// <summary>
-        /// The bits for the channel 1.
-        /// </summary>
-        public readonly ushort Channel1;
-
-        /// <summary>
-        /// The bits for the channel 2.
-        /// </summary>
-        public readonly ushort Channel2;
-
-        /// <summary>
-        /// The bits for the alpha channel.
-        /// </summary>
-        public readonly ushort Channel3;
-
-        /// <summary>
-        /// The number of channels.
-        /// </summary>
-        public readonly byte Channels;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TiffBitsPerSample"/> struct.
         /// </summary>
         /// <param name="channel0">The bits for the channel 0.</param>
@@ -55,6 +30,53 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.Channels += (byte)(this.Channel2 != 0 ? 1 : 0);
             this.Channels += (byte)(this.Channel3 != 0 ? 1 : 0);
         }
+
+        /// <summary>
+        /// Gets the bits for the channel 0.
+        /// </summary>
+        public readonly ushort Channel0 { get; }
+
+        /// <summary>
+        /// Gets the bits for the channel 1.
+        /// </summary>
+        public readonly ushort Channel1 { get; }
+
+        /// <summary>
+        /// Gets the bits for the channel 2.
+        /// </summary>
+        public readonly ushort Channel2 { get; }
+
+        /// <summary>
+        /// Gets the bits for the alpha channel.
+        /// </summary>
+        public readonly ushort Channel3 { get; }
+
+        /// <summary>
+        /// Gets the number of channels.
+        /// </summary>
+        public readonly byte Channels { get; }
+
+        /// <summary>
+        /// Checks whether two <see cref="TiffBitsPerSample"/> structures are equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="TiffBitsPerSample"/> operand.</param>
+        /// <param name="right">The right hand <see cref="TiffBitsPerSample"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
+        public static bool operator ==(TiffBitsPerSample left, TiffBitsPerSample right) => left.Equals(right);
+
+        /// <summary>
+        /// Checks whether two <see cref="TiffBitsPerSample"/> structures are not equal.
+        /// </summary>
+        /// <param name="left">The left hand <see cref="TiffBitsPerSample"/> operand.</param>
+        /// <param name="right">The right hand <see cref="TiffBitsPerSample"/> operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
+        /// otherwise, false.
+        /// </returns>
+        public static bool operator !=(TiffBitsPerSample left, TiffBitsPerSample right) => !(left == right);
 
         /// <summary>
         /// Tries to parse a ushort array and convert it into a TiffBitsPerSample struct.

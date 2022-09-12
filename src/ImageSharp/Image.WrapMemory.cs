@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metadata, nameof(metadata));
             Guard.IsTrue(pixelMemory.Length >= width * height, nameof(pixelMemory), "The length of the input memory is less than the specified image size");
 
-            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
+            MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metadata, nameof(metadata));
             Guard.IsTrue(pixelMemoryOwner.Memory.Length >= width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
-            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
+            MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
@@ -231,11 +231,11 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
 
-            var memoryManager = new ByteMemoryManager<TPixel>(byteMemory);
+            ByteMemoryManager<TPixel> memoryManager = new(byteMemory);
 
             Guard.IsTrue(memoryManager.Memory.Length >= width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
 
-            var memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
+            MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
@@ -329,11 +329,11 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
 
-            var pixelMemoryOwner = new ByteMemoryOwner<TPixel>(byteMemoryOwner);
+            ByteMemoryOwner<TPixel> pixelMemoryOwner = new(byteMemoryOwner);
 
             Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
-            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
+            MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
@@ -422,9 +422,9 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
 
-            var memoryManager = new UnmanagedMemoryManager<TPixel>(pointer, width * height);
+            UnmanagedMemoryManager<TPixel> memoryManager = new(pointer, width * height);
 
-            var memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
+            MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -546,7 +547,7 @@ namespace SixLabors.ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
+            using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
             stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
             memoryStream.Position = 0;
 
@@ -562,6 +563,7 @@ namespace SixLabors.ImageSharp
         /// <param name="action">The action to perform.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The <see cref="Task{T}"/>.</returns>
+        /// <exception cref="NotSupportedException">Cannot read from the stream.</exception>
         internal static async Task<T> WithSeekableStreamAsync<T>(
             DecoderOptions options,
             Stream stream,
@@ -577,19 +579,16 @@ namespace SixLabors.ImageSharp
             }
 
             Configuration configuration = options.Configuration;
-            if (stream.CanSeek)
+            if (stream.CanSeek && configuration.ReadOrigin == ReadOrigin.Begin)
             {
-                if (configuration.ReadOrigin == ReadOrigin.Begin)
-                {
-                    stream.Position = 0;
-                }
+                stream.Position = 0;
 
                 // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
                 // would incur synchronous IO reads which must be avoided in this asynchronous method.  Instead, we will *always* run the
                 // code below to copy the stream to an in-memory buffer before invoking the action.
             }
 
-            using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
+            using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
             await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
 
@@ -599,12 +598,12 @@ namespace SixLabors.ImageSharp
         [DoesNotReturn]
         private static void ThrowNotLoaded(DecoderOptions options)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.AppendLine("Image cannot be loaded. Available decoders:");
 
             foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
             {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+                sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
             }
 
             throw new UnknownImageFormatException(sb.ToString());

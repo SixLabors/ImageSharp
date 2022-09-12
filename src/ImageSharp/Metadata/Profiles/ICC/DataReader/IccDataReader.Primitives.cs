@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             int pos = value.IndexOf('\0');
             if (pos >= 0)
             {
-                value = value.Substring(0, pos);
+                value = value[..pos];
             }
 
             return value;

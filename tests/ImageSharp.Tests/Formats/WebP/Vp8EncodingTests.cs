@@ -138,7 +138,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Fact]
         public void TwoInverseTransform_Works() => RunTwoInverseTransformTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void FTransform2_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunFTransform2Test, HwIntrinsics.AllowAll);
 
@@ -162,6 +161,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
         [Fact]
         public void TwoInverseTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTwoInverseTransformTest, HwIntrinsics.DisableHWIntrinsic);
-#endif
     }
 }

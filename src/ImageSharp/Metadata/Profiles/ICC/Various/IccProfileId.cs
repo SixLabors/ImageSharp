@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Globalization;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 {
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <summary>
         /// A profile ID with all values set to zero
         /// </summary>
-        public static readonly IccProfileId Zero = default;
+        public static readonly IccProfileId Zero;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfileId"/> struct.
@@ -67,10 +68,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator ==(IccProfileId left, IccProfileId right)
-        {
-            return left.Equals(right);
-        }
+        public static bool operator ==(IccProfileId left, IccProfileId right) => left.Equals(right);
 
         /// <summary>
         /// Compares two <see cref="IccProfileId"/> objects for equality.
@@ -80,10 +78,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        public static bool operator !=(IccProfileId left, IccProfileId right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(IccProfileId left, IccProfileId right) => !left.Equals(right);
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is IccProfileId other && this.Equals(other);
@@ -97,17 +92,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
 
         /// <inheritdoc/>
         public override int GetHashCode()
-        {
-            return HashCode.Combine(
+            => HashCode.Combine(
                 this.Part1,
                 this.Part2,
                 this.Part3,
                 this.Part4);
-        }
 
         /// <inheritdoc/>
         public override string ToString() => $"{ToHex(this.Part1)}-{ToHex(this.Part2)}-{ToHex(this.Part3)}-{ToHex(this.Part4)}";
 
-        private static string ToHex(uint value) => value.ToString("X").PadLeft(8, '0');
+        private static string ToHex(uint value) => value.ToString("X", CultureInfo.InvariantCulture).PadLeft(8, '0');
     }
 }

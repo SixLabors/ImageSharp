@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Memory
             // We need to adjust the offset into the wrapped byte segment,
             // as the input index refers to the target-cast memory of T.
             // We just have to shift this index by the byte size of T.
-            return this.memory.Slice(elementIndex * Unsafe.SizeOf<T>()).Pin();
+            return this.memory[(elementIndex * Unsafe.SizeOf<T>())..].Pin();
         }
 
         /// <inheritdoc/>

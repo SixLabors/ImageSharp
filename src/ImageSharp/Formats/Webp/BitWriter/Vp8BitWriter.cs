@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
         {
             if (this.PutBit(s >= 2, p[0]))
             {
-                p = p.Slice(1);
+                p = p[1..];
             }
 
             this.PutBit(s & 1, p[1]);
@@ -433,27 +433,27 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             {
                 isVp8X = true;
                 exifBytes = exifProfile.ToByteArray();
-                riffSize += this.MetadataChunkSize(exifBytes);
+                riffSize += MetadataChunkSize(exifBytes);
             }
 
             if (xmpProfile != null)
             {
                 isVp8X = true;
                 xmpBytes = xmpProfile.Data;
-                riffSize += this.MetadataChunkSize(xmpBytes);
+                riffSize += MetadataChunkSize(xmpBytes);
             }
 
             if (iccProfile != null)
             {
                 isVp8X = true;
                 iccProfileBytes = iccProfile.ToByteArray();
-                riffSize += this.MetadataChunkSize(iccProfileBytes);
+                riffSize += MetadataChunkSize(iccProfileBytes);
             }
 
             if (hasAlpha)
             {
                 isVp8X = true;
-                riffSize += this.AlphaChunkSize(alphaData);
+                riffSize += AlphaChunkSize(alphaData);
             }
 
             if (isVp8X)
@@ -711,7 +711,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter
             Span<byte> vp8ChunkHeader = stackalloc byte[WebpConstants.ChunkHeaderSize];
 
             WebpConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
-            BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader.Slice(4), size);
+            BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader[4..], size);
 
             stream.Write(vp8ChunkHeader);
         }

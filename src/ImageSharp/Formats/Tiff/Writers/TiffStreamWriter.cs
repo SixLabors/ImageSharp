@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <summary>
         /// Gets a value indicating whether the architecture is little-endian.
         /// </summary>
-        public bool IsLittleEndian => BitConverter.IsLittleEndian;
+        public static bool IsLittleEndian => BitConverter.IsLittleEndian;
 
         /// <summary>
         /// Gets the current position within the stream.
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <param name="value">The two-byte unsigned integer to write.</param>
         public void Write(ushort value)
         {
-            if (this.IsLittleEndian)
+            if (IsLittleEndian)
             {
                 BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, value);
             }
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
         /// <param name="value">The four-byte unsigned integer to write.</param>
         public void Write(uint value)
         {
-            if (this.IsLittleEndian)
+            if (IsLittleEndian)
             {
                 BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
             }

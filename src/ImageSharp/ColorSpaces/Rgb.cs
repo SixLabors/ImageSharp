@@ -23,29 +23,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         private static readonly Vector3 Max = Vector3.One;
 
         /// <summary>
-        /// Gets the red component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float R;
-
-        /// <summary>
-        /// Gets the green component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float G;
-
-        /// <summary>
-        /// Gets the blue component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public readonly float B;
-
-        /// <summary>
-        /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
-        /// </summary>
-        public readonly RgbWorkingSpace WorkingSpace;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
         /// </summary>
         /// <param name="r">The red component ranging between 0 and 1.</param>
@@ -96,13 +73,36 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Gets the red component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float R { get; }
+
+        /// <summary>
+        /// Gets the green component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float G { get; }
+
+        /// <summary>
+        /// Gets the blue component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float B { get; }
+
+        /// <summary>
+        /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
+        /// </summary>
+        public readonly RgbWorkingSpace WorkingSpace { get; }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgb24"/> to a
         /// <see cref="Rgb"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Rgb(Rgb24 color) => new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
+        public static implicit operator Rgb(Rgb24 color) => new(color.R / 255F, color.G / 255F, color.B / 255F);
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static implicit operator Rgb(Rgba32 color) => new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
+        public static implicit operator Rgb(Rgba32 color) => new(color.R / 255F, color.G / 255F, color.B / 255F);
 
         /// <summary>
         /// Compares two <see cref="Rgb"/> objects for equality.
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector3 ToVector3() => new Vector3(this.R, this.G, this.B);
+        public Vector3 ToVector3() => new(this.R, this.G, this.B);
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
@@ -158,10 +158,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Rgb other)
-        {
-            return this.R.Equals(other.R)
-                && this.G.Equals(other.G)
-                && this.B.Equals(other.B);
-        }
+            => this.R.Equals(other.R)
+            && this.G.Equals(other.G)
+            && this.B.Equals(other.B);
     }
 }

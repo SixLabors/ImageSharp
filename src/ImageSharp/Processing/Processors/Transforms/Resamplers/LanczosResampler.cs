@@ -15,22 +15,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Implements the Lanczos kernel algorithm with a radius of 2.
         /// </summary>
-        public static LanczosResampler Lanczos2 = new LanczosResampler(2);
+        public static readonly LanczosResampler Lanczos2 = new(2);
 
         /// <summary>
         /// Implements the Lanczos kernel algorithm with a radius of 3.
         /// </summary>
-        public static LanczosResampler Lanczos3 = new LanczosResampler(3);
+        public static readonly LanczosResampler Lanczos3 = new(3);
 
         /// <summary>
         /// Implements the Lanczos kernel algorithm with a radius of 5.
         /// </summary>
-        public static LanczosResampler Lanczos5 = new LanczosResampler(5);
+        public static readonly LanczosResampler Lanczos5 = new(5);
 
         /// <summary>
         /// Implements the Lanczos kernel algorithm with a radius of 8.
         /// </summary>
-        public static LanczosResampler Lanczos8 = new LanczosResampler(8);
+        public static readonly LanczosResampler Lanczos8 = new(8);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LanczosResampler"/> struct.

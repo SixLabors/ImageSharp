@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -13,37 +13,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     public readonly struct CieLchuv : IEquatable<CieLchuv>
     {
-        private static readonly Vector3 Min = new Vector3(0, -200, 0);
-        private static readonly Vector3 Max = new Vector3(100, 200, 360);
+        private static readonly Vector3 Min = new(0, -200, 0);
+        private static readonly Vector3 Max = new(100, 200, 360);
 
         /// <summary>
         /// D50 standard illuminant.
         /// Used when reference white is not specified explicitly.
         /// </summary>
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
-
-        /// <summary>
-        /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
-        /// </summary>
-        public readonly float L;
-
-        /// <summary>
-        /// Gets the a chroma component.
-        /// <remarks>A value ranging from 0 to 200.</remarks>
-        /// </summary>
-        public readonly float C;
-
-        /// <summary>
-        /// Gets the h° hue component in degrees.
-        /// <remarks>A value ranging from 0 to 360.</remarks>
-        /// </summary>
-        public readonly float H;
-
-        /// <summary>
-        /// Gets the reference white point of this color
-        /// </summary>
-        public readonly CieXyz WhitePoint;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieLchuv"/> struct.
@@ -99,6 +76,29 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Gets the lightness dimension.
+        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
+        /// </summary>
+        public readonly float L { get; }
+
+        /// <summary>
+        /// Gets the a chroma component.
+        /// <remarks>A value ranging from 0 to 200.</remarks>
+        /// </summary>
+        public readonly float C { get; }
+
+        /// <summary>
+        /// Gets the h° hue component in degrees.
+        /// <remarks>A value ranging from 0 to 360.</remarks>
+        /// </summary>
+        public readonly float H { get; }
+
+        /// <summary>
+        /// Gets the reference white point of this color
+        /// </summary>
+        public readonly CieXyz WhitePoint { get; }
+
+        /// <summary>
         /// Compares two <see cref="CieLchuv"/> objects for equality.
         /// </summary>
         /// <param name="left">The <see cref="CieLchuv"/> on the left side of the operand.</param>
@@ -130,12 +130,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLchuv other)
-        {
-            return this.L.Equals(other.L)
-                && this.C.Equals(other.C)
-                && this.H.Equals(other.H)
-                && this.WhitePoint.Equals(other.WhitePoint);
-        }
+            => this.L.Equals(other.L)
+            && this.C.Equals(other.C)
+            && this.H.Equals(other.H)
+            && this.WhitePoint.Equals(other.WhitePoint);
 
         /// <summary>
         /// Computes the saturation of the color (chroma normalized by lightness)

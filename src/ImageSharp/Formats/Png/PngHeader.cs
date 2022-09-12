@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // The png specification only defines 'None' and 'Adam7' as interlaced methods.
-            if (this.InterlaceMethod != PngInterlaceMode.None && this.InterlaceMethod != PngInterlaceMode.Adam7)
+            if (this.InterlaceMethod is not PngInterlaceMode.None and not PngInterlaceMode.Adam7)
             {
                 throw new NotSupportedException($"Invalid interlace method. Expected 'None' or 'Adam7'. Was '{this.InterlaceMethod}'.");
             }
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="buffer">The buffer to write to.</param>
         public void WriteTo(Span<byte> buffer)
         {
-            BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(0, 4), this.Width);
+            BinaryPrimitives.WriteInt32BigEndian(buffer[..4], this.Width);
             BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(4, 4), this.Height);
 
             buffer[8] = this.BitDepth;
@@ -132,15 +132,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The data to parse.</param>
         /// <returns>The parsed PngHeader.</returns>
         public static PngHeader Parse(ReadOnlySpan<byte> data)
-        {
-            return new PngHeader(
-              width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
-              height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
-              bitDepth: data[8],
-              colorType: (PngColorType)data[9],
-              compressionMethod: data[10],
-              filterMethod: data[11],
-              interlaceMethod: (PngInterlaceMode)data[12]);
-        }
+            => new(
+                width: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
+                height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
+                bitDepth: data[8],
+                colorType: (PngColorType)data[9],
+                compressionMethod: data[10],
+                filterMethod: data[11],
+                interlaceMethod: (PngInterlaceMode)data[12]);
     }
 }

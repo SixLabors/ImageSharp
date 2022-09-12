@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -57,20 +56,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
 
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = this.Configuration.MaxDegreeOfParallelism };
+            ParallelOptions parallelOptions = new()
+            { MaxDegreeOfParallelism = this.Configuration.MaxDegreeOfParallelism };
             int tileWidth = source.Width / this.Tiles;
             int tileHeight = tileWidth;
             int pixelInTile = tileWidth * tileHeight;
             int halfTileHeight = tileHeight / 2;
             int halfTileWidth = halfTileHeight;
-            var slidingWindowInfos = new SlidingWindowInfos(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
+            SlidingWindowInfos slidingWindowInfos = new(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 
             // TODO: If the process was able to be switched to operate in parallel rows instead of columns
             // then we could take advantage of batching and allocate per-row buffers only once per batch.
             using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height);
 
             // Process the inner tiles, which do not require to check the borders.
-            var innerOperation = new SlidingWindowOperation(
+            SlidingWindowOperation innerOperation = new(
                     this.Configuration,
                     this,
                     source,
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 innerOperation.Invoke);
 
             // Process the left border of the image.
-            var leftBorderOperation = new SlidingWindowOperation(
+            SlidingWindowOperation leftBorderOperation = new(
                     this.Configuration,
                     this,
                     source,
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 leftBorderOperation.Invoke);
 
             // Process the right border of the image.
-            var rightBorderOperation = new SlidingWindowOperation(
+            SlidingWindowOperation rightBorderOperation = new(
                     this.Configuration,
                     this,
                     source,
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 rightBorderOperation.Invoke);
 
             // Process the top border of the image.
-            var topBorderOperation = new SlidingWindowOperation(
+            SlidingWindowOperation topBorderOperation = new(
                     this.Configuration,
                     this,
                     source,
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 topBorderOperation.Invoke);
 
             // Process the bottom border of the image.
-            var bottomBorderOperation = new SlidingWindowOperation(
+            SlidingWindowOperation bottomBorderOperation = new(
                     this.Configuration,
                     this,
                     source,
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="y">The y position.</param>
         /// <param name="tileWidth">The width in pixels of a tile.</param>
         /// <param name="configuration">The configuration.</param>
-        private void CopyPixelRow(
+        private static void CopyPixelRow(
             ImageFrame<TPixel> source,
             Span<Vector4> rowPixels,
             int x,
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 return;
             }
 
-            this.CopyPixelRowFast(source.PixelBuffer, rowPixels, x, y, tileWidth, configuration);
+            CopyPixelRowFast(source.PixelBuffer, rowPixels, x, y, tileWidth, configuration);
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="tileWidth">The width in pixels of a tile.</param>
         /// <param name="configuration">The configuration.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void CopyPixelRowFast(
+        private static void CopyPixelRowFast(
             Buffer2D<TPixel> source,
             Span<Vector4> rowPixels,
             int x,
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
         /// <param name="length">The grey values span length.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void AddPixelsToHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
+        private static void AddPixelsToHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
         {
             for (nint idx = 0; idx < length; idx++)
             {
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
         /// <param name="length">The grey values span length.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void RemovePixelsFromHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
+        private static void RemovePixelsFromHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
         {
             for (int idx = 0; idx < length; idx++)
             {
@@ -356,14 +356,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     {
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {
-                            this.processor.CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
                         }
 
-                        this.processor.AddPixelsToHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
+                        AddPixelsToHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
                     }
 
                     for (int y = this.yStart; y < this.yEnd; y++)
@@ -377,8 +377,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                         // Calculate the cumulative distribution function, which will map each input pixel in the current tile to a new value.
                         int cdfMin = this.processor.ClipHistogramEnabled
-                                         ? this.processor.CalculateCdf(ref cdfBase, ref histogramCopyBase, histogram.Length - 1)
-                                         : this.processor.CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
+                                         ? CalculateCdf(ref cdfBase, ref histogramCopyBase, histogram.Length - 1)
+                                         : CalculateCdf(ref cdfBase, ref histogramBase, histogram.Length - 1);
 
                         float numberOfPixelsMinusCdfMin = this.swInfos.PixelInTile - cdfMin;
 
@@ -390,26 +390,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {
-                            this.processor.CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
 
-                        this.processor.RemovePixelsFromHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
+                        RemovePixelsFromHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
 
                         // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                         if (this.useFastPath)
                         {
-                            this.processor.CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
                         else
                         {
-                            this.processor.CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                            CopyPixelRow(this.source, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                         }
 
-                        this.processor.AddPixelsToHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
+                        AddPixelsToHistogram(ref pixelRowBase, ref histogramBase, this.processor.LuminanceLevels, pixelRow.Length);
                     }
                 }
             }

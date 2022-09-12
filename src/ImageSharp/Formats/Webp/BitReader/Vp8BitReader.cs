@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -111,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
                 range = split + 1;
             }
 
-            int shift = 7 ^ Numerics.Log2(range);
+            int shift = 7 ^ BitOperations.Log2(range);
             range <<= shift;
             this.bits -= shift;
 
@@ -132,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
             uint split = this.range >> 1;
             ulong value = this.value >> pos;
             ulong mask = (split - value) >> 31;  // -1 or 0
-            this.bits -= 1;
+            this.bits--;
             this.range = (this.range + (uint)mask) | 1;
             this.value -= ((split + 1) & mask) << pos;
 
@@ -188,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
             {
                 ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.Memory.Span.Slice((int)this.pos, 8));
                 this.pos += BitsCount >> 3;
-                ulong bits = this.ByteSwap64(inBits);
+                ulong bits = ByteSwap64(inBits);
                 bits >>= 64 - BitsCount;
                 this.value = bits | (this.value << BitsCount);
                 this.bits += BitsCount;
@@ -220,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitReader
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private ulong ByteSwap64(ulong x)
+        private static ulong ByteSwap64(ulong x)
         {
             x = ((x & 0xffffffff00000000ul) >> 32) | ((x & 0x00000000fffffffful) << 32);
             x = ((x & 0xffff0000ffff0000ul) >> 16) | ((x & 0x0000ffff0000fffful) << 16);

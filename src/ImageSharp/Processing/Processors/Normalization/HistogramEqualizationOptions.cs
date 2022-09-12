@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// It is recommended to use clipping when the AdaptiveTileInterpolation method is used, to suppress artifacts which can occur on the borders of the tiles.
         /// Defaults to false.
         /// </summary>
-        public bool ClipHistogram { get; set; } = false;
+        public bool ClipHistogram { get; set; }
 
         /// <summary>
         /// Gets or sets the histogram clip limit. Adaptive histogram equalization may cause noise to be amplified in near constant

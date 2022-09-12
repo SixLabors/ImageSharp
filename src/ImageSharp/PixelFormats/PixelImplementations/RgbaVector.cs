@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -188,7 +189,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Vector4 vector = this.ToVector4() * Max;
             vector += Half;
             uint hexOrder = (uint)((byte)vector.W | ((byte)vector.Z << 8) | ((byte)vector.Y << 16) | ((byte)vector.X << 24));
-            return hexOrder.ToString("X8");
+            return hexOrder.ToString("X8", CultureInfo.InvariantCulture);
         }
 
         /// <inheritdoc/>

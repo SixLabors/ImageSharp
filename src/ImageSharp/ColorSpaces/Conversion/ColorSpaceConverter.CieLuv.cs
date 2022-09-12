@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// </content>
     public partial class ColorSpaceConverter
     {
-        private static readonly CieLchuvToCieLuvConverter CieLchuvToCieLuvConverter = new CieLchuvToCieLuvConverter();
-
         /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="CieLuv"/>.
         /// </summary>
@@ -21,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in CieLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -53,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in CieLch color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -120,7 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -187,7 +185,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in Cmyk color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -219,7 +217,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in Hsl color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -251,7 +249,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in Hsv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -283,7 +281,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in HunterLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -315,7 +313,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in Lms color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -347,7 +345,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in LinearRgb color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -379,7 +377,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in Rgb color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -411,7 +409,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLuv"/></returns>
         public CieLuv ToCieLuv(in YCbCr color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
         // A Monitor to wait/signal when we are low on memory.
         private static object lowMemoryMonitor;
 
-        public static readonly UnmanagedMemoryHandle NullHandle = default;
+        public static readonly UnmanagedMemoryHandle NullHandle;
 
         private IntPtr handle;
         private int lengthInBytes;
@@ -80,24 +80,17 @@ namespace SixLabors.ImageSharp.Memory.Internals
                 {
                     handle = Marshal.AllocHGlobal(lengthInBytes);
                 }
-                catch (OutOfMemoryException)
+                catch (OutOfMemoryException) when (counter < MaxAllocationAttempts)
                 {
                     // We are low on memory, but expect some memory to be freed soon.
                     // Block the thread & retry to avoid OOM.
-                    if (counter < MaxAllocationAttempts)
-                    {
-                        counter++;
-                        Interlocked.Increment(ref totalOomRetries);
+                    counter++;
+                    Interlocked.Increment(ref totalOomRetries);
 
-                        Interlocked.CompareExchange(ref lowMemoryMonitor, new object(), null);
-                        Monitor.Enter(lowMemoryMonitor);
-                        Monitor.Wait(lowMemoryMonitor, millisecondsTimeout: 1);
-                        Monitor.Exit(lowMemoryMonitor);
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    Interlocked.CompareExchange(ref lowMemoryMonitor, new object(), null);
+                    Monitor.Enter(lowMemoryMonitor);
+                    Monitor.Wait(lowMemoryMonitor, millisecondsTimeout: 1);
+                    Monitor.Exit(lowMemoryMonitor);
                 }
             }
 

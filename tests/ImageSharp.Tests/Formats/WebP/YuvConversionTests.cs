@@ -26,24 +26,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public static void RunUpSampleYuvToRgbTest()
         {
             var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
-            using (Image<Rgba32> image = provider.GetImage(WebpDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ReferenceDecoder);
-            }
+            using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
         }
 
         [Fact]
         public void UpSampleYuvToRgb_Works() => RunUpSampleYuvToRgbTest();
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void UpSampleYuvToRgb_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.AllowAll);
 
         [Fact]
         public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableSSE2);
-
-#endif
 
         [Theory]
         [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]
@@ -157,8 +152,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             // assert
             Assert.True(expectedY.AsSpan().SequenceEqual(y));
-            Assert.True(expectedU.AsSpan().SequenceEqual(u.Slice(0, expectedU.Length)));
-            Assert.True(expectedV.AsSpan().SequenceEqual(v.Slice(0, expectedV.Length)));
+            Assert.True(expectedU.AsSpan().SequenceEqual(u[..expectedU.Length]));
+            Assert.True(expectedV.AsSpan().SequenceEqual(v[..expectedV.Length]));
         }
 
         [Theory]
@@ -263,8 +258,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             // assert
             Assert.True(expectedY.AsSpan().SequenceEqual(y));
-            Assert.True(expectedU.AsSpan().SequenceEqual(u.Slice(0, expectedU.Length)));
-            Assert.True(expectedV.AsSpan().SequenceEqual(v.Slice(0, expectedV.Length)));
+            Assert.True(expectedU.AsSpan().SequenceEqual(u[..expectedU.Length]));
+            Assert.True(expectedV.AsSpan().SequenceEqual(v[..expectedV.Length]));
         }
     }
 }

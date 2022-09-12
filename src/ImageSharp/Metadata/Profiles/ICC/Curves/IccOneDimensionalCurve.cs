@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -53,5 +53,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             return this.BreakPoints.AsSpan().SequenceEqual(other.BreakPoints)
                 && this.Segments.AsSpan().SequenceEqual(other.Segments);
         }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+            => this.Equals(obj as IccOneDimensionalCurve);
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+            => HashCode.Combine(this.BreakPoints, this.Segments);
     }
 }

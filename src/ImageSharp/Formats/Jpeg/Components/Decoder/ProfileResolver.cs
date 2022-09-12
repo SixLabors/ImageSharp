@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public static bool IsProfile(ReadOnlySpan<byte> bytesToCheck, ReadOnlySpan<byte> profileIdentifier)
         {
             return bytesToCheck.Length >= profileIdentifier.Length
-                   && bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);
+                   && bytesToCheck[..profileIdentifier.Length].SequenceEqual(profileIdentifier);
         }
     }
 }

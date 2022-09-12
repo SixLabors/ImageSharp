@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieXyz"/>.
     /// </summary>
-    internal sealed class CieLabToCieXyzConverter
+    internal static class CieLabToCieXyzConverter
     {
         /// <summary>
         /// Performs the conversion from the <see cref="CieLab"/> input to an instance of <see cref="CieXyz"/> type.
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CieXyz Convert(in CieLab input)
+        public static CieXyz Convert(in CieLab input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Lab_to_XYZ.html
             float l = input.L, a = input.A, b = input.B;
@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? Numerics.Pow3((l + 16F) / 116F) : l / CieConstants.Kappa;
             float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
-            var wxyz = new Vector3(input.WhitePoint.X, input.WhitePoint.Y, input.WhitePoint.Z);
+            Vector3 wxyz = new(input.WhitePoint.X, input.WhitePoint.Y, input.WhitePoint.Z);
 
             // Avoids XYZ coordinates out range (restricted by 0 and XYZ reference white)
-            var xyzr = Vector3.Clamp(new Vector3(xr, yr, zr), Vector3.Zero, Vector3.One);
+            Vector3 xyzr = Vector3.Clamp(new Vector3(xr, yr, zr), Vector3.Zero, Vector3.One);
 
             Vector3 xyz = xyzr * wxyz;
             return new CieXyz(xyz);

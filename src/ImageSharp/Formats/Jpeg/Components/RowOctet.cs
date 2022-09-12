@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Cache 8 pixel rows on the stack, which may originate from different buffers of a <see cref="MemoryGroup{T}"/>.
     /// </summary>
+    /// <typeparam name="T">The type of element in each row.</typeparam>
     [StructLayout(LayoutKind.Sequential)]
     internal ref struct RowOctet<T>
         where T : struct
@@ -92,6 +93,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static Span<T> ThrowIndexOutOfRangeException()
+#pragma warning disable CA2201 // Do not raise reserved exception types
         => throw new IndexOutOfRangeException();
+#pragma warning restore CA2201 // Do not raise reserved exception types
     }
 }

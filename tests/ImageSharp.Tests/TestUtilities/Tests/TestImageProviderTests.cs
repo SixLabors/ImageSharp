@@ -369,14 +369,14 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.Decode<Rgba32>((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode<Rgba32>((TestDecoderOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.Decode<TPixel>((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode<TPixel>((TestDecoderOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.Decode((TestDecoderOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode((TestDecoderOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
@@ -414,14 +414,14 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.Decode<Rgba32>((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode<Rgba32>((TestDecoderWithParametersOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
-                => this.Decode<TPixel>((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode<TPixel>((TestDecoderWithParametersOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-                => this.Decode((TestDecoderWithParametersOptions)(new() { GeneralOptions = options }), stream, cancellationToken);
+                => this.Decode((TestDecoderWithParametersOptions)new() { GeneralOptions = options }, stream, cancellationToken);
 
             public Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>

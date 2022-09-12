@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Memory
                 cur.GetSpan(fwd).CopyTo(target);
 
                 cur.Forward(fwd);
-                target = target.Slice(fwd);
+                target = target[fwd..];
                 position += fwd;
             }
         }
@@ -102,9 +102,9 @@ namespace SixLabors.ImageSharp.Memory
             while (!source.IsEmpty)
             {
                 int fwd = Math.Min(cur.LookAhead(), source.Length);
-                source.Slice(0, fwd).CopyTo(cur.GetSpan(fwd));
+                source[..fwd].CopyTo(cur.GetSpan(fwd));
                 cur.Forward(fwd);
-                source = source.Slice(fwd);
+                source = source[fwd..];
             }
         }
 

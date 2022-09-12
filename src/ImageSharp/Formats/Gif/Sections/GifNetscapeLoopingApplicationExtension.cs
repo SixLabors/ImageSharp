@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public static GifNetscapeLoopingApplicationExtension Parse(ReadOnlySpan<byte> buffer)
         {
-            ushort repeatCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(0, 2));
+            ushort repeatCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer[..2]);
             return new GifNetscapeLoopingApplicationExtension(repeatCount);
         }
 

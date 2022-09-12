@@ -4,10 +4,9 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 {
@@ -77,9 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
                 if (mode == 0 || rdCur.Score < rdBest.Score)
                 {
-                    Vp8ModeScore tmp = rdCur;
-                    rdCur = rdBest;
-                    rdBest = tmp;
+                    RuntimeUtility.Swap(ref rdBest, ref rdCur);
                     it.SwapOut();
                 }
             }
@@ -128,13 +125,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<short> tmpLevels = new short[16];
             do
             {
-                int numBlocks = 1;
+                const int numBlocks = 1;
                 rdi4.Clear();
                 int mode;
                 int bestMode = -1;
-                Span<byte> src = src0.Slice(WebpLookupTables.Vp8Scan[it.I4]);
+                Span<byte> src = src0[WebpLookupTables.Vp8Scan[it.I4]..];
                 short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
-                Span<byte> bestBlock = bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]);
+                Span<byte> bestBlock = bestBlocks[WebpLookupTables.Vp8Scan[it.I4]..];
                 Span<byte> tmpDst = it.Scratch.AsSpan();
                 tmpDst.Clear();
 
@@ -178,9 +175,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                     {
                         rdi4.CopyScore(rdTmp);
                         bestMode = mode;
-                        Span<byte> tmp = tmpDst;
-                        tmpDst = bestBlock;
-                        bestBlock = tmp;
+
+                        RuntimeUtility.Swap(ref tmpDst, ref bestBlock);
                         tmpLevels.CopyTo(rdBest.YAcLevels.AsSpan(it.I4 * 16, 16));
                     }
                 }
@@ -199,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 }
 
                 // Copy selected samples to the right place.
-                LossyUtils.Vp8Copy4X4(bestBlock, bestBlocks.Slice(WebpLookupTables.Vp8Scan[it.I4]));
+                LossyUtils.Vp8Copy4X4(bestBlock, bestBlocks[WebpLookupTables.Vp8Scan[it.I4]..]);
 
                 rd.ModesI4[it.I4] = (byte)bestMode;
                 it.TopNz[it.I4 & 3] = it.LeftNz[it.I4 >> 2] = rdi4.Nz != 0 ? 1 : 0;
@@ -262,9 +258,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                         rd.Derr[i, 2] = rdUv.Derr[i, 2];
                     }
 
-                    Span<byte> tmp = dst;
-                    dst = tmpDst;
-                    tmpDst = tmp;
+                    RuntimeUtility.Swap(ref tmpDst, ref dst);
                 }
             }
 
@@ -290,14 +284,14 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<int> scratch = it.Scratch3.AsSpan(0, 16);
             shortScratchSpan.Clear();
             scratch.Clear();
-            Span<short> dcTmp = shortScratchSpan.Slice(0, 16);
+            Span<short> dcTmp = shortScratchSpan[..16];
             Span<short> tmp = shortScratchSpan.Slice(16, 16 * 16);
 
             for (n = 0; n < 16; n += 2)
             {
                 Vp8Encoding.FTransform2(
-                    src.Slice(WebpLookupTables.Vp8Scan[n]),
-                    reference.Slice(WebpLookupTables.Vp8Scan[n]),
+                    src[WebpLookupTables.Vp8Scan[n]..],
+                    reference[WebpLookupTables.Vp8Scan[n]..],
                     tmp.Slice(n * 16, 16),
                     tmp.Slice((n + 1) * 16, 16),
                     scratch);
@@ -318,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             LossyUtils.TransformWht(dcTmp, tmp, scratch);
             for (n = 0; n < 16; n += 2)
             {
-                Vp8Encoding.ITransformTwo(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), scratch);
+                Vp8Encoding.ITransformTwo(reference[WebpLookupTables.Vp8Scan[n]..], tmp.Slice(n * 16, 32), yuvOut[WebpLookupTables.Vp8Scan[n]..], scratch);
             }
 
             return nz;
@@ -348,8 +342,8 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             for (n = 0; n < 8; n += 2)
             {
                 Vp8Encoding.FTransform2(
-                    src.Slice(WebpLookupTables.Vp8ScanUv[n]),
-                    reference.Slice(WebpLookupTables.Vp8ScanUv[n]),
+                    src[WebpLookupTables.Vp8ScanUv[n]..],
+                    reference[WebpLookupTables.Vp8ScanUv[n]..],
                     tmp.Slice(n * 16, 16),
                     tmp.Slice((n + 1) * 16, 16),
                     scratch);
@@ -364,7 +358,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                Vp8Encoding.ITransformTwo(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), scratch);
+                Vp8Encoding.ITransformTwo(reference[WebpLookupTables.Vp8ScanUv[n]..], tmp.Slice(n * 16, 32), yuvOut[WebpLookupTables.Vp8ScanUv[n]..], scratch);
             }
 
             return nz << 16;
@@ -512,14 +506,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int Quantize2Blocks(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
         {
-            int nz = QuantizeBlock(input.Slice(0, 16), output.Slice(0, 16), ref mtx) << 0;
+            int nz = QuantizeBlock(input[..16], output[..16], ref mtx) << 0;
             nz |= QuantizeBlock(input.Slice(1 * 16, 16), output.Slice(1 * 16, 16), ref mtx) << 1;
             return nz;
         }
 
         public static int QuantizeBlock(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
             {
                 // Load all inputs.
@@ -636,7 +629,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
 
                 // if (coeff > 2047) coeff = 2047
-                Vector128<short> maxCoeff2047 = Vector128.Create((short)MaxLevel);
+                var maxCoeff2047 = Vector128.Create((short)MaxLevel);
                 out0 = Sse2.Min(out0, maxCoeff2047);
                 out8 = Sse2.Min(out8, maxCoeff2047);
 
@@ -677,7 +670,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
             }
             else
-#endif
             {
                 int last = -1;
                 int n;
@@ -762,11 +754,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
                 c[0] += (short)(((C1 * top[0]) + (C2 * left[0])) >> (DSHIFT - DSCALE));
                 int err0 = QuantizeSingle(c, ref mtx);
                 c[1 * 16] += (short)(((C1 * top[1]) + (C2 * err0)) >> (DSHIFT - DSCALE));
-                int err1 = QuantizeSingle(c.Slice(1 * 16), ref mtx);
+                int err1 = QuantizeSingle(c[(1 * 16)..], ref mtx);
                 c[2 * 16] += (short)(((C1 * err0) + (C2 * left[1])) >> (DSHIFT - DSCALE));
-                int err2 = QuantizeSingle(c.Slice(2 * 16), ref mtx);
+                int err2 = QuantizeSingle(c[(2 * 16)..], ref mtx);
                 c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
-                int err3 = QuantizeSingle(c.Slice(3 * 16), ref mtx);
+                int err3 = QuantizeSingle(c[(3 * 16)..], ref mtx);
 
                 rd.Derr[ch, 0] = err1;
                 rd.Derr[ch, 1] = err2;
@@ -781,13 +773,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
             for (nint i = 0; i < 16; i++)
             {
-                if (!src.Slice(0, 4).SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
+                if (!src[..4].SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
                     !src.Slice(8, 4).SequenceEqual(vSpan) || !src.Slice(12, 4).SequenceEqual(vSpan))
                 {
                     return false;
                 }
 
-                src = src.Slice(WebpConstants.Bps);
+                src = src[WebpConstants.Bps..];
             }
 
             return true;

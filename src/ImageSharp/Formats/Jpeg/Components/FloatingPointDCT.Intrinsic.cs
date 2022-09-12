@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -45,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 block.V0 = Avx.Add(tmp10, tmp11);
                 block.V4 = Avx.Subtract(tmp10, tmp11);
 
-                Vector256<float> mm256_F_0_7071 = Vector256.Create(0.707106781f);
+                var mm256_F_0_7071 = Vector256.Create(0.707106781f);
                 Vector256<float> z1 = Avx.Multiply(Avx.Add(tmp12, tmp13), mm256_F_0_7071);
                 block.V2 = Avx.Add(tmp13, z1);
                 block.V6 = Avx.Subtract(tmp13, z1);
@@ -98,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 Vector256<float> tmp10 = Avx.Add(z5, tmp2);
                 Vector256<float> tmp11 = Avx.Subtract(z5, tmp2);
 
-                Vector256<float> mm256_F_1_4142 = Vector256.Create(1.414213562f);
+                var mm256_F_1_4142 = Vector256.Create(1.414213562f);
                 Vector256<float> tmp13 = Avx.Add(tmp1, tmp3);
                 Vector256<float> tmp12 = SimdUtils.HwIntrinsics.MultiplySubstract(tmp13, Avx.Subtract(tmp1, tmp3), mm256_F_1_4142);
 
@@ -142,4 +141,3 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
     }
 }
-#endif

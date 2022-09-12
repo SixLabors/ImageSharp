@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// </content>
     public partial class ColorSpaceConverter
     {
-        private static readonly HsvAndRgbConverter HsvAndRgbConverter = new HsvAndRgbConverter();
-
         /// <summary>
         /// Converts a <see cref="CieLab"/> into a <see cref="Hsv"/>
         /// </summary>
@@ -21,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -54,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieLch color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -87,7 +85,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieLchuv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -120,7 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieLuv color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -153,7 +151,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieXyy color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -186,7 +184,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in CieXyz color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -217,9 +215,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsv"/></returns>
-        public Hsv ToHsv(in Cmyk color)
+        public static Hsv ToHsv(in Cmyk color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -229,7 +227,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Cmyk> source, Span<Hsv> destination)
+        public static void Convert(ReadOnlySpan<Cmyk> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -241,7 +239,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Cmyk sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Hsv dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToHsv(sp);
+                dp = ToHsv(sp);
             }
         }
 
@@ -250,9 +248,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsv"/></returns>
-        public Hsv ToHsv(in Hsl color)
+        public static Hsv ToHsv(in Hsl color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -262,7 +260,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors.</param>
-        public void Convert(ReadOnlySpan<Hsl> source, Span<Hsv> destination)
+        public static void Convert(ReadOnlySpan<Hsl> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -274,7 +272,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Hsl sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Hsv dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToHsv(sp);
+                dp = ToHsv(sp);
             }
         }
 
@@ -285,7 +283,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in HunterLab color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -316,9 +314,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsv"/></returns>
-        public Hsv ToHsv(in LinearRgb color)
+        public static Hsv ToHsv(in LinearRgb color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }
@@ -328,7 +326,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<LinearRgb> source, Span<Hsv> destination)
+        public static void Convert(ReadOnlySpan<LinearRgb> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -340,7 +338,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref LinearRgb sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Hsv dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToHsv(sp);
+                dp = ToHsv(sp);
             }
         }
 
@@ -351,7 +349,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(Lms color)
         {
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
 
             return this.ToHsv(xyzColor);
         }
@@ -382,14 +380,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsv"/></returns>
-        public Hsv ToHsv(in Rgb color) => HsvAndRgbConverter.Convert(color);
+        public static Hsv ToHsv(in Rgb color) => HsvAndRgbConverter.Convert(color);
 
         /// <summary>
         /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="Hsv"/>
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>
-        public void Convert(ReadOnlySpan<Rgb> source, Span<Hsv> destination)
+        public static void Convert(ReadOnlySpan<Rgb> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
             int count = source.Length;
@@ -401,7 +399,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             {
                 ref Rgb sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Hsv dp = ref Unsafe.Add(ref destRef, i);
-                dp = this.ToHsv(sp);
+                dp = ToHsv(sp);
             }
         }
 
@@ -412,7 +410,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Hsv"/></returns>
         public Hsv ToHsv(in YCbCr color)
         {
-            var rgb = this.ToRgb(color);
+            Rgb rgb = this.ToRgb(color);
 
             return HsvAndRgbConverter.Convert(rgb);
         }

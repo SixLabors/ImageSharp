@@ -5,10 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.ColorSpaces.Companding
 {
@@ -25,10 +23,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         private const int Length = Scale + 2; // 256kb @ 16bit precision.
         private const int Scale = (1 << 16) - 1;
 
-        private static readonly Lazy<float[]> LazyCompressTable = new Lazy<float[]>(
+        private static readonly Lazy<float[]> LazyCompressTable = new(
             () =>
             {
-                var result = new float[Length];
+                float[] result = new float[Length];
 
                 for (int i = 0; i < result.Length; i++)
                 {
@@ -49,10 +47,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             },
             true);
 
-        private static readonly Lazy<float[]> LazyExpandTable = new Lazy<float[]>(
+        private static readonly Lazy<float[]> LazyExpandTable = new(
             () =>
             {
-                var result = new float[Length];
+                float[] result = new float[Length];
 
                 for (int i = 0; i < result.Length; i++)
                 {
@@ -84,7 +82,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Expand(Span<Vector4> vectors)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && vectors.Length >= 2)
             {
                 CompandAvx2(vectors, ExpandTable);
@@ -92,11 +89,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                 if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
-                    Expand(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                    Expand(ref MemoryMarshal.GetReference(vectors[^1..]));
                 }
             }
             else
-#endif
             {
                 CompandScalar(vectors, ExpandTable);
             }
@@ -109,7 +105,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void Compress(Span<Vector4> vectors)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && vectors.Length >= 2)
             {
                 CompandAvx2(vectors, CompressTable);
@@ -117,11 +112,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                 if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
-                    Compress(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                    Compress(ref MemoryMarshal.GetReference(vectors[^1..]));
                 }
             }
             else
-#endif
             {
                 CompandScalar(vectors, CompressTable);
             }
@@ -171,8 +165,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         public static float Compress(float channel)
             => channel <= 0.0031308F ? 12.92F * channel : (1.055F * MathF.Pow(channel, 0.416666666666667F)) - 0.055F;
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe void CompandAvx2(Span<Vector4> vectors, float[] table)
         {
@@ -204,7 +196,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                 }
             }
         }
-#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe void CompandScalar(Span<Vector4> vectors, float[] table)

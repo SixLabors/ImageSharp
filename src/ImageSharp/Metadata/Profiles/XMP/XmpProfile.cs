@@ -67,15 +67,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Xmp
                 }
             }
 
-            using var stream = new MemoryStream(byteArray, 0, count);
-            using var reader = new StreamReader(stream, Encoding.UTF8);
+            using MemoryStream stream = new(byteArray, 0, count);
+            using StreamReader reader = new(stream, Encoding.UTF8);
             return XDocument.Load(reader);
         }
 
         /// <summary>
         /// Convert the content of this <see cref="XmpProfile"/> into a byte array.
         /// </summary>
-        /// <returns>The <see cref="T:byte[]"/></returns>
+        /// <returns>The <see cref="T:Byte[]"/></returns>
         public byte[] ToByteArray()
         {
             byte[] result = new byte[this.Data.Length];

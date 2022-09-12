@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 // Using the last quarter of 'destVectors' as a temporary buffer to avoid allocation:
                 int countWithoutLastItem = count - 1;
-                ReadOnlySpan<TPixel> reducedSource = sourcePixels.Slice(0, countWithoutLastItem);
+                ReadOnlySpan<TPixel> reducedSource = sourcePixels[..countWithoutLastItem];
                 Span<Rgba32> lastQuarterOfDestBuffer = MemoryMarshal.Cast<Vector4, Rgba32>(destVectors).Slice((3 * count) + 1, countWithoutLastItem);
                 pixelOperations.ToRgba32(configuration, reducedSource, lastQuarterOfDestBuffer);
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 // but we are always reading/writing at different positions:
                 SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
-                    MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
+                    MemoryMarshal.Cast<Vector4, float>(destVectors[..countWithoutLastItem]));
 
                 destVectors[countWithoutLastItem] = sourcePixels[countWithoutLastItem].ToVector4();
 

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see cref="SizeF"/> that has Width and Height values set to zero.
         /// </summary>
-        public static readonly SizeF Empty = default;
+        public static readonly SizeF Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SizeF"/> struct.
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Vector2"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector2(SizeF point) => new Vector2(point.Width, point.Height);
+        public static implicit operator Vector2(SizeF point) => new(point.Width, point.Height);
 
         /// <summary>
         /// Creates a <see cref="Size"/> with the dimensions of the specified <see cref="SizeF"/> by truncating each of the dimensions.
@@ -88,14 +88,14 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Size"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator Size(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
+        public static explicit operator Size(SizeF size) => new(unchecked((int)size.Width), unchecked((int)size.Height));
 
         /// <summary>
         /// Converts the given <see cref="SizeF"/> into a <see cref="PointF"/>.
         /// </summary>
         /// <param name="size">The size.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static explicit operator PointF(SizeF size) => new PointF(size.Width, size.Height);
+        public static explicit operator PointF(SizeF size) => new(size.Width, size.Height);
 
         /// <summary>
         /// Computes the sum of adding two sizes.
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">Divisor of type <see cref="int"/>.</param>
         /// <returns>Result of type <see cref="SizeF"/>.</returns>
         public static SizeF operator /(SizeF left, float right)
-            => new SizeF(left.Width / right, left.Height / right);
+            => new(left.Width / right, left.Height / right);
 
         /// <summary>
         /// Compares two <see cref="SizeF"/> objects for equality.
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="SizeF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF Add(SizeF left, SizeF right) => new SizeF(left.Width + right.Width, left.Height + right.Height);
+        public static SizeF Add(SizeF left, SizeF right) => new(left.Width + right.Width, left.Height + right.Height);
 
         /// <summary>
         /// Contracts a <see cref="SizeF"/> by another <see cref="SizeF"/>.
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp
         /// <param name="right">The size on the right hand of the operand.</param>
         /// <returns>The <see cref="SizeF"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SizeF Subtract(SizeF left, SizeF right) => new SizeF(left.Width - right.Width, left.Height - right.Height);
+        public static SizeF Subtract(SizeF left, SizeF right) => new(left.Width - right.Width, left.Height - right.Height);
 
         /// <summary>
         /// Transforms a size by the given matrix.
@@ -228,6 +228,6 @@ namespace SixLabors.ImageSharp
         /// <param name="multiplier">Multiplier of type <see cref="float"/>.</param>
         /// <returns>Product of type SizeF.</returns>
         private static SizeF Multiply(SizeF size, float multiplier) =>
-            new SizeF(size.Width * multiplier, size.Height * multiplier);
+            new(size.Width * multiplier, size.Height * multiplier);
     }
 }

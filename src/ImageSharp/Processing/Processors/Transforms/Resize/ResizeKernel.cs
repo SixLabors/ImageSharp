@@ -4,11 +4,9 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -56,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Span<float> Values
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Span<float>(this.bufferPtr, this.Length);
+            get => new(this.bufferPtr, this.Length);
         }
 
         /// <summary>
@@ -71,7 +69,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
-#if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && Fma.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
@@ -141,7 +138,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return *(Vector4*)&result128;
             }
             else
-#endif
             {
                 // Destination color components
                 Vector4 result = Vector4.Zero;
@@ -167,7 +163,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel AlterLeftValue(int left)
-            => new ResizeKernel(left, this.bufferPtr, this.Length);
+            => new(left, this.bufferPtr, this.Length);
 
         internal void Fill(Span<double> values)
         {

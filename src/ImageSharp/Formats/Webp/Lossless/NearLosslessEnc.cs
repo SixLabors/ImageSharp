@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless
             Span<uint> prevRow = copyBuffer;
             Span<uint> currRow = copyBuffer.Slice(xSize, xSize);
             Span<uint> nextRow = copyBuffer.Slice(xSize * 2, xSize);
-            argbSrc.Slice(0, xSize).CopyTo(currRow);
+            argbSrc[..xSize].CopyTo(currRow);
             argbSrc.Slice(xSize, xSize).CopyTo(nextRow);
 
             int srcOffset = 0;

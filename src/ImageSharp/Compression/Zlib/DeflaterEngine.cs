@@ -276,8 +276,8 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             this.lookahead = 0;
             this.prevAvailable = false;
             this.matchLen = DeflaterConstants.MIN_MATCH - 1;
-            this.head.Span.Slice(0, DeflaterConstants.HASH_SIZE).Clear();
-            this.prev.Span.Slice(0, DeflaterConstants.WSIZE).Clear();
+            this.head.Span[..DeflaterConstants.HASH_SIZE].Clear();
+            this.prev.Span[..DeflaterConstants.WSIZE].Clear();
         }
 
         /// <summary>
@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         /// <param name="level">The value to set the level to.</param>
         public void SetLevel(int level)
         {
-            if ((level < 0) || (level > 9))
+            if (level is < 0 or > 9)
             {
                 DeflateThrowHelper.ThrowOutOfRange(nameof(level));
             }

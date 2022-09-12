@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -21,9 +21,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public bool Equals(IccEAcsProcessElement other)
-        {
-            return base.Equals(other);
-        }
+        public bool Equals(IccEAcsProcessElement other) => base.Equals(other);
+
+        public override bool Equals(object obj) => this.Equals(obj as IccEAcsProcessElement);
+
+        /// <inheritdoc />
+        public override int GetHashCode() => base.GetHashCode();
     }
 }

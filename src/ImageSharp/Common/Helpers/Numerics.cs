@@ -780,25 +780,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ReduceSum(Vector128<int> accumulator)
         {
-            if (Ssse3.IsSupported)
-            {
-                Vector128<int> hadd = Ssse3.HorizontalAdd(accumulator, accumulator);
-                Vector128<int> swapped = Sse2.Shuffle(hadd, 0x1);
-                Vector128<int> tmp = Sse2.Add(hadd, swapped);
+            // Add odd to even.
+            Vector128<int> vsum = Sse2.Add(accumulator, Sse2.Shuffle(accumulator, 0b_11_11_01_01));
 
-                // Vector128<int>.ToScalar() isn't optimized pre-net5.0 https://github.com/dotnet/runtime/pull/37882
-                return Sse2.ConvertToInt32(tmp);
-            }
-            else
-            {
-                int sum = 0;
-                for (int i = 0; i < Vector128<int>.Count; i++)
-                {
-                    sum += accumulator.GetElement(i);
-                }
+            // Add high to low.
+            vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
 
-                return sum;
-            }
+            return Sse2.ConvertToInt32(vsum);
         }
 
         /// <summary>
@@ -817,6 +805,20 @@ namespace SixLabors.ImageSharp
 
             // Add high to low.
             vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
+
+            return Sse2.ConvertToInt32(vsum);
+        }
+
+        /// <summary>
+        /// Reduces even elements of the vector into one sum.
+        /// </summary>
+        /// <param name="accumulator">The accumulator to reduce.</param>
+        /// <returns>The sum of even elements.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int EvenReduceSum(Vector128<int> accumulator)
+        {
+            // Add high to low.
+            Vector128<int> vsum = Sse2.Add(accumulator, Sse2.Shuffle(accumulator, 0b_11_10_11_10));
 
             return Sse2.ConvertToInt32(vsum);
         }

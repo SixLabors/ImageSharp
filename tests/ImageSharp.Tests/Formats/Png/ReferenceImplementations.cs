@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EncodePaethFilter(ReadOnlySpan<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
-            DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
+            DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
@@ -57,8 +57,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 res = (byte)(scan - PaethPredictor(left, above, upperLeft));
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 4;
         }
 
         /// <summary>
@@ -99,8 +97,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 res = (byte)(scan - prev);
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 1;
         }
 
         /// <summary>
@@ -135,8 +131,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 res = (byte)(scan - above);
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 2;
         }
 
         /// <summary>
@@ -182,8 +176,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 res = (byte)(scan - Average(left, above));
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 3;
         }
 
         /// <summary>

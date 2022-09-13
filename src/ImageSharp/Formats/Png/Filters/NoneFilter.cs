@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System;
@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode(ReadOnlySpan<byte> scanline, Span<byte> result)
         {
-            // Insert a byte before the data.
-            result[0] = 0;
+            // Insert row filter byte before the data.
+            result[0] = (byte)FilterType.None;
             result = result[1..];
             scanline[..Math.Min(scanline.Length, result.Length)].CopyTo(result);
         }

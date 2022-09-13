@@ -49,8 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Up(x) + Prior(x)
             int rb = scanline.Length;
             nint offset = 1;
-            const int bytesPerBatch = 32;
-            while (rb >= bytesPerBatch)
+            while (rb >= Vector256<byte>.Count)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
                 Vector256<byte> current = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
@@ -59,8 +58,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 Vector256<byte> sum = Avx2.Add(up, current);
                 Unsafe.As<byte, Vector256<byte>>(ref scanRef) = sum;
 
-                offset += bytesPerBatch;
-                rb -= bytesPerBatch;
+                offset += Vector256<byte>.Count;
+                rb -= Vector256<byte>.Count;
             }
 
             // Handle left over.
@@ -81,8 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Up(x) + Prior(x)
             int rb = scanline.Length;
             nint offset = 1;
-            const int bytesPerBatch = 16;
-            while (rb >= bytesPerBatch)
+            while (rb >= Vector128<byte>.Count)
             {
                 ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
                 Vector128<byte> current = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
@@ -91,8 +89,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 Vector128<byte> sum = Sse2.Add(up, current);
                 Unsafe.As<byte, Vector128<byte>>(ref scanRef) = sum;
 
-                offset += bytesPerBatch;
-                rb -= bytesPerBatch;
+                offset += Vector128<byte>.Count;
+                rb -= Vector128<byte>.Count;
             }
 
             // Handle left over.
@@ -112,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             // Up(x) + Prior(x)
-            for (int x = 1; x < scanline.Length; x++)
+            for (nint x = 1; x < scanline.Length; x++)
             {
                 ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
                 byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -139,16 +137,16 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             sum = 0;
 
             // Up(x) = Raw(x) - Prior(x)
-            resultBaseRef = 2;
+            resultBaseRef = (byte)FilterType.Up;
 
-            int x = 0;
+            nint x = 0;
 
             if (Avx2.IsSupported)
             {
                 Vector256<byte> zero = Vector256<byte>.Zero;
                 Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-                for (; x + Vector256<byte>.Count <= scanline.Length;)
+                for (; x <= scanline.Length - Vector256<byte>.Count;)
                 {
                     Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                     Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
@@ -166,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             {
                 Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-                for (; x + Vector<byte>.Count <= scanline.Length;)
+                for (; x <= scanline.Length - Vector<byte>.Count;)
                 {
                     Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                     Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
@@ -193,8 +191,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 res = (byte)(scan - above);
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 2;
         }
     }
 }

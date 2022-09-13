@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -31,6 +30,11 @@ namespace SixLabors.ImageSharp.Tests
         /// The image (lazy initialized value)
         /// </summary>
         private volatile Image<Rgba32> image;
+
+        /// <summary>
+        /// Used to ensure image loading is threadsafe.
+        /// </summary>
+        private readonly object syncLock;
 
         /// <summary>
         /// The image bytes
@@ -70,22 +74,15 @@ namespace SixLabors.ImageSharp.Tests
         {
             get
             {
-                Image<Rgba32> img = this.image;
-                if (img is null)
+                if (this.image is null)
                 {
-                    Image<Rgba32> loadedImg = ImageSharp.Image.Load<Rgba32>(this.Bytes);
-                    img = Interlocked.CompareExchange(location1: ref this.image, value: loadedImg, comparand: null);
-                    if (img is not null)
+                    lock (this.syncLock)
                     {
-                        loadedImg.Dispose();
-                    }
-                    else
-                    {
-                        img = loadedImg;
+                        this.image ??= ImageSharp.Image.Load<Rgba32>(this.Bytes);
                     }
                 }
 
-                return img;
+                return this.image;
             }
         }
 

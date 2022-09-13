@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Used to ensure image loading is threadsafe.
         /// </summary>
-        private readonly object syncLock;
+        private readonly object syncLock = new();
 
         /// <summary>
         /// The image bytes

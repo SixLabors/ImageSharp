@@ -29,7 +29,12 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// The image (lazy initialized value)
         /// </summary>
-        private Image<Rgba32> image;
+        private volatile Image<Rgba32> image;
+
+        /// <summary>
+        /// Used to ensure image loading is threadsafe.
+        /// </summary>
+        private readonly object syncLock = new();
 
         /// <summary>
         /// The image bytes
@@ -65,7 +70,21 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the image with lazy initialization.
         /// </summary>
-        private Image<Rgba32> Image => this.image ??= ImageSharp.Image.Load<Rgba32>(this.Bytes);
+        private Image<Rgba32> Image
+        {
+            get
+            {
+                if (this.image is null)
+                {
+                    lock (this.syncLock)
+                    {
+                        this.image ??= ImageSharp.Image.Load<Rgba32>(this.Bytes);
+                    }
+                }
+
+                return this.image;
+            }
+        }
 
         /// <summary>
         /// Gets the input image directory.

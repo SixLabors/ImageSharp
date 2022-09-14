@@ -119,9 +119,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             sum = 0;
 
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-            resultBaseRef = 3;
+            resultBaseRef = (byte)FilterType.Average;
 
-            int x = 0;
+            nint x = 0;
             for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 Vector256<int> sumAccumulator = Vector256<int>.Zero;
                 Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-                for (int xLeft = x - bytesPerPixel; x + Vector256<byte>.Count <= scanline.Length; xLeft += Vector256<byte>.Count)
+                for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector256<byte>.Count; xLeft += Vector256<byte>.Count)
                 {
                     Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                     Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -157,12 +157,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
             else if (Sse2.IsSupported)
             {
-                Vector128<sbyte> zero8 = Vector128<sbyte>.Zero;
-                Vector128<short> zero16 = Vector128<short>.Zero;
+                Vector128<byte> zero = Vector128<byte>.Zero;
                 Vector128<int> sumAccumulator = Vector128<int>.Zero;
                 Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-                for (int xLeft = x - bytesPerPixel; x + Vector128<byte>.Count <= scanline.Length; xLeft += Vector128<byte>.Count)
+                for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector128<byte>.Count; xLeft += Vector128<byte>.Count)
                 {
                     Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                     Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -174,36 +173,24 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                     x += Vector128<byte>.Count;
 
-                    Vector128<sbyte> absRes;
+                    Vector128<byte> absRes;
                     if (Ssse3.IsSupported)
                     {
-                        absRes = Ssse3.Abs(res.AsSByte()).AsSByte();
+                        absRes = Ssse3.Abs(res.AsSByte());
                     }
                     else
                     {
-                        Vector128<sbyte> mask = Sse2.CompareGreaterThan(res.AsSByte(), zero8);
-                        mask = Sse2.Xor(mask, allBitsSet.AsSByte());
-                        absRes = Sse2.Xor(Sse2.Add(res.AsSByte(), mask), mask);
+                        Vector128<sbyte> mask = Sse2.CompareGreaterThan(zero.AsSByte(), res.AsSByte());
+                        absRes = Sse2.Xor(Sse2.Add(res.AsSByte(), mask), mask).AsByte();
                     }
 
-                    Vector128<short> loRes16 = Sse2.UnpackLow(absRes, zero8).AsInt16();
-                    Vector128<short> hiRes16 = Sse2.UnpackHigh(absRes, zero8).AsInt16();
-
-                    Vector128<int> loRes32 = Sse2.UnpackLow(loRes16, zero16).AsInt32();
-                    Vector128<int> hiRes32 = Sse2.UnpackHigh(loRes16, zero16).AsInt32();
-                    sumAccumulator = Sse2.Add(sumAccumulator, loRes32);
-                    sumAccumulator = Sse2.Add(sumAccumulator, hiRes32);
-
-                    loRes32 = Sse2.UnpackLow(hiRes16, zero16).AsInt32();
-                    hiRes32 = Sse2.UnpackHigh(hiRes16, zero16).AsInt32();
-                    sumAccumulator = Sse2.Add(sumAccumulator, loRes32);
-                    sumAccumulator = Sse2.Add(sumAccumulator, hiRes32);
+                    sumAccumulator = Sse2.Add(sumAccumulator, Sse2.SumAbsoluteDifferences(absRes, zero).AsInt32());
                 }
 
-                sum += Numerics.ReduceSum(sumAccumulator);
+                sum += Numerics.EvenReduceSum(sumAccumulator);
             }
 
-            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+            for (nint xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
                 byte left = Unsafe.Add(ref scanBaseRef, xLeft);
@@ -213,8 +200,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 res = (byte)(scan - Average(left, above));
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
-
-            sum -= 3;
         }
 
         /// <summary>

@@ -3,18 +3,16 @@
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
+
+[Trait("Category", "Processors")]
+public class AutoOrientTests : BaseImageOperationsExtensionTest
 {
-    [Trait("Category", "Processors")]
-    public class AutoOrientTests : BaseImageOperationsExtensionTest
+    [Fact]
+    public void AutoOrient_AutoOrientProcessor()
     {
-        [Fact]
-        public void AutoOrient_AutoOrientProcessor()
-        {
-            this.operations.AutoOrient();
-            this.Verify<AutoOrientProcessor>();
-        }
+        this.operations.AutoOrient();
+        this.Verify<AutoOrientProcessor>();
     }
 }

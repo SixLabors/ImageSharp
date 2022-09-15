@@ -1,156 +1,152 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Png
+namespace SixLabors.ImageSharp.Tests.Formats.Png;
+
+[Trait("Format", "Png")]
+public class ImageExtensionsTest
 {
-    [Trait("Format", "Png")]
-    public class ImageExtensionsTest
+    [Fact]
+    public void SaveAsPng_Path()
     {
-        [Fact]
-        public void SaveAsPng_Path()
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsPng_Path.png");
+
+        using (var image = new Image<Rgba32>(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
-            string file = Path.Combine(dir, "SaveAsPng_Path.png");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsPng(file);
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            image.SaveAsPng(file);
         }
 
-        [Fact]
-        public async Task SaveAsPngAsync_Path()
+        using (Image.Load(file, out IImageFormat mime))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
-            string file = Path.Combine(dir, "SaveAsPngAsync_Path.png");
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsPngAsync(file);
-            }
+    [Fact]
+    public async Task SaveAsPngAsync_Path()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsPngAsync_Path.png");
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            await image.SaveAsPngAsync(file);
         }
 
-        [Fact]
-        public void SaveAsPng_Path_Encoder()
+        using (Image.Load(file, out IImageFormat mime))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsPng_Path_Encoder.png");
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsPng(file, new PngEncoder());
-            }
+    [Fact]
+    public void SaveAsPng_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsPng_Path_Encoder.png");
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            image.SaveAsPng(file, new PngEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsPngAsync_Path_Encoder()
+        using (Image.Load(file, out IImageFormat mime))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsPngAsync_Path_Encoder.png");
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsPngAsync(file, new PngEncoder());
-            }
+    [Fact]
+    public async Task SaveAsPngAsync_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsPngAsync_Path_Encoder.png");
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            await image.SaveAsPngAsync(file, new PngEncoder());
         }
 
-        [Fact]
-        public void SaveAsPng_Stream()
+        using (Image.Load(file, out IImageFormat mime))
         {
-            using var memoryStream = new MemoryStream();
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsPng(memoryStream);
-            }
+    [Fact]
+    public void SaveAsPng_Stream()
+    {
+        using var memoryStream = new MemoryStream();
 
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            image.SaveAsPng(memoryStream);
         }
 
-        [Fact]
-        public async Task SaveAsPngAsync_StreamAsync()
+        memoryStream.Position = 0;
+
+        using (Image.Load(memoryStream, out IImageFormat mime))
         {
-            using var memoryStream = new MemoryStream();
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsPngAsync(memoryStream);
-            }
+    [Fact]
+    public async Task SaveAsPngAsync_StreamAsync()
+    {
+        using var memoryStream = new MemoryStream();
 
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            await image.SaveAsPngAsync(memoryStream);
         }
 
-        [Fact]
-        public void SaveAsPng_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        using (Image.Load(memoryStream, out IImageFormat mime))
         {
-            using var memoryStream = new MemoryStream();
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsPng(memoryStream, new PngEncoder());
-            }
+    [Fact]
+    public void SaveAsPng_Stream_Encoder()
+    {
+        using var memoryStream = new MemoryStream();
 
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            image.SaveAsPng(memoryStream, new PngEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsPngAsync_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        using (Image.Load(memoryStream, out IImageFormat mime))
         {
-            using var memoryStream = new MemoryStream();
+            Assert.Equal("image/png", mime.DefaultMimeType);
+        }
+    }
 
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsPngAsync(memoryStream, new PngEncoder());
-            }
+    [Fact]
+    public async Task SaveAsPngAsync_Stream_Encoder()
+    {
+        using var memoryStream = new MemoryStream();
 
-            memoryStream.Position = 0;
+        using (var image = new Image<Rgba32>(10, 10))
+        {
+            await image.SaveAsPngAsync(memoryStream, new PngEncoder());
+        }
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+        memoryStream.Position = 0;
+
+        using (Image.Load(memoryStream, out IImageFormat mime))
+        {
+            Assert.Equal("image/png", mime.DefaultMimeType);
         }
     }
 }

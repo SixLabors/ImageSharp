@@ -1,21 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.IPTC
+namespace SixLabors.ImageSharp.Metadata.Profiles.IPTC;
+
+/// <summary>
+/// Enum for the different record types of a IPTC value.
+/// </summary>
+internal enum IptcRecordNumber : byte
 {
     /// <summary>
-    /// Enum for the different record types of a IPTC value.
+    /// A Envelope Record.
     /// </summary>
-    internal enum IptcRecordNumber : byte
-    {
-        /// <summary>
-        /// A Envelope Record.
-        /// </summary>
-        Envelope = 0x01,
+    Envelope = 0x01,
 
-        /// <summary>
-        /// A Application Record.
-        /// </summary>
-        Application = 0x02
-    }
+    /// <summary>
+    /// A Application Record.
+    /// </summary>
+    Application = 0x02
 }

@@ -77,6 +77,12 @@ To clone ImageSharp locally, click the "Clone in [YOUR_OS]" button above or run 
 git clone https://github.com/SixLabors/ImageSharp
 ```
 
+Then set the following config to ensure blame commands ignore mass reformatting commits.
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 If working with Windows please ensure that you have enabled long file paths in git (run as Administrator).
 
 ```bash

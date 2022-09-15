@@ -6,54 +6,53 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Convolution
+namespace SixLabors.ImageSharp.Processing.Processors.Convolution;
+
+/// <summary>
+/// Applies an median filter.
+/// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
+internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
 {
-    /// <summary>
-    /// Applies an median filter.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
+    private readonly MedianBlurProcessor definition;
+
+    public MedianBlurProcessor(Configuration configuration, MedianBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        : base(configuration, source, sourceRectangle) => this.definition = definition;
+
+    protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        private readonly MedianBlurProcessor definition;
+        int kernelSize = (2 * this.definition.Radius) + 1;
 
-        public MedianBlurProcessor(Configuration configuration, MedianBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle) => this.definition = definition;
+        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
+        using Buffer2D<TPixel> targetPixels = allocator.Allocate2D<TPixel>(source.Width, source.Height);
 
-        protected override void OnFrameApply(ImageFrame<TPixel> source)
-        {
-            int kernelSize = (2 * this.definition.Radius) + 1;
+        source.CopyTo(targetPixels);
 
-            MemoryAllocator allocator = this.Configuration.MemoryAllocator;
-            using Buffer2D<TPixel> targetPixels = allocator.Allocate2D<TPixel>(source.Width, source.Height);
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            source.CopyTo(targetPixels);
+        // We use a rectangle with width set wider, to allocate a buffer big enough
+        // for kernel source, channel buffers, source rows and target bulk pixel conversion.
+        int operationWidth = (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width);
+        Rectangle operationBounds = new(interest.X, interest.Y, operationWidth, interest.Height);
 
-            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        using KernelSamplingMap map = new(this.Configuration.MemoryAllocator);
+        map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);
 
-            // We use a rectangle with width set wider, to allocate a buffer big enough
-            // for kernel source, channel buffers, source rows and target bulk pixel conversion.
-            int operationWidth = (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width);
-            Rectangle operationBounds = new(interest.X, interest.Y, operationWidth, interest.Height);
+        MedianRowOperation<TPixel> operation = new(
+            interest,
+            targetPixels,
+            source.PixelBuffer,
+            map,
+            kernelSize,
+            this.Configuration,
+            this.definition.PreserveAlpha);
 
-            using KernelSamplingMap map = new(this.Configuration.MemoryAllocator);
-            map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);
+        ParallelRowIterator.IterateRows<MedianRowOperation<TPixel>, Vector4>(
+            this.Configuration,
+            operationBounds,
+            in operation);
 
-            MedianRowOperation<TPixel> operation = new(
-                interest,
-                targetPixels,
-                source.PixelBuffer,
-                map,
-                kernelSize,
-                this.Configuration,
-                this.definition.PreserveAlpha);
-
-            ParallelRowIterator.IterateRows<MedianRowOperation<TPixel>, Vector4>(
-                this.Configuration,
-                operationBounds,
-                in operation);
-
-            Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
-        }
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
     }
 }

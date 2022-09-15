@@ -1,21 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Tga
+namespace SixLabors.ImageSharp.Formats.Tga;
+
+/// <summary>
+/// Indicates if compression is used.
+/// </summary>
+public enum TgaCompression
 {
     /// <summary>
-    /// Indicates if compression is used.
+    /// No compression is used.
     /// </summary>
-    public enum TgaCompression
-    {
-        /// <summary>
-        /// No compression is used.
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Run length encoding is used.
-        /// </summary>
-        RunLength,
-    }
+    /// <summary>
+    /// Run length encoding is used.
+    /// </summary>
+    RunLength,
 }

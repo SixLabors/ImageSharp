@@ -3,52 +3,51 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
+
+[DebuggerDisplay("Mode: {Mode}, Len: {Len}, BgraOrDistance: {BgraOrDistance}")]
+internal sealed class PixOrCopy
 {
-    [DebuggerDisplay("Mode: {Mode}, Len: {Len}, BgraOrDistance: {BgraOrDistance}")]
-    internal sealed class PixOrCopy
-    {
-        public PixOrCopyMode Mode { get; set; }
+    public PixOrCopyMode Mode { get; set; }
 
-        public ushort Len { get; set; }
+    public ushort Len { get; set; }
 
-        public uint BgraOrDistance { get; set; }
+    public uint BgraOrDistance { get; set; }
 
-        public static PixOrCopy CreateCacheIdx(int idx) =>
-            new()
-            {
-                Mode = PixOrCopyMode.CacheIdx,
-                BgraOrDistance = (uint)idx,
-                Len = 1
-            };
-
-        public static PixOrCopy CreateLiteral(uint bgra) =>
-            new()
-            {
-                Mode = PixOrCopyMode.Literal,
-                BgraOrDistance = bgra,
-                Len = 1
-            };
-
-        public static PixOrCopy CreateCopy(uint distance, ushort len) => new()
+    public static PixOrCopy CreateCacheIdx(int idx) =>
+        new()
         {
-            Mode = PixOrCopyMode.Copy,
-            BgraOrDistance = distance,
-            Len = len
+            Mode = PixOrCopyMode.CacheIdx,
+            BgraOrDistance = (uint)idx,
+            Len = 1
         };
 
-        public uint Literal(int component) => (this.BgraOrDistance >> (component * 8)) & 0xff;
+    public static PixOrCopy CreateLiteral(uint bgra) =>
+        new()
+        {
+            Mode = PixOrCopyMode.Literal,
+            BgraOrDistance = bgra,
+            Len = 1
+        };
 
-        public uint CacheIdx() => this.BgraOrDistance;
+    public static PixOrCopy CreateCopy(uint distance, ushort len) => new()
+    {
+        Mode = PixOrCopyMode.Copy,
+        BgraOrDistance = distance,
+        Len = len
+    };
 
-        public ushort Length() => this.Len;
+    public uint Literal(int component) => (this.BgraOrDistance >> (component * 8)) & 0xff;
 
-        public uint Distance() => this.BgraOrDistance;
+    public uint CacheIdx() => this.BgraOrDistance;
 
-        public bool IsLiteral() => this.Mode == PixOrCopyMode.Literal;
+    public ushort Length() => this.Len;
 
-        public bool IsCacheIdx() => this.Mode == PixOrCopyMode.CacheIdx;
+    public uint Distance() => this.BgraOrDistance;
 
-        public bool IsCopy() => this.Mode == PixOrCopyMode.Copy;
-    }
+    public bool IsLiteral() => this.Mode == PixOrCopyMode.Literal;
+
+    public bool IsCacheIdx() => this.Mode == PixOrCopyMode.CacheIdx;
+
+    public bool IsCopy() => this.Mode == PixOrCopyMode.Copy;
 }

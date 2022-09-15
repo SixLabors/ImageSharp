@@ -4,30 +4,29 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class GrayscaleColorConversion : ColorConversionBenchmark
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class GrayscaleColorConversion : ColorConversionBenchmark
+    public GrayscaleColorConversion()
+        : base(1)
     {
-        public GrayscaleColorConversion()
-            : base(1)
-        {
-        }
+    }
 
-        [Benchmark(Baseline = true)]
-        public void Scalar()
-        {
-            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+    [Benchmark(Baseline = true)]
+    public void Scalar()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.GrayscaleScalar(8).ConvertToRgbInplace(values);
-        }
+        new JpegColorConverterBase.GrayscaleScalar(8).ConvertToRgbInplace(values);
+    }
 
-        [Benchmark]
-        public void SimdVectorAvx()
-        {
-            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+    [Benchmark]
+    public void SimdVectorAvx()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.GrayscaleAvx(8).ConvertToRgbInplace(values);
-        }
+        new JpegColorConverterBase.GrayscaleAvx(8).ConvertToRgbInplace(values);
     }
 }

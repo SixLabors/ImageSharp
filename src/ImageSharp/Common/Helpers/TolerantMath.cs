@@ -1,106 +1,104 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp;
+
+/// <summary>
+/// Implements basic math operations using tolerant comparison
+/// whenever an equality check is needed.
+/// </summary>
+internal readonly struct TolerantMath
 {
+    private readonly double epsilon;
+
+    private readonly double negEpsilon;
+
     /// <summary>
-    /// Implements basic math operations using tolerant comparison
-    /// whenever an equality check is needed.
+    /// A read-only default instance for <see cref="TolerantMath"/> using 1e-8 as epsilon.
+    /// It is a field so it can be passed as an 'in' parameter.
+    /// Does not necessarily fit all use cases!
     /// </summary>
-    internal readonly struct TolerantMath
+    public static readonly TolerantMath Default = new TolerantMath(1e-8);
+
+    public TolerantMath(double epsilon)
     {
-        private readonly double epsilon;
+        DebugGuard.MustBeGreaterThan(epsilon, 0, nameof(epsilon));
 
-        private readonly double negEpsilon;
+        this.epsilon = epsilon;
+        this.negEpsilon = -epsilon;
+    }
 
-        /// <summary>
-        /// A read-only default instance for <see cref="TolerantMath"/> using 1e-8 as epsilon.
-        /// It is a field so it can be passed as an 'in' parameter.
-        /// Does not necessarily fit all use cases!
-        /// </summary>
-        public static readonly TolerantMath Default = new TolerantMath(1e-8);
+    /// <summary>
+    /// <paramref name="a"/> == 0
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsZero(double a) => a > this.negEpsilon && a < this.epsilon;
 
-        public TolerantMath(double epsilon)
+    /// <summary>
+    /// <paramref name="a"/> &gt; 0
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsPositive(double a) => a > this.epsilon;
+
+    /// <summary>
+    /// <paramref name="a"/> &lt; 0
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsNegative(double a) => a < this.negEpsilon;
+
+    /// <summary>
+    /// <paramref name="a"/> == <paramref name="b"/>
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool AreEqual(double a, double b) => this.IsZero(a - b);
+
+    /// <summary>
+    /// <paramref name="a"/> &gt; <paramref name="b"/>
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsGreater(double a, double b) => a > b + this.epsilon;
+
+    /// <summary>
+    /// <paramref name="a"/> &lt; <paramref name="b"/>
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsLess(double a, double b) => a < b - this.epsilon;
+
+    /// <summary>
+    /// <paramref name="a"/> &gt;= <paramref name="b"/>
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsGreaterOrEqual(double a, double b) => a >= b - this.epsilon;
+
+    /// <summary>
+    /// <paramref name="a"/> &lt;= <paramref name="b"/>
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool IsLessOrEqual(double a, double b) => b >= a - this.epsilon;
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public double Ceiling(double a)
+    {
+        double rem = Math.IEEERemainder(a, 1);
+        if (this.IsZero(rem))
         {
-            DebugGuard.MustBeGreaterThan(epsilon, 0, nameof(epsilon));
-
-            this.epsilon = epsilon;
-            this.negEpsilon = -epsilon;
+            return Math.Round(a);
         }
 
-        /// <summary>
-        /// <paramref name="a"/> == 0
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsZero(double a) => a > this.negEpsilon && a < this.epsilon;
+        return Math.Ceiling(a);
+    }
 
-        /// <summary>
-        /// <paramref name="a"/> &gt; 0
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsPositive(double a) => a > this.epsilon;
-
-        /// <summary>
-        /// <paramref name="a"/> &lt; 0
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsNegative(double a) => a < this.negEpsilon;
-
-        /// <summary>
-        /// <paramref name="a"/> == <paramref name="b"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool AreEqual(double a, double b) => this.IsZero(a - b);
-
-        /// <summary>
-        /// <paramref name="a"/> &gt; <paramref name="b"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsGreater(double a, double b) => a > b + this.epsilon;
-
-        /// <summary>
-        /// <paramref name="a"/> &lt; <paramref name="b"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsLess(double a, double b) => a < b - this.epsilon;
-
-        /// <summary>
-        /// <paramref name="a"/> &gt;= <paramref name="b"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsGreaterOrEqual(double a, double b) => a >= b - this.epsilon;
-
-        /// <summary>
-        /// <paramref name="a"/> &lt;= <paramref name="b"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool IsLessOrEqual(double a, double b) => b >= a - this.epsilon;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public double Ceiling(double a)
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public double Floor(double a)
+    {
+        double rem = Math.IEEERemainder(a, 1);
+        if (this.IsZero(rem))
         {
-            double rem = Math.IEEERemainder(a, 1);
-            if (this.IsZero(rem))
-            {
-                return Math.Round(a);
-            }
-
-            return Math.Ceiling(a);
+            return Math.Round(a);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public double Floor(double a)
-        {
-            double rem = Math.IEEERemainder(a, 1);
-            if (this.IsZero(rem))
-            {
-                return Math.Round(a);
-            }
-
-            return Math.Floor(a);
-        }
+        return Math.Floor(a);
     }
 }

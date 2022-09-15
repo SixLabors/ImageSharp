@@ -4,22 +4,21 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Memory.Internals;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.ImageSharp.Memory;
+
+/// <summary>
+/// Implements <see cref="MemoryAllocator"/> by newing up managed arrays on every allocation request.
+/// </summary>
+public sealed class SimpleGcMemoryAllocator : MemoryAllocator
 {
-    /// <summary>
-    /// Implements <see cref="MemoryAllocator"/> by newing up managed arrays on every allocation request.
-    /// </summary>
-    public sealed class SimpleGcMemoryAllocator : MemoryAllocator
+    /// <inheritdoc />
+    protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
+
+    /// <inheritdoc />
+    public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        /// <inheritdoc />
-        protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
+        Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
 
-        /// <inheritdoc />
-        public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-
-            return new BasicArrayBuffer<T>(new T[length]);
-        }
+        return new BasicArrayBuffer<T>(new T[length]);
     }
 }

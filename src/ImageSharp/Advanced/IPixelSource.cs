@@ -4,29 +4,28 @@
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Advanced
+namespace SixLabors.ImageSharp.Advanced;
+
+/// <summary>
+/// Encapsulates the basic properties and methods required to manipulate images.
+/// </summary>
+internal interface IPixelSource
 {
     /// <summary>
-    /// Encapsulates the basic properties and methods required to manipulate images.
+    /// Gets the pixel buffer.
     /// </summary>
-    internal interface IPixelSource
-    {
-        /// <summary>
-        /// Gets the pixel buffer.
-        /// </summary>
-        Buffer2D<byte> PixelBuffer { get; }
-    }
+    Buffer2D<byte> PixelBuffer { get; }
+}
 
+/// <summary>
+/// Encapsulates the basic properties and methods required to manipulate images.
+/// </summary>
+/// <typeparam name="TPixel">The type of the pixel.</typeparam>
+internal interface IPixelSource<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
+{
     /// <summary>
-    /// Encapsulates the basic properties and methods required to manipulate images.
+    /// Gets the pixel buffer.
     /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    internal interface IPixelSource<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        /// <summary>
-        /// Gets the pixel buffer.
-        /// </summary>
-        Buffer2D<TPixel> PixelBuffer { get; }
-    }
+    Buffer2D<TPixel> PixelBuffer { get; }
 }

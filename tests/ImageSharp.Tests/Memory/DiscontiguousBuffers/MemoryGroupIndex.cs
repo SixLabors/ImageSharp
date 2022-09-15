@@ -1,120 +1,118 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
+namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
+
+public struct MemoryGroupIndex : IEquatable<MemoryGroupIndex>
 {
-    public struct MemoryGroupIndex : IEquatable<MemoryGroupIndex>
+    public override bool Equals(object obj) => obj is MemoryGroupIndex other && this.Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(this.BufferLength, this.BufferIndex, this.ElementIndex);
+
+    public int BufferLength { get; }
+
+    public int BufferIndex { get; }
+
+    public int ElementIndex { get; }
+
+    public MemoryGroupIndex(int bufferLength, int bufferIndex, int elementIndex)
     {
-        public override bool Equals(object obj) => obj is MemoryGroupIndex other && this.Equals(other);
-
-        public override int GetHashCode() => HashCode.Combine(this.BufferLength, this.BufferIndex, this.ElementIndex);
-
-        public int BufferLength { get; }
-
-        public int BufferIndex { get; }
-
-        public int ElementIndex { get; }
-
-        public MemoryGroupIndex(int bufferLength, int bufferIndex, int elementIndex)
-        {
-            this.BufferLength = bufferLength;
-            this.BufferIndex = bufferIndex;
-            this.ElementIndex = elementIndex;
-        }
-
-        public static MemoryGroupIndex operator +(MemoryGroupIndex idx, int val)
-        {
-            int nextElementIndex = idx.ElementIndex + val;
-            return new MemoryGroupIndex(
-                idx.BufferLength,
-                idx.BufferIndex + (nextElementIndex / idx.BufferLength),
-                nextElementIndex % idx.BufferLength);
-        }
-
-        public bool Equals(MemoryGroupIndex other)
-        {
-            if (this.BufferLength != other.BufferLength)
-            {
-                throw new InvalidOperationException();
-            }
-
-            return this.BufferIndex == other.BufferIndex && this.ElementIndex == other.ElementIndex;
-        }
-
-        public static bool operator ==(MemoryGroupIndex a, MemoryGroupIndex b) => a.Equals(b);
-
-        public static bool operator !=(MemoryGroupIndex a, MemoryGroupIndex b) => !a.Equals(b);
-
-        public static bool operator <(MemoryGroupIndex a, MemoryGroupIndex b)
-        {
-            if (a.BufferLength != b.BufferLength)
-            {
-                throw new InvalidOperationException();
-            }
-
-            if (a.BufferIndex < b.BufferIndex)
-            {
-                return true;
-            }
-
-            if (a.BufferIndex == b.BufferIndex)
-            {
-                return a.ElementIndex < b.ElementIndex;
-            }
-
-            return false;
-        }
-
-        public static bool operator >(MemoryGroupIndex a, MemoryGroupIndex b)
-        {
-            if (a.BufferLength != b.BufferLength)
-            {
-                throw new InvalidOperationException();
-            }
-
-            if (a.BufferIndex > b.BufferIndex)
-            {
-                return true;
-            }
-
-            if (a.BufferIndex == b.BufferIndex)
-            {
-                return a.ElementIndex > b.ElementIndex;
-            }
-
-            return false;
-        }
+        this.BufferLength = bufferLength;
+        this.BufferIndex = bufferIndex;
+        this.ElementIndex = elementIndex;
     }
 
-    internal static class MemoryGroupIndexExtensions
+    public static MemoryGroupIndex operator +(MemoryGroupIndex idx, int val)
     {
-        public static T GetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx)
-            where T : struct
+        int nextElementIndex = idx.ElementIndex + val;
+        return new MemoryGroupIndex(
+            idx.BufferLength,
+            idx.BufferIndex + (nextElementIndex / idx.BufferLength),
+            nextElementIndex % idx.BufferLength);
+    }
+
+    public bool Equals(MemoryGroupIndex other)
+    {
+        if (this.BufferLength != other.BufferLength)
         {
-            return group[idx.BufferIndex].Span[idx.ElementIndex];
+            throw new InvalidOperationException();
         }
 
-        public static void SetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx, T value)
-            where T : struct
+        return this.BufferIndex == other.BufferIndex && this.ElementIndex == other.ElementIndex;
+    }
+
+    public static bool operator ==(MemoryGroupIndex a, MemoryGroupIndex b) => a.Equals(b);
+
+    public static bool operator !=(MemoryGroupIndex a, MemoryGroupIndex b) => !a.Equals(b);
+
+    public static bool operator <(MemoryGroupIndex a, MemoryGroupIndex b)
+    {
+        if (a.BufferLength != b.BufferLength)
         {
-            group[idx.BufferIndex].Span[idx.ElementIndex] = value;
+            throw new InvalidOperationException();
         }
 
-        public static MemoryGroupIndex MinIndex<T>(this IMemoryGroup<T> group)
-            where T : struct
+        if (a.BufferIndex < b.BufferIndex)
         {
-            return new MemoryGroupIndex(group.BufferLength, 0, 0);
+            return true;
         }
 
-        public static MemoryGroupIndex MaxIndex<T>(this IMemoryGroup<T> group)
-            where T : struct
+        if (a.BufferIndex == b.BufferIndex)
         {
-            return group.Count == 0
-                ? new MemoryGroupIndex(group.BufferLength, 0, 0)
-                : new MemoryGroupIndex(group.BufferLength, group.Count - 1, group[group.Count - 1].Length);
+            return a.ElementIndex < b.ElementIndex;
         }
+
+        return false;
+    }
+
+    public static bool operator >(MemoryGroupIndex a, MemoryGroupIndex b)
+    {
+        if (a.BufferLength != b.BufferLength)
+        {
+            throw new InvalidOperationException();
+        }
+
+        if (a.BufferIndex > b.BufferIndex)
+        {
+            return true;
+        }
+
+        if (a.BufferIndex == b.BufferIndex)
+        {
+            return a.ElementIndex > b.ElementIndex;
+        }
+
+        return false;
+    }
+}
+
+internal static class MemoryGroupIndexExtensions
+{
+    public static T GetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx)
+        where T : struct
+    {
+        return group[idx.BufferIndex].Span[idx.ElementIndex];
+    }
+
+    public static void SetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx, T value)
+        where T : struct
+    {
+        group[idx.BufferIndex].Span[idx.ElementIndex] = value;
+    }
+
+    public static MemoryGroupIndex MinIndex<T>(this IMemoryGroup<T> group)
+        where T : struct
+    {
+        return new MemoryGroupIndex(group.BufferLength, 0, 0);
+    }
+
+    public static MemoryGroupIndex MaxIndex<T>(this IMemoryGroup<T> group)
+        where T : struct
+    {
+        return group.Count == 0
+            ? new MemoryGroupIndex(group.BufferLength, 0, 0)
+            : new MemoryGroupIndex(group.BufferLength, group.Count - 1, group[group.Count - 1].Length);
     }
 }

@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Webp.Lossless
-{
-    internal class CrunchSubConfig
-    {
-        public int Lz77 { get; set; }
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-        public bool DoNotCache { get; set; }
-    }
+internal class CrunchSubConfig
+{
+    public int Lz77 { get; set; }
+
+    public bool DoNotCache { get; set; }
 }

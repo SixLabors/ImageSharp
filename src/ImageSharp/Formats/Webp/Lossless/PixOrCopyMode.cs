@@ -1,16 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Webp.Lossless
+namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
+
+internal enum PixOrCopyMode : byte
 {
-    internal enum PixOrCopyMode : byte
-    {
-        Literal,
+    Literal,
 
-        CacheIdx,
+    CacheIdx,
 
-        Copy,
+    Copy,
 
-        None
-    }
+    None
 }

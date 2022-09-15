@@ -1,36 +1,35 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
+/// <summary>
+/// Enumerates the primary platform/operating system framework for which the profile was created
+/// </summary>
+public enum IccPrimaryPlatformType : uint
 {
     /// <summary>
-    /// Enumerates the primary platform/operating system framework for which the profile was created
+    /// No platform identified
     /// </summary>
-    public enum IccPrimaryPlatformType : uint
-    {
-        /// <summary>
-        /// No platform identified
-        /// </summary>
-        NotIdentified = 0x00000000,
+    NotIdentified = 0x00000000,
 
-        /// <summary>
-        /// Apple Computer, Inc.
-        /// </summary>
-        AppleComputerInc = 0x4150504C,          // APPL
+    /// <summary>
+    /// Apple Computer, Inc.
+    /// </summary>
+    AppleComputerInc = 0x4150504C,          // APPL
 
-        /// <summary>
-        /// Microsoft Corporation
-        /// </summary>
-        MicrosoftCorporation = 0x4D534654,      // MSFT
+    /// <summary>
+    /// Microsoft Corporation
+    /// </summary>
+    MicrosoftCorporation = 0x4D534654,      // MSFT
 
-        /// <summary>
-        /// Silicon Graphics, Inc.
-        /// </summary>
-        SiliconGraphicsInc = 0x53474920,        // SGI
+    /// <summary>
+    /// Silicon Graphics, Inc.
+    /// </summary>
+    SiliconGraphicsInc = 0x53474920,        // SGI
 
-        /// <summary>
-        /// Sun Microsystems, Inc.
-        /// </summary>
-        SunMicrosystemsInc = 0x53554E57,        // SUNW
-    }
+    /// <summary>
+    /// Sun Microsystems, Inc.
+    /// </summary>
+    SunMicrosystemsInc = 0x53554E57,        // SUNW
 }

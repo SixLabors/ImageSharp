@@ -1,22 +1,21 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
+
+/// <summary>
+/// Constants use for Cie conversion calculations
+/// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html"/>
+/// </summary>
+internal static class CieConstants
 {
     /// <summary>
-    /// Constants use for Cie conversion calculations
-    /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html"/>
+    /// 216F / 24389F
     /// </summary>
-    internal static class CieConstants
-    {
-        /// <summary>
-        /// 216F / 24389F
-        /// </summary>
-        public const float Epsilon = 0.008856452F;
+    public const float Epsilon = 0.008856452F;
 
-        /// <summary>
-        /// 24389F / 27F
-        /// </summary>
-        public const float Kappa = 903.2963F;
-    }
+    /// <summary>
+    /// 24389F / 27F
+    /// </summary>
+    public const float Kappa = 903.2963F;
 }

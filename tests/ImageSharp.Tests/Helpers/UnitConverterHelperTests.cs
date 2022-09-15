@@ -2,40 +2,38 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Common.Helpers;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Helpers
+namespace SixLabors.ImageSharp.Tests.Helpers;
+
+public class UnitConverterHelperTests
 {
-    public class UnitConverterHelperTests
+    [Fact]
+    public void InchToFromMeter()
     {
-        [Fact]
-        public void InchToFromMeter()
-        {
-            const double expected = 96D;
-            double actual = UnitConverter.InchToMeter(expected);
-            actual = UnitConverter.MeterToInch(actual);
+        const double expected = 96D;
+        double actual = UnitConverter.InchToMeter(expected);
+        actual = UnitConverter.MeterToInch(actual);
 
-            Assert.Equal(expected, actual, 15);
-        }
+        Assert.Equal(expected, actual, 15);
+    }
 
-        [Fact]
-        public void InchToFromCm()
-        {
-            const double expected = 96D;
-            double actual = UnitConverter.InchToCm(expected);
-            actual = UnitConverter.CmToInch(actual);
+    [Fact]
+    public void InchToFromCm()
+    {
+        const double expected = 96D;
+        double actual = UnitConverter.InchToCm(expected);
+        actual = UnitConverter.CmToInch(actual);
 
-            Assert.Equal(expected, actual, 15);
-        }
+        Assert.Equal(expected, actual, 15);
+    }
 
-        [Fact]
-        public void CmToFromMeter()
-        {
-            const double expected = 96D;
-            double actual = UnitConverter.CmToMeter(expected);
-            actual = UnitConverter.MeterToCm(actual);
+    [Fact]
+    public void CmToFromMeter()
+    {
+        const double expected = 96D;
+        double actual = UnitConverter.CmToMeter(expected);
+        actual = UnitConverter.MeterToCm(actual);
 
-            Assert.Equal(expected, actual, 15);
-        }
+        Assert.Equal(expected, actual, 15);
     }
 }

@@ -9,6 +9,7 @@ internal static class ConvolutionProcessorHelpers
     /// Kernel radius is calculated using the minimum viable value.
     /// See <see href="http://chemaguerra.com/gaussian-filter-radius/"/>.
     /// </summary>
+    /// <param name="sigma">The weight of the blur.</param>
     internal static int GetDefaultGaussianRadius(float sigma)
         => (int)MathF.Ceiling(sigma * 3);
 
@@ -16,9 +17,11 @@ internal static class ConvolutionProcessorHelpers
     /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function.
     /// </summary>
     /// <returns>The convolution kernel.</returns>
+    /// <param name="size">The kernel size.</param>
+    /// <param name="weight">The weight of the blur.</param>
     internal static float[] CreateGaussianBlurKernel(int size, float weight)
     {
-        var kernel = new float[size];
+        float[] kernel = new float[size];
 
         float sum = 0F;
         float midpoint = (size - 1) / 2F;
@@ -44,9 +47,11 @@ internal static class ConvolutionProcessorHelpers
     /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
     /// </summary>
     /// <returns>The convolution kernel.</returns>
+    /// <param name="size">The kernel size.</param>
+    /// <param name="weight">The weight of the blur.</param>
     internal static float[] CreateGaussianSharpenKernel(int size, float weight)
     {
-        var kernel = new float[size];
+        float[] kernel = new float[size];
 
         float sum = 0;
 

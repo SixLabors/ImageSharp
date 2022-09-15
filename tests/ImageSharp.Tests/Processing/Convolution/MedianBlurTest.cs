@@ -4,31 +4,28 @@
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 
-using Xunit;
+namespace SixLabors.ImageSharp.Tests.Processing.Convolution;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Convolution
+[Trait("Category", "Processors")]
+public class MedianBlurTest : BaseImageOperationsExtensionTest
 {
-    [Trait("Category", "Processors")]
-    public class MedianBlurTest : BaseImageOperationsExtensionTest
+    [Fact]
+    public void Median_radius_MedianProcessorDefaultsSet()
     {
-        [Fact]
-        public void Median_radius_MedianProcessorDefaultsSet()
-        {
-            this.operations.MedianBlur(3, true);
-            var processor = this.Verify<MedianBlurProcessor>();
+        this.operations.MedianBlur(3, true);
+        var processor = this.Verify<MedianBlurProcessor>();
 
-            Assert.Equal(3, processor.Radius);
-            Assert.True(processor.PreserveAlpha);
-        }
+        Assert.Equal(3, processor.Radius);
+        Assert.True(processor.PreserveAlpha);
+    }
 
-        [Fact]
-        public void Median_radius_rect_MedianProcessorDefaultsSet()
-        {
-            this.operations.MedianBlur(5, false, this.rect);
-            var processor = this.Verify<MedianBlurProcessor>(this.rect);
+    [Fact]
+    public void Median_radius_rect_MedianProcessorDefaultsSet()
+    {
+        this.operations.MedianBlur(5, false, this.rect);
+        var processor = this.Verify<MedianBlurProcessor>(this.rect);
 
-            Assert.Equal(5, processor.Radius);
-            Assert.False(processor.PreserveAlpha);
-        }
+        Assert.Equal(5, processor.Radius);
+        Assert.False(processor.PreserveAlpha);
     }
 }

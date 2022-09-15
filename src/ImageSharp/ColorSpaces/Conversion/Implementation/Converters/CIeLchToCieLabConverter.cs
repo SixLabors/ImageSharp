@@ -1,33 +1,31 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
+
+/// <summary>
+/// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
+/// </summary>
+internal static class CieLchToCieLabConverter
 {
     /// <summary>
-    /// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
+    /// Performs the conversion from the <see cref="CieLch"/> input to an instance of <see cref="CieLab"/> type.
     /// </summary>
-    internal static class CieLchToCieLabConverter
+    /// <param name="input">The input color instance.</param>
+    /// <returns>The converted result</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static CieLab Convert(in CieLch input)
     {
-        /// <summary>
-        /// Performs the conversion from the <see cref="CieLch"/> input to an instance of <see cref="CieLab"/> type.
-        /// </summary>
-        /// <param name="input">The input color instance.</param>
-        /// <returns>The converted result</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static CieLab Convert(in CieLch input)
-        {
-            // Conversion algorithm described here:
-            // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC
-            float l = input.L, c = input.C, hDegrees = input.H;
-            float hRadians = GeometryUtilities.DegreeToRadian(hDegrees);
+        // Conversion algorithm described here:
+        // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC
+        float l = input.L, c = input.C, hDegrees = input.H;
+        float hRadians = GeometryUtilities.DegreeToRadian(hDegrees);
 
-            float a = c * MathF.Cos(hRadians);
-            float b = c * MathF.Sin(hRadians);
+        float a = c * MathF.Cos(hRadians);
+        float b = c * MathF.Sin(hRadians);
 
-            return new CieLab(l, a, b, input.WhitePoint);
-        }
+        return new CieLab(l, a, b, input.WhitePoint);
     }
 }

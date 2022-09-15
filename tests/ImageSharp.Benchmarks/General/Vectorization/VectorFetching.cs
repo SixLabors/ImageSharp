@@ -1,112 +1,111 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
+namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization;
+
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using BenchmarkDotNet.Attributes;
+
+/// <summary>
+/// This benchmark compares different methods for fetching memory data into <see cref="Vector{T}"/>
+/// checking if JIT has limitations. Normally SIMD acceleration should be here for all methods.
+/// </summary>
+public class VectorFetching
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using BenchmarkDotNet.Attributes;
+    private float testValue;
 
-    /// <summary>
-    /// This benchmark compares different methods for fetching memory data into <see cref="Vector{T}"/>
-    /// checking if JIT has limitations. Normally SIMD acceleration should be here for all methods.
-    /// </summary>
-    public class VectorFetching
+    private float[] data;
+
+    [Params(64)]
+    public int InputSize { get; set; }
+
+    [GlobalSetup]
+    public void Setup()
     {
-        private float testValue;
+        this.data = new float[this.InputSize];
+        this.testValue = 42;
 
-        private float[] data;
-
-        [Params(64)]
-        public int InputSize { get; set; }
-
-        [GlobalSetup]
-        public void Setup()
+        for (int i = 0; i < this.InputSize; i++)
         {
-            this.data = new float[this.InputSize];
-            this.testValue = 42;
-
-            for (int i = 0; i < this.InputSize; i++)
-            {
-                this.data[i] = i;
-            }
+            this.data[i] = i;
         }
+    }
 
-        [Benchmark(Baseline = true)]
-        public void Baseline()
+    [Benchmark(Baseline = true)]
+    public void Baseline()
+    {
+        float v = this.testValue;
+        for (int i = 0; i < this.data.Length; i++)
         {
-            float v = this.testValue;
-            for (int i = 0; i < this.data.Length; i++)
-            {
-                this.data[i] = this.data[i] * v;
-            }
+            this.data[i] = this.data[i] * v;
         }
+    }
 
-        [Benchmark]
-        public void FetchWithVectorConstructor()
+    [Benchmark]
+    public void FetchWithVectorConstructor()
+    {
+        var v = new Vector<float>(this.testValue);
+
+        for (int i = 0; i < this.data.Length; i += Vector<uint>.Count)
         {
-            var v = new Vector<float>(this.testValue);
-
-            for (int i = 0; i < this.data.Length; i += Vector<uint>.Count)
-            {
-                var a = new Vector<float>(this.data, i);
-                a = a * v;
-                a.CopyTo(this.data, i);
-            }
+            var a = new Vector<float>(this.data, i);
+            a = a * v;
+            a.CopyTo(this.data, i);
         }
+    }
 
-        [Benchmark]
-        public void FetchWithUnsafeCast()
+    [Benchmark]
+    public void FetchWithUnsafeCast()
+    {
+        var v = new Vector<float>(this.testValue);
+        ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+
+        int n = this.InputSize / Vector<uint>.Count;
+
+        for (int i = 0; i < n; i++)
         {
-            var v = new Vector<float>(this.testValue);
-            ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+            ref Vector<float> p = ref Unsafe.Add(ref start, i);
 
-            int n = this.InputSize / Vector<uint>.Count;
+            Vector<float> a = p;
+            a = a * v;
 
-            for (int i = 0; i < n; i++)
-            {
-                ref Vector<float> p = ref Unsafe.Add(ref start, i);
-
-                Vector<float> a = p;
-                a = a * v;
-
-                p = a;
-            }
+            p = a;
         }
+    }
 
-        [Benchmark]
-        public void FetchWithUnsafeCastNoTempVector()
+    [Benchmark]
+    public void FetchWithUnsafeCastNoTempVector()
+    {
+        var v = new Vector<float>(this.testValue);
+        ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
+
+        int n = this.InputSize / Vector<uint>.Count;
+
+        for (int i = 0; i < n; i++)
         {
-            var v = new Vector<float>(this.testValue);
-            ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
-
-            int n = this.InputSize / Vector<uint>.Count;
-
-            for (int i = 0; i < n; i++)
-            {
-                ref Vector<float> a = ref Unsafe.Add(ref start, i);
-                a = a * v;
-            }
+            ref Vector<float> a = ref Unsafe.Add(ref start, i);
+            a = a * v;
         }
+    }
 
-        [Benchmark]
-        public void FetchWithUnsafeCastFromReference()
+    [Benchmark]
+    public void FetchWithUnsafeCastFromReference()
+    {
+        var v = new Vector<float>(this.testValue);
+
+        var span = new Span<float>(this.data);
+
+        ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(span));
+
+        int n = this.InputSize / Vector<uint>.Count;
+
+        for (int i = 0; i < n; i++)
         {
-            var v = new Vector<float>(this.testValue);
-
-            var span = new Span<float>(this.data);
-
-            ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(span));
-
-            int n = this.InputSize / Vector<uint>.Count;
-
-            for (int i = 0; i < n; i++)
-            {
-                ref Vector<float> a = ref Unsafe.Add(ref start, i);
-                a = a * v;
-            }
+            ref Vector<float> a = ref Unsafe.Add(ref start, i);
+            a = a * v;
         }
     }
 }

@@ -1,41 +1,40 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Bmp
+namespace SixLabors.ImageSharp.Formats.Bmp;
+
+/// <summary>
+/// Indicates which bitmap file marker was read.
+/// </summary>
+public enum BmpFileMarkerType
 {
     /// <summary>
-    /// Indicates which bitmap file marker was read.
+    /// Single-image BMP file that may have been created under Windows or OS/2.
     /// </summary>
-    public enum BmpFileMarkerType
-    {
-        /// <summary>
-        /// Single-image BMP file that may have been created under Windows or OS/2.
-        /// </summary>
-        Bitmap,
+    Bitmap,
 
-        /// <summary>
-        /// OS/2 Bitmap Array.
-        /// </summary>
-        BitmapArray,
+    /// <summary>
+    /// OS/2 Bitmap Array.
+    /// </summary>
+    BitmapArray,
 
-        /// <summary>
-        /// OS/2 Color Icon.
-        /// </summary>
-        ColorIcon,
+    /// <summary>
+    /// OS/2 Color Icon.
+    /// </summary>
+    ColorIcon,
 
-        /// <summary>
-        /// OS/2 Color Pointer.
-        /// </summary>
-        ColorPointer,
+    /// <summary>
+    /// OS/2 Color Pointer.
+    /// </summary>
+    ColorPointer,
 
-        /// <summary>
-        /// OS/2 Icon.
-        /// </summary>
-        Icon,
+    /// <summary>
+    /// OS/2 Icon.
+    /// </summary>
+    Icon,
 
-        /// <summary>
-        /// OS/2 Pointer.
-        /// </summary>
-        Pointer
-    }
+    /// <summary>
+    /// OS/2 Pointer.
+    /// </summary>
+    Pointer
 }

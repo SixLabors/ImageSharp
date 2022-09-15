@@ -3,15 +3,14 @@
 
 // Uncomment to enable local profiling benchmarks. DO NOT PUSH TO MAIN!
 // #define PROFILING
-namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
+namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
+
+public static class ProfilingSetup
 {
-    public static class ProfilingSetup
-    {
-        public const string SkipProfilingTests =
+    public const string SkipProfilingTests =
 #if PROFILING
-            null;
+        null;
 #else
-            "Profiling benchmark, enable manually!";
+        "Profiling benchmark, enable manually!";
 #endif
-    }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -9,60 +8,59 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class DecodeJpegParseStreamOnly
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class DecodeJpegParseStreamOnly
+    [Params(TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr)]
+    public string TestImage { get; set; }
+
+    private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+
+    private byte[] jpegBytes;
+
+    [GlobalSetup]
+    public void Setup()
+        => this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
+
+    [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
+    public SDSize JpegSystemDrawing()
     {
-        [Params(TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr)]
-        public string TestImage { get; set; }
+        using var memoryStream = new MemoryStream(this.jpegBytes);
+        using var image = System.Drawing.Image.FromStream(memoryStream);
+        return image.Size;
+    }
 
-        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+    [Benchmark(Description = "JpegDecoderCore.ParseStream")]
+    public void ParseStream()
+    {
+        using var memoryStream = new MemoryStream(this.jpegBytes);
+        using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
+        var options = new JpegDecoderOptions();
+        options.GeneralOptions.SkipMetadata = true;
 
-        private byte[] jpegBytes;
+        using var decoder = new JpegDecoderCore(options);
+        var spectralConverter = new NoopSpectralConverter();
+        decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
+    }
 
-        [GlobalSetup]
-        public void Setup()
-            => this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
-
-        [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
-        public SDSize JpegSystemDrawing()
+    // We want to test only stream parsing and scan decoding, we don't need to convert spectral data to actual pixels
+    // Nor we need to allocate final pixel buffer
+    // Note: this still introduces virtual method call overhead for baseline interleaved images
+    // There's no way to eliminate it as spectral conversion is built into the scan decoding loop for memory footprint reduction
+    private class NoopSpectralConverter : SpectralConverter
+    {
+        public override void ConvertStrideBaseline()
         {
-            using var memoryStream = new MemoryStream(this.jpegBytes);
-            using var image = System.Drawing.Image.FromStream(memoryStream);
-            return image.Size;
         }
 
-        [Benchmark(Description = "JpegDecoderCore.ParseStream")]
-        public void ParseStream()
+        public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
-            using var memoryStream = new MemoryStream(this.jpegBytes);
-            using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
-            var options = new JpegDecoderOptions();
-            options.GeneralOptions.SkipMetadata = true;
-
-            using var decoder = new JpegDecoderCore(options);
-            var spectralConverter = new NoopSpectralConverter();
-            decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
         }
 
-        // We want to test only stream parsing and scan decoding, we don't need to convert spectral data to actual pixels
-        // Nor we need to allocate final pixel buffer
-        // Note: this still introduces virtual method call overhead for baseline interleaved images
-        // There's no way to eliminate it as spectral conversion is built into the scan decoding loop for memory footprint reduction
-        private class NoopSpectralConverter : SpectralConverter
+        public override void PrepareForDecoding()
         {
-            public override void ConvertStrideBaseline()
-            {
-            }
-
-            public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
-            {
-            }
-
-            public override void PrepareForDecoding()
-            {
-            }
         }
     }
 }
@@ -71,10 +69,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19042.1083 (20H2/October2020Update)
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
-  Job-VAJCIU : .NET Core 2.1.26 (CoreCLR 4.6.29812.02, CoreFX 4.6.29812.01), X64 RyuJIT
-  Job-INPXCR : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
-  Job-JRCLOJ : .NET Framework 4.8 (4.8.4390.0), X64 RyuJIT
+[Host]     : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+Job-VAJCIU : .NET Core 2.1.26 (CoreCLR 4.6.29812.02, CoreFX 4.6.29812.01), X64 RyuJIT
+Job-INPXCR : .NET Core 3.1.13 (CoreCLR 4.700.21.11102, CoreFX 4.700.21.11602), X64 RyuJIT
+Job-JRCLOJ : .NET Framework 4.8 (4.8.4390.0), X64 RyuJIT
 
 IterationCount=3  LaunchCount=1  WarmupCount=3
 |                      Method |        Job |              Runtime |             TestImage |     Mean |     Error |    StdDev | Ratio |   Gen 0 | Gen 1 | Gen 2 | Allocated |

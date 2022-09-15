@@ -1,31 +1,30 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Webp
+namespace SixLabors.ImageSharp.Formats.Webp;
+
+/// <summary>
+/// Enum for the different alpha filter types.
+/// </summary>
+internal enum WebpAlphaFilterType
 {
     /// <summary>
-    /// Enum for the different alpha filter types.
+    /// No filtering.
     /// </summary>
-    internal enum WebpAlphaFilterType
-    {
-        /// <summary>
-        /// No filtering.
-        /// </summary>
-        None = 0,
+    None = 0,
 
-        /// <summary>
-        /// Horizontal filter.
-        /// </summary>
-        Horizontal = 1,
+    /// <summary>
+    /// Horizontal filter.
+    /// </summary>
+    Horizontal = 1,
 
-        /// <summary>
-        /// Vertical filter.
-        /// </summary>
-        Vertical = 2,
+    /// <summary>
+    /// Vertical filter.
+    /// </summary>
+    Vertical = 2,
 
-        /// <summary>
-        /// Gradient filter.
-        /// </summary>
-        Gradient = 3,
-    }
+    /// <summary>
+    /// Gradient filter.
+    /// </summary>
+    Gradient = 3,
 }

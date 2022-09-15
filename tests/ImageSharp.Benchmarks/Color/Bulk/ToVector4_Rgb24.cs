@@ -6,19 +6,18 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class ToVector4_Rgb24 : ToVector4<Rgb24>
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class ToVector4_Rgb24 : ToVector4<Rgb24>
+    [Benchmark(Baseline = true)]
+    public void PixelOperations_Base()
     {
-        [Benchmark(Baseline = true)]
-        public void PixelOperations_Base()
-        {
-            new PixelOperations<Rgb24>().ToVector4(
-                this.Configuration,
-                this.source.GetSpan(),
-                this.destination.GetSpan());
-        }
+        new PixelOperations<Rgb24>().ToVector4(
+            this.Configuration,
+            this.source.GetSpan(),
+            this.destination.GetSpan());
     }
 }
 

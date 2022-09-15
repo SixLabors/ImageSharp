@@ -1,76 +1,73 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Collections.Generic;
-using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+/// <summary>
+/// Benchmark for all available encoding features of the Jpeg file type.
+/// </summary>
+/// <remarks>
+/// This benchmark does NOT compare ImageSharp to any other jpeg codecs.
+/// </remarks>
+public class EncodeJpegFeatures
 {
-    /// <summary>
-    /// Benchmark for all available encoding features of the Jpeg file type.
-    /// </summary>
-    /// <remarks>
-    /// This benchmark does NOT compare ImageSharp to any other jpeg codecs.
-    /// </remarks>
-    public class EncodeJpegFeatures
+    // Big enough, 4:4:4 chroma sampling
+    // No metadata
+    private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
+
+    public static IEnumerable<JpegEncodingColor> ColorSpaceValues => new[]
     {
-        // Big enough, 4:4:4 chroma sampling
-        // No metadata
-        private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
+        JpegEncodingColor.Luminance,
+        JpegEncodingColor.Rgb,
+        JpegEncodingColor.YCbCrRatio420,
+        JpegEncodingColor.YCbCrRatio444,
+    };
 
-        public static IEnumerable<JpegEncodingColor> ColorSpaceValues => new[]
+    [Params(75, 90, 100)]
+    public int Quality;
+
+    [ParamsSource(nameof(ColorSpaceValues), Priority = -100)]
+    public JpegEncodingColor TargetColorSpace;
+
+    private Image<Rgb24> bmpCore;
+    private JpegEncoder encoder;
+
+    private MemoryStream destinationStream;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
+        this.bmpCore = Image.Load<Rgb24>(imageBinaryStream);
+        this.encoder = new JpegEncoder
         {
-            JpegEncodingColor.Luminance,
-            JpegEncodingColor.Rgb,
-            JpegEncodingColor.YCbCrRatio420,
-            JpegEncodingColor.YCbCrRatio444,
+            Quality = this.Quality,
+            ColorType = this.TargetColorSpace,
+            Interleaved = true,
         };
+        this.destinationStream = new MemoryStream();
+    }
 
-        [Params(75, 90, 100)]
-        public int Quality;
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        this.bmpCore.Dispose();
+        this.bmpCore = null;
 
-        [ParamsSource(nameof(ColorSpaceValues), Priority = -100)]
-        public JpegEncodingColor TargetColorSpace;
+        this.destinationStream.Dispose();
+        this.destinationStream = null;
+    }
 
-        private Image<Rgb24> bmpCore;
-        private JpegEncoder encoder;
-
-        private MemoryStream destinationStream;
-
-        [GlobalSetup]
-        public void Setup()
-        {
-            using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
-            this.bmpCore = Image.Load<Rgb24>(imageBinaryStream);
-            this.encoder = new JpegEncoder
-            {
-                Quality = this.Quality,
-                ColorType = this.TargetColorSpace,
-                Interleaved = true,
-            };
-            this.destinationStream = new MemoryStream();
-        }
-
-        [GlobalCleanup]
-        public void Cleanup()
-        {
-            this.bmpCore.Dispose();
-            this.bmpCore = null;
-
-            this.destinationStream.Dispose();
-            this.destinationStream = null;
-        }
-
-        [Benchmark]
-        public void Benchmark()
-        {
-            this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder);
-            this.destinationStream.Seek(0, SeekOrigin.Begin);
-        }
+    [Benchmark]
+    public void Benchmark()
+    {
+        this.bmpCore.SaveAsJpeg(this.destinationStream, this.encoder);
+        this.destinationStream.Seek(0, SeekOrigin.Begin);
     }
 }
 
@@ -78,8 +75,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19044
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=6.0.202
-  [Host]     : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
-  DefaultJob : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
+[Host]     : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
+DefaultJob : .NET 6.0.4 (6.0.422.16404), X64 RyuJIT
 
 
 |    Method | TargetColorSpace | Quality |      Mean |     Error |    StdDev |

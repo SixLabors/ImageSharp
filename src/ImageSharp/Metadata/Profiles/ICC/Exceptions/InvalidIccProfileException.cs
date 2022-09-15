@@ -1,33 +1,30 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
+/// <summary>
+/// Represents an error that happened while reading or writing a corrupt/invalid ICC profile
+/// </summary>
+public class InvalidIccProfileException : Exception
 {
     /// <summary>
-    /// Represents an error that happened while reading or writing a corrupt/invalid ICC profile
+    /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
     /// </summary>
-    public class InvalidIccProfileException : Exception
+    /// <param name="message">The message that describes the error</param>
+    public InvalidIccProfileException(string message)
+        : base(message)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
-        /// </summary>
-        /// <param name="message">The message that describes the error</param>
-        public InvalidIccProfileException(string message)
-            : base(message)
-        {
-        }
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
-        /// </summary>
-        /// <param name="message">The message that describes the error</param>
-        /// <param name="inner">The exception that is the cause of the current exception, or a null reference
-        /// (Nothing in Visual Basic) if no inner exception is specified</param>
-        public InvalidIccProfileException(string message, Exception inner)
-            : base(message, inner)
-        {
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
+    /// </summary>
+    /// <param name="message">The message that describes the error</param>
+    /// <param name="inner">The exception that is the cause of the current exception, or a null reference
+    /// (Nothing in Visual Basic) if no inner exception is specified</param>
+    public InvalidIccProfileException(string message, Exception inner)
+        : base(message, inner)
+    {
     }
 }

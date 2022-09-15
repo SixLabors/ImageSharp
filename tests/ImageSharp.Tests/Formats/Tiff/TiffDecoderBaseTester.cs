@@ -8,23 +8,22 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
+
+public abstract class TiffDecoderBaseTester
 {
-    public abstract class TiffDecoderBaseTester
+    protected static TiffDecoder TiffDecoder => new();
+
+    protected static MagickReferenceDecoder ReferenceDecoder => new();
+
+    protected static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        protected static TiffDecoder TiffDecoder => new();
-
-        protected static MagickReferenceDecoder ReferenceDecoder => new();
-
-        protected static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
-            image.DebugSave(provider);
-            image.CompareToOriginal(
-                provider,
-                useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance),
-                referenceDecoder ?? ReferenceDecoder);
-        }
+        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        image.DebugSave(provider);
+        image.CompareToOriginal(
+            provider,
+            useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance),
+            referenceDecoder ?? ReferenceDecoder);
     }
 }

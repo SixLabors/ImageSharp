@@ -8,18 +8,17 @@ using Xunit.Sdk;
 
 [assembly: Xunit.TestFramework(SixLaborsXunitTestFramework.Type, SixLaborsXunitTestFramework.Assembly)]
 
-namespace SixLabors.ImageSharp.Tests.TestUtilities
-{
-    public class SixLaborsXunitTestFramework : XunitTestFramework
-    {
-        public const string Type = "SixLabors.ImageSharp.Tests.TestUtilities.SixLaborsXunitTestFramework";
-        public const string Assembly = "SixLabors.ImageSharp.Tests";
+namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
-        public SixLaborsXunitTestFramework(IMessageSink messageSink)
-            : base(messageSink)
-        {
-            var message = new DiagnosticMessage(HostEnvironmentInfo.GetInformation());
-            messageSink.OnMessage(message);
-        }
+public class SixLaborsXunitTestFramework : XunitTestFramework
+{
+    public const string Type = "SixLabors.ImageSharp.Tests.TestUtilities.SixLaborsXunitTestFramework";
+    public const string Assembly = "SixLabors.ImageSharp.Tests";
+
+    public SixLaborsXunitTestFramework(IMessageSink messageSink)
+        : base(messageSink)
+    {
+        var message = new DiagnosticMessage(HostEnvironmentInfo.GetInformation());
+        messageSink.OnMessage(message);
     }
 }

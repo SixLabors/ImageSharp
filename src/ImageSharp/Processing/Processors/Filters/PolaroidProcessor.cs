@@ -1,30 +1,29 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Processing.Processors.Filters;
+
+/// <summary>
+/// Converts the colors of the image recreating an old Polaroid effect.
+/// </summary>
+public sealed class PolaroidProcessor : FilterProcessor
 {
     /// <summary>
-    /// Converts the colors of the image recreating an old Polaroid effect.
+    /// Initializes a new instance of the <see cref="PolaroidProcessor" /> class.
     /// </summary>
-    public sealed class PolaroidProcessor : FilterProcessor
+    /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
+    public PolaroidProcessor(GraphicsOptions graphicsOptions)
+        : base(KnownFilterMatrices.PolaroidFilter)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PolaroidProcessor" /> class.
-        /// </summary>
-        /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
-        public PolaroidProcessor(GraphicsOptions graphicsOptions)
-            : base(KnownFilterMatrices.PolaroidFilter)
-        {
-            this.GraphicsOptions = graphicsOptions;
-        }
-
-        /// <summary>
-        /// Gets the options effecting blending and composition
-        /// </summary>
-        public GraphicsOptions GraphicsOptions { get; }
-
-        /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
-            new PolaroidProcessor<TPixel>(configuration, this, source, sourceRectangle);
+        this.GraphicsOptions = graphicsOptions;
     }
+
+    /// <summary>
+    /// Gets the options effecting blending and composition
+    /// </summary>
+    public GraphicsOptions GraphicsOptions { get; }
+
+    /// <inheritdoc />
+    public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+        new PolaroidProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

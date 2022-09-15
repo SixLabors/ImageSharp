@@ -4,18 +4,17 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations;
+
+[Config(typeof(Config.HwIntrinsics_SSE_AVX))]
+public class Block8x8F_AddInPlace
 {
-    [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
-    public class Block8x8F_AddInPlace
+    [Benchmark]
+    public float AddInplace()
     {
-        [Benchmark]
-        public float AddInplace()
-        {
-            float f = 42F;
-            Block8x8F b = default;
-            b.AddInPlace(f);
-            return f;
-        }
+        float f = 42F;
+        Block8x8F b = default;
+        b.AddInPlace(f);
+        return f;
     }
 }

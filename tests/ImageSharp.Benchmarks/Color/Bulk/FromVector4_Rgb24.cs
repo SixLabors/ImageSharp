@@ -4,12 +4,11 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class FromVector4_Rgb24 : FromVector4<Rgb24>
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class FromVector4_Rgb24 : FromVector4<Rgb24>
-    {
-    }
 }
 
 // 2020-11-02

@@ -1,109 +1,107 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
+namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+
+/// <summary>
+/// Implements decoding pixel data with photometric interpretation of type 'YCbCr'.
+/// </summary>
+internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
 {
-    /// <summary>
-    /// Implements decoding pixel data with photometric interpretation of type 'YCbCr'.
-    /// </summary>
-    internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
+    private readonly MemoryAllocator memoryAllocator;
+
+    private readonly YCbCrConverter converter;
+
+    private readonly ushort[] ycbcrSubSampling;
+
+    public YCbCrTiffColor(MemoryAllocator memoryAllocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
     {
-        private readonly MemoryAllocator memoryAllocator;
+        this.memoryAllocator = memoryAllocator;
+        this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+        this.ycbcrSubSampling = ycbcrSubSampling;
+    }
 
-        private readonly YCbCrConverter converter;
-
-        private readonly ushort[] ycbcrSubSampling;
-
-        public YCbCrTiffColor(MemoryAllocator memoryAllocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
+    /// <inheritdoc/>
+    public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
+    {
+        ReadOnlySpan<byte> ycbcrData = data;
+        if (this.ycbcrSubSampling != null && !(this.ycbcrSubSampling[0] == 1 && this.ycbcrSubSampling[1] == 1))
         {
-            this.memoryAllocator = memoryAllocator;
-            this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
-            this.ycbcrSubSampling = ycbcrSubSampling;
-        }
-
-        /// <inheritdoc/>
-        public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-        {
-            ReadOnlySpan<byte> ycbcrData = data;
-            if (this.ycbcrSubSampling != null && !(this.ycbcrSubSampling[0] == 1 && this.ycbcrSubSampling[1] == 1))
-            {
-                // 4 extra rows and columns for possible padding.
-                int paddedWidth = width + 4;
-                int paddedHeight = height + 4;
-                int requiredBytes = paddedWidth * paddedHeight * 3;
-                using IMemoryOwner<byte> tmpBuffer = this.memoryAllocator.Allocate<byte>(requiredBytes);
-                Span<byte> tmpBufferSpan = tmpBuffer.GetSpan();
-                ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], data, tmpBufferSpan);
-                ycbcrData = tmpBufferSpan;
-                this.DecodeYCbCrData(pixels, left, top, width, height, ycbcrData);
-                return;
-            }
-
+            // 4 extra rows and columns for possible padding.
+            int paddedWidth = width + 4;
+            int paddedHeight = height + 4;
+            int requiredBytes = paddedWidth * paddedHeight * 3;
+            using IMemoryOwner<byte> tmpBuffer = this.memoryAllocator.Allocate<byte>(requiredBytes);
+            Span<byte> tmpBufferSpan = tmpBuffer.GetSpan();
+            ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], data, tmpBufferSpan);
+            ycbcrData = tmpBufferSpan;
             this.DecodeYCbCrData(pixels, left, top, width, height, ycbcrData);
+            return;
         }
 
-        private void DecodeYCbCrData(Buffer2D<TPixel> pixels, int left, int top, int width, int height, ReadOnlySpan<byte> ycbcrData)
+        this.DecodeYCbCrData(pixels, left, top, width, height, ycbcrData);
+    }
+
+    private void DecodeYCbCrData(Buffer2D<TPixel> pixels, int left, int top, int width, int height, ReadOnlySpan<byte> ycbcrData)
+    {
+        var color = default(TPixel);
+        int offset = 0;
+        int widthPadding = 0;
+        if (this.ycbcrSubSampling != null)
         {
-            var color = default(TPixel);
-            int offset = 0;
-            int widthPadding = 0;
-            if (this.ycbcrSubSampling != null)
-            {
-                // Round to the next integer multiple of horizontalSubSampling.
-                widthPadding = TiffUtils.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
-            }
-
-            for (int y = top; y < top + height; y++)
-            {
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-                for (int x = 0; x < pixelRow.Length; x++)
-                {
-                    Rgba32 rgba = this.converter.ConvertToRgba32(ycbcrData[offset], ycbcrData[offset + 1], ycbcrData[offset + 2]);
-                    color.FromRgba32(rgba);
-                    pixelRow[x] = color;
-                    offset += 3;
-                }
-
-                offset += widthPadding * 3;
-            }
+            // Round to the next integer multiple of horizontalSubSampling.
+            widthPadding = TiffUtils.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
         }
 
-        private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, ReadOnlySpan<byte> source, Span<byte> destination)
+        for (int y = top; y < top + height; y++)
         {
-            // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
-            // then the source data will be padded.
-            width += TiffUtils.PaddingToNextInteger(width, horizontalSubSampling);
-            height += TiffUtils.PaddingToNextInteger(height, verticalSubSampling);
-            int blockWidth = width / horizontalSubSampling;
-            int blockHeight = height / verticalSubSampling;
-            int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;
-            int blockByteCount = cbCrOffsetInBlock + 2;
-
-            for (int blockRow = blockHeight - 1; blockRow >= 0; blockRow--)
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+            for (int x = 0; x < pixelRow.Length; x++)
             {
-                for (int blockCol = blockWidth - 1; blockCol >= 0; blockCol--)
-                {
-                    int blockOffset = (blockRow * blockWidth) + blockCol;
-                    ReadOnlySpan<byte> blockData = source.Slice(blockOffset * blockByteCount, blockByteCount);
-                    byte cr = blockData[cbCrOffsetInBlock + 1];
-                    byte cb = blockData[cbCrOffsetInBlock];
+                Rgba32 rgba = this.converter.ConvertToRgba32(ycbcrData[offset], ycbcrData[offset + 1], ycbcrData[offset + 2]);
+                color.FromRgba32(rgba);
+                pixelRow[x] = color;
+                offset += 3;
+            }
 
-                    for (int row = verticalSubSampling - 1; row >= 0; row--)
+            offset += widthPadding * 3;
+        }
+    }
+
+    private static void ReverseChromaSubSampling(int width, int height, int horizontalSubSampling, int verticalSubSampling, ReadOnlySpan<byte> source, Span<byte> destination)
+    {
+        // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
+        // then the source data will be padded.
+        width += TiffUtils.PaddingToNextInteger(width, horizontalSubSampling);
+        height += TiffUtils.PaddingToNextInteger(height, verticalSubSampling);
+        int blockWidth = width / horizontalSubSampling;
+        int blockHeight = height / verticalSubSampling;
+        int cbCrOffsetInBlock = horizontalSubSampling * verticalSubSampling;
+        int blockByteCount = cbCrOffsetInBlock + 2;
+
+        for (int blockRow = blockHeight - 1; blockRow >= 0; blockRow--)
+        {
+            for (int blockCol = blockWidth - 1; blockCol >= 0; blockCol--)
+            {
+                int blockOffset = (blockRow * blockWidth) + blockCol;
+                ReadOnlySpan<byte> blockData = source.Slice(blockOffset * blockByteCount, blockByteCount);
+                byte cr = blockData[cbCrOffsetInBlock + 1];
+                byte cb = blockData[cbCrOffsetInBlock];
+
+                for (int row = verticalSubSampling - 1; row >= 0; row--)
+                {
+                    for (int col = horizontalSubSampling - 1; col >= 0; col--)
                     {
-                        for (int col = horizontalSubSampling - 1; col >= 0; col--)
-                        {
-                            int offset = 3 * ((((blockRow * verticalSubSampling) + row) * width) + (blockCol * horizontalSubSampling) + col);
-                            destination[offset + 2] = cr;
-                            destination[offset + 1] = cb;
-                            destination[offset] = blockData[(row * horizontalSubSampling) + col];
-                        }
+                        int offset = 3 * ((((blockRow * verticalSubSampling) + row) * width) + (blockCol * horizontalSubSampling) + col);
+                        destination[offset + 2] = cr;
+                        destination[offset + 1] = cb;
+                        destination[offset] = blockData[(row * horizontalSubSampling) + col];
                     }
                 }
             }

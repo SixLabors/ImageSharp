@@ -1,30 +1,29 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Processing.Processors.Filters;
+
+/// <summary>
+/// Converts the colors of the image recreating an old Lomograph effect.
+/// </summary>
+public sealed class LomographProcessor : FilterProcessor
 {
     /// <summary>
-    /// Converts the colors of the image recreating an old Lomograph effect.
+    /// Initializes a new instance of the <see cref="LomographProcessor" /> class.
     /// </summary>
-    public sealed class LomographProcessor : FilterProcessor
+    /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
+    public LomographProcessor(GraphicsOptions graphicsOptions)
+        : base(KnownFilterMatrices.LomographFilter)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LomographProcessor" /> class.
-        /// </summary>
-        /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
-        public LomographProcessor(GraphicsOptions graphicsOptions)
-            : base(KnownFilterMatrices.LomographFilter)
-        {
-            this.GraphicsOptions = graphicsOptions;
-        }
-
-        /// <summary>
-        /// Gets the options effecting blending and composition
-        /// </summary>
-        public GraphicsOptions GraphicsOptions { get; }
-
-        /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
-            new LomographProcessor<TPixel>(configuration, this, source, sourceRectangle);
+        this.GraphicsOptions = graphicsOptions;
     }
+
+    /// <summary>
+    /// Gets the options effecting blending and composition
+    /// </summary>
+    public GraphicsOptions GraphicsOptions { get; }
+
+    /// <inheritdoc />
+    public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+        new LomographProcessor<TPixel>(configuration, this, source, sourceRectangle);
 }

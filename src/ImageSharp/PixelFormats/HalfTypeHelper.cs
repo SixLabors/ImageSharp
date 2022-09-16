@@ -18,8 +18,7 @@ internal static class HalfTypeHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ushort Pack(float value)
     {
-        Half h = (Half)value;
-        return Unsafe.As<Half, ushort>(ref h);
+        return BitConverter.HalfToUInt16Bits((Half)value);
     }
 
     /// <summary>

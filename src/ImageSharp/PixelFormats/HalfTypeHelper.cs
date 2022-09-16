@@ -28,5 +28,5 @@ internal static class HalfTypeHelper
     /// <param name="value">The value.</param>
     /// <returns>The <see cref="float"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static float Unpack(ushort value) => (float)Unsafe.As<ushort, Half>(ref value);
+    internal static float Unpack(ushort value) => (float)BitConverter.UInt16BitsToHalf(value);
 }

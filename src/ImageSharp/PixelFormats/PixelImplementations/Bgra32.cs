@@ -149,7 +149,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.Pack(ref vector);
+    public void FromVector4(Vector4 vector) => this.Pack(vector);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -302,7 +302,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     /// </summary>
     /// <param name="vector">The vector containing the values to pack.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(ref Vector4 vector)
+    private void Pack(Vector4 vector)
     {
         vector *= MaxBytes;
         vector += Half;

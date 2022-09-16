@@ -16,10 +16,7 @@ internal static class HalfTypeHelper
     /// <param name="value">The float to pack</param>
     /// <returns>The <see cref="ushort"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort Pack(float value)
-    {
-        return BitConverter.HalfToUInt16Bits((Half)value);
-    }
+    internal static ushort Pack(float value) => BitConverter.HalfToUInt16Bits((Half)value);
 
     /// <summary>
     /// Unpacks a <see cref="ushort"/> into a <see cref="float"/>.

@@ -3,18 +3,17 @@
 
 using BenchmarkDotNet.Running;
 
-namespace SixLabors.ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks;
+
+public class Program
 {
-    public class Program
-    {
-        /// <summary>
-        /// The main.
-        /// </summary>
-        /// <param name="args">
-        /// The arguments to pass to the program.
-        /// </param>
-        public static void Main(string[] args) => BenchmarkSwitcher
-            .FromAssembly(typeof(Program).Assembly)
-            .Run(args);
-    }
+    /// <summary>
+    /// The main.
+    /// </summary>
+    /// <param name="args">
+    /// The arguments to pass to the program.
+    /// </param>
+    public static void Main(string[] args) => BenchmarkSwitcher
+        .FromAssembly(typeof(Program).Assembly)
+        .Run(args);
 }

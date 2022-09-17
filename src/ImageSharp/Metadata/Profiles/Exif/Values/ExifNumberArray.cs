@@ -1,135 +1,134 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
+
+internal sealed class ExifNumberArray : ExifArrayValue<Number>
 {
-    internal sealed class ExifNumberArray : ExifArrayValue<Number>
+    public ExifNumberArray(ExifTag<Number[]> tag)
+        : base(tag)
     {
-        public ExifNumberArray(ExifTag<Number[]> tag)
-            : base(tag)
-        {
-        }
+    }
 
-        private ExifNumberArray(ExifNumberArray value)
-            : base(value)
-        {
-        }
+    private ExifNumberArray(ExifNumberArray value)
+        : base(value)
+    {
+    }
 
-        public override ExifDataType DataType
+    public override ExifDataType DataType
+    {
+        get
         {
-            get
+            if (this.Value is not null)
             {
-                if (this.Value is not null)
+                foreach (Number value in this.Value)
                 {
-                    foreach (Number value in this.Value)
+                    if (value > ushort.MaxValue)
                     {
-                        if (value > ushort.MaxValue)
-                        {
-                            return ExifDataType.Long;
-                        }
+                        return ExifDataType.Long;
                     }
                 }
-
-                return ExifDataType.Short;
             }
+
+            return ExifDataType.Short;
+        }
+    }
+
+    public override bool TrySetValue(object value)
+    {
+        if (base.TrySetValue(value))
+        {
+            return true;
         }
 
-        public override bool TrySetValue(object value)
+        switch (value)
         {
-            if (base.TrySetValue(value))
+            case int val:
+                return this.SetSingle(val);
+            case uint val:
+                return this.SetSingle(val);
+            case short val:
+                return this.SetSingle(val);
+            case ushort val:
+                return this.SetSingle(val);
+            case int[] array:
             {
-                return true;
-            }
-
-            switch (value)
-            {
-                case int val:
-                    return this.SetSingle(val);
-                case uint val:
-                    return this.SetSingle(val);
-                case short val:
-                    return this.SetSingle(val);
-                case ushort val:
-                    return this.SetSingle(val);
-                case int[] array:
+                // workaround for inconsistent covariance of value-typed arrays
+                if (value.GetType() == typeof(uint[]))
                 {
-                    // workaround for inconsistent covariance of value-typed arrays
-                    if (value.GetType() == typeof(uint[]))
-                    {
-                        return this.SetArray((uint[])value);
-                    }
-
-                    return this.SetArray(array);
+                    return this.SetArray((uint[])value);
                 }
 
-                case short[] array:
+                return this.SetArray(array);
+            }
+
+            case short[] array:
+            {
+                if (value.GetType() == typeof(ushort[]))
                 {
-                    if (value.GetType() == typeof(ushort[]))
-                    {
-                        return this.SetArray((ushort[])value);
-                    }
-
-                    return this.SetArray(array);
+                    return this.SetArray((ushort[])value);
                 }
+
+                return this.SetArray(array);
             }
-
-            return false;
         }
 
-        public override IExifValue DeepClone() => new ExifNumberArray(this);
+        return false;
+    }
 
-        private bool SetSingle(Number value)
+    public override IExifValue DeepClone() => new ExifNumberArray(this);
+
+    private bool SetSingle(Number value)
+    {
+        this.Value = new[] { value };
+        return true;
+    }
+
+    private bool SetArray(int[] values)
+    {
+        var numbers = new Number[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            this.Value = new[] { value };
-            return true;
+            numbers[i] = values[i];
         }
 
-        private bool SetArray(int[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(uint[] values)
+    {
+        var numbers = new Number[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = values[i];
         }
 
-        private bool SetArray(uint[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(short[] values)
+    {
+        var numbers = new Number[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = values[i];
         }
 
-        private bool SetArray(short[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(ushort[] values)
+    {
+        var numbers = new Number[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = values[i];
         }
 
-        private bool SetArray(ushort[] values)
-        {
-            var numbers = new Number[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = values[i];
-            }
-
-            this.Value = numbers;
-            return true;
-        }
+        this.Value = numbers;
+        return true;
     }
 }

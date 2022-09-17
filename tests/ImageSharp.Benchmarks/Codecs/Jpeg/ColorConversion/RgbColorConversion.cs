@@ -2,42 +2,39 @@
 // Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class RgbColorConversion : ColorConversionBenchmark
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class RgbColorConversion : ColorConversionBenchmark
+    public RgbColorConversion()
+        : base(3)
     {
-        public RgbColorConversion()
-            : base(3)
-        {
-        }
+    }
 
-        [Benchmark(Baseline = true)]
-        public void Scalar()
-        {
-            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+    [Benchmark(Baseline = true)]
+    public void Scalar()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromRgbScalar(8).ConvertToRgbInplace(values);
-        }
+        new JpegColorConverterBase.RgbScalar(8).ConvertToRgbInplace(values);
+    }
 
-        [Benchmark]
-        public void SimdVector8()
-        {
-            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+    [Benchmark]
+    public void SimdVector8()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromRgbVector(8).ConvertToRgbInplace(values);
-        }
+        new JpegColorConverterBase.RgbVector(8).ConvertToRgbInplace(values);
+    }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Benchmark]
-        public void SimdVectorAvx()
-        {
-            var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+    [Benchmark]
+    public void SimdVectorAvx()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-            new JpegColorConverterBase.FromRgbAvx(8).ConvertToRgbInplace(values);
-        }
-#endif
+        new JpegColorConverterBase.RgbAvx(8).ConvertToRgbInplace(values);
     }
 }

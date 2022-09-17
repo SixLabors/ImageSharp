@@ -1,28 +1,26 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers.Binary;
 
-namespace SixLabors.ImageSharp.Formats.Png
+namespace SixLabors.ImageSharp.Formats.Png;
+
+/// <summary>
+/// Detects png file headers
+/// </summary>
+public sealed class PngImageFormatDetector : IImageFormatDetector
 {
-    /// <summary>
-    /// Detects png file headers
-    /// </summary>
-    public sealed class PngImageFormatDetector : IImageFormatDetector
+    /// <inheritdoc/>
+    public int HeaderSize => 8;
+
+    /// <inheritdoc/>
+    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
     {
-        /// <inheritdoc/>
-        public int HeaderSize => 8;
+        return this.IsSupportedFileFormat(header) ? PngFormat.Instance : null;
+    }
 
-        /// <inheritdoc/>
-        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
-        {
-            return this.IsSupportedFileFormat(header) ? PngFormat.Instance : null;
-        }
-
-        private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-        {
-            return header.Length >= this.HeaderSize && BinaryPrimitives.ReadUInt64BigEndian(header) == PngConstants.HeaderValue;
-        }
+    private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
+    {
+        return header.Length >= this.HeaderSize && BinaryPrimitives.ReadUInt64BigEndian(header) == PngConstants.HeaderValue;
     }
 }

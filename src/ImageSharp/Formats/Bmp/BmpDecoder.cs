@@ -1,52 +1,46 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Bmp
+namespace SixLabors.ImageSharp.Formats.Bmp;
+
+/// <summary>
+/// Image decoder for generating an image out of a Windows bitmap stream.
+/// </summary>
+public class BmpDecoder : IImageDecoderSpecialized<BmpDecoderOptions>
 {
-    /// <summary>
-    /// Image decoder for generating an image out of a Windows bitmap stream.
-    /// </summary>
-    /// <remarks>
-    /// Does not support the following formats at the moment:
-    /// <list type="bullet">
-    ///    <item>JPG</item>
-    ///    <item>PNG</item>
-    ///    <item>Some OS/2 specific subtypes like: Bitmap Array, Color Icon, Color Pointer, Icon, Pointer.</item>
-    /// </list>
-    /// Formats will be supported in a later releases. We advise always
-    /// to use only 24 Bit Windows bitmaps.
-    /// </remarks>
-    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions, IImageInfoDetector
+    /// <inheritdoc/>
+    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Gets or sets a value indicating how to deal with skipped pixels, which can occur during decoding run length encoded bitmaps.
-        /// </summary>
-        public RleSkippedPixelHandling RleSkippedPixelHandling { get; set; } = RleSkippedPixelHandling.Black;
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
 
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new BmpDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(configuration, stream, cancellationToken);
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new BmpDecoderCore(configuration, this).Identify(configuration, stream, cancellationToken);
-        }
+        return new BmpDecoderCore(new() { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
     }
+
+    /// <inheritdoc/>
+    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+
+    /// <inheritdoc/>
+    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+      => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
+
+    /// <inheritdoc/>
+    Image<TPixel> IImageDecoderSpecialized<BmpDecoderOptions>.Decode<TPixel>(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        Image<TPixel> image = new BmpDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+
+        ImageDecoderUtilities.Resize(options.GeneralOptions, image);
+
+        return image;
+    }
+
+    /// <inheritdoc/>
+    Image IImageDecoderSpecialized<BmpDecoderOptions>.Decode(BmpDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => ((IImageDecoderSpecialized<BmpDecoderOptions>)this).Decode<Rgba32>(options, stream, cancellationToken);
 }

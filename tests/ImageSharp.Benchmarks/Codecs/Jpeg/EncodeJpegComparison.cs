@@ -1,95 +1,91 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Drawing.Imaging;
-using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 using SkiaSharp;
-using SDImage = System.Drawing.Image;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+/// <summary>
+/// Benchmark for performance comparison between other codecs.
+/// </summary>
+/// <remarks>
+/// This benchmarks tests baseline 4:2:0 chroma sampling path.
+/// </remarks>
+public class EncodeJpegComparison
 {
-    /// <summary>
-    /// Benchmark for performance comparison between other codecs.
-    /// </summary>
-    /// <remarks>
-    /// This benchmarks tests baseline 4:2:0 chroma sampling path.
-    /// </remarks>
-    public class EncodeJpegComparison
+    // Big enough, 4:4:4 chroma sampling
+    private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
+
+    // Change/add parameters for extra benchmarks
+    [Params(75, 90, 100)]
+    public int Quality;
+
+    private MemoryStream destinationStream;
+
+    // ImageSharp
+    private Image<Rgba32> imageImageSharp;
+    private JpegEncoder encoderImageSharp;
+
+    // SkiaSharp
+    private SKBitmap imageSkiaSharp;
+
+    [GlobalSetup(Target = nameof(BenchmarkImageSharp))]
+    public void SetupImageSharp()
     {
-        // Big enough, 4:4:4 chroma sampling
-        private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
+        using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
 
-        // Change/add parameters for extra benchmarks
-        [Params(75, 90, 100)]
-        public int Quality;
+        this.imageImageSharp = Image.Load<Rgba32>(imageBinaryStream);
+        this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegEncodingColor.YCbCrRatio420 };
 
-        private MemoryStream destinationStream;
+        this.destinationStream = new MemoryStream();
+    }
 
-        // ImageSharp
-        private Image<Rgba32> imageImageSharp;
-        private JpegEncoder encoderImageSharp;
+    [GlobalCleanup(Target = nameof(BenchmarkImageSharp))]
+    public void CleanupImageSharp()
+    {
+        this.imageImageSharp.Dispose();
+        this.imageImageSharp = null;
 
-        // SkiaSharp
-        private SKBitmap imageSkiaSharp;
+        this.destinationStream.Dispose();
+        this.destinationStream = null;
+    }
 
-        [GlobalSetup(Target = nameof(BenchmarkImageSharp))]
-        public void SetupImageSharp()
-        {
-            using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
+    [Benchmark(Description = "ImageSharp")]
+    public void BenchmarkImageSharp()
+    {
+        this.imageImageSharp.SaveAsJpeg(this.destinationStream, this.encoderImageSharp);
+        this.destinationStream.Seek(0, SeekOrigin.Begin);
+    }
 
-            this.imageImageSharp = Image.Load<Rgba32>(imageBinaryStream);
-            this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
+    [GlobalSetup(Target = nameof(BenchmarkSkiaSharp))]
+    public void SetupSkiaSharp()
+    {
+        using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
 
-            this.destinationStream = new MemoryStream();
-        }
+        this.imageSkiaSharp = SKBitmap.Decode(imageBinaryStream);
 
-        [GlobalCleanup(Target = nameof(BenchmarkImageSharp))]
-        public void CleanupImageSharp()
-        {
-            this.imageImageSharp.Dispose();
-            this.imageImageSharp = null;
+        this.destinationStream = new MemoryStream();
+    }
 
-            this.destinationStream.Dispose();
-            this.destinationStream = null;
-        }
+    [GlobalCleanup(Target = nameof(BenchmarkSkiaSharp))]
+    public void CleanupSkiaSharp()
+    {
+        this.imageSkiaSharp.Dispose();
+        this.imageSkiaSharp = null;
 
-        [Benchmark(Description = "ImageSharp")]
-        public void BenchmarkImageSharp()
-        {
-            this.imageImageSharp.SaveAsJpeg(this.destinationStream, this.encoderImageSharp);
-            this.destinationStream.Seek(0, SeekOrigin.Begin);
-        }
+        this.destinationStream.Dispose();
+        this.destinationStream = null;
+    }
 
-        [GlobalSetup(Target = nameof(BenchmarkSkiaSharp))]
-        public void SetupSkiaSharp()
-        {
-            using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
-
-            this.imageSkiaSharp = SKBitmap.Decode(imageBinaryStream);
-
-            this.destinationStream = new MemoryStream();
-        }
-
-        [GlobalCleanup(Target = nameof(BenchmarkSkiaSharp))]
-        public void CleanupSkiaSharp()
-        {
-            this.imageSkiaSharp.Dispose();
-            this.imageSkiaSharp = null;
-
-            this.destinationStream.Dispose();
-            this.destinationStream = null;
-        }
-
-        [Benchmark(Description = "SkiaSharp")]
-        public void BenchmarkSkiaSharp()
-        {
-            this.imageSkiaSharp.Encode(SKEncodedImageFormat.Jpeg, this.Quality).SaveTo(this.destinationStream);
-            this.destinationStream.Seek(0, SeekOrigin.Begin);
-        }
+    [Benchmark(Description = "SkiaSharp")]
+    public void BenchmarkSkiaSharp()
+    {
+        this.imageSkiaSharp.Encode(SKEncodedImageFormat.Jpeg, this.Quality).SaveTo(this.destinationStream);
+        this.destinationStream.Seek(0, SeekOrigin.Begin);
     }
 }
 
@@ -97,8 +93,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 BenchmarkDotNet=v0.13.0, OS=Windows 10.0.19044
 Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=6.0.100-preview.3.21202.5
-  [Host]     : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
+[Host]     : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
+DefaultJob : .NET Core 3.1.21 (CoreCLR 4.700.21.51404, CoreFX 4.700.21.51508), X64 RyuJIT
 
 
 |     Method | Quality |      Mean |     Error |    StdDev |

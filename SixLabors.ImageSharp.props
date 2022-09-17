@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!--Add common namespaces to implicit global usings if enabled.-->
+  <ItemGroup Condition="'$(ImplicitUsings)'=='enable' OR '$(ImplicitUsings)'=='true'">
+    <Using Include="SixLabors.ImageSharp" />
+    <Using Include="SixLabors.ImageSharp.PixelFormats" />
+    <Using Include="SixLabors.ImageSharp.Processing" />
+  </ItemGroup>
+
+</Project>

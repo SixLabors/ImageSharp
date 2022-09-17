@@ -4,18 +4,17 @@
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Metadata;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp;
+
+/// <summary>
+/// Extension methods for the <see cref="ImageMetadata"/> type.
+/// </summary>
+public static partial class MetadataExtensions
 {
     /// <summary>
-    /// Extension methods for the <see cref="ImageMetadata"/> type.
+    /// Gets the pbm format specific metadata for the image.
     /// </summary>
-    public static partial class MetadataExtensions
-    {
-        /// <summary>
-        /// Gets the pbm format specific metadata for the image.
-        /// </summary>
-        /// <param name="metadata">The metadata this method extends.</param>
-        /// <returns>The <see cref="PbmMetadata"/>.</returns>
-        public static PbmMetadata GetPbmMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(PbmFormat.Instance);
-    }
+    /// <param name="metadata">The metadata this method extends.</param>
+    /// <returns>The <see cref="PbmMetadata"/>.</returns>
+    public static PbmMetadata GetPbmMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(PbmFormat.Instance);
 }

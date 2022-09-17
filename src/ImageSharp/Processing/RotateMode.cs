@@ -1,31 +1,30 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing;
+
+/// <summary>
+/// Provides enumeration over how the image should be rotated.
+/// </summary>
+public enum RotateMode
 {
     /// <summary>
-    /// Provides enumeration over how the image should be rotated.
+    /// Do not rotate the image.
     /// </summary>
-    public enum RotateMode
-    {
-        /// <summary>
-        /// Do not rotate the image.
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Rotate the image by 90 degrees clockwise.
-        /// </summary>
-        Rotate90 = 90,
+    /// <summary>
+    /// Rotate the image by 90 degrees clockwise.
+    /// </summary>
+    Rotate90 = 90,
 
-        /// <summary>
-        /// Rotate the image by 180 degrees clockwise.
-        /// </summary>
-        Rotate180 = 180,
+    /// <summary>
+    /// Rotate the image by 180 degrees clockwise.
+    /// </summary>
+    Rotate180 = 180,
 
-        /// <summary>
-        /// Rotate the image by 270 degrees clockwise.
-        /// </summary>
-        Rotate270 = 270
-    }
+    /// <summary>
+    /// Rotate the image by 270 degrees clockwise.
+    /// </summary>
+    Rotate270 = 270
 }

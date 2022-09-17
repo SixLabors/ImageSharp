@@ -1,26 +1,25 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
+namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
+/// <summary>
+/// Standard Observer
+/// </summary>
+internal enum IccStandardObserver : uint
 {
     /// <summary>
-    /// Standard Observer
+    /// Unknown observer
     /// </summary>
-    internal enum IccStandardObserver : uint
-    {
-        /// <summary>
-        /// Unknown observer
-        /// </summary>
-        Unknown = 0,
+    Unknown = 0,
 
-        /// <summary>
-        /// CIE 1931 observer
-        /// </summary>
-        Cie1931Observer = 1,
+    /// <summary>
+    /// CIE 1931 observer
+    /// </summary>
+    Cie1931Observer = 1,
 
-        /// <summary>
-        /// CIE 1964 observer
-        /// </summary>
-        Cie1964Observer = 2,
-    }
+    /// <summary>
+    /// CIE 1964 observer
+    /// </summary>
+    Cie1964Observer = 2,
 }

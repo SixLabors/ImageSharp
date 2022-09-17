@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,60 +8,59 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Processing.Processors.Filters;
+
+internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
+      where TPixel : unmanaged, IPixel<TPixel>
 {
-    internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
-          where TPixel : unmanaged, IPixel<TPixel>
+    public OpaqueProcessor(
+        Configuration configuration,
+        Image<TPixel> source,
+        Rectangle sourceRectangle)
+        : base(configuration, source, sourceRectangle)
     {
-        public OpaqueProcessor(
+    }
+
+    protected override void OnFrameApply(ImageFrame<TPixel> source)
+    {
+        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+
+        var operation = new OpaqueRowOperation(this.Configuration, source.PixelBuffer, interest);
+        ParallelRowIterator.IterateRows<OpaqueRowOperation, Vector4>(this.Configuration, interest, in operation);
+    }
+
+    private readonly struct OpaqueRowOperation : IRowOperation<Vector4>
+    {
+        private readonly Configuration configuration;
+        private readonly Buffer2D<TPixel> target;
+        private readonly Rectangle bounds;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public OpaqueRowOperation(
             Configuration configuration,
-            Image<TPixel> source,
-            Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle)
+            Buffer2D<TPixel> target,
+            Rectangle bounds)
         {
+            this.configuration = configuration;
+            this.target = target;
+            this.bounds = bounds;
         }
 
-        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int y, Span<Vector4> span)
         {
-            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y)[this.bounds.X..];
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale);
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
-            var operation = new OpaqueRowOperation(this.Configuration, source.PixelBuffer, interest);
-            ParallelRowIterator.IterateRows<OpaqueRowOperation, Vector4>(this.Configuration, interest, in operation);
-        }
-
-        private readonly struct OpaqueRowOperation : IRowOperation<Vector4>
-        {
-            private readonly Configuration configuration;
-            private readonly Buffer2D<TPixel> target;
-            private readonly Rectangle bounds;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public OpaqueRowOperation(
-                Configuration configuration,
-                Buffer2D<TPixel> target,
-                Rectangle bounds)
+            for (int x = 0; x < this.bounds.Width; x++)
             {
-                this.configuration = configuration;
-                this.target = target;
-                this.bounds = bounds;
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                v.W = 1F;
             }
 
-            /// <inheritdoc/>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
-            {
-                Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Scale);
-                ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
-
-                for (int x = 0; x < this.bounds.Width; x++)
-                {
-                    ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                    v.W = 1F;
-                }
-
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan, PixelConversionModifiers.Scale);
-            }
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan, PixelConversionModifiers.Scale);
         }
     }
 }

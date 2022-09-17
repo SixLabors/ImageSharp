@@ -1,34 +1,30 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using System.Collections.Generic;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif;
+
+[Trait("Profile", "Exif")]
+public class ExifReaderTests
 {
-    [Trait("Profile", "Exif")]
-    public class ExifReaderTests
+    [Fact]
+    public void Read_DataIsEmpty_ReturnsEmptyCollection()
     {
-        [Fact]
-        public void Read_DataIsEmpty_ReturnsEmptyCollection()
-        {
-            var reader = new ExifReader(Array.Empty<byte>());
+        var reader = new ExifReader(Array.Empty<byte>());
 
-            IList<IExifValue> result = reader.ReadValues();
+        IList<IExifValue> result = reader.ReadValues();
 
-            Assert.Equal(0, result.Count);
-        }
+        Assert.Equal(0, result.Count);
+    }
 
-        [Fact]
-        public void Read_DataIsMinimal_ReturnsEmptyCollection()
-        {
-            var reader = new ExifReader(new byte[] { 69, 120, 105, 102, 0, 0 });
+    [Fact]
+    public void Read_DataIsMinimal_ReturnsEmptyCollection()
+    {
+        var reader = new ExifReader(new byte[] { 69, 120, 105, 102, 0, 0 });
 
-            IList<IExifValue> result = reader.ReadValues();
+        IList<IExifValue> result = reader.ReadValues();
 
-            Assert.Equal(0, result.Count);
-        }
+        Assert.Equal(0, result.Count);
     }
 }

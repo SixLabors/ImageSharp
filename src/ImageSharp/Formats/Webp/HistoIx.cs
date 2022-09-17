@@ -1,36 +1,35 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Webp
+namespace SixLabors.ImageSharp.Formats.Webp;
+
+internal enum HistoIx : byte
 {
-    internal enum HistoIx : byte
-    {
-        HistoAlpha = 0,
+    HistoAlpha = 0,
 
-        HistoAlphaPred,
+    HistoAlphaPred,
 
-        HistoGreen,
+    HistoGreen,
 
-        HistoGreenPred,
+    HistoGreenPred,
 
-        HistoRed,
+    HistoRed,
 
-        HistoRedPred,
+    HistoRedPred,
 
-        HistoBlue,
+    HistoBlue,
 
-        HistoBluePred,
+    HistoBluePred,
 
-        HistoRedSubGreen,
+    HistoRedSubGreen,
 
-        HistoRedPredSubGreen,
+    HistoRedPredSubGreen,
 
-        HistoBlueSubGreen,
+    HistoBlueSubGreen,
 
-        HistoBluePredSubGreen,
+    HistoBluePredSubGreen,
 
-        HistoPalette,
+    HistoPalette,
 
-        HistoTotal
-    }
+    HistoTotal
 }

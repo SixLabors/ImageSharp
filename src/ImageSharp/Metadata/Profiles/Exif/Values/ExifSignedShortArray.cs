@@ -1,67 +1,64 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
+internal sealed class ExifSignedShortArray : ExifArrayValue<short>
 {
-    internal sealed class ExifSignedShortArray : ExifArrayValue<short>
+    public ExifSignedShortArray(ExifTagValue tag)
+        : base(tag)
     {
-        public ExifSignedShortArray(ExifTagValue tag)
-            : base(tag)
+    }
+
+    private ExifSignedShortArray(ExifSignedShortArray value)
+        : base(value)
+    {
+    }
+
+    public override ExifDataType DataType => ExifDataType.SignedShort;
+
+    public override bool TrySetValue(object value)
+    {
+        if (base.TrySetValue(value))
         {
+            return true;
         }
 
-        private ExifSignedShortArray(ExifSignedShortArray value)
-            : base(value)
+        if (value is int[] intArray)
         {
+            return this.TrySetSignedArray(intArray);
         }
 
-        public override ExifDataType DataType => ExifDataType.SignedShort;
-
-        public override bool TrySetValue(object value)
+        if (value is int intValue)
         {
-            if (base.TrySetValue(value))
+            if (intValue >= short.MinValue && intValue <= short.MaxValue)
             {
-                return true;
+                this.Value = new short[] { (short)intValue };
             }
 
-            if (value is int[] intArray)
-            {
-                return this.TrySetSignedArray(intArray);
-            }
+            return true;
+        }
 
-            if (value is int intValue)
-            {
-                if (intValue >= short.MinValue && intValue <= short.MaxValue)
-                {
-                    this.Value = new short[] { (short)intValue };
-                }
+        return false;
+    }
 
-                return true;
-            }
+    public override IExifValue DeepClone() => new ExifSignedShortArray(this);
 
+    private bool TrySetSignedArray(int[] intArray)
+    {
+        if (Array.FindIndex(intArray, x => x < short.MinValue || x > short.MaxValue) > -1)
+        {
             return false;
         }
 
-        public override IExifValue DeepClone() => new ExifSignedShortArray(this);
-
-        private bool TrySetSignedArray(int[] intArray)
+        var value = new short[intArray.Length];
+        for (int i = 0; i < intArray.Length; i++)
         {
-            if (Array.FindIndex(intArray, x => x < short.MinValue || x > short.MaxValue) > -1)
-            {
-                return false;
-            }
-
-            var value = new short[intArray.Length];
-            for (int i = 0; i < intArray.Length; i++)
-            {
-                int s = intArray[i];
-                value[i] = (short)s;
-            }
-
-            this.Value = value;
-            return true;
+            int s = intArray[i];
+            value[i] = (short)s;
         }
+
+        this.Value = value;
+        return true;
     }
 }

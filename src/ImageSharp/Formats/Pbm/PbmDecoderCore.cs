@@ -1,195 +1,201 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Formats.Pbm
+namespace SixLabors.ImageSharp.Formats.Pbm;
+
+/// <summary>
+/// Performs the PBM decoding operation.
+/// </summary>
+internal sealed class PbmDecoderCore : IImageDecoderInternals
 {
+    private int maxPixelValue;
+
     /// <summary>
-    /// Performs the PBM decoding operation.
+    /// The general configuration.
     /// </summary>
-    internal sealed class PbmDecoderCore : IImageDecoderInternals
+    private readonly Configuration configuration;
+
+    /// <summary>
+    /// The colortype to use
+    /// </summary>
+    private PbmColorType colorType;
+
+    /// <summary>
+    /// The size of the pixel array
+    /// </summary>
+    private Size pixelSize;
+
+    /// <summary>
+    /// The component data type
+    /// </summary>
+    private PbmComponentType componentType;
+
+    /// <summary>
+    /// The Encoding of pixels
+    /// </summary>
+    private PbmEncoding encoding;
+
+    /// <summary>
+    /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
+    /// </summary>
+    private ImageMetadata metadata;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    public PbmDecoderCore(DecoderOptions options)
     {
-        private int maxPixelValue;
+        this.Options = options;
+        this.configuration = options.Configuration;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        public PbmDecoderCore(Configuration configuration) => this.Configuration = configuration ?? Configuration.Default;
+    /// <inheritdoc/>
+    public DecoderOptions Options { get; }
 
-        /// <inheritdoc />
-        public Configuration Configuration { get; }
+    /// <inheritdoc/>
+    public Size Dimensions => this.pixelSize;
 
-        /// <summary>
-        /// Gets the colortype to use
-        /// </summary>
-        public PbmColorType ColorType { get; private set; }
+    /// <inheritdoc/>
+    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        this.ProcessHeader(stream);
 
-        /// <summary>
-        /// Gets the size of the pixel array
-        /// </summary>
-        public Size PixelSize { get; private set; }
+        var image = new Image<TPixel>(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
 
-        /// <summary>
-        /// Gets the component data type
-        /// </summary>
-        public PbmComponentType ComponentType { get; private set; }
+        Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-        /// <summary>
-        /// Gets the Encoding of pixels
-        /// </summary>
-        public PbmEncoding Encoding { get; private set; }
-
-        /// <summary>
-        /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
-        /// </summary>
-        public ImageMetadata Metadata { get; private set; }
-
-        /// <inheritdoc/>
-        Size IImageDecoderInternals.Dimensions => this.PixelSize;
-
-        private bool NeedsUpscaling => this.ColorType != PbmColorType.BlackAndWhite && this.maxPixelValue is not 255 and not 65535;
-
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        this.ProcessPixels(stream, pixels);
+        if (this.NeedsUpscaling())
         {
-            this.ProcessHeader(stream);
-
-            var image = new Image<TPixel>(this.Configuration, this.PixelSize.Width, this.PixelSize.Height, this.Metadata);
-
-            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-
-            this.ProcessPixels(stream, pixels);
-            if (this.NeedsUpscaling)
-            {
-                this.ProcessUpscaling(image);
-            }
-
-            return image;
+            this.ProcessUpscaling(image);
         }
 
-        /// <inheritdoc/>
-        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
-        {
-            this.ProcessHeader(stream);
+        return image;
+    }
 
-            // BlackAndWhite pixels are encoded into a byte.
-            int bitsPerPixel = this.ComponentType == PbmComponentType.Short ? 16 : 8;
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.PixelSize.Width, this.PixelSize.Height, this.Metadata);
+    /// <inheritdoc/>
+    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    {
+        this.ProcessHeader(stream);
+
+        // BlackAndWhite pixels are encoded into a byte.
+        int bitsPerPixel = this.componentType == PbmComponentType.Short ? 16 : 8;
+        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.pixelSize.Width, this.pixelSize.Height, this.metadata);
+    }
+
+    /// <summary>
+    /// Processes the ppm header.
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    private void ProcessHeader(BufferedReadStream stream)
+    {
+        Span<byte> buffer = stackalloc byte[2];
+
+        int bytesRead = stream.Read(buffer);
+        if (bytesRead != 2 || buffer[0] != 'P')
+        {
+            throw new InvalidImageContentException("Empty or not an PPM image.");
         }
 
-        /// <summary>
-        /// Processes the ppm header.
-        /// </summary>
-        /// <param name="stream">The input stream.</param>
-        private void ProcessHeader(BufferedReadStream stream)
+        switch ((char)buffer[1])
         {
-            Span<byte> buffer = stackalloc byte[2];
+            case '1':
+                // Plain PBM format: 1 component per pixel, boolean value ('0' or '1').
+                this.colorType = PbmColorType.BlackAndWhite;
+                this.encoding = PbmEncoding.Plain;
+                break;
+            case '2':
+                // Plain PGM format: 1 component per pixel, in decimal text.
+                this.colorType = PbmColorType.Grayscale;
+                this.encoding = PbmEncoding.Plain;
+                break;
+            case '3':
+                // Plain PPM format: 3 components per pixel, in decimal text.
+                this.colorType = PbmColorType.Rgb;
+                this.encoding = PbmEncoding.Plain;
+                break;
+            case '4':
+                // Binary PBM format: 1 component per pixel, 8 pixels per byte.
+                this.colorType = PbmColorType.BlackAndWhite;
+                this.encoding = PbmEncoding.Binary;
+                break;
+            case '5':
+                // Binary PGM format: 1 components per pixel, in binary integers.
+                this.colorType = PbmColorType.Grayscale;
+                this.encoding = PbmEncoding.Binary;
+                break;
+            case '6':
+                // Binary PPM format: 3 components per pixel, in binary integers.
+                this.colorType = PbmColorType.Rgb;
+                this.encoding = PbmEncoding.Binary;
+                break;
+            case '7':
+            // PAM image: sequence of images.
+            // Not implemented yet
+            default:
+                throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
+        }
 
-            int bytesRead = stream.Read(buffer);
-            if (bytesRead != 2 || buffer[0] != 'P')
+        stream.SkipWhitespaceAndComments();
+        int width = stream.ReadDecimal();
+        stream.SkipWhitespaceAndComments();
+        int height = stream.ReadDecimal();
+        stream.SkipWhitespaceAndComments();
+        if (this.colorType != PbmColorType.BlackAndWhite)
+        {
+            this.maxPixelValue = stream.ReadDecimal();
+            if (this.maxPixelValue > 255)
             {
-                throw new InvalidImageContentException("Empty or not an PPM image.");
-            }
-
-            switch ((char)buffer[1])
-            {
-                case '1':
-                    // Plain PBM format: 1 component per pixel, boolean value ('0' or '1').
-                    this.ColorType = PbmColorType.BlackAndWhite;
-                    this.Encoding = PbmEncoding.Plain;
-                    break;
-                case '2':
-                    // Plain PGM format: 1 component per pixel, in decimal text.
-                    this.ColorType = PbmColorType.Grayscale;
-                    this.Encoding = PbmEncoding.Plain;
-                    break;
-                case '3':
-                    // Plain PPM format: 3 components per pixel, in decimal text.
-                    this.ColorType = PbmColorType.Rgb;
-                    this.Encoding = PbmEncoding.Plain;
-                    break;
-                case '4':
-                    // Binary PBM format: 1 component per pixel, 8 pixels per byte.
-                    this.ColorType = PbmColorType.BlackAndWhite;
-                    this.Encoding = PbmEncoding.Binary;
-                    break;
-                case '5':
-                    // Binary PGM format: 1 components per pixel, in binary integers.
-                    this.ColorType = PbmColorType.Grayscale;
-                    this.Encoding = PbmEncoding.Binary;
-                    break;
-                case '6':
-                    // Binary PPM format: 3 components per pixel, in binary integers.
-                    this.ColorType = PbmColorType.Rgb;
-                    this.Encoding = PbmEncoding.Binary;
-                    break;
-                case '7':
-                // PAM image: sequence of images.
-                // Not implemented yet
-                default:
-                    throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
-            }
-
-            stream.SkipWhitespaceAndComments();
-            int width = stream.ReadDecimal();
-            stream.SkipWhitespaceAndComments();
-            int height = stream.ReadDecimal();
-            stream.SkipWhitespaceAndComments();
-            if (this.ColorType != PbmColorType.BlackAndWhite)
-            {
-                this.maxPixelValue = stream.ReadDecimal();
-                if (this.maxPixelValue > 255)
-                {
-                    this.ComponentType = PbmComponentType.Short;
-                }
-                else
-                {
-                    this.ComponentType = PbmComponentType.Byte;
-                }
-
-                stream.SkipWhitespaceAndComments();
+                this.componentType = PbmComponentType.Short;
             }
             else
             {
-                this.ComponentType = PbmComponentType.Bit;
+                this.componentType = PbmComponentType.Byte;
             }
 
-            this.PixelSize = new Size(width, height);
-            this.Metadata = new ImageMetadata();
-            PbmMetadata meta = this.Metadata.GetPbmMetadata();
-            meta.Encoding = this.Encoding;
-            meta.ColorType = this.ColorType;
-            meta.ComponentType = this.ComponentType;
+            stream.SkipWhitespaceAndComments();
+        }
+        else
+        {
+            this.componentType = PbmComponentType.Bit;
         }
 
-        private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            if (this.Encoding == PbmEncoding.Binary)
-            {
-                BinaryDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.ComponentType);
-            }
-            else
-            {
-                PlainDecoder.Process(this.Configuration, pixels, stream, this.ColorType, this.ComponentType);
-            }
-        }
+        this.pixelSize = new Size(width, height);
+        this.metadata = new ImageMetadata();
+        PbmMetadata meta = this.metadata.GetPbmMetadata();
+        meta.Encoding = this.encoding;
+        meta.ColorType = this.colorType;
+        meta.ComponentType = this.componentType;
+    }
 
-        private void ProcessUpscaling<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
+    private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (this.encoding == PbmEncoding.Binary)
         {
-            int maxAllocationValue = this.ComponentType == PbmComponentType.Short ? 65535 : 255;
-            float factor = maxAllocationValue / this.maxPixelValue;
-            image.Mutate(x => x.Brightness(factor));
+            BinaryDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
+        }
+        else
+        {
+            PlainDecoder.Process(this.configuration, pixels, stream, this.colorType, this.componentType);
         }
     }
+
+    private void ProcessUpscaling<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int maxAllocationValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
+        float factor = maxAllocationValue / this.maxPixelValue;
+        image.Mutate(x => x.Brightness(factor));
+    }
+
+    private bool NeedsUpscaling() => this.colorType != PbmColorType.BlackAndWhite && this.maxPixelValue is not 255 and not 65535;
 }

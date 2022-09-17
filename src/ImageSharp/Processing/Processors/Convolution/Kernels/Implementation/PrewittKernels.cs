@@ -1,33 +1,32 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Convolution
+namespace SixLabors.ImageSharp.Processing.Processors.Convolution;
+
+/// <summary>
+/// Contains the kernels used for Prewitt edge detection
+/// </summary>
+internal static class PrewittKernels
 {
     /// <summary>
-    /// Contains the kernels used for Prewitt edge detection
+    /// Gets the horizontal gradient operator.
     /// </summary>
-    internal static class PrewittKernels
-    {
-        /// <summary>
-        /// Gets the horizontal gradient operator.
-        /// </summary>
-        public static DenseMatrix<float> PrewittX =>
-            new float[,]
-                {
-                    { -1, 0, 1 },
-                    { -1, 0, 1 },
-                    { -1, 0, 1 }
-                };
+    public static DenseMatrix<float> PrewittX =>
+        new float[,]
+            {
+                { -1, 0, 1 },
+                { -1, 0, 1 },
+                { -1, 0, 1 }
+            };
 
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public static DenseMatrix<float> PrewittY =>
-            new float[,]
-                {
-                    { 1, 1, 1 },
-                    { 0, 0, 0 },
-                    { -1, -1, -1 }
-                };
-    }
+    /// <summary>
+    /// Gets the vertical gradient operator.
+    /// </summary>
+    public static DenseMatrix<float> PrewittY =>
+        new float[,]
+            {
+                { 1, 1, 1 },
+                { 0, 0, 0 },
+                { -1, -1, -1 }
+            };
 }

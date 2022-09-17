@@ -29,7 +29,7 @@ public class AutoLevelProcessor : HistogramEqualizationProcessor
     }
 
     /// <summary>
-    /// Gets whether to apply a synchronized luminance value to each color channel.
+    /// Gets a value indicating whether to apply a synchronized luminance value to each color channel.
     /// </summary>
     public bool SyncChannels { get; }
 

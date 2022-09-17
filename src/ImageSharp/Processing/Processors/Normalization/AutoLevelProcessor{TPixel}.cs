@@ -45,7 +45,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
     }
 
     /// <summary>
-    /// Gets whether to apply a synchronized luminance value to each color channel.
+    /// Gets a value indicating whether to apply a synchronized luminance value to each color channel.
     /// </summary>
     private bool SyncChannels { get; }
 

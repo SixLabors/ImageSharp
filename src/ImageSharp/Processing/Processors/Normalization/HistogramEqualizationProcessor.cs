@@ -60,6 +60,9 @@ public abstract class HistogramEqualizationProcessor : IImageProcessor
         HistogramEqualizationMethod.AdaptiveSlidingWindow
         => new AdaptiveHistogramEqualizationSlidingWindowProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit, options.NumberOfTiles),
 
+        HistogramEqualizationMethod.AutoLevel
+        => new AutoLevelProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit),
+
         _ => new GlobalHistogramEqualizationProcessor(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit),
     };
 }

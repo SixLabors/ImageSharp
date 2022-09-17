@@ -12,14 +12,14 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization;
 
 /// <summary>
-/// Applies a global histogram equalization to the image.
+/// Applies a luminance histogram equalization to the image.
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
+internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.
+    /// Initializes a new instance of the <see cref="AutoLevelProcessor{TPixel}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="luminanceLevels">
@@ -30,7 +30,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
     /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
     /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-    public GlobalHistogramEqualizationProcessor(
+    public AutoLevelProcessor(
         Configuration configuration,
         int luminanceLevels,
         bool clipHistogram,
@@ -112,7 +112,8 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         public void Invoke(int y)
         {
             ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
+            var sourceAccess = new PixelAccessor<TPixel>(this.source);
+            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y);
             int levels = this.luminanceLevels;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
@@ -120,10 +121,15 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
             {
                 // TODO: We should bulk convert here.
                 ref TPixel pixel = ref pixelRow[x];
-                var vector = pixel.ToVector4();
-                int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
-                float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
-                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
+                var vector = pixel.ToVector4() * levels;
+
+                uint originalX = (uint)MathF.Round(vector.X);
+                float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;
+                uint originalY = (uint)MathF.Round(vector.Y);
+                float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
+                uint originalZ = (uint)MathF.Round(vector.Z);
+                float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
+                pixel.FromVector4(new Vector4(scaledX, scaledY, scaledZ, vector.W));
             }
         }
     }

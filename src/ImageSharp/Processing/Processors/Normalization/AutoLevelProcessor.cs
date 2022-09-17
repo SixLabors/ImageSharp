@@ -17,13 +17,21 @@ public class AutoLevelProcessor : HistogramEqualizationProcessor
     /// or 65536 for 16-bit grayscale images.</param>
     /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
     /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+    /// <param name="syncChannels">Whether to apply a synchronized luminance value to each color channel.</param>
     public AutoLevelProcessor(
         int luminanceLevels,
         bool clipHistogram,
-        int clipLimit)
+        int clipLimit,
+        bool syncChannels)
         : base(luminanceLevels, clipHistogram, clipLimit)
     {
+        this.SyncChannels = syncChannels;
     }
+
+    /// <summary>
+    /// Gets whether to apply a synchronized luminance value to each color channel.
+    /// </summary>
+    public bool SyncChannels { get; }
 
     /// <inheritdoc />
     public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
@@ -32,6 +40,7 @@ public class AutoLevelProcessor : HistogramEqualizationProcessor
             this.LuminanceLevels,
             this.ClipHistogram,
             this.ClipLimit,
+            this.SyncChannels,
             source,
             sourceRectangle);
 }

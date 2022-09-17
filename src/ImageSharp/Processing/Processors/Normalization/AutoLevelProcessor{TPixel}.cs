@@ -30,16 +30,24 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
     /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
     /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    /// <param name="syncChannels">Whether to apply a synchronized luminance value to each color channel.</param>
     public AutoLevelProcessor(
         Configuration configuration,
         int luminanceLevels,
         bool clipHistogram,
         int clipLimit,
+        bool syncChannels,
         Image<TPixel> source,
         Rectangle sourceRectangle)
         : base(configuration, luminanceLevels, clipHistogram, clipLimit, source, sourceRectangle)
     {
+        this.SyncChannels = syncChannels;
     }
+
+    /// <summary>
+    /// Gets whether to apply a synchronized luminance value to each color channel.
+    /// </summary>
+    private bool SyncChannels { get; }
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -73,18 +81,28 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
         float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
-        // Apply the cdf to each pixel of the image
-        var cdfOperation = new CdfApplicationRowOperation(interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
-        ParallelRowIterator.IterateRows(
-            this.Configuration,
-            interest,
-            in cdfOperation);
+        if (this.SyncChannels)
+        {
+            var cdfOperation = new SynchronizedChannelsRowOperation(interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            ParallelRowIterator.IterateRows(
+                this.Configuration,
+                interest,
+                in cdfOperation);
+        }
+        else
+        {
+            var cdfOperation = new SeperateChannelsRowOperation(interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            ParallelRowIterator.IterateRows(
+                this.Configuration,
+                interest,
+                in cdfOperation);
+        }
     }
 
     /// <summary>
-    /// A <see langword="struct"/> implementing the cdf application levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
+    /// A <see langword="struct"/> implementing the cdf logic for synchronized color channels.
     /// </summary>
-    private readonly struct CdfApplicationRowOperation : IRowOperation
+    private readonly struct SynchronizedChannelsRowOperation : IRowOperation
     {
         private readonly Rectangle bounds;
         private readonly IMemoryOwner<int> cdfBuffer;
@@ -93,7 +111,57 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
         private readonly float numberOfPixelsMinusCdfMin;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public CdfApplicationRowOperation(
+        public SynchronizedChannelsRowOperation(
+            Rectangle bounds,
+            IMemoryOwner<int> cdfBuffer,
+            Buffer2D<TPixel> source,
+            int luminanceLevels,
+            float numberOfPixelsMinusCdfMin)
+        {
+            this.bounds = bounds;
+            this.cdfBuffer = cdfBuffer;
+            this.source = source;
+            this.luminanceLevels = luminanceLevels;
+            this.numberOfPixelsMinusCdfMin = numberOfPixelsMinusCdfMin;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int y)
+        {
+            ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
+            var sourceAccess = new PixelAccessor<TPixel>(this.source);
+            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y);
+            int levels = this.luminanceLevels;
+            float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
+
+            for (int x = 0; x < this.bounds.Width; x++)
+            {
+                // TODO: We should bulk convert here.
+                ref TPixel pixel = ref pixelRow[x];
+                var vector = pixel.ToVector4();
+                int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+                float scaledLuminance = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
+                float scalingFactor = scaledLuminance * levels / luminance;
+                Vector4 scaledVector = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
+                pixel.FromVector4(scaledVector);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A <see langword="struct"/> implementing the cdf logic for separate color channels.
+    /// </summary>
+    private readonly struct SeperateChannelsRowOperation : IRowOperation
+    {
+        private readonly Rectangle bounds;
+        private readonly IMemoryOwner<int> cdfBuffer;
+        private readonly Buffer2D<TPixel> source;
+        private readonly int luminanceLevels;
+        private readonly float numberOfPixelsMinusCdfMin;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public SeperateChannelsRowOperation(
             Rectangle bounds,
             IMemoryOwner<int> cdfBuffer,
             Buffer2D<TPixel> source,

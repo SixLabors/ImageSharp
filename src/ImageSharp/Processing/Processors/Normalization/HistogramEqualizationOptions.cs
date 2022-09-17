@@ -42,4 +42,11 @@ public class HistogramEqualizationOptions
     /// Defaults to 8.
     /// </summary>
     public int NumberOfTiles { get; set; } = 8;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to synchronize the scaling factor over all color channels.
+    /// This parameter is only applicable to AutoLevel and is ignored for all others.
+    /// Defaults to true.
+    /// </summary>
+    public bool SyncChannels { get; set; } = true;
 }

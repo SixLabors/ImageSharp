@@ -34,13 +34,13 @@ internal sealed class IccUFix16ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     public float[] Data { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccUFix16ArrayTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccUFix16ArrayTagDataEntry other)
+    public bool Equals(IccUFix16ArrayTagDataEntry? other)
     {
         if (other is null)
         {
@@ -56,7 +56,7 @@ internal sealed class IccUFix16ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccUFix16ArrayTagDataEntry other && this.Equals(other);
     }

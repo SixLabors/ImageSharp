@@ -211,7 +211,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is ErrorDither dither && this.Equals(dither);
 
     /// <inheritdoc/>
@@ -219,7 +219,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
         => this.offset == other.offset && this.matrix.Equals(other.matrix);
 
     /// <inheritdoc/>
-    public bool Equals(IDither other)
+    public bool Equals(IDither? other)
         => this.Equals((object)other);
 
     /// <inheritdoc/>

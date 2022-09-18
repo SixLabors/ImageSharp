@@ -19,10 +19,10 @@ internal sealed class IccBAcsProcessElement : IccMultiProcessElement, IEquatable
     }
 
     /// <inheritdoc />
-    public bool Equals(IccBAcsProcessElement other) => base.Equals(other);
+    public bool Equals(IccBAcsProcessElement? other) => base.Equals(other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals(obj as IccBAcsProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccBAcsProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode() => base.GetHashCode();

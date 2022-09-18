@@ -37,7 +37,7 @@ internal abstract class IccCurveSegment : IEquatable<IccCurveSegment>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => this.Equals(obj as IccCurveSegment);
+    public override bool Equals(object? obj) => this.Equals(obj as IccCurveSegment);
 
     /// <inheritdoc/>
     public override int GetHashCode() => this.Signature.GetHashCode();

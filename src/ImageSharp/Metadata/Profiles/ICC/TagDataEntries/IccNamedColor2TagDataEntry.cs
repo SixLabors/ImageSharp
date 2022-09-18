@@ -117,11 +117,11 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     public IccNamedColor[] Colors { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccNamedColor2TagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccNamedColor2TagDataEntry other)
+    public bool Equals(IccNamedColor2TagDataEntry? other)
     {
         if (other is null)
         {
@@ -142,7 +142,7 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccNamedColor2TagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>

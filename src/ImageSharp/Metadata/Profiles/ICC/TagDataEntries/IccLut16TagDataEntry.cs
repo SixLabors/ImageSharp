@@ -109,10 +109,10 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     public IccLut[] OutputValues { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccLut16TagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccLut16TagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccLut16TagDataEntry other)
+    public bool Equals(IccLut16TagDataEntry? other)
     {
         if (other is null)
         {
@@ -132,7 +132,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccLut16TagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccLut16TagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

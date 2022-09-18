@@ -73,7 +73,7 @@ internal readonly struct IccProfileDescription : IEquatable<IccProfileDescriptio
         && this.DeviceModelInfo.AsSpan().SequenceEqual(other.DeviceModelInfo);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccProfileDescription other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccProfileDescription other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

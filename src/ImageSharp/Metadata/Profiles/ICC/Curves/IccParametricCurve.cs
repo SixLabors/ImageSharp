@@ -144,7 +144,7 @@ internal sealed class IccParametricCurve : IEquatable<IccParametricCurve>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccParametricCurve other && this.Equals(other);
     }

@@ -214,7 +214,7 @@ public struct SizeF : IEquatable<SizeF>
     public override string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is SizeF && this.Equals((SizeF)obj);
+    public override bool Equals(object? obj) => obj is SizeF && this.Equals((SizeF)obj);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

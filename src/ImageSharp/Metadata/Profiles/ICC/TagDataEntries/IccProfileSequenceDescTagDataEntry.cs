@@ -34,11 +34,11 @@ internal sealed class IccProfileSequenceDescTagDataEntry : IccTagDataEntry, IEqu
     public IccProfileDescription[] Descriptions { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccProfileSequenceDescTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccProfileSequenceDescTagDataEntry other)
+    public bool Equals(IccProfileSequenceDescTagDataEntry? other)
     {
         if (other is null)
         {
@@ -54,7 +54,7 @@ internal sealed class IccProfileSequenceDescTagDataEntry : IccTagDataEntry, IEqu
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccProfileSequenceDescTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />

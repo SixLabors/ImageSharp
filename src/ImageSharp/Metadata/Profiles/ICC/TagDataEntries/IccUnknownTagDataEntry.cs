@@ -34,13 +34,13 @@ internal sealed class IccUnknownTagDataEntry : IccTagDataEntry, IEquatable<IccUn
     public byte[] Data { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccUnknownTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccUnknownTagDataEntry other)
+    public bool Equals(IccUnknownTagDataEntry? other)
     {
         if (other is null)
         {
@@ -56,7 +56,7 @@ internal sealed class IccUnknownTagDataEntry : IccTagDataEntry, IEquatable<IccUn
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccUnknownTagDataEntry other && this.Equals(other);
     }

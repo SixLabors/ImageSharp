@@ -33,10 +33,10 @@ internal sealed class IccClutProcessElement : IccMultiProcessElement, IEquatable
     }
 
     /// <inheritdoc />
-    public bool Equals(IccClutProcessElement other) => this.Equals((IccMultiProcessElement)other);
+    public bool Equals(IccClutProcessElement? other) => this.Equals((IccMultiProcessElement)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals(obj as IccClutProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccClutProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode() => base.GetHashCode();

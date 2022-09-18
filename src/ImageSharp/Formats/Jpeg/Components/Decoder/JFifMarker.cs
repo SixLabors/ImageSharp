@@ -109,7 +109,7 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
             && this.YDensity == other.YDensity;
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is JFifMarker other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is JFifMarker other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

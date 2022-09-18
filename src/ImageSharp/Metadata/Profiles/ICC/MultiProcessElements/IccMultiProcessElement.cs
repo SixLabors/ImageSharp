@@ -40,7 +40,7 @@ internal abstract class IccMultiProcessElement : IEquatable<IccMultiProcessEleme
     public int OutputChannelCount { get; }
 
     /// <inheritdoc/>
-    public virtual bool Equals(IccMultiProcessElement other)
+    public virtual bool Equals(IccMultiProcessElement? other)
     {
         if (other is null)
         {
@@ -57,7 +57,7 @@ internal abstract class IccMultiProcessElement : IEquatable<IccMultiProcessEleme
             && this.OutputChannelCount == other.OutputChannelCount;
     }
 
-    public override bool Equals(object obj) => this.Equals(obj as IccMultiProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccMultiProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode()

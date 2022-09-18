@@ -35,13 +35,13 @@ internal sealed class IccParametricCurveTagDataEntry : IccTagDataEntry, IEquatab
     public IccParametricCurve Curve { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccParametricCurveTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccParametricCurveTagDataEntry other)
+    public bool Equals(IccParametricCurveTagDataEntry? other)
     {
         if (other is null)
         {
@@ -57,7 +57,7 @@ internal sealed class IccParametricCurveTagDataEntry : IccTagDataEntry, IEquatab
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccParametricCurveTagDataEntry other && this.Equals(other);
     }

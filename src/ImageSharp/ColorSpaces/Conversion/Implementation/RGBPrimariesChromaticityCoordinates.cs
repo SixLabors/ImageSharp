@@ -72,7 +72,7 @@ public readonly struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrima
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is RgbPrimariesChromaticityCoordinates other && this.Equals(other);
     }

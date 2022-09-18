@@ -63,7 +63,7 @@ internal sealed class IccResponseCurve : IEquatable<IccResponseCurve>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccResponseCurve other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccResponseCurve other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

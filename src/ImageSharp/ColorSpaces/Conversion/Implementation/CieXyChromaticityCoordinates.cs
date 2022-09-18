@@ -73,7 +73,7 @@ public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromatici
         => FormattableString.Invariant($"CieXyChromaticityCoordinates({this.X:#0.##}, {this.Y:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is CieXyChromaticityCoordinates other && this.Equals(other);
 
     /// <inheritdoc/>

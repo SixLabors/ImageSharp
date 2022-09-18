@@ -52,13 +52,13 @@ internal sealed class IccViewingConditionsTagDataEntry : IccTagDataEntry, IEquat
     public IccStandardIlluminant Illuminant { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccViewingConditionsTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccViewingConditionsTagDataEntry other)
+    public bool Equals(IccViewingConditionsTagDataEntry? other)
     {
         if (other is null)
         {
@@ -77,7 +77,7 @@ internal sealed class IccViewingConditionsTagDataEntry : IccTagDataEntry, IEquat
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccViewingConditionsTagDataEntry other && this.Equals(other);
     }

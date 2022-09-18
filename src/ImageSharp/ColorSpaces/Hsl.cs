@@ -89,7 +89,7 @@ public readonly struct Hsl : IEquatable<Hsl>
     public override string ToString() => FormattableString.Invariant($"Hsl({this.H:#0.##}, {this.S:#0.##}, {this.L:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Hsl other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Hsl other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

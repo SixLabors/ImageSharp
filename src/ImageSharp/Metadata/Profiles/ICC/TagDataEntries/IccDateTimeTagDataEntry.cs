@@ -34,13 +34,13 @@ internal sealed class IccDateTimeTagDataEntry : IccTagDataEntry, IEquatable<IccD
     public DateTime Value { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccDateTimeTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccDateTimeTagDataEntry other)
+    public bool Equals(IccDateTimeTagDataEntry? other)
     {
         if (other is null)
         {
@@ -56,7 +56,7 @@ internal sealed class IccDateTimeTagDataEntry : IccTagDataEntry, IEquatable<IccD
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccDateTimeTagDataEntry other && this.Equals(other);
     }

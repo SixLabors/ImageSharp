@@ -66,7 +66,7 @@ internal readonly struct LongRational : IEquatable<LongRational>
     public bool IsZero => this.Denominator == 1 && this.Numerator == 0;
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is LongRational longRational && this.Equals(longRational);
 
     /// <inheritdoc/>

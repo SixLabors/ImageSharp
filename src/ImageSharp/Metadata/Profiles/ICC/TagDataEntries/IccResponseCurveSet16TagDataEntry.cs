@@ -48,10 +48,10 @@ internal sealed class IccResponseCurveSet16TagDataEntry : IccTagDataEntry, IEqua
     public IccResponseCurve[] Curves { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccResponseCurveSet16TagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccResponseCurveSet16TagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccResponseCurveSet16TagDataEntry other)
+    public bool Equals(IccResponseCurveSet16TagDataEntry? other)
     {
         if (other is null)
         {
@@ -69,7 +69,7 @@ internal sealed class IccResponseCurveSet16TagDataEntry : IccTagDataEntry, IEqua
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

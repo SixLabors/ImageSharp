@@ -86,13 +86,13 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     public bool IsGamma => this.CurveData.Length == 1;
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccCurveTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccCurveTagDataEntry other)
+    public bool Equals(IccCurveTagDataEntry? other)
     {
         if (other is null)
         {
@@ -108,7 +108,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccCurveTagDataEntry other && this.Equals(other);
     }

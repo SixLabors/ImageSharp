@@ -77,10 +77,10 @@ internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry, IEquatable<
     public double[][] ChannelValues { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccChromaticityTagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccChromaticityTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccChromaticityTagDataEntry other)
+    public bool Equals(IccChromaticityTagDataEntry? other)
     {
         if (other is null)
         {
@@ -96,7 +96,7 @@ internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry, IEquatable<
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccChromaticityTagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccChromaticityTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

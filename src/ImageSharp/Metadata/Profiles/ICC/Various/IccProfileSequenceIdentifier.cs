@@ -35,7 +35,7 @@ internal readonly struct IccProfileSequenceIdentifier : IEquatable<IccProfileSeq
         && this.Description.AsSpan().SequenceEqual(other.Description);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccProfileSequenceIdentifier other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccProfileSequenceIdentifier other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(this.Id, this.Description);

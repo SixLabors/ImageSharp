@@ -145,7 +145,7 @@ public struct Number : IEquatable<Number>, IComparable<Number>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Number other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Number other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(Number other)

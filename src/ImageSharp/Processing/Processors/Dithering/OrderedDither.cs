@@ -199,7 +199,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is OrderedDither dither && this.Equals(dither);
 
     /// <inheritdoc/>
@@ -208,7 +208,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         => this.thresholdMatrix.Equals(other.thresholdMatrix) && this.modulusX == other.modulusX && this.modulusY == other.modulusY;
 
     /// <inheritdoc/>
-    public bool Equals(IDither other)
+    public bool Equals(IDither? other)
         => this.Equals((object)other);
 
     /// <inheritdoc/>

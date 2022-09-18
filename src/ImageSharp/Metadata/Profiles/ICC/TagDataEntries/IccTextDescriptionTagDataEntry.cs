@@ -130,11 +130,11 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccTextDescriptionTagDataEntry other)
+    public bool Equals(IccTextDescriptionTagDataEntry? other)
     {
         if (other is null)
         {
@@ -155,7 +155,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccTextDescriptionTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />

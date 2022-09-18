@@ -132,7 +132,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     /// <param name="obj">The object to compare this <see cref="IptcValue"/> with.</param>
     /// <returns>True when the specified object is equal to the current <see cref="IptcValue"/>.</returns>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
         {

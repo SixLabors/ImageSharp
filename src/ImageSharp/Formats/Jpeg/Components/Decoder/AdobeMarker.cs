@@ -89,7 +89,7 @@ internal readonly struct AdobeMarker : IEquatable<AdobeMarker>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is AdobeMarker other && this.Equals(other);
     }

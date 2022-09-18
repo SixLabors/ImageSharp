@@ -33,11 +33,11 @@ internal sealed class IccSignatureTagDataEntry : IccTagDataEntry, IEquatable<Icc
     public string SignatureData { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccSignatureTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccSignatureTagDataEntry other)
+    public bool Equals(IccSignatureTagDataEntry? other)
     {
         if (other is null)
         {
@@ -54,7 +54,7 @@ internal sealed class IccSignatureTagDataEntry : IccTagDataEntry, IEquatable<Icc
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccSignatureTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />

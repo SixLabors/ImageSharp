@@ -60,11 +60,11 @@ internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataT
     public string AsciiString => this.IsAscii ? Encoding.ASCII.GetString(this.Data, 0, this.Data.Length) : null;
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccDataTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccDataTagDataEntry other)
+    public bool Equals(IccDataTagDataEntry? other)
     {
         if (other is null)
         {
@@ -80,7 +80,7 @@ internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataT
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccDataTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>

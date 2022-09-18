@@ -124,7 +124,7 @@ public readonly struct CieLchuv : IEquatable<CieLchuv>
     public override string ToString() => FormattableString.Invariant($"CieLchuv({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is CieLchuv other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is CieLchuv other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

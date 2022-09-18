@@ -92,7 +92,7 @@ public readonly struct Lms : IEquatable<Lms>
     public override string ToString() => FormattableString.Invariant($"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Lms other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Lms other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

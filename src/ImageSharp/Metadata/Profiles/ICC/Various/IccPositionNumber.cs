@@ -60,7 +60,7 @@ internal readonly struct IccPositionNumber : IEquatable<IccPositionNumber>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccPositionNumber other && this.Equals(other);
     }

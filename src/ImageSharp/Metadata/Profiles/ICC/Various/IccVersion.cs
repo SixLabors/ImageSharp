@@ -55,7 +55,7 @@ public readonly struct IccVersion : IEquatable<IccVersion>
         => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccVersion iccVersion && this.Equals(iccVersion);
 
     /// <inheritdoc/>

@@ -38,11 +38,11 @@ internal sealed class IccSampledCurveElement : IccCurveSegment, IEquatable<IccSa
     }
 
     /// <inheritdoc />
-    public bool Equals(IccSampledCurveElement other)
+    public bool Equals(IccSampledCurveElement? other)
         => this.Equals((IccCurveSegment)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccSampledCurveElement);
 
     /// <inheritdoc />

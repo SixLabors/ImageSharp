@@ -125,7 +125,7 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is TiffBitsPerSample sample && this.Equals(sample);
 
     /// <inheritdoc/>

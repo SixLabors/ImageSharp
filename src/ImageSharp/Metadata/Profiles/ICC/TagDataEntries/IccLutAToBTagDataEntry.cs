@@ -144,10 +144,10 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
     public IccTagDataEntry[] CurveA { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccLutAToBTagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccLutAToBTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccLutAToBTagDataEntry other)
+    public bool Equals(IccLutAToBTagDataEntry? other)
     {
         if (other is null)
         {
@@ -171,7 +171,7 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccLutAToBTagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccLutAToBTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

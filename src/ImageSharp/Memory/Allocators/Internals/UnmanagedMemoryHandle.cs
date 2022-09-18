@@ -123,7 +123,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
 
     public bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
 
-    public override bool Equals(object obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
 
     public override int GetHashCode() => this.handle.GetHashCode();
 }

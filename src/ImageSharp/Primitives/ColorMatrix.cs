@@ -390,7 +390,7 @@ public struct ColorMatrix : IEquatable<ColorMatrix>
     public static bool operator !=(ColorMatrix value1, ColorMatrix value2) => !value1.Equals(value2);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is ColorMatrix matrix && this.Equals(matrix);
+    public override bool Equals(object? obj) => obj is ColorMatrix matrix && this.Equals(matrix);
 
     /// <inheritdoc/>
     public bool Equals(ColorMatrix other) =>

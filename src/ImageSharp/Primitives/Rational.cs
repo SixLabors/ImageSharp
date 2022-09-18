@@ -122,7 +122,7 @@ public readonly struct Rational : IEquatable<Rational>
     public static Rational FromDouble(double value, bool bestPrecision) => new Rational(value, bestPrecision);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Rational other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Rational other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(Rational other)

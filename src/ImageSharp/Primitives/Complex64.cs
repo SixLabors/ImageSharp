@@ -77,7 +77,7 @@ internal readonly struct Complex64 : IEquatable<Complex64>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Complex64 other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Complex64 other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

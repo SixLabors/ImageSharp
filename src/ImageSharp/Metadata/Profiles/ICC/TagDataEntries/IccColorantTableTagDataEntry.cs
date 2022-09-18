@@ -39,10 +39,10 @@ internal sealed class IccColorantTableTagDataEntry : IccTagDataEntry, IEquatable
     public IccColorantTableEntry[] ColorantData { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccColorantTableTagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccColorantTableTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccColorantTableTagDataEntry other)
+    public bool Equals(IccColorantTableTagDataEntry? other)
     {
         if (other is null)
         {
@@ -58,7 +58,7 @@ internal sealed class IccColorantTableTagDataEntry : IccTagDataEntry, IEquatable
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccColorantTableTagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccColorantTableTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(this.Signature, this.ColorantData);

@@ -114,7 +114,7 @@ internal readonly struct ValueSize : IEquatable<ValueSize>
     public override string ToString() => $"{this.Value} - {this.Type}";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is ValueSize size && this.Equals(size);
     }

@@ -53,11 +53,11 @@ internal sealed class IccMultiProcessElementsTagDataEntry : IccTagDataEntry, IEq
     public IccMultiProcessElement[] Data { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccMultiProcessElementsTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccMultiProcessElementsTagDataEntry other)
+    public bool Equals(IccMultiProcessElementsTagDataEntry? other)
     {
         if (other is null)
         {
@@ -76,7 +76,7 @@ internal sealed class IccMultiProcessElementsTagDataEntry : IccTagDataEntry, IEq
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccMultiProcessElementsTagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccMultiProcessElementsTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

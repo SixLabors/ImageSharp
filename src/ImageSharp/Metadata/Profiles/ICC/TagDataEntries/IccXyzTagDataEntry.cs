@@ -45,11 +45,11 @@ internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTag
     }
 
     /// <inheritdoc />
-    public bool Equals(IccXyzTagDataEntry other)
+    public bool Equals(IccXyzTagDataEntry? other)
         => this.Equals((IccTagDataEntry)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccXyzTagDataEntry);
 
     public override int GetHashCode()

@@ -87,7 +87,7 @@ public readonly struct Hsv : IEquatable<Hsv>
     public override string ToString() => FormattableString.Invariant($"Hsv({this.H:#0.##}, {this.S:#0.##}, {this.V:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Hsv other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Hsv other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

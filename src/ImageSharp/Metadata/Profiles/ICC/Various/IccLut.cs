@@ -66,7 +66,7 @@ internal readonly struct IccLut : IEquatable<IccLut>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccLut iccLut && this.Equals(iccLut);
 
     /// <inheritdoc/>

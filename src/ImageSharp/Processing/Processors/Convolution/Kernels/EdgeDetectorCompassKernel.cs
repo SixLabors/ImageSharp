@@ -134,7 +134,7 @@ public readonly struct EdgeDetectorCompassKernel : IEquatable<EdgeDetectorCompas
         => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is EdgeDetectorCompassKernel kernel && this.Equals(kernel);
+    public override bool Equals(object? obj) => obj is EdgeDetectorCompassKernel kernel && this.Equals(kernel);
 
     /// <inheritdoc/>
     public bool Equals(EdgeDetectorCompassKernel other) => this.North.Equals(other.North) && this.NorthWest.Equals(other.NorthWest) && this.West.Equals(other.West) && this.SouthWest.Equals(other.SouthWest) && this.South.Equals(other.South) && this.SouthEast.Equals(other.SouthEast) && this.East.Equals(other.East) && this.NorthEast.Equals(other.NorthEast);

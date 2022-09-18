@@ -67,7 +67,7 @@ internal readonly struct IccTagTableEntry : IEquatable<IccTagTableEntry>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccTagTableEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccTagTableEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(IccTagTableEntry other) =>

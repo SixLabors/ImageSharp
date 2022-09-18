@@ -52,7 +52,7 @@ public abstract class RgbWorkingSpace
     public abstract float Compress(float channel);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null)
         {

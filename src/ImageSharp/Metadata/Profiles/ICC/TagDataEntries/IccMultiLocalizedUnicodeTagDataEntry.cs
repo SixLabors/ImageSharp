@@ -35,13 +35,13 @@ internal sealed class IccMultiLocalizedUnicodeTagDataEntry : IccTagDataEntry, IE
     public IccLocalizedString[] Texts { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccMultiLocalizedUnicodeTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
+    public bool Equals(IccMultiLocalizedUnicodeTagDataEntry? other)
     {
         if (other is null)
         {
@@ -57,7 +57,7 @@ internal sealed class IccMultiLocalizedUnicodeTagDataEntry : IccTagDataEntry, IE
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccMultiLocalizedUnicodeTagDataEntry other && this.Equals(other);
     }

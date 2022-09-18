@@ -38,13 +38,13 @@ internal sealed class IccColorantOrderTagDataEntry : IccTagDataEntry, IEquatable
     public byte[] ColorantNumber { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccColorantOrderTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccColorantOrderTagDataEntry other)
+    public bool Equals(IccColorantOrderTagDataEntry? other)
     {
         if (other is null)
         {
@@ -60,7 +60,7 @@ internal sealed class IccColorantOrderTagDataEntry : IccTagDataEntry, IEquatable
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccColorantOrderTagDataEntry other && this.Equals(other);
     }

@@ -86,7 +86,7 @@ internal sealed class IccFormulaCurveElement : IccCurveSegment, IEquatable<IccFo
     public bool Equals(IccFormulaCurveElement other) => this.Equals((IccCurveSegment)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals(obj as IccFormulaCurveElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccFormulaCurveElement);
 
     /// <inheritdoc />
     public override int GetHashCode()

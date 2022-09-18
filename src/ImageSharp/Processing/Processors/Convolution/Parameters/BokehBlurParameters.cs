@@ -36,7 +36,7 @@ internal readonly struct BokehBlurParameters : IEquatable<BokehBlurParameters>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is BokehBlurParameters other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is BokehBlurParameters other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -32,11 +32,11 @@ internal sealed class IccTextTagDataEntry : IccTagDataEntry, IEquatable<IccTextT
     public string Text { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccTextTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccTextTagDataEntry other)
+    public bool Equals(IccTextTagDataEntry? other)
     {
         if (other is null)
         {
@@ -52,7 +52,7 @@ internal sealed class IccTextTagDataEntry : IccTagDataEntry, IEquatable<IccTextT
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccTextTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />

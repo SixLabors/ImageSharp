@@ -68,7 +68,7 @@ public readonly struct RowInterval : IEquatable<RowInterval>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return !ReferenceEquals(null, obj) && obj is RowInterval other && this.Equals(other);
     }

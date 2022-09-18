@@ -76,7 +76,7 @@ internal readonly struct IccScreeningChannel : IEquatable<IccScreeningChannel>
         this.SpotShape == other.SpotShape;
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccScreeningChannel other && this.Equals(other);
     }

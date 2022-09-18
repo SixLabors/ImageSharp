@@ -33,7 +33,7 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     public static bool operator !=(ExifTag left, ExifTag right) => !Equals(left, right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is ExifTag value)
         {

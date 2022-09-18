@@ -83,7 +83,7 @@ internal readonly struct IccColorantTableEntry : IEquatable<IccColorantTableEntr
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccColorantTableEntry other && this.Equals(other);
     }

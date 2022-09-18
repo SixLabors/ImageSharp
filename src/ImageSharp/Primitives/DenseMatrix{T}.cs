@@ -248,7 +248,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is DenseMatrix<T> other && this.Equals(other);
 
     /// <inheritdoc/>

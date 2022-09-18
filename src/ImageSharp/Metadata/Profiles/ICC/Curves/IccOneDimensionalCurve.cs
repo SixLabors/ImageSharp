@@ -53,7 +53,7 @@ internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccOneDimensionalCurve);
 
     /// <inheritdoc />

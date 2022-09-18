@@ -34,13 +34,13 @@ internal sealed class IccUInt32ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     public uint[] Data { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccUInt32ArrayTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccUInt32ArrayTagDataEntry other)
+    public bool Equals(IccUInt32ArrayTagDataEntry? other)
     {
         if (other is null)
         {
@@ -56,7 +56,7 @@ internal sealed class IccUInt32ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccUInt32ArrayTagDataEntry other && this.Equals(other);
     }

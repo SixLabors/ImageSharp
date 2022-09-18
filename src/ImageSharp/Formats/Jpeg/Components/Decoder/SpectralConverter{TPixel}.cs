@@ -27,34 +27,34 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// </summary>
     private readonly Configuration configuration;
 
-    private JpegFrame frame;
+    private JpegFrame frame = null!;
 
-    private IRawJpegData jpegData;
+    private IRawJpegData jpegData = null!;
 
     /// <summary>
     /// Jpeg component converters from decompressed spectral to color data.
     /// </summary>
-    private ComponentProcessor[] componentProcessors;
+    private ComponentProcessor[] componentProcessors = null!;
 
     /// <summary>
     /// Color converter from jpeg color space to target pixel color space.
     /// </summary>
-    private JpegColorConverterBase colorConverter;
+    private JpegColorConverterBase colorConverter = null!;
 
     /// <summary>
     /// Intermediate buffer of RGB components used in color conversion.
     /// </summary>
-    private IMemoryOwner<byte> rgbBuffer;
+    private IMemoryOwner<byte> rgbBuffer = null!;
 
     /// <summary>
     /// Proxy buffer used in packing from RGB to target TPixel pixels.
     /// </summary>
-    private IMemoryOwner<TPixel> paddedProxyPixelRow;
+    private IMemoryOwner<TPixel> paddedProxyPixelRow = null!;
 
     /// <summary>
     /// Resulting 2D pixel buffer.
     /// </summary>
-    private Buffer2D<TPixel> pixelBuffer;
+    private Buffer2D<TPixel>? pixelBuffer;
 
     /// <summary>
     /// How many pixel rows are processed in one 'stride'.
@@ -95,11 +95,13 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// </remarks>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Pixel buffer.</returns>
-    public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
+    public Buffer2D<TPixel>? GetPixelBuffer(CancellationToken cancellationToken)
     {
         if (!this.Converted)
         {
             this.PrepareForDecoding();
+
+            ArgumentNullException.ThrowIfNull(this.pixelBuffer);
 
             int steps = (int)Math.Ceiling(this.pixelBuffer.Height / (float)this.pixelRowsPerStep);
 
@@ -110,7 +112,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             }
         }
 
-        Buffer2D<TPixel> buffer = this.pixelBuffer;
+        Buffer2D<TPixel>? buffer = this.pixelBuffer;
         this.pixelBuffer = null;
         return buffer;
     }
@@ -121,6 +123,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// <param name="spectralStep">Spectral stride index.</param>
     private void ConvertStride(int spectralStep)
     {
+        ArgumentNullException.ThrowIfNull(this.pixelBuffer);
+
         int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
         for (int i = 0; i < this.componentProcessors.Length; i++)
@@ -187,6 +191,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
 
         // iteration data
+        ArgumentNullException.ThrowIfNull(this.frame.Components);
+
         int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);
         int majorVerticalSamplingFactor = this.frame.Components.Max((component) => component.SamplingFactors.Height);
 
@@ -226,6 +232,9 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)
     {
         MemoryAllocator allocator = this.configuration.MemoryAllocator;
+
+        ArgumentNullException.ThrowIfNull(frame.Components);
+
         var componentProcessors = new ComponentProcessor[frame.Components.Length];
         for (int i = 0; i < componentProcessors.Length; i++)
         {

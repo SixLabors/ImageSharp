@@ -177,7 +177,7 @@ internal class HuffmanScanEncoder
             converter.ConvertStrideBaseline();
 
             // Encode spectral to binary
-            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
+            Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(y: 0);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
             for (nint k = 0; k < w; k++)
@@ -216,7 +216,7 @@ internal class HuffmanScanEncoder
             cancellationToken.ThrowIfCancellationRequested();
 
             // Encode spectral to binary
-            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
+            Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(y: i);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
             for (nint k = 0; k < w; k++)
@@ -278,7 +278,7 @@ internal class HuffmanScanEncoder
                     // by the basic H and V specified for the component
                     for (int y = 0; y < v; y++)
                     {
-                        Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
+                        Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(y);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                         for (nint x = 0; x < h; x++)
@@ -329,9 +329,9 @@ internal class HuffmanScanEncoder
         ref HuffmanLut c2dcHuffmanTable = ref this.dcHuffmanTables[c2.DcTableId];
         ref HuffmanLut c2acHuffmanTable = ref this.acHuffmanTables[c2.AcTableId];
 
-        ref Block8x8 c0BlockRef = ref MemoryMarshal.GetReference(c0.SpectralBlocks.DangerousGetRowSpan(y: 0));
-        ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks.DangerousGetRowSpan(y: 0));
-        ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks.DangerousGetRowSpan(y: 0));
+        ref Block8x8 c0BlockRef = ref MemoryMarshal.GetReference(c0.SpectralBlocks!.DangerousGetRowSpan(y: 0));
+        ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks!.DangerousGetRowSpan(y: 0));
+        ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks!.DangerousGetRowSpan(y: 0));
 
         for (nint j = 0; j < mcusPerColumn; j++)
         {

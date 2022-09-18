@@ -58,7 +58,7 @@ internal interface IJpegComponent
     /// Gets the <see cref="Buffer2D{Block8x8}"/> storing the "raw" frequency-domain decoded + unzigged blocks.
     /// We need to apply IDCT and dequantization to transform them into color-space blocks.
     /// </summary>
-    Buffer2D<Block8x8> SpectralBlocks { get; }
+    Buffer2D<Block8x8>? SpectralBlocks { get; }
 
     /// <summary>
     /// Gets or sets DC coefficient predictor.

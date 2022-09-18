@@ -73,18 +73,18 @@ internal sealed class JpegFrame : IDisposable
     /// <summary>
     /// Gets or sets the component id collection.
     /// </summary>
-    public byte[] ComponentIds { get; set; }
+    public byte[] ComponentIds { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the order in which to process the components.
     /// in interleaved mode.
     /// </summary>
-    public byte[] ComponentOrder { get; set; }
+    public byte[] ComponentOrder { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the frame component collection.
     /// </summary>
-    public JpegComponent[] Components { get; set; }
+    public JpegComponent[]? Components { get; set; }
 
     /// <summary>
     /// Gets or sets the number of MCU's per line.
@@ -132,8 +132,8 @@ internal sealed class JpegFrame : IDisposable
 
         for (int i = 0; i < this.ComponentCount; i++)
         {
-            IJpegComponent component = this.Components[i];
-            component.Init(maxSubFactorH, maxSubFactorV);
+            IJpegComponent? component = this.Components?[i];
+            component?.Init(maxSubFactorH, maxSubFactorV);
         }
     }
 
@@ -142,8 +142,8 @@ internal sealed class JpegFrame : IDisposable
         bool fullScan = this.Progressive || !this.Interleaved;
         for (int i = 0; i < this.ComponentCount; i++)
         {
-            IJpegComponent component = this.Components[i];
-            component.AllocateSpectral(fullScan);
+            IJpegComponent? component = this.Components?[i];
+            component?.AllocateSpectral(fullScan);
         }
     }
 }

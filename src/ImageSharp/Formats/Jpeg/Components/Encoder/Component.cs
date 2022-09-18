@@ -38,7 +38,7 @@ internal class Component : IDisposable
     /// </summary>
     public int VerticalSamplingFactor { get; }
 
-    public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
+    public Buffer2D<Block8x8>? SpectralBlocks { get; private set; }
 
     public Size SubSamplingDivisors { get; private set; }
 

@@ -19,7 +19,7 @@ internal interface IImageDecoderInternals
     /// <summary>
     /// Gets the dimensions of the image being decoded.
     /// </summary>
-    Size Dimensions { get; }
+    Size? Dimensions { get; }
 
     /// <summary>
     /// Decodes the image from the specified stream.

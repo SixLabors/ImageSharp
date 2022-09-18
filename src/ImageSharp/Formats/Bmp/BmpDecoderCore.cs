@@ -119,7 +119,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc />
-    public Size Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
+    public Size? Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
 
     /// <inheritdoc />
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

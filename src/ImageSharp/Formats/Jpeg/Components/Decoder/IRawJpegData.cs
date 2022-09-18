@@ -16,7 +16,7 @@ internal interface IRawJpegData : IDisposable
     /// <summary>
     /// Gets the components.
     /// </summary>
-    JpegComponent[] Components { get; }
+    JpegComponent[]? Components { get; }
 
     /// <summary>
     /// Gets the quantization tables, in natural order.

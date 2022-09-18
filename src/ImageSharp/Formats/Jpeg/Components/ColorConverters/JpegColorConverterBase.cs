@@ -71,7 +71,7 @@ internal abstract partial class JpegColorConverterBase
     /// <exception cref="InvalidImageContentException">Invalid colorspace.</exception>
     public static JpegColorConverterBase GetConverter(JpegColorSpace colorSpace, int precision)
     {
-        JpegColorConverterBase converter = Array.Find(
+        JpegColorConverterBase? converter = Array.Find(
             Converters,
             c => c.ColorSpace == colorSpace
             && c.Precision == precision);

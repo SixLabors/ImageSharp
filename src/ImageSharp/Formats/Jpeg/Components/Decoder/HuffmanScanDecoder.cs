@@ -19,12 +19,12 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <summary>
     /// <see cref="JpegFrame"/> instance containing decoding-related information.
     /// </summary>
-    private JpegFrame frame;
+    private JpegFrame frame = null!;
 
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
     /// </summary>
-    private IJpegComponent[] components;
+    private IJpegComponent[] components = null!;
 
     /// <summary>
     /// Number of component in the current scan.
@@ -58,7 +58,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private JpegBitReader scanBuffer;
 
-    private readonly SpectralConverter spectralConverter;
+    private readonly SpectralConverter? spectralConverter;
 
     private readonly CancellationToken cancellationToken;
 
@@ -70,7 +70,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
     public HuffmanScanDecoder(
         BufferedReadStream stream,
-        SpectralConverter converter,
+        SpectralConverter? converter,
         CancellationToken cancellationToken)
     {
         this.stream = stream;
@@ -139,22 +139,22 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         this.frame = frame;
         this.components = frame.Components;
 
-        this.spectralConverter.InjectFrameData(frame, jpegData);
+        this.spectralConverter?.InjectFrameData(frame, jpegData);
     }
 
     private void ParseBaselineData()
     {
         if (this.scanComponentCount != 1)
         {
-            this.spectralConverter.PrepareForDecoding();
+            this.spectralConverter?.PrepareForDecoding();
             this.ParseBaselineDataInterleaved();
-            this.spectralConverter.CommitConversion();
+            this.spectralConverter?.CommitConversion();
         }
         else if (this.frame.ComponentCount == 1)
         {
-            this.spectralConverter.PrepareForDecoding();
+            this.spectralConverter?.PrepareForDecoding();
             this.ParseBaselineDataSingleComponent();
-            this.spectralConverter.CommitConversion();
+            this.spectralConverter?.CommitConversion();
         }
         else
         {
@@ -181,7 +181,9 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent? component = this.components[order] as JpegComponent;
+
+                    ArgumentNullException.ThrowIfNull(component);
 
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
@@ -202,7 +204,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                             {
                                 // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                                 // so we need to decode what's left and return (or maybe throw?)
-                                this.spectralConverter.ConvertStrideBaseline();
+                                this.spectralConverter?.ConvertStrideBaseline();
                                 return;
                             }
 
@@ -224,14 +226,16 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter?.ConvertStrideBaseline();
         }
     }
 
     private void ParseBaselineDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent? component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
+
+        ArgumentNullException.ThrowIfNull(component);
 
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;
@@ -290,7 +294,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     {
                         // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                         // so we need to decode what's left and return (or maybe throw?)
-                        this.spectralConverter.ConvertStrideBaseline();
+                        this.spectralConverter?.ConvertStrideBaseline();
                         return;
                     }
 
@@ -305,7 +309,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter?.ConvertStrideBaseline();
         }
     }
 
@@ -391,7 +395,10 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent? component = this.components[order] as JpegComponent;
+
+                    ArgumentNullException.ThrowIfNull(component);
+
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
@@ -432,8 +439,10 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent? component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
+
+        ArgumentNullException.ThrowIfNull(component);
 
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;

@@ -49,7 +49,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains exif data.
     /// </summary>
-    private byte[] exifData;
+    private byte[] exifData = null!;
 
     /// <summary>
     /// Whether the image has an ICC marker.
@@ -59,7 +59,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains ICC data.
     /// </summary>
-    private byte[] iccData;
+    private byte[] iccData = null!;
 
     /// <summary>
     /// Whether the image has a IPTC data.
@@ -69,7 +69,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains IPTC data.
     /// </summary>
-    private byte[] iptcData;
+    private byte[] iptcData = null!;
 
     /// <summary>
     /// Whether the image has a XMP data.
@@ -79,7 +79,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains XMP data.
     /// </summary>
-    private byte[] xmpData;
+    private byte[] xmpData = null!;
 
     /// <summary>
     /// Whether the image has a APP14 adobe marker. This is needed to determine image encoded colorspace.
@@ -99,12 +99,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Scan decoder.
     /// </summary>
-    private IJpegScanDecoder scanDecoder;
+    private IJpegScanDecoder? scanDecoder;
 
     /// <summary>
     /// The arithmetic decoding tables.
     /// </summary>
-    private List<ArithmeticDecodingTable> arithmeticDecodingTables;
+    private List<ArithmeticDecodingTable> arithmeticDecodingTables = null!;
 
     /// <summary>
     /// The restart interval.
@@ -142,17 +142,17 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => this.Frame.PixelSize;
+    public Size? Dimensions => this.Frame?.PixelSize;
 
     /// <summary>
     /// Gets the frame
     /// </summary>
-    public JpegFrame Frame { get; private set; }
+    public JpegFrame? Frame { get; private set; }
 
     /// <summary>
     /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    public ImageMetadata Metadata { get; private set; }
+    public ImageMetadata Metadata { get; private set; } = null!;
 
     /// <inheritdoc/>
     public JpegColorSpace ColorSpace { get; private set; }
@@ -160,13 +160,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Gets the components.
     /// </summary>
-    public JpegComponent[] Components => this.Frame.Components;
+    public JpegComponent[]? Components => this.Frame?.Components;
 
     /// <inheritdoc/>
-    JpegComponent[] IRawJpegData.Components => this.Components;
+    JpegComponent[]? IRawJpegData.Components => this.Components;
 
     /// <inheritdoc/>
-    public Block8x8F[] QuantizationTables { get; private set; }
+    public Block8x8F[] QuantizationTables { get; private set; } = null!;
 
     /// <summary>
     /// Finds the next file marker within the byte stream.
@@ -233,7 +233,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
-        Size pixelSize = this.Frame.PixelSize;
+        Size pixelSize = this.Frame!.PixelSize;
         return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
     }
 
@@ -320,7 +320,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <param name="stream">The input stream.</param>
     /// <param name="spectralConverter">The spectral converter to use.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    internal void ParseStream(BufferedReadStream stream, SpectralConverter spectralConverter, CancellationToken cancellationToken)
+    internal void ParseStream(BufferedReadStream stream, SpectralConverter? spectralConverter, CancellationToken cancellationToken)
     {
         bool metadataOnly = spectralConverter == null;
 
@@ -494,7 +494,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             fileMarker = FindNextFileMarker(stream);
         }
 
-        this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
+        this.Metadata.GetJpegMetadata().Interleaved = this.Frame?.Interleaved;
     }
 
     /// <inheritdoc/>
@@ -585,31 +585,31 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 return JpegEncodingColor.Rgb;
 
             case JpegColorSpace.YCbCr:
-                if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                if (this.Frame?.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio444;
                 }
-                else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio422;
                 }
-                else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio420;
                 }
-                else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio411;
                 }
-                else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
@@ -1280,7 +1280,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         if (!metadataOnly)
         {
             this.Frame.Init(maxH, maxV);
-            this.scanDecoder.InjectFrameData(this.Frame, this);
+            this.scanDecoder?.InjectFrameData(this.Frame, this);
         }
     }
 
@@ -1296,7 +1296,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         const int codeValuesMaxByteSize = 256;
         const int totalBufferSize = codeLengthsByteSize + codeValuesMaxByteSize + HuffmanTable.WorkspaceByteSize;
 
-        HuffmanScanDecoder huffmanScanDecoder = this.scanDecoder as HuffmanScanDecoder;
+        HuffmanScanDecoder? huffmanScanDecoder = this.scanDecoder as HuffmanScanDecoder;
         if (huffmanScanDecoder is null)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("missing huffman table data");
@@ -1396,7 +1396,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         int selectorsCount = stream.ReadByte();
 
         // Validate: 0 < count <= totalComponents
-        if (selectorsCount == 0 || selectorsCount > this.Frame.ComponentCount)
+        if (selectorsCount == 0 || selectorsCount > this.Frame?.ComponentCount)
         {
             // TODO: extract as separate method?
             JpegThrowHelper.ThrowInvalidImageContentException($"Invalid number of components in scan: {selectorsCount}.");
@@ -1412,7 +1412,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         // selectorsCount*2 bytes: component index + huffman tables indices
         stream.Read(this.temp, 0, selectorsBytes);
 
-        this.Frame.Interleaved = this.Frame.ComponentCount == selectorsCount;
+        this.Frame!.Interleaved = this.Frame.ComponentCount == selectorsCount;
         for (int i = 0; i < selectorsBytes; i += 2)
         {
             // 1 byte: Component id
@@ -1465,7 +1465,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read progressive scan decoding data");
         }
 
-        this.scanDecoder.SpectralStart = this.temp[0];
+        this.scanDecoder!.SpectralStart = this.temp[0];
 
         this.scanDecoder.SpectralEnd = this.temp[1];
 

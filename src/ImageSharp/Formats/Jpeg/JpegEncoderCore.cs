@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -34,7 +36,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The output stream. All attempted writes after the first error become no-ops.
     /// </summary>
-    private Stream outputStream;
+    private Stream outputStream = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
@@ -399,7 +401,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if any of the ICC profiles size exceeds the limit.
     /// </exception>
-    private void WriteIccProfile(IccProfile iccProfile)
+    private void WriteIccProfile(IccProfile? iccProfile)
     {
         if (iccProfile is null)
         {
@@ -697,7 +699,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
         JpegEncodingColor color = this.options.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
-        JpegFrameConfig frameConfig = Array.Find(
+        JpegFrameConfig? frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);
 

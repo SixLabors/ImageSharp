@@ -100,7 +100,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc />
-    public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
+    public Size? Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
     /// <inheritdoc />
     public Image<TPixel>? Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

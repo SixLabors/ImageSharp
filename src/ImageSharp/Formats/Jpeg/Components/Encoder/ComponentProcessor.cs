@@ -41,7 +41,7 @@ internal class ComponentProcessor : IDisposable
 
     public void CopyColorBufferToBlocks(int spectralStep)
     {
-        Buffer2D<Block8x8> spectralBuffer = this.component.SpectralBlocks;
+        Buffer2D<Block8x8>? spectralBuffer = this.component.SpectralBlocks;
         int destAreaStride = this.ColorBuffer.Width;
         int yBlockStart = spectralStep * this.component.SamplingFactors.Height;
 
@@ -60,7 +60,7 @@ internal class ComponentProcessor : IDisposable
         {
             int yBuffer = y * this.blockAreaSize.Height;
             Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
-            Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
+            Span<Block8x8> blockRow = spectralBuffer!.DangerousGetRowSpan(yBlockStart + y);
             for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
             {
                 // load 8x8 block from 8 pixel strides

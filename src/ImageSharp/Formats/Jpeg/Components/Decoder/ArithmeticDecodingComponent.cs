@@ -20,10 +20,10 @@ internal class ArithmeticDecodingComponent : JpegComponent
     /// <summary>
     /// Gets or sets the dc statistics.
     /// </summary>
-    public ArithmeticStatistics DcStatistics { get; set; }
+    public ArithmeticStatistics? DcStatistics { get; set; }
 
     /// <summary>
     /// Gets or sets the ac statistics.
     /// </summary>
-    public ArithmeticStatistics AcStatistics { get; set; }
+    public ArithmeticStatistics? AcStatistics { get; set; }
 }

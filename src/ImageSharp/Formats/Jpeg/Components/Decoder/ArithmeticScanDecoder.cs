@@ -22,12 +22,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <summary>
     /// <see cref="JpegFrame"/> instance containing decoding-related information.
     /// </summary>
-    private JpegFrame frame;
+    private JpegFrame frame = null!;
 
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
     /// </summary>
-    private IJpegComponent[] components;
+    private IJpegComponent[] components = null!;
 
     /// <summary>
     /// Number of component in the current scan.
@@ -44,13 +44,13 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// </summary>
     private int todo;
 
-    private readonly SpectralConverter spectralConverter;
+    private readonly SpectralConverter? spectralConverter;
 
     private JpegBitReader scanBuffer;
 
-    private ArithmeticDecodingTable[] dcDecodingTables;
+    private ArithmeticDecodingTable?[] dcDecodingTables = null!;
 
-    private ArithmeticDecodingTable[] acDecodingTables;
+    private ArithmeticDecodingTable?[] acDecodingTables = null!;
 
     private readonly byte[] fixedBin = { 113, 0, 0, 0 };
 
@@ -185,7 +185,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <param name="stream">The input stream.</param>
     /// <param name="converter">Spectral to pixel converter.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    public ArithmeticScanDecoder(BufferedReadStream stream, SpectralConverter converter, CancellationToken cancellationToken)
+    public ArithmeticScanDecoder(BufferedReadStream stream, SpectralConverter? converter, CancellationToken cancellationToken)
     {
         this.stream = stream;
         this.spectralConverter = converter;
@@ -222,7 +222,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     {
         for (int i = 0; i < this.components.Length; i++)
         {
-            ArithmeticDecodingComponent component = this.components[i] as ArithmeticDecodingComponent;
+            ArithmeticDecodingComponent? component = this.components[i] as ArithmeticDecodingComponent;
+
+            ArgumentNullException.ThrowIfNull(component);
+
             this.dcDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
             component.DcStatistics = this.CreateOrGetStatisticsBin(true, component.DcTableId);
             this.acDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, false, component.AcTableId);
@@ -270,10 +273,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         this.dcDecodingTables = new ArithmeticDecodingTable[this.components.Length];
         this.acDecodingTables = new ArithmeticDecodingTable[this.components.Length];
 
-        this.spectralConverter.InjectFrameData(frame, jpegData);
+        this.spectralConverter?.InjectFrameData(frame, jpegData);
     }
 
-    private static ArithmeticDecodingTable GetArithmeticTable(List<ArithmeticDecodingTable> arithmeticDecodingTables, bool isDcTable, int identifier)
+    private static ArithmeticDecodingTable? GetArithmeticTable(List<ArithmeticDecodingTable> arithmeticDecodingTables, bool isDcTable, int identifier)
     {
         int tableClass = isDcTable ? 0 : 1;
 
@@ -323,15 +326,15 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         if (this.scanComponentCount != 1)
         {
-            this.spectralConverter.PrepareForDecoding();
+            this.spectralConverter?.PrepareForDecoding();
             this.ParseBaselineDataInterleaved();
-            this.spectralConverter.CommitConversion();
+            this.spectralConverter?.CommitConversion();
         }
         else if (this.frame.ComponentCount == 1)
         {
-            this.spectralConverter.PrepareForDecoding();
+            this.spectralConverter?.PrepareForDecoding();
             this.ParseBaselineDataSingleComponent();
-            this.spectralConverter.CommitConversion();
+            this.spectralConverter?.CommitConversion();
         }
         else
         {
@@ -439,10 +442,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    ArithmeticDecodingComponent component = this.components[order] as ArithmeticDecodingComponent;
+                    ArithmeticDecodingComponent? component = this.components[order] as ArithmeticDecodingComponent;
 
-                    ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
-                    ref ArithmeticDecodingTable acDecodingTable = ref this.acDecodingTables[component.AcTableId];
+                    ArgumentNullException.ThrowIfNull(component);
+
+                    ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
+                    ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
 
                     int h = component.HorizontalSamplingFactor;
                     int v = component.VerticalSamplingFactor;
@@ -461,7 +466,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                             {
                                 // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                                 // so we need to decode what's left and return (or maybe throw?)
-                                this.spectralConverter.ConvertStrideBaseline();
+                                this.spectralConverter?.ConvertStrideBaseline();
                                 return;
                             }
 
@@ -483,18 +488,21 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter.
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter?.ConvertStrideBaseline();
         }
     }
 
     private void ParseBaselineDataSingleComponent()
     {
-        ArithmeticDecodingComponent component = this.frame.Components[0] as ArithmeticDecodingComponent;
+        ArithmeticDecodingComponent? component = this.frame.Components[0] as ArithmeticDecodingComponent;
+
+        ArgumentNullException.ThrowIfNull(component);
+
         int mcuLines = this.frame.McusPerColumn;
         int w = component.WidthInBlocks;
         int h = component.SamplingFactors.Height;
-        ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
-        ref ArithmeticDecodingTable acDecodingTable = ref this.acDecodingTables[component.AcTableId];
+        ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
+        ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
 
         ref JpegBitReader reader = ref this.scanBuffer;
 
@@ -514,7 +522,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     {
                         // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                         // so we need to decode what's left and return (or maybe throw?)
-                        this.spectralConverter.ConvertStrideBaseline();
+                        this.spectralConverter?.ConvertStrideBaseline();
                         return;
                     }
 
@@ -529,7 +537,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter.
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter?.ConvertStrideBaseline();
         }
     }
 
@@ -541,8 +549,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;
 
-        ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
-        ref ArithmeticDecodingTable acDecodingTable = ref this.acDecodingTables[component.AcTableId];
+        ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
+        ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
 
         for (int j = 0; j < h; j++)
         {
@@ -584,8 +592,11 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    ArithmeticDecodingComponent component = this.components[order] as ArithmeticDecodingComponent;
-                    ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
+                    ArithmeticDecodingComponent? component = this.components[order] as ArithmeticDecodingComponent;
+
+                    ArgumentNullException.ThrowIfNull(component);
+
+                    ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
                     int v = component.VerticalSamplingFactor;
@@ -626,15 +637,17 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        ArithmeticDecodingComponent component = this.components[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
+        ArithmeticDecodingComponent? component = this.components[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
         ref JpegBitReader reader = ref this.scanBuffer;
+
+        ArgumentNullException.ThrowIfNull(component);
 
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;
 
         if (this.SpectralStart == 0)
         {
-            ref ArithmeticDecodingTable dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
+            ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
 
             for (int j = 0; j < h; j++)
             {
@@ -661,7 +674,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
         else
         {
-            ref ArithmeticDecodingTable acDecodingTable = ref this.acDecodingTables[component.AcTableId];
+            ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
 
             for (int j = 0; j < h; j++)
             {
@@ -688,7 +701,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void DecodeBlockProgressiveDc(ArithmeticDecodingComponent component, ref Block8x8 block, ref ArithmeticDecodingTable dcTable)
+    private void DecodeBlockProgressiveDc(ArithmeticDecodingComponent component, ref Block8x8 block, ref ArithmeticDecodingTable? dcTable)
     {
         if (dcTable == null)
         {
@@ -704,7 +717,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
             // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-            ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+            ref byte st = ref Unsafe.Add(ref component.DcStatistics!.GetReference(), component.DcContext);
 
             // Figure F.19: Decode_DC_DIFF
             if (this.DecodeBinaryDecision(ref reader, ref st) == 0)
@@ -735,7 +748,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 }
 
                 // Section F.1.4.4.1.2: Establish dc_context conditioning category.
-                if (m < (int)((1L << dcTable.DcL) >> 1))
+                if (m < (int)((1L << dcTable!.DcL) >> 1))
                 {
                     component.DcContext = 0; // Zero diff category.
                 }
@@ -780,12 +793,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void DecodeBlockProgressiveAc(ArithmeticDecodingComponent component, ref Block8x8 block, ref ArithmeticDecodingTable acTable)
+    private void DecodeBlockProgressiveAc(ArithmeticDecodingComponent component, ref Block8x8 block, ref ArithmeticDecodingTable? acTable)
     {
         ref JpegBitReader reader = ref this.scanBuffer;
         ref short blockDataRef = ref Unsafe.As<Block8x8, short>(ref block);
 
-        ArithmeticStatistics acStatistics = component.AcStatistics;
+        ArithmeticStatistics? acStatistics = component.AcStatistics;
         if (acStatistics == null || acTable == null)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("AC table is missing");
@@ -802,7 +815,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
             for (int k = start; k <= end; k++)
             {
-                ref byte st = ref acStatistics.GetReference(3 * (k - 1));
+                ref byte st = ref acStatistics!.GetReference(3 * (k - 1));
                 if (this.DecodeBinaryDecision(ref reader, ref st) != 0)
                 {
                     break;
@@ -830,7 +843,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     if (this.DecodeBinaryDecision(ref reader, ref st) != 0)
                     {
                         m <<= 1;
-                        st = ref acStatistics.GetReference(k <= acTable.AcKx ? 189 : 217);
+                        st = ref acStatistics.GetReference(k <= acTable!.AcKx ? 189 : 217);
                         while (this.DecodeBinaryDecision(ref reader, ref st) != 0)
                         {
                             if ((m <<= 1) == 0x8000)
@@ -871,7 +884,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void ReadBlockProgressiveAcRefined(ArithmeticStatistics acStatistics, ref short blockDataRef)
+    private void ReadBlockProgressiveAcRefined(ArithmeticStatistics? acStatistics, ref short blockDataRef)
     {
         ref JpegBitReader reader = ref this.scanBuffer;
         int start = this.SpectralStart;
@@ -892,7 +905,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         for (int k = start; k <= end; k++)
         {
-            ref byte st = ref acStatistics.GetReference(3 * (k - 1));
+            ref byte st = ref acStatistics!.GetReference(3 * (k - 1));
             if (k > kex)
             {
                 if (this.DecodeBinaryDecision(ref reader, ref st) != 0)
@@ -935,8 +948,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private void DecodeBlockBaseline(
         ArithmeticDecodingComponent component,
         ref Block8x8 destinationBlock,
-        ref ArithmeticDecodingTable acTable,
-        ref ArithmeticDecodingTable dcTable)
+        ref ArithmeticDecodingTable? acTable,
+        ref ArithmeticDecodingTable? dcTable)
     {
         if (acTable is null)
         {
@@ -954,7 +967,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
         // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-        ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+        ref byte st = ref Unsafe.Add(ref component.DcStatistics!.GetReference(), component.DcContext);
 
         /* Figure F.19: Decode_DC_DIFF */
         if (this.DecodeBinaryDecision(ref reader, ref st) == 0)
@@ -986,7 +999,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
 
             // Section F.1.4.4.1.2: Establish dc_context conditioning category.
-            if (m < (int)((1L << dcTable.DcL) >> 1))
+            if (m < (int)((1L << dcTable!.DcL) >> 1))
             {
                 component.DcContext = 0; // zero diff category
             }
@@ -1023,11 +1036,11 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         destinationRef = (short)component.DcPredictor;
 
         // Sections F.2.4.2 & F.1.4.4.2: Decoding of AC coefficients.
-        ArithmeticStatistics acStatistics = component.AcStatistics;
+        ArithmeticStatistics? acStatistics = component.AcStatistics;
 
         for (int k = 1; k <= 63; k++)
         {
-            st = ref acStatistics.GetReference(3 * (k - 1));
+            st = ref acStatistics!.GetReference(3 * (k - 1));
             if (this.DecodeBinaryDecision(ref reader, ref st) != 0)
             {
                 // EOB flag.
@@ -1056,7 +1069,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 if (this.DecodeBinaryDecision(ref reader, ref st) != 0)
                 {
                     m <<= 1;
-                    st = ref acStatistics.GetReference(k <= acTable.AcKx ? 189 : 217);
+                    st = ref acStatistics.GetReference(k <= acTable!.AcKx ? 189 : 217);
                     while (this.DecodeBinaryDecision(ref reader, ref st) != 0)
                     {
                         if ((m <<= 1) == 0x8000)
@@ -1138,7 +1151,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     {
         for (int i = 0; i < this.components.Length; i++)
         {
-            ArithmeticDecodingComponent component = this.components[i] as ArithmeticDecodingComponent;
+            ArithmeticDecodingComponent? component = this.components[i] as ArithmeticDecodingComponent;
+
+            ArgumentNullException.ThrowIfNull(component);
+
             component.DcPredictor = 0;
         }
 

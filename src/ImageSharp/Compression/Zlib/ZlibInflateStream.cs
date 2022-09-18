@@ -89,7 +89,7 @@ internal sealed class ZlibInflateStream : Stream
     /// <summary>
     /// Gets the compressed stream over the deframed inner stream.
     /// </summary>
-    public DeflateStream CompressedStream { get; private set; }
+    public DeflateStream? CompressedStream { get; private set; }
 
     /// <summary>
     /// Adds new bytes from a frame found in the original stream.

@@ -171,8 +171,6 @@ internal sealed class ZlibDeflateStream : Stream
             this.rawStream.WriteByte((byte)(crc & 0xFF));
         }
 
-        this.deflateStream = null;
-
         base.Dispose(disposing);
         this.isDisposed = true;
     }

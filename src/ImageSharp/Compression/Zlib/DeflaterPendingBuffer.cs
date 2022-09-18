@@ -179,7 +179,6 @@ internal sealed unsafe class DeflaterPendingBuffer : IDisposable
         {
             this.bufferMemoryHandle.Dispose();
             this.bufferMemoryOwner.Dispose();
-            this.bufferMemoryOwner = null;
             this.isDisposed = true;
         }
     }

@@ -136,8 +136,6 @@ internal sealed class DeflaterOutputStream : Stream
                 this.memoryOwner.Dispose();
             }
 
-            this.deflater = null;
-            this.memoryOwner = null;
             this.isDisposed = true;
             base.Dispose(disposing);
         }

@@ -426,10 +426,6 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
             this.blTree.Dispose();
             this.distTree.Dispose();
 
-            this.Pending = null;
-            this.literalTree = null;
-            this.blTree = null;
-            this.distTree = null;
             this.isDisposed = true;
         }
     }
@@ -975,10 +971,6 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
                 this.codesMemoryHandle.Dispose();
                 this.codesMemoryOwner.Dispose();
-
-                this.frequenciesMemoryOwner = null;
-                this.lengthsMemoryOwner = null;
-                this.codesMemoryOwner = null;
 
                 this.isDisposed = true;
             }

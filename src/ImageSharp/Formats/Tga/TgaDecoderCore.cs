@@ -28,12 +28,12 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The metadata.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata metadata = null!;
 
     /// <summary>
     /// The tga specific metadata.
     /// </summary>
-    private TgaMetadata tgaMetadata;
+    private TgaMetadata tgaMetadata = null!;
 
     /// <summary>
     /// The file header containing general information about the image.
@@ -48,7 +48,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream currentStream;
+    private BufferedReadStream currentStream = null!;
 
     /// <summary>
     /// Indicates whether there is a alpha channel present.
@@ -70,7 +70,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc />
-    public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
+    public Size? Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
 
     /// <inheritdoc />
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

@@ -12,7 +12,7 @@ public sealed class TgaImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 16;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         return this.IsSupportedFileFormat(header) ? TgaFormat.Instance : null;
     }

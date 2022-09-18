@@ -25,7 +25,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration configuration = null!;
 
     /// <summary>
     /// Reusable buffer for writing data.

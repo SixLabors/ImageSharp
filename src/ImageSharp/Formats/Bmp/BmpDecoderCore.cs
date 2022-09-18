@@ -60,17 +60,17 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream stream;
+    private BufferedReadStream stream = null!;
 
     /// <summary>
     /// The metadata.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata metadata = null!;
 
     /// <summary>
     /// The bitmap specific metadata.
     /// </summary>
-    private BmpMetadata bmpMetadata;
+    private BmpMetadata bmpMetadata = null!;
 
     /// <summary>
     /// The file header containing general information.
@@ -125,7 +125,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> image = null;
+        Image<TPixel>? image = null;
         try
         {
             int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
@@ -1450,7 +1450,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             colorMapSizeBytes = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
         }
 
-        palette = null;
+        palette = Array.Empty<byte>();
 
         if (colorMapSizeBytes > 0)
         {

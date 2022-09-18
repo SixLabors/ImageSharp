@@ -29,7 +29,7 @@ public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
     /// Defaults to Wu Quantizer.
     /// </summary>
-    public IQuantizer Quantizer { get; set; }
+    public IQuantizer? Quantizer { get; set; }
 
     /// <inheritdoc/>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream)

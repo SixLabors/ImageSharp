@@ -72,7 +72,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration? configuration;
 
     /// <summary>
     /// The color depth, in number of bits per pixel.
@@ -136,7 +136,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             _ => 0
         };
 
-        byte[] iccProfileData = null;
+        byte[]? iccProfileData = null;
         int iccProfileSize = 0;
         if (metadata.IccProfile != null)
         {
@@ -176,7 +176,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="metadata">The metadata.</param>
     /// <param name="iccProfileData">The icc profile data.</param>
     /// <returns>The bitmap information header.</returns>
-    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[] iccProfileData)
+    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[]? iccProfileData)
     {
         int hResolution = 0;
         int vResolution = 0;
@@ -228,7 +228,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             infoHeader.Compression = BmpCompression.BitFields;
         }
 
-        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && metadata.IccProfile != null)
+        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && metadata.IccProfile != null && iccProfileData != null)
         {
             infoHeader.ProfileSize = iccProfileData.Length;
             infoHeader.CsType = BmpColorSpace.PROFILE_EMBEDDED;
@@ -244,7 +244,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="stream">The stream to write to.</param>
     /// <param name="iccProfileData">The color profile data.</param>
     /// <param name="buffer">The buffer.</param>
-    private static void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
+    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer)
     {
         if (iccProfileData != null)
         {
@@ -461,6 +461,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ArgumentNullException.ThrowIfNull(this.configuration);
+
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
 
@@ -526,6 +528,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void Write4BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ArgumentNullException.ThrowIfNull(this.configuration);
+
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 16
@@ -570,6 +574,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void Write2BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ArgumentNullException.ThrowIfNull(this.configuration);
+
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 4
@@ -623,6 +629,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void Write1BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ArgumentNullException.ThrowIfNull(this.configuration);
+
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 2

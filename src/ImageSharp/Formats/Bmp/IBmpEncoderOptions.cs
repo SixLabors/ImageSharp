@@ -26,5 +26,5 @@ internal interface IBmpEncoderOptions
     /// <summary>
     /// Gets the quantizer for reducing the color count for 8-Bit, 4-Bit, and 1-Bit images.
     /// </summary>
-    IQuantizer Quantizer { get; }
+    IQuantizer? Quantizer { get; }
 }

@@ -89,13 +89,13 @@ internal abstract class BaseExifReader
     private readonly byte[] buf4 = new byte[4];
     private readonly byte[] buf2 = new byte[2];
 
-    private readonly MemoryAllocator allocator;
+    private readonly MemoryAllocator? allocator;
     private readonly Stream data;
-    private List<ExifTag> invalidTags;
+    private List<ExifTag> invalidTags = null!;
 
-    private List<ulong> subIfds;
+    private List<ulong> subIfds = null!;
 
-    protected BaseExifReader(Stream stream, MemoryAllocator allocator)
+    protected BaseExifReader(Stream stream, MemoryAllocator? allocator)
     {
         this.data = stream ?? throw new ArgumentNullException(nameof(stream));
         this.allocator = allocator;

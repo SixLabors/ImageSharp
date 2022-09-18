@@ -26,7 +26,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
         (7u, 2u)
     };
 
-    private IMemoryOwner<byte> referenceLineBuffer;
+    private IMemoryOwner<byte> referenceLineBuffer = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="T6BitCompressor"/> class.

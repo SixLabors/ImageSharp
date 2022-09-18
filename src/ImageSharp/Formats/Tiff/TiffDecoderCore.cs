@@ -41,7 +41,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream inputStream;
+    private BufferedReadStream inputStream = null!;
 
     /// <summary>
     /// Indicates the byte order of the stream.
@@ -79,7 +79,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Gets or sets the lookup table for RGB palette colored images.
     /// </summary>
-    public ushort[] ColorMap { get; set; }
+    public ushort[]? ColorMap { get; set; }
 
     /// <summary>
     /// Gets or sets the photometric interpretation implementation to use when decoding the image.
@@ -89,17 +89,17 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Gets or sets the reference black and white for decoding YCbCr pixel data.
     /// </summary>
-    public Rational[] ReferenceBlackAndWhite { get; set; }
+    public Rational[]? ReferenceBlackAndWhite { get; set; }
 
     /// <summary>
     /// Gets or sets the YCbCr coefficients.
     /// </summary>
-    public Rational[] YcbcrCoefficients { get; set; }
+    public Rational[]? YcbcrCoefficients { get; set; }
 
     /// <summary>
     /// Gets or sets the YCbCr sub sampling.
     /// </summary>
-    public ushort[] YcbcrSubSampling { get; set; }
+    public ushort[]? YcbcrSubSampling { get; set; }
 
     /// <summary>
     /// Gets or sets the compression used, when the image was encoded.
@@ -124,7 +124,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Gets or sets the JPEG tables when jpeg compression is used.
     /// </summary>
-    public byte[] JpegTables { get; set; }
+    public byte[]? JpegTables { get; set; }
 
     /// <summary>
     /// Gets or sets the planar configuration type to use when decoding the image.
@@ -150,7 +150,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions { get; private set; }
+    public Size? Dimensions { get; private set; }
 
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -219,7 +219,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 
-        return new ImageInfo(new PixelTypeInfo((int)rootMetadata.BitsPerPixel), width, height, metadata);
+        return new ImageInfo(new PixelTypeInfo((int)rootMetadata.BitsPerPixel!), width, height, metadata);
     }
 
     /// <summary>
@@ -247,13 +247,13 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int height = GetImageHeight(tags);
         var frame = new ImageFrame<TPixel>(this.configuration, width, height, imageFrameMetaData);
 
-        int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
+        int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip)!.Value : TiffConstants.RowsPerStripInfinity;
 
-        var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
-        var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
+        var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets)!.GetValue();
+        var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts)!.GetValue();
 
-        using IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
-        using IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
+        using IMemoryOwner<ulong>? stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
+        using IMemoryOwner<ulong>? stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
 
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
@@ -277,7 +277,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         return frame;
     }
 
-    private IMemoryOwner<ulong> ConvertNumbers(Array array, out Span<ulong> span)
+    private IMemoryOwner<ulong>? ConvertNumbers(Array array, out Span<ulong> span)
     {
         if (array is Number[] numbers)
         {
@@ -509,7 +509,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <returns>The image width.</returns>
     private static int GetImageWidth(ExifProfile exifProfile)
     {
-        IExifValue<Number> width = exifProfile.GetValue(ExifTag.ImageWidth);
+        IExifValue<Number>? width = exifProfile.GetValue(ExifTag.ImageWidth);
         if (width == null)
         {
             TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageWidth");
@@ -527,7 +527,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <returns>The image height.</returns>
     private static int GetImageHeight(ExifProfile exifProfile)
     {
-        IExifValue<Number> height = exifProfile.GetValue(ExifTag.ImageLength);
+        IExifValue<Number>? height = exifProfile.GetValue(ExifTag.ImageLength);
         if (height == null)
         {
             TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageLength");

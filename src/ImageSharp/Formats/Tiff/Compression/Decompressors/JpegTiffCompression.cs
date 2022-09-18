@@ -18,7 +18,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 {
     private readonly JpegDecoderOptions options;
 
-    private readonly byte[] jpegTables;
+    private readonly byte[]? jpegTables;
 
     private readonly TiffPhotometricInterpretation photometricInterpretation;
 
@@ -36,7 +36,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
-        byte[] jpegTables,
+        byte[]? jpegTables,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)
     {

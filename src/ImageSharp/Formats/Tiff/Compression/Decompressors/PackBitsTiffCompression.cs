@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 internal sealed class PackBitsTiffCompression : TiffBaseDecompressor
 {
-    private IMemoryOwner<byte> compressedDataMemory;
+    private IMemoryOwner<byte> compressedDataMemory = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PackBitsTiffCompression" /> class.

@@ -175,7 +175,7 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
 
     private byte bitPosition;
 
-    private IMemoryOwner<byte> compressedDataBuffer;
+    private IMemoryOwner<byte> compressedDataBuffer = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffCcittCompressor" /> class.

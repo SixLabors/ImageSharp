@@ -18,7 +18,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
     private readonly int colorPaletteSize;
     private readonly int colorPaletteBytes;
     private readonly IndexedImageFrame<TPixel> quantizedImage;
-    private IMemoryOwner<byte> indexedPixelsBuffer;
+    private IMemoryOwner<byte> indexedPixelsBuffer = null!;
 
     public TiffPaletteWriter(
         ImageFrame<TPixel> image,

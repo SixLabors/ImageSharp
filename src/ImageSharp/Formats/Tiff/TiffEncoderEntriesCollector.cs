@@ -149,7 +149,7 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, XmpProfile xmpProfile)
+        private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile? exifProfile, XmpProfile? xmpProfile)
         {
             if (exifProfile != null && exifProfile.Parts != ExifParts.None)
             {
@@ -167,7 +167,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.SubIFDOffset);
+                exifProfile?.RemoveValue(ExifTag.SubIFDOffset);
             }
 
             if (imageMetadata.IptcProfile != null)
@@ -182,7 +182,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.IPTC);
+                exifProfile?.RemoveValue(ExifTag.IPTC);
             }
 
             if (imageMetadata.IccProfile != null)
@@ -196,7 +196,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.IccProfile);
+                exifProfile?.RemoveValue(ExifTag.IccProfile);
             }
 
             if (xmpProfile != null)
@@ -210,7 +210,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.XMP);
+                exifProfile?.RemoveValue(ExifTag.XMP);
             }
         }
     }
@@ -297,7 +297,7 @@ internal class TiffEncoderEntriesCollector
 
             var photometricInterpretation = new ExifShort(ExifTagValue.PhotometricInterpretation)
             {
-                Value = (ushort)encoder.PhotometricInterpretation
+                Value = (ushort)encoder.PhotometricInterpretation!
             };
 
             this.Collector.AddOrReplace(planarConfig);

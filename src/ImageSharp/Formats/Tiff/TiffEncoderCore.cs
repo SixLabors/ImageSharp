@@ -37,7 +37,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration configuration = null!;
 
     /// <summary>
     /// The quantizer for creating color palette image.
@@ -147,7 +147,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         using TiffStreamWriter writer = new(stream);
         long ifdMarker = WriteHeader(writer);
 
-        Image<TPixel> metadataImage = image;
+        Image<TPixel>? metadataImage = image;
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -197,7 +197,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         TiffStreamWriter writer,
         ImageFrame<TPixel> frame,
         ImageMetadata imageMetadata,
-        Image<TPixel> image,
+        Image<TPixel>? image,
         long ifdOffset)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -206,7 +206,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
             writer.BaseStream,
             this.memoryAllocator,
             frame.Width,
-            (int)this.BitsPerPixel,
+            (int)this.BitsPerPixel!,
             this.compressionLevel,
             this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
 

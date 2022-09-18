@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -32,18 +33,18 @@ internal static class TiffDecoderMetadataCreator
             {
                 ImageFrame<TPixel> frame = frames[i];
                 ImageFrameMetadata frameMetaData = frame.Metadata;
-                if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
+                if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[]? iptcBytes))
                 {
                     frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
                 }
 
-                IExifValue<byte[]> xmpProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
+                IExifValue<byte[]>? xmpProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
                 if (xmpProfileBytes != null)
                 {
                     frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                 }
 
-                IExifValue<byte[]> iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
+                IExifValue<byte[]>? iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
                 if (iccProfileBytes != null)
                 {
                     frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
@@ -82,10 +83,10 @@ internal static class TiffDecoderMetadataCreator
         }
     }
 
-    private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, out byte[] iptcBytes)
+    private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, [NotNullWhen(true)]out byte[]? iptcBytes)
     {
         iptcBytes = null;
-        IExifValue iptc = exifValues.FirstOrDefault(f => f.Tag == ExifTag.IPTC);
+        IExifValue? iptc = exifValues.FirstOrDefault(f => f.Tag == ExifTag.IPTC);
 
         if (iptc != null)
         {

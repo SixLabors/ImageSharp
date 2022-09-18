@@ -48,8 +48,8 @@ internal class Rgba16161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
         int offset = 0;
 
-        using IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
-        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : Span<Vector4>.Empty;
+        using IMemoryOwner<Vector4>? vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
+        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors!.GetSpan() : Span<Vector4>.Empty;
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);

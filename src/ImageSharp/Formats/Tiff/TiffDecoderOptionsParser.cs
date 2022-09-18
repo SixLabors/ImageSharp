@@ -28,7 +28,7 @@ internal static class TiffDecoderOptionsParser
             TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
         }
 
-        IExifValue extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
+        IExifValue? extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
         if (extraSamplesExifValue is not null)
         {
             short[] extraSamples = (short[])extraSamplesExifValue.GetValue();
@@ -56,7 +56,7 @@ internal static class TiffDecoderOptionsParser
             TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
         }
 
-        TiffSampleFormat[] sampleFormats = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
+        TiffSampleFormat[]? sampleFormats = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
         TiffSampleFormat? sampleFormat = null;
         if (sampleFormats != null)
         {
@@ -70,7 +70,7 @@ internal static class TiffDecoderOptionsParser
             }
         }
 
-        ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+        ushort[]? ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
         if (ycbcrSubSampling != null && ycbcrSubSampling.Length != 2)
         {
             TiffThrowHelper.ThrowImageFormatException("Invalid YCbCrSubsampling, expected 2 values.");
@@ -454,7 +454,7 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.CcittGroup3Fax:
             {
                 options.CompressionType = TiffDecoderCompressionType.T4;
-                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options)!.Value : FaxCompressionOptions.None;
 
                 break;
             }
@@ -462,7 +462,7 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.CcittGroup4Fax:
             {
                 options.CompressionType = TiffDecoderCompressionType.T6;
-                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options)!.Value : FaxCompressionOptions.None;
 
                 break;
             }

@@ -30,7 +30,7 @@ public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     public TiffPredictor? HorizontalPredictor { get; set; }
 
     /// <inheritdoc/>
-    public IQuantizer Quantizer { get; set; }
+    public IQuantizer? Quantizer { get; set; }
 
     /// <inheritdoc/>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream)

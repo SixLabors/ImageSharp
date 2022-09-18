@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 
 internal sealed class PackBitsCompressor : TiffBaseCompressor
 {
-    private IMemoryOwner<byte> pixelData;
+    private IMemoryOwner<byte> pixelData = null!;
 
     public PackBitsCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel)
         : base(output, allocator, width, bitsPerPixel)

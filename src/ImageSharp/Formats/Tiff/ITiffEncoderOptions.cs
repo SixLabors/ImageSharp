@@ -42,5 +42,5 @@ internal interface ITiffEncoderOptions
     /// <summary>
     /// Gets the quantizer for creating a color palette image.
     /// </summary>
-    IQuantizer Quantizer { get; }
+    IQuantizer? Quantizer { get; }
 }

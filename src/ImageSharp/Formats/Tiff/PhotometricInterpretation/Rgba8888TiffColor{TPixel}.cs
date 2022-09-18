@@ -35,8 +35,8 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         var color = default(TPixel);
         color.FromScaledVector4(Vector4.Zero);
-        using IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
-        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : Span<Vector4>.Empty;
+        using IMemoryOwner<Vector4>? vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
+        Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors!.GetSpan() : Span<Vector4>.Empty;
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);

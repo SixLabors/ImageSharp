@@ -15,10 +15,10 @@ internal static class TiffColorDecoderFactory<TPixel>
         TiffColorType colorType,
         TiffBitsPerSample bitsPerSample,
         TiffExtraSampleType? extraSampleType,
-        ushort[] colorMap,
-        Rational[] referenceBlackAndWhite,
-        Rational[] ycbcrCoefficients,
-        ushort[] ycbcrSubSampling,
+        ushort[]? colorMap,
+        Rational[]? referenceBlackAndWhite,
+        Rational[]? ycbcrCoefficients,
+        ushort[]? ycbcrSubSampling,
         ByteOrder byteOrder)
     {
         switch (colorType)
@@ -411,10 +411,10 @@ internal static class TiffColorDecoderFactory<TPixel>
         TiffColorType colorType,
         TiffBitsPerSample bitsPerSample,
         TiffExtraSampleType? extraSampleType,
-        ushort[] colorMap,
-        Rational[] referenceBlackAndWhite,
-        Rational[] ycbcrCoefficients,
-        ushort[] ycbcrSubSampling,
+        ushort[]? colorMap,
+        Rational[]? referenceBlackAndWhite,
+        Rational[]? ycbcrCoefficients,
+        ushort[]? ycbcrSubSampling,
         ByteOrder byteOrder)
     {
         switch (colorType)

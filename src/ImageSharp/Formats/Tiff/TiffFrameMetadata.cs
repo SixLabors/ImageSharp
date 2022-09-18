@@ -73,11 +73,11 @@ public class TiffFrameMetadata : IDeepCloneable
     /// </summary>
     /// <param name="meta">The tiff frame meta data.</param>
     /// <param name="profile">The Exif profile containing tiff frame directory tags.</param>
-    internal static void Parse(TiffFrameMetadata meta, ExifProfile profile)
+    internal static void Parse(TiffFrameMetadata meta, ExifProfile? profile)
     {
         if (profile != null)
         {
-            if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)?.Value, out TiffBitsPerSample bitsPerSample))
+            if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)!.Value, out TiffBitsPerSample bitsPerSample))
             {
                 meta.BitsPerSample = bitsPerSample;
             }

@@ -16,9 +16,9 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
 {
     private readonly Image<TPixel> imageBlackWhite;
 
-    private IMemoryOwner<byte> pixelsAsGray;
+    private IMemoryOwner<byte> pixelsAsGray = null!;
 
-    private IMemoryOwner<byte> bitStrip;
+    private IMemoryOwner<byte> bitStrip = null!;
 
     public TiffBiColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
         : base(image, memoryAllocator, configuration, entriesCollector)

@@ -10,7 +10,7 @@ public class LzwString
 {
     private static readonly LzwString Empty = new LzwString(0, 0, 0, null);
 
-    private readonly LzwString previous;
+    private readonly LzwString? previous;
     private readonly byte value;
 
     /// <summary>
@@ -22,7 +22,7 @@ public class LzwString
     {
     }
 
-    private LzwString(byte value, byte firstChar, int length, LzwString previous)
+    private LzwString(byte value, byte firstChar, int length, LzwString? previous)
     {
         this.value = value;
         this.FirstChar = firstChar;
@@ -74,7 +74,7 @@ public class LzwString
             return 1;
         }
 
-        LzwString e = this;
+        LzwString? e = this;
         int endIdx = this.Length - 1;
         if (endIdx >= buffer.Length)
         {
@@ -83,7 +83,7 @@ public class LzwString
 
         for (int i = endIdx; i >= 0; i--)
         {
-            buffer[offset + i] = e.value;
+            buffer[offset + i] = e!.value;
             e = e.previous;
         }
 

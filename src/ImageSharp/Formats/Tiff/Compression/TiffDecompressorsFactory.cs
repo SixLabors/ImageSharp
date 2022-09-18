@@ -20,7 +20,7 @@ internal static class TiffDecompressorsFactory
         TiffColorType colorType,
         TiffPredictor predictor,
         FaxCompressionOptions faxOptions,
-        byte[] jpegTables,
+        byte[]? jpegTables,
         TiffFillOrder fillOrder,
         ByteOrder byteOrder)
     {

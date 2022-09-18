@@ -30,7 +30,7 @@ internal class YCbCrConverter
         new(128, 1), new(255, 1)
     };
 
-    public YCbCrConverter(Rational[] referenceBlackAndWhite, Rational[] coefficients)
+    public YCbCrConverter(Rational[]? referenceBlackAndWhite, Rational[]? coefficients)
     {
         referenceBlackAndWhite ??= DefaultReferenceBlackWhite;
         coefficients ??= DefaultLuma;

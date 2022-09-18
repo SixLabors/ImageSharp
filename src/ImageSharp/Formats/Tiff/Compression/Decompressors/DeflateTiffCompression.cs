@@ -51,12 +51,12 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
             }))
         {
             deframeStream.AllocateNewBytes(byteCount, true);
-            DeflateStream dataStream = deframeStream.CompressedStream;
+            DeflateStream? dataStream = deframeStream.CompressedStream;
 
             int totalRead = 0;
             while (totalRead < buffer.Length)
             {
-                int bytesRead = dataStream.Read(buffer, totalRead, buffer.Length - totalRead);
+                int bytesRead = dataStream!.Read(buffer, totalRead, buffer.Length - totalRead);
                 if (bytesRead <= 0)
                 {
                     break;

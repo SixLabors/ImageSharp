@@ -585,31 +585,31 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 return JpegEncodingColor.Rgb;
 
             case JpegColorSpace.YCbCr:
-                if (this.Frame?.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                if (this.Frame?.Components?[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio444;
                 }
-                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                else if (this.Frame?.Components?[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio422;
                 }
-                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                else if (this.Frame?.Components?[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio420;
                 }
-                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
+                else if (this.Frame?.Components?[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
                     return JpegEncodingColor.YCbCrRatio411;
                 }
-                else if (this.Frame?.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
+                else if (this.Frame?.Components?[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
@@ -1419,7 +1419,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             int componentSelectorId = this.temp[i];
 
             int componentIndex = -1;
-            for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
+            for (int j = 0; j < this.Frame?.ComponentIds.Length; j++)
             {
                 byte id = this.Frame.ComponentIds[j];
                 if (componentSelectorId == id)
@@ -1436,9 +1436,11 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component id in scan: {componentSelectorId}.");
             }
 
-            this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
+            this.Frame!.ComponentOrder[i / 2] = (byte)componentIndex;
 
-            IJpegComponent component = this.Frame.Components[componentIndex];
+            IJpegComponent? component = this.Frame?.Components?[componentIndex];
+
+            ArgumentNullException.ThrowIfNull(component);
 
             // 1 byte: Huffman table selectors.
             // 4 bits - dc

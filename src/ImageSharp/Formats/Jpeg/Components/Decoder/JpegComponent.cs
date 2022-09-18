@@ -47,7 +47,7 @@ internal class JpegComponent : IDisposable, IJpegComponent
     public int VerticalSamplingFactor { get; }
 
     /// <inheritdoc />
-    public Buffer2D<Block8x8>? SpectralBlocks { get; private set; }
+    public Buffer2D<Block8x8> SpectralBlocks { get; private set; } = null!;
 
     /// <inheritdoc />
     public Size SubSamplingDivisors { get; private set; }
@@ -89,8 +89,7 @@ internal class JpegComponent : IDisposable, IJpegComponent
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.SpectralBlocks?.Dispose();
-        this.SpectralBlocks = null;
+        this.SpectralBlocks.Dispose();
     }
 
     /// <summary>

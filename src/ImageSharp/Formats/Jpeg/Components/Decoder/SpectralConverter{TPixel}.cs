@@ -95,7 +95,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// </remarks>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Pixel buffer.</returns>
-    public Buffer2D<TPixel>? GetPixelBuffer(CancellationToken cancellationToken)
+    public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
     {
         if (!this.Converted)
         {
@@ -114,7 +114,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
         Buffer2D<TPixel>? buffer = this.pixelBuffer;
         this.pixelBuffer = null;
-        return buffer;
+        return buffer!;
     }
 
     /// <summary>

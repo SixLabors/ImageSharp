@@ -115,8 +115,6 @@ internal sealed class JpegFrame : IDisposable
             {
                 this.Components[i]?.Dispose();
             }
-
-            this.Components = null;
         }
     }
 

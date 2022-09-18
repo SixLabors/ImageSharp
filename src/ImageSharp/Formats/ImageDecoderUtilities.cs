@@ -25,7 +25,7 @@ internal static class ImageDecoderUtilities
         {
             ResizeOptions resizeOptions = new()
             {
-                Size = options.TargetSize.Value,
+                Size = options.TargetSize!.Value,
                 Sampler = options.Sampler,
                 Mode = ResizeMode.Max
             };
@@ -66,11 +66,11 @@ internal static class ImageDecoderUtilities
         }
         catch (InvalidMemoryOperationException ex)
         {
-            throw new InvalidImageContentException(decoder.Dimensions, ex);
+            throw new InvalidImageContentException(decoder.Dimensions!.Value, ex);
         }
     }
 
-    internal static Image<TPixel> Decode<TPixel>(
+    internal static Image<TPixel>? Decode<TPixel>(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,
@@ -78,7 +78,7 @@ internal static class ImageDecoderUtilities
         where TPixel : unmanaged, IPixel<TPixel>
         => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
-    internal static Image<TPixel> Decode<TPixel>(
+    internal static Image<TPixel>? Decode<TPixel>(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,
@@ -94,7 +94,7 @@ internal static class ImageDecoderUtilities
         }
         catch (InvalidMemoryOperationException ex)
         {
-            throw largeImageExceptionFactory(ex, decoder.Dimensions);
+            throw largeImageExceptionFactory(ex, decoder.Dimensions!.Value);
         }
     }
 

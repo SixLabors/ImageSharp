@@ -27,7 +27,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
     /// </summary>
-    private IJpegComponent[] components = null!;
+    private IJpegComponent[]? components;
 
     /// <summary>
     /// Number of component in the current scan.
@@ -220,7 +220,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     public void InitDecodingTables(List<ArithmeticDecodingTable> arithmeticDecodingTables)
     {
-        for (int i = 0; i < this.components.Length; i++)
+        for (int i = 0; i < this.components?.Length; i++)
         {
             ArithmeticDecodingComponent? component = this.components[i] as ArithmeticDecodingComponent;
 
@@ -270,6 +270,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         this.frame = frame;
         this.components = frame.Components;
 
+        ArgumentNullException.ThrowIfNull(this.components);
+
         this.dcDecodingTables = new ArithmeticDecodingTable[this.components.Length];
         this.acDecodingTables = new ArithmeticDecodingTable[this.components.Length];
 
@@ -313,7 +315,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineData()
     {
-        for (int i = 0; i < this.components.Length; i++)
+        for (int i = 0; i < this.components?.Length; i++)
         {
             ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
             component.DcPredictor = 0;
@@ -346,7 +348,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     {
         this.CheckProgressiveData();
 
-        foreach (ArithmeticDecodingComponent component in this.components)
+        foreach (ArithmeticDecodingComponent component in this.components!)
         {
             if (this.SpectralStart == 0 && this.SuccessiveHigh == 0)
             {
@@ -442,7 +444,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    ArithmeticDecodingComponent? component = this.components[order] as ArithmeticDecodingComponent;
+                    ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
                     ArgumentNullException.ThrowIfNull(component);
 
@@ -494,7 +496,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataSingleComponent()
     {
-        ArithmeticDecodingComponent? component = this.frame.Components[0] as ArithmeticDecodingComponent;
+        ArithmeticDecodingComponent? component = this.frame.Components?[0] as ArithmeticDecodingComponent;
 
         ArgumentNullException.ThrowIfNull(component);
 
@@ -543,8 +545,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
-        ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[this.frame.ComponentOrder[0]];
+        ArithmeticDecodingComponent? component = (ArithmeticDecodingComponent?)this.components?[this.frame.ComponentOrder[0]];
         ref JpegBitReader reader = ref this.scanBuffer;
+
+        ArgumentNullException.ThrowIfNull(component);
 
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;
@@ -592,7 +596,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    ArithmeticDecodingComponent? component = this.components[order] as ArithmeticDecodingComponent;
+                    ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
                     ArgumentNullException.ThrowIfNull(component);
 
@@ -637,7 +641,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        ArithmeticDecodingComponent? component = this.components[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
+        ArithmeticDecodingComponent? component = this.components?[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
         ref JpegBitReader reader = ref this.scanBuffer;
 
         ArgumentNullException.ThrowIfNull(component);
@@ -680,7 +684,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
 
-                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
+                Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)
@@ -1119,7 +1123,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
             this.todo = this.restartInterval;
 
-            foreach (ArithmeticDecodingComponent component in this.components)
+            foreach (ArithmeticDecodingComponent component in this.components!)
             {
                 component.DcPredictor = 0;
                 component.DcContext = 0;
@@ -1149,7 +1153,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     [MethodImpl(InliningOptions.ShortMethod)]
     private void Reset()
     {
-        for (int i = 0; i < this.components.Length; i++)
+        for (int i = 0; i < this.components?.Length; i++)
         {
             ArithmeticDecodingComponent? component = this.components[i] as ArithmeticDecodingComponent;
 

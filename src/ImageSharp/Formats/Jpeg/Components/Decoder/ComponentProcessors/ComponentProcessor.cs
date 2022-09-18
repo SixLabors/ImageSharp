@@ -44,7 +44,7 @@ internal abstract class ComponentProcessor : IDisposable
     /// </remarks>
     public void ClearSpectralBuffers()
     {
-        Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks;
+        Buffer2D<Block8x8> spectralBlocks = this.Component.SpectralBlocks!;
         for (int i = 0; i < spectralBlocks.Height; i++)
         {
             spectralBlocks.DangerousGetRowSpan(i).Clear();

@@ -35,7 +35,9 @@ public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
         Guard.NotNull(stream, nameof(stream));
 
         using JpegDecoderCore decoder = new(options);
-        Image<TPixel> image = decoder.Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+        Image<TPixel>? image = decoder.Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+
+        ArgumentNullException.ThrowIfNull(image);
 
         if (options.ResizeMode != JpegDecoderResizeMode.IdctOnly)
         {

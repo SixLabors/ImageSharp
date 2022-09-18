@@ -21,7 +21,7 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
 
     public override void CopyBlocksToColorBuffer(int spectralStep)
     {
-        Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
+        Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks!;
 
         float maximumValue = this.Frame.MaxColorChannelValue;
 

@@ -33,7 +33,9 @@ public class BmpDecoder : IImageDecoderSpecialized<BmpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        Image<TPixel> image = new BmpDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+        Image<TPixel>? image = new BmpDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+
+        ArgumentNullException.ThrowIfNull(image);
 
         ImageDecoderUtilities.Resize(options.GeneralOptions, image);
 

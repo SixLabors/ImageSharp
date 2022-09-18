@@ -284,7 +284,6 @@ internal sealed class Deflater : IDisposable
         if (!this.isDisposed)
         {
             this.engine.Dispose();
-            this.engine = null;
             this.isDisposed = true;
         }
     }

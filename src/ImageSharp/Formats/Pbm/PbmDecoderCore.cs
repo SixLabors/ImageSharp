@@ -44,7 +44,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata metadata = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
@@ -60,7 +60,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => this.pixelSize;
+    public Size? Dimensions => this.pixelSize;
 
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)

@@ -16,7 +16,7 @@ public sealed class PbmImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 2;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header) => IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header) => IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
 
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {

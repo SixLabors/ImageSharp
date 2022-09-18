@@ -42,7 +42,9 @@ public sealed class PbmDecoder : IImageDecoder
         Guard.NotNull(stream, nameof(stream));
 
         PbmDecoderCore decoder = new(options);
-        Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+        Image<TPixel>? image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+        ArgumentNullException.ThrowIfNull(image);
 
         ImageDecoderUtilities.Resize(options, image);
 

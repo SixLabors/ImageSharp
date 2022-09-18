@@ -26,12 +26,12 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The currently loaded stream.
     /// </summary>
-    private BufferedReadStream stream;
+    private BufferedReadStream stream = null!;
 
     /// <summary>
     /// The global color table.
     /// </summary>
-    private IMemoryOwner<byte> globalColorTable;
+    private IMemoryOwner<byte> globalColorTable = null!;
 
     /// <summary>
     /// The area to restore.
@@ -76,12 +76,12 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The abstract metadata.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata metadata = null!;
 
     /// <summary>
     /// The gif specific metadata.
     /// </summary>
-    private GifMetadata gifMetadata;
+    private GifMetadata gifMetadata = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
@@ -103,12 +103,12 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+    public Image<TPixel>? Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         uint frameCount = 0;
-        Image<TPixel> image = null;
-        ImageFrame<TPixel> previousFrame = null;
+        Image<TPixel>? image = null;
+        ImageFrame<TPixel>? previousFrame = null;
         try
         {
             this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
@@ -377,13 +377,13 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
-    private void ReadFrame<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame)
+    private void ReadFrame<TPixel>(ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.ReadImageDescriptor();
 
-        IMemoryOwner<byte> localColorTable = null;
-        Buffer2D<byte> indices = null;
+        IMemoryOwner<byte>? localColorTable = null;
+        Buffer2D<byte>? indices = null;
         try
         {
             // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
@@ -441,15 +441,15 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <param name="indices">The indexed pixels.</param>
     /// <param name="colorTable">The color table containing the available colors.</param>
     /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-    private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
+    private void ReadFrameColors<TPixel>(ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int imageWidth = this.logicalScreenDescriptor.Width;
         int imageHeight = this.logicalScreenDescriptor.Height;
         bool transFlag = this.graphicsControlExtension.TransparencyFlag;
 
-        ImageFrame<TPixel> prevFrame = null;
-        ImageFrame<TPixel> currentFrame = null;
+        ImageFrame<TPixel>? prevFrame = null;
+        ImageFrame<TPixel>? currentFrame = null;
         ImageFrame<TPixel> imageFrame;
 
         if (previousFrame is null)
@@ -474,6 +474,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 prevFrame = previousFrame;
             }
+
+            ArgumentNullException.ThrowIfNull(image);
 
             currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
 

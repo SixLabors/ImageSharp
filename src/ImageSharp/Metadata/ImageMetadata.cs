@@ -146,7 +146,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <summary>
     /// Gets or sets the list of ICC profiles.
     /// </summary>
-    public IccProfile IccProfile { get; set; }
+    public IccProfile? IccProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the IPTC profile.

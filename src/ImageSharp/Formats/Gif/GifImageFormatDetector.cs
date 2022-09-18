@@ -12,7 +12,7 @@ public sealed class GifImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 6;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         return this.IsSupportedFileFormat(header) ? GifFormat.Instance : null;
     }

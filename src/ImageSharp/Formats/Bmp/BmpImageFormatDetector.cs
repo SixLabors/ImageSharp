@@ -14,7 +14,7 @@ public sealed class BmpImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 2;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         return this.IsSupportedFileFormat(header) ? BmpFormat.Instance : null;
     }

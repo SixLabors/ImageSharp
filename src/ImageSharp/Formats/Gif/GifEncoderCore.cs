@@ -174,11 +174,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         paletteFrameQuantizer.Dispose();
     }
 
-    private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, Stream stream)
+    private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel>? quantized, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrame<TPixel> previousFrame = null;
-        GifFrameMetadata previousMeta = null;
+        ImageFrame<TPixel>? previousFrame = null;
+        GifFrameMetadata? previousMeta = null;
         for (int i = 0; i < image.Frames.Count; i++)
         {
             ImageFrame<TPixel> frame = image.Frames[i];
@@ -187,7 +187,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             if (quantized is null)
             {
                 // Allow each frame to be encoded at whatever color depth the frame designates if set.
-                if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
+                if (previousFrame != null && previousMeta?.ColorTableLength != frameMetadata.ColorTableLength
                                           && frameMetadata.ColorTableLength > 0)
                 {
                     QuantizerOptions options = new()
@@ -425,7 +425,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
         where TGifExtension : struct, IGifExtension
     {
-        IMemoryOwner<byte> owner = null;
+        IMemoryOwner<byte>? owner = null;
         Span<byte> extensionBuffer;
         int extensionSize = extension.ContentLength;
 

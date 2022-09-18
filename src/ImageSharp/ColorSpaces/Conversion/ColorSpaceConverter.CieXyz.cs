@@ -13,7 +13,7 @@ public partial class ColorSpaceConverter
 {
     private static readonly HunterLabToCieXyzConverter HunterLabToCieXyzConverter = new();
 
-    private LinearRgbToCieXyzConverter linearRgbToCieXyzConverter;
+    private LinearRgbToCieXyzConverter? linearRgbToCieXyzConverter;
 
     /// <summary>
     /// Converts a <see cref="CieLab"/> into a <see cref="CieXyz"/>.
@@ -327,7 +327,7 @@ public partial class ColorSpaceConverter
     public CieXyz ToCieXyz(in LinearRgb color)
     {
         // Conversion
-        LinearRgbToCieXyzConverter converter = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
+        LinearRgbToCieXyzConverter? converter = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
         CieXyz unadapted = converter.Convert(color);
 
         return this.Adapt(unadapted, color.WorkingSpace.WhitePoint);

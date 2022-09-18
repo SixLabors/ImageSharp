@@ -17,6 +17,7 @@ internal static partial class Guard
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a value type.</exception>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void MustBeValueType<TValue>(TValue value, string parameterName)
+        where TValue : class
     {
         if (value.GetType().IsValueType)
         {

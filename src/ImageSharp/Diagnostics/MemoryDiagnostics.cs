@@ -16,7 +16,7 @@ public static class MemoryDiagnostics
 {
     private static int totalUndisposedAllocationCount;
 
-    private static UndisposedAllocationDelegate undisposedAllocation;
+    private static UndisposedAllocationDelegate? undisposedAllocation;
     private static int undisposedAllocationSubscriptionCounter;
     private static readonly object SyncRoot = new();
 
@@ -49,12 +49,12 @@ public static class MemoryDiagnostics
     /// <summary>
     /// Fires when ImageSharp allocates memory from a MemoryAllocator
     /// </summary>
-    internal static event Action MemoryAllocated;
+    internal static event Action? MemoryAllocated;
 
     /// <summary>
     /// Fires when ImageSharp releases memory allocated from a MemoryAllocator
     /// </summary>
-    internal static event Action MemoryReleased;
+    internal static event Action? MemoryReleased;
 
     /// <summary>
     /// Gets a value indicating the total number of memory resource objects leaked to the finalizer.

@@ -144,11 +144,6 @@ public class GeneralFormatTests
             {
                 image.SaveAsTiff(output);
             }
-
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.exr")))
-            {
-                image.SaveAsOpenExr(output);
-            }
         }
     }
 

@@ -1,16 +1,15 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+namespace SixLabors.ImageSharp.Formats.OpenExr;
+
+internal enum ExrImageDataType
 {
-    internal enum ExrImageDataType
-    {
-        Unknown = 0,
+    Unknown = 0,
 
-        Rgb = 1,
+    Rgb = 1,
 
-        Rgba = 2,
+    Rgba = 2,
 
-        Gray = 3,
-    }
+    Gray = 3,
 }

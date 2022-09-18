@@ -1,94 +1,92 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors
+namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors;
+
+internal class RunLengthCompression : ExrBaseDecompressor
 {
-    internal class RunLengthCompression : ExrBaseDecompressor
+    private readonly IMemoryOwner<byte> tmpBuffer;
+
+    public RunLengthCompression(MemoryAllocator allocator, uint uncompressedBytes)
+        : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
+
+    public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
-        private readonly IMemoryOwner<byte> tmpBuffer;
-
-        public RunLengthCompression(MemoryAllocator allocator, uint uncompressedBytes)
-            : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
-
-        public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
+        Span<byte> uncompressed = this.tmpBuffer.GetSpan();
+        int maxLength = (int)this.UncompressedBytes;
+        int offset = 0;
+        while (compressedBytes > 0)
         {
-            Span<byte> uncompressed = this.tmpBuffer.GetSpan();
-            int maxLength = (int)this.UncompressedBytes;
-            int offset = 0;
-            while (compressedBytes > 0)
+            byte nextByte = ReadNextByte(stream);
+
+            sbyte input = (sbyte)nextByte;
+            if (input < 0)
             {
-                byte nextByte = ReadNextByte(stream);
+                int count = -input;
+                compressedBytes -= (uint)(count + 1);
 
-                sbyte input = (sbyte)nextByte;
-                if (input < 0)
+                if ((maxLength -= count) < 0)
                 {
-                    int count = -input;
-                    compressedBytes -= (uint)(count + 1);
-
-                    if ((maxLength -= count) < 0)
-                    {
-                        return;
-                    }
-
-                    // Check the input buffer is big enough to contain 'count' bytes of remaining data.
-                    if (compressedBytes < 0)
-                    {
-                        return;
-                    }
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        uncompressed[offset + i] = ReadNextByte(stream);
-                    }
-
-                    offset += count;
+                    return;
                 }
-                else
+
+                // Check the input buffer is big enough to contain 'count' bytes of remaining data.
+                if (compressedBytes < 0)
                 {
-                    int count = input;
-                    byte value = ReadNextByte(stream);
-                    compressedBytes -= 2;
-
-                    if ((maxLength -= count + 1) < 0)
-                    {
-                        return;
-                    }
-
-                    // Check the input buffer is big enough to contain byte to be duplicated.
-                    if (compressedBytes < 0)
-                    {
-                        return;
-                    }
-
-                    for (int i = 0; i < count + 1; i++)
-                    {
-                        uncompressed[offset + i] = value;
-                    }
-
-                    offset += count + 1;
+                    return;
                 }
+
+                for (int i = 0; i < count; i++)
+                {
+                    uncompressed[offset + i] = ReadNextByte(stream);
+                }
+
+                offset += count;
             }
+            else
+            {
+                int count = input;
+                byte value = ReadNextByte(stream);
+                compressedBytes -= 2;
 
-            Reconstruct(uncompressed, this.UncompressedBytes);
-            Interleave(uncompressed, this.UncompressedBytes, buffer);
+                if ((maxLength -= count + 1) < 0)
+                {
+                    return;
+                }
+
+                // Check the input buffer is big enough to contain byte to be duplicated.
+                if (compressedBytes < 0)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < count + 1; i++)
+                {
+                    uncompressed[offset + i] = value;
+                }
+
+                offset += count + 1;
+            }
         }
 
-        private static byte ReadNextByte(BufferedReadStream stream)
-        {
-            int nextByte = stream.ReadByte();
-            if (nextByte == -1)
-            {
-                ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to decompress RLE image!");
-            }
-
-            return (byte)nextByte;
-        }
-
-        protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
+        Reconstruct(uncompressed, this.UncompressedBytes);
+        Interleave(uncompressed, this.UncompressedBytes, buffer);
     }
+
+    private static byte ReadNextByte(BufferedReadStream stream)
+    {
+        int nextByte = stream.ReadByte();
+        if (nextByte == -1)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to decompress RLE image!");
+        }
+
+        return (byte)nextByte;
+    }
+
+    protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
 }

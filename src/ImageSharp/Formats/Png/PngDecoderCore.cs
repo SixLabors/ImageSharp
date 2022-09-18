@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -55,7 +56,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream currentStream;
+    private BufferedReadStream currentStream = null!;
 
     /// <summary>
     /// The png header.
@@ -80,22 +81,22 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The palette containing color information for indexed png's.
     /// </summary>
-    private byte[] palette;
+    private byte[] palette = null!;
 
     /// <summary>
     /// The palette containing alpha channel color information for indexed png's.
     /// </summary>
-    private byte[] paletteAlpha;
+    private byte[] paletteAlpha = null!;
 
     /// <summary>
     /// Previous scanline processed.
     /// </summary>
-    private IMemoryOwner<byte> previousScanline;
+    private IMemoryOwner<byte> previousScanline = null!;
 
     /// <summary>
     /// The current scanline that is being processed.
     /// </summary>
-    private IMemoryOwner<byte> scanline;
+    private IMemoryOwner<byte> scanline = null!;
 
     /// <summary>
     /// The index of the current scanline being processed.
@@ -142,7 +143,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => new(this.header.Width, this.header.Height);
+    public Size? Dimensions => new(this.header.Width, this.header.Height);
 
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -152,7 +153,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
         this.currentStream.Skip(8);
-        Image<TPixel> image = null;
+        Image<TPixel>? image = null;
         try
         {
             while (this.TryReadChunk(out PngChunk chunk))
@@ -162,13 +163,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadHeaderChunk(pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Physical:
-                            ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                            ReadPhysicalChunk(metadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Gamma:
-                            ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                            ReadGammaChunk(pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Data:
                             if (image is null)
@@ -181,35 +182,35 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.Palette:
                             byte[] pal = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(pal);
+                            chunk.Data!.GetSpan().CopyTo(pal);
                             this.palette = pal;
                             break;
                         case PngChunkType.Transparency:
                             byte[] alpha = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(alpha);
+                            chunk.Data!.GetSpan().CopyTo(alpha);
                             this.paletteAlpha = alpha;
                             this.AssignTransparentMarkers(alpha, pngMetadata);
                             break;
                         case PngChunkType.Text:
-                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.CompressedText:
-                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.InternationalText:
-                            this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadInternationalTextChunk(metadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Exif:
                             if (!this.skipMetadata)
                             {
                                 byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
+                                chunk.Data!.GetSpan().CopyTo(exifData);
                                 MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                             }
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadColorProfileChunk(metadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -261,7 +262,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadHeaderChunk(pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Physical:
                             if (this.colorMetadataOnly)
@@ -270,7 +271,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                            ReadPhysicalChunk(metadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Gamma:
                             if (this.colorMetadataOnly)
@@ -279,7 +280,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                            ReadGammaChunk(pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Data:
 
@@ -293,7 +294,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.Transparency:
                             byte[] alpha = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(alpha);
+                            chunk.Data!.GetSpan().CopyTo(alpha);
                             this.paletteAlpha = alpha;
                             this.AssignTransparentMarkers(alpha, pngMetadata);
 
@@ -310,7 +311,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.CompressedText:
                             if (this.colorMetadataOnly)
@@ -319,7 +320,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.InternationalText:
                             if (this.colorMetadataOnly)
@@ -328,7 +329,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadInternationalTextChunk(metadata, chunk.Data!.GetSpan());
                             break;
                         case PngChunkType.Exif:
                             if (this.colorMetadataOnly)
@@ -340,7 +341,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             if (!this.skipMetadata)
                             {
                                 byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
+                                chunk.Data!.GetSpan().CopyTo(exifData);
                                 MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                             }
 
@@ -397,7 +398,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="bits">The number of bits per value.</param>
     /// <param name="buffer">The new array.</param>
     /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
-    private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IMemoryOwner<byte> buffer)
+    private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IMemoryOwner<byte>? buffer)
     {
         if (bits >= 8)
         {
@@ -560,7 +561,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         using ZlibInflateStream deframeStream = new(this.currentStream, this.ReadNextDataChunk);
         deframeStream.AllocateNewBytes(chunk.Length, true);
-        DeflateStream dataStream = deframeStream.CompressedStream;
+        DeflateStream? dataStream = deframeStream.CompressedStream;
+
+        ArgumentNullException.ThrowIfNull(dataStream);
 
         if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
         {
@@ -742,7 +745,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte> buffer = null;
+        IMemoryOwner<byte>? buffer = null;
         try
         {
             ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
@@ -750,7 +753,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 this.bytesPerScanline - 1,
                 this.header.BitDepth,
                 out buffer)
-            ? buffer.GetSpan()
+            ? buffer!.GetSpan()
             : trimmed;
 
             switch (this.pngColorType)
@@ -834,7 +837,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte> buffer = null;
+        IMemoryOwner<byte>? buffer = null;
         try
         {
             ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
@@ -842,7 +845,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 this.bytesPerScanline,
                 this.header.BitDepth,
                 out buffer)
-            ? buffer.GetSpan()
+            ? buffer!.GetSpan()
             : trimmed;
 
             switch (this.pngColorType)
@@ -1056,7 +1059,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed)
+        if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
         {
             metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
@@ -1072,7 +1075,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <returns>True if metadata was successfully parsed from the text chunk. False if the
     /// text chunk was not identified as metadata, and should be stored in the metadata
     /// object unmodified.</returns>
-    private static bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
+    private static bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string? chunkText)
     {
         if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
             TryReadLegacyExifTextChunk(baseMetadata, chunkText))
@@ -1094,7 +1097,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded exif tags into.</param>
     /// <param name="data">The contents of the "raw profile type exif" text chunk.</param>
-    private static bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string data)
+    private static bool TryReadLegacyExifTextChunk(ImageMetadata metadata, string? data)
     {
         ReadOnlySpan<char> dataSpan = data.AsSpan();
         dataSpan = dataSpan.TrimStart();
@@ -1229,11 +1232,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 return false;
             }
 
-            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+            int bytesRead = inflateStream.CompressedStream!.Read(destUncompressedData, 0, destUncompressedData.Length);
             while (bytesRead != 0)
             {
                 memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
-                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                bytesRead = inflateStream.CompressedStream!.Read(destUncompressedData, 0, destUncompressedData.Length);
             }
 
             uncompressedBytesArray = memoryStreamOutput.ToArray();
@@ -1349,7 +1352,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             ReadOnlySpan<byte> compressedData = data[dataStartIdx..];
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string? uncompressed))
             {
                 pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
             }
@@ -1372,7 +1375,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="encoding">The string encoding to use.</param>
     /// <param name="value">The uncompressed value.</param>
     /// <returns>The <see cref="bool"/>.</returns>
-    private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
+    private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)]out string? value)
     {
         if (this.TryUncompressZlibData(compressedData, out byte[] uncompressedData))
         {
@@ -1491,7 +1494,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
             uint validCrc = Crc32.Calculate(chunkType);
-            validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
+            validCrc = Crc32.Calculate(validCrc, chunk.Data!.GetSpan());
 
             if (validCrc != inputCrc)
             {

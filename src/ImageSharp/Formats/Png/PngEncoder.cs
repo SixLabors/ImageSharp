@@ -31,7 +31,7 @@ public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     public float? Gamma { get; set; }
 
     /// <inheritdoc/>
-    public IQuantizer Quantizer { get; set; }
+    public IQuantizer Quantizer { get; set; } = null!;
 
     /// <inheritdoc/>
     public byte Threshold { get; set; } = byte.MaxValue;

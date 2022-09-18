@@ -70,7 +70,7 @@ internal static class ImageDecoderUtilities
         }
     }
 
-    internal static Image<TPixel>? Decode<TPixel>(
+    internal static Image<TPixel> Decode<TPixel>(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,
@@ -78,7 +78,7 @@ internal static class ImageDecoderUtilities
         where TPixel : unmanaged, IPixel<TPixel>
         => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
-    internal static Image<TPixel>? Decode<TPixel>(
+    internal static Image<TPixel> Decode<TPixel>(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,

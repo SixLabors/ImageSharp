@@ -33,7 +33,7 @@ internal interface IImageDecoderInternals
     /// Cancellable synchronous method. In case of cancellation,
     /// an <see cref="OperationCanceledException"/> shall be thrown which will be handled on the call site.
     /// </remarks>
-    Image<TPixel>? Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+    Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>

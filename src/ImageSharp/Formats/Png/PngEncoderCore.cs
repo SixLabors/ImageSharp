@@ -78,12 +78,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <summary>
     /// The raw data of previous scanline.
     /// </summary>
-    private IMemoryOwner<byte> previousScanline;
+    private IMemoryOwner<byte> previousScanline = null!;
 
     /// <summary>
     /// The raw data of current scanline.
     /// </summary>
-    private IMemoryOwner<byte> currentScanline;
+    private IMemoryOwner<byte> currentScanline = null!;
 
     /// <summary>
     /// The color profile name.
@@ -123,7 +123,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
         PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
-        Image<TPixel> clonedImage = null;
+        Image<TPixel>? clonedImage = null;
         bool clearTransparency = this.options.TransparentColorMode == PngTransparentColorMode.Clear;
         if (clearTransparency)
         {
@@ -131,7 +131,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             ClearTransparentPixels(clonedImage);
         }
 
-        IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image, clonedImage);
+        IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImage(image, clonedImage!);
 
         stream.Write(PngConstants.HeaderBytes);
 
@@ -144,7 +144,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.WriteExifChunk(stream, metadata);
         this.WriteXmpChunk(stream, metadata);
         this.WriteTextChunks(stream, pngMetadata);
-        this.WriteDataChunks(clearTransparency ? clonedImage : image, quantized, stream);
+        this.WriteDataChunks(clearTransparency ? clonedImage! : image, quantized, stream);
         this.WriteEndChunk(stream);
 
         stream.Flush();
@@ -156,10 +156,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        this.previousScanline?.Dispose();
-        this.currentScanline?.Dispose();
-        this.previousScanline = null;
-        this.currentScanline = null;
+        this.previousScanline.Dispose();
+        this.currentScanline.Dispose();
     }
 
     /// <summary>
@@ -195,10 +193,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="image">The image to quantize.</param>
     /// <param name="clonedImage">Cloned image with transparent pixels are changed to black.</param>
     /// <returns>The quantized image.</returns>
-    private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image, Image<TPixel> clonedImage)
+    private IndexedImageFrame<TPixel>? CreateQuantizedImage<TPixel>(Image<TPixel> image, Image<TPixel> clonedImage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        IndexedImageFrame<TPixel> quantized;
+        IndexedImageFrame<TPixel>? quantized;
         if (this.options.TransparentColorMode == PngTransparentColorMode.Clear)
         {
             quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
@@ -379,7 +377,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="rowSpan">The row span.</param>
     /// <param name="quantized">The quantized pixels. Can be null.</param>
     /// <param name="row">The row.</param>
-    private void CollectPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan, IndexedImageFrame<TPixel> quantized, int row)
+    private void CollectPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan, IndexedImageFrame<TPixel>? quantized, int row)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         switch (this.options.ColorType)
@@ -388,11 +386,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
                 if (this.bitDepth < 8)
                 {
-                    PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
+                    PngEncoderHelpers.ScaleDownFrom8BitArray(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                 }
                 else
                 {
-                    quantized.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
+                    quantized?.DangerousGetRowSpan(row).CopyTo(this.currentScanline.GetSpan());
                 }
 
                 break;
@@ -453,7 +451,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ReadOnlySpan<TPixel> rowSpan,
         ref Span<byte> filter,
         ref Span<byte> attempt,
-        IndexedImageFrame<TPixel> quantized,
+        IndexedImageFrame<TPixel>? quantized,
         int row)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -543,10 +541,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             width: this.width,
             height: this.height,
             bitDepth: this.bitDepth,
-            colorType: this.options.ColorType.Value,
+            colorType: this.options.ColorType!.Value,
             compressionMethod: 0, // None
             filterMethod: 0,
-            interlaceMethod: this.options.InterlaceMethod.Value);
+            interlaceMethod: this.options.InterlaceMethod!.Value);
 
         header.WriteTo(this.chunkDataBuffer);
 
@@ -560,7 +558,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="quantized">The quantized frame.</param>
-    private void WritePaletteChunk<TPixel>(Stream stream, IndexedImageFrame<TPixel> quantized)
+    private void WritePaletteChunk<TPixel>(Stream stream, IndexedImageFrame<TPixel>? quantized)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (quantized is null)
@@ -916,7 +914,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="pixels">The image.</param>
     /// <param name="quantized">The quantized pixel data. Can be null.</param>
     /// <param name="stream">The stream.</param>
-    private void WriteDataChunks<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, Stream stream)
+    private void WriteDataChunks<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] buffer;
@@ -989,7 +987,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="pixels">The pixels.</param>
     /// <param name="quantized">The quantized pixels span.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+    private void EncodePixels<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesPerScanline = this.CalculateScanlineLength(this.width);

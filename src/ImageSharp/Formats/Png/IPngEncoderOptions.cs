@@ -46,7 +46,7 @@ internal interface IPngEncoderOptions
     /// <summary>
     /// Gets the quantizer for reducing the color count.
     /// </summary>
-    IQuantizer Quantizer { get; }
+    IQuantizer? Quantizer { get; }
 
     /// <summary>
     /// Gets the transparency threshold.

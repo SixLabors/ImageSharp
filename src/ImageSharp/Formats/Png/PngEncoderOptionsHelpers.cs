@@ -72,7 +72,7 @@ internal static class PngEncoderOptionsHelpers
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="options">The options.</param>
     /// <param name="image">The image.</param>
-    public static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
+    public static IndexedImageFrame<TPixel>? CreateQuantizedFrame<TPixel>(
         PngEncoderOptions options,
         Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -85,7 +85,7 @@ internal static class PngEncoderOptionsHelpers
         // Use the metadata to determine what quantization depth to use if no quantizer has been set.
         if (options.Quantizer is null)
         {
-            byte bits = (byte)options.BitDepth;
+            byte bits = (byte)options.BitDepth!;
             var maxColors = ColorNumerics.GetColorCountForBitDepth(bits);
             options.Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = maxColors });
         }
@@ -106,14 +106,14 @@ internal static class PngEncoderOptionsHelpers
     /// <param name="quantizedFrame">The quantized frame.</param>
     public static byte CalculateBitDepth<TPixel>(
         PngEncoderOptions options,
-        IndexedImageFrame<TPixel> quantizedFrame)
+        IndexedImageFrame<TPixel>? quantizedFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte bitDepth;
         if (options.ColorType == PngColorType.Palette)
         {
-            byte quantizedBits = (byte)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame.Palette.Length), 1, 8);
-            byte bits = Math.Max((byte)options.BitDepth, quantizedBits);
+            byte quantizedBits = (byte)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame!.Palette.Length), 1, 8);
+            byte bits = Math.Max((byte)options.BitDepth!, quantizedBits);
 
             // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
             // We check again for the bit depth as the bit depth of the color palette from a given quantizer might not
@@ -131,10 +131,10 @@ internal static class PngEncoderOptionsHelpers
         }
         else
         {
-            bitDepth = (byte)options.BitDepth;
+            bitDepth = (byte)options.BitDepth!;
         }
 
-        if (Array.IndexOf(PngConstants.ColorTypes[options.ColorType.Value], bitDepth) == -1)
+        if (Array.IndexOf(PngConstants.ColorTypes[options.ColorType!.Value], bitDepth) == -1)
         {
             throw new NotSupportedException("Bit depth is not supported or not valid.");
         }

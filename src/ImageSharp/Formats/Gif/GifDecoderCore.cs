@@ -103,7 +103,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     public Size? Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
     /// <inheritdoc />
-    public Image<TPixel>? Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         uint frameCount = 0;
@@ -161,7 +161,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             this.globalColorTable?.Dispose();
         }
 
-        return image;
+        return image!;
     }
 
     /// <inheritdoc />

@@ -14,7 +14,7 @@ public sealed class PngImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 8;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         return this.IsSupportedFileFormat(header) ? PngFormat.Instance : null;
     }

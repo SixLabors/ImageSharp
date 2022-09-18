@@ -87,7 +87,7 @@ internal readonly struct PngHeader
     /// </exception>
     public void Validate()
     {
-        if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[] supportedBitDepths))
+        if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[]? supportedBitDepths))
         {
             throw new NotSupportedException($"Invalid or unsupported color type. Was '{this.ColorType}'.");
         }

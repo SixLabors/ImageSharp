@@ -647,6 +647,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136
 		tests\Images\Input\Tga\targa_8bit_rle.tga = tests\Images\Input\Tga\targa_8bit_rle.tga
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Generators", "src\ImageSharp.Generators\ImageSharp.Generators.csproj", "{4743B273-473A-4D20-BE25-EC3D0B38E396}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -669,6 +671,10 @@ Global
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC527290-2F22-432C-B77B-6E815726B02C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4743B273-473A-4D20-BE25-EC3D0B38E396}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4743B273-473A-4D20-BE25-EC3D0B38E396}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4743B273-473A-4D20-BE25-EC3D0B38E396}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4743B273-473A-4D20-BE25-EC3D0B38E396}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -699,6 +705,7 @@ Global
 		{FC527290-2F22-432C-B77B-6E815726B02C} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{670DD46C-82E9-499A-B2D2-00A802ED0141} = {E1C42A6F-913B-4A7B-B1A8-2BB62843B254}
 		{5DFC394F-136F-4B76-9BCA-3BA786515EFC} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{4743B273-473A-4D20-BE25-EC3D0B38E396} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

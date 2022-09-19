@@ -22,7 +22,7 @@ internal sealed class ExifShortArray : ExifArrayValue<ushort>
 
     public override ExifDataType DataType => ExifDataType.Short;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

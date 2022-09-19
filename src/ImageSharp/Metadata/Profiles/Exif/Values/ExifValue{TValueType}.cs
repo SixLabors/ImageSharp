@@ -20,16 +20,16 @@ internal abstract class ExifValue<TValueType> : ExifValue, IExifValue<TValueType
     {
     }
 
-    public TValueType Value { get; set; }
+    public TValueType? Value { get; set; }
 
     /// <summary>
     /// Gets the value of the current instance as a string.
     /// </summary>
-    protected abstract string StringValue { get; }
+    protected abstract string? StringValue { get; }
 
-    public override object GetValue() => this.Value;
+    public override object? GetValue() => this.Value;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (value is null)
         {
@@ -48,14 +48,14 @@ internal abstract class ExifValue<TValueType> : ExifValue, IExifValue<TValueType
         return false;
     }
 
-    public override string ToString()
+    public override string? ToString()
     {
         if (this.Value == null)
         {
             return null;
         }
 
-        string description = ExifTagDescriptionAttribute.GetDescription(this.Tag, this.Value);
+        string? description = ExifTagDescriptionAttribute.GetDescription(this.Tag, this.Value);
         return description ?? this.StringValue;
     }
 }

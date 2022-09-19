@@ -19,9 +19,9 @@ internal sealed class ExifSignedShort : ExifValue<short>
 
     public override ExifDataType DataType => ExifDataType.SignedShort;
 
-    protected override string StringValue => this.Value.ToString(CultureInfo.InvariantCulture);
+    protected override string? StringValue => this.Value.ToString(CultureInfo.InvariantCulture);
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

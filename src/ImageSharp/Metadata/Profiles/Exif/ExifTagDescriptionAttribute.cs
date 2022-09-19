@@ -28,10 +28,10 @@ internal sealed class ExifTagDescriptionAttribute : Attribute
     /// <returns>
     /// The <see cref="string"/>.
     /// </returns>
-    public static string GetDescription(ExifTag tag, object value)
+    public static string? GetDescription(ExifTag tag, object value)
     {
         var tagValue = (ExifTagValue)(ushort)tag;
-        FieldInfo field = typeof(ExifTagValue).GetField(tagValue.ToString(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        FieldInfo? field = typeof(ExifTagValue).GetField(tagValue.ToString(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
         if (field is null)
         {
@@ -40,11 +40,11 @@ internal sealed class ExifTagDescriptionAttribute : Attribute
 
         foreach (CustomAttributeData customAttribute in field.CustomAttributes)
         {
-            object attributeValue = customAttribute.ConstructorArguments[0].Value;
+            object? attributeValue = customAttribute.ConstructorArguments[0].Value;
 
             if (Equals(attributeValue, value))
             {
-                return (string)customAttribute.ConstructorArguments[1].Value;
+                return (string?)customAttribute.ConstructorArguments[1].Value;
             }
         }
 

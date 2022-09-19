@@ -257,7 +257,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             }
         }
 
-        ExifValue newExifValue = ExifValues.Create(tag);
+        ExifValue? newExifValue = ExifValues.Create(tag);
         if (newExifValue is null)
         {
             throw new NotSupportedException();

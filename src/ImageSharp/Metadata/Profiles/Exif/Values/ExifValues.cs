@@ -5,13 +5,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 internal static partial class ExifValues
 {
-    public static ExifValue Create(ExifTagValue tag) => (ExifValue)CreateValue(tag);
+    public static ExifValue? Create(ExifTagValue tag) => (ExifValue?)CreateValue(tag);
 
-    public static ExifValue Create(ExifTag tag) => (ExifValue)CreateValue((ExifTagValue)(ushort)tag);
+    public static ExifValue? Create(ExifTag tag) => (ExifValue?)CreateValue((ExifTagValue)(ushort)tag);
 
-    public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, ulong numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
+    public static ExifValue? Create(ExifTagValue tag, ExifDataType dataType, ulong numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
 
-    public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
+    public static ExifValue? Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
     {
         switch (dataType)
         {
@@ -48,7 +48,7 @@ internal static partial class ExifValues
         }
     }
 
-    private static object CreateValue(ExifTagValue tag)
+    private static object? CreateValue(ExifTagValue tag)
     {
         switch (tag)
         {

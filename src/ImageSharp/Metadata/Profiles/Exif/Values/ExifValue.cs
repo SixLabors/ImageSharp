@@ -27,7 +27,7 @@ internal abstract class ExifValue : IExifValue, IEquatable<ExifTag>
         else
         {
             // All array types are value types so Clone() is sufficient here.
-            var array = (Array)other.GetValue();
+            var array = (Array)other.GetValue()!;
             this.TrySetValue(array?.Clone());
         }
     }
@@ -68,14 +68,14 @@ internal abstract class ExifValue : IExifValue, IEquatable<ExifTag>
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool Equals(ExifTag other) => this.Tag.Equals(other);
+    public bool Equals(ExifTag? other) => this.Tag.Equals(other);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public override int GetHashCode() => HashCode.Combine(this.Tag, this.GetValue());
 
-    public abstract object GetValue();
+    public abstract object? GetValue();
 
-    public abstract bool TrySetValue(object value);
+    public abstract bool TrySetValue(object? value);
 
     public abstract IExifValue DeepClone();
 }

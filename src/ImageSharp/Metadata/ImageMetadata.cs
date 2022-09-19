@@ -136,12 +136,12 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <summary>
     /// Gets or sets the Exif profile.
     /// </summary>
-    public ExifProfile ExifProfile { get; set; }
+    public ExifProfile? ExifProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the XMP profile.
     /// </summary>
-    public XmpProfile XmpProfile { get; set; }
+    public XmpProfile? XmpProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the list of ICC profiles.
@@ -151,7 +151,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <summary>
     /// Gets or sets the IPTC profile.
     /// </summary>
-    public IptcProfile IptcProfile { get; set; }
+    public IptcProfile? IptcProfile { get; set; }
 
     /// <summary>
     /// Gets the metadata value associated with the specified key.
@@ -164,7 +164,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public TFormatMetadata GetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
          where TFormatMetadata : class, IDeepCloneable
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
         {
             return (TFormatMetadata)meta;
         }

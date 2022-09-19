@@ -44,7 +44,7 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     }
 
     /// <inheritdoc/>
-    public bool Equals(ExifTag other)
+    public bool Equals(ExifTag? other)
     {
         if (other is null)
         {

@@ -26,7 +26,7 @@ internal static class ExifEncodedStringHelpers
 
     // 20932 EUC-JP Japanese (JIS 0208-1990 and 0212-1990)
     // https://docs.microsoft.com/en-us/dotnet/api/system.text.encoding?view=net-6.0
-    private static Encoding JIS0208Encoding => CodePagesEncodingProvider.Instance.GetEncoding(20932);
+    private static Encoding? JIS0208Encoding => CodePagesEncodingProvider.Instance.GetEncoding(20932);
 
     public static bool IsEncodedString(ExifTagValue tag) => tag switch
     {
@@ -43,7 +43,7 @@ internal static class ExifEncodedStringHelpers
         _ => UndefinedCodeBytes
     };
 
-    public static Encoding GetEncoding(CharacterCode code) => code switch
+    public static Encoding? GetEncoding(CharacterCode code) => code switch
     {
         CharacterCode.ASCII => Encoding.ASCII,
         CharacterCode.JIS => JIS0208Encoding,
@@ -56,7 +56,7 @@ internal static class ExifEncodedStringHelpers
     {
         if (TryDetect(buffer, out CharacterCode code))
         {
-            string text = GetEncoding(code).GetString(buffer[CharacterCodeBytesLength..]);
+            string text = GetEncoding(code)!.GetString(buffer[CharacterCodeBytesLength..]);
             encodedString = new EncodedString(code, text);
             return true;
         }
@@ -66,14 +66,14 @@ internal static class ExifEncodedStringHelpers
     }
 
     public static uint GetDataLength(EncodedString encodedString) =>
-        (uint)GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
+        (uint)GetEncoding(encodedString.Code)!.GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
 
     public static int Write(EncodedString encodedString, Span<byte> destination)
     {
         GetCodeBytes(encodedString.Code).CopyTo(destination);
 
         string text = encodedString.Text;
-        int count = Write(GetEncoding(encodedString.Code), text, destination[CharacterCodeBytesLength..]);
+        int count = Write(GetEncoding(encodedString.Code)!, text, destination[CharacterCodeBytesLength..]);
 
         return CharacterCodeBytesLength + count;
     }

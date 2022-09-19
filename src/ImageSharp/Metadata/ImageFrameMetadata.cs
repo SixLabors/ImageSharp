@@ -48,22 +48,22 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// <summary>
     /// Gets or sets the Exif profile.
     /// </summary>
-    public ExifProfile ExifProfile { get; set; }
+    public ExifProfile? ExifProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the XMP profile.
     /// </summary>
-    public XmpProfile XmpProfile { get; set; }
+    public XmpProfile? XmpProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the list of ICC profiles.
     /// </summary>
-    public IccProfile IccProfile { get; set; }
+    public IccProfile? IccProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the iptc profile.
     /// </summary>
-    public IptcProfile IptcProfile { get; set; }
+    public IptcProfile? IptcProfile { get; set; }
 
     /// <inheritdoc/>
     public ImageFrameMetadata DeepClone() => new(this);
@@ -81,7 +81,7 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         where TFormatMetadata : class
         where TFormatFrameMetadata : class, IDeepCloneable
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
         {
             return (TFormatFrameMetadata)meta;
         }

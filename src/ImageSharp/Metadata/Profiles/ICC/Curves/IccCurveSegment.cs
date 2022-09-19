@@ -21,7 +21,7 @@ internal abstract class IccCurveSegment : IEquatable<IccCurveSegment>
     public IccCurveSegmentSignature Signature { get; }
 
     /// <inheritdoc/>
-    public virtual bool Equals(IccCurveSegment other)
+    public virtual bool Equals(IccCurveSegment? other)
     {
         if (other is null)
         {

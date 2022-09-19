@@ -33,7 +33,7 @@ internal sealed class IccCurveSetProcessElement : IccMultiProcessElement, IEquat
     }
 
     /// <inheritdoc />
-    public bool Equals(IccCurveSetProcessElement? other) => this.Equals((IccMultiProcessElement)other);
+    public bool Equals(IccCurveSetProcessElement? other) => this.Equals((IccMultiProcessElement?)other);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => this.Equals(obj as IccCurveSetProcessElement);

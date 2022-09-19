@@ -50,7 +50,7 @@ internal sealed class IccMatrixProcessElement : IccMultiProcessElement, IEquatab
 
     /// <inheritdoc />
     public bool Equals(IccMatrixProcessElement? other)
-        => this.Equals((IccMultiProcessElement)other);
+        => this.Equals((IccMultiProcessElement?)other);
 
     /// <inheritdoc />
     public override bool Equals(object? obj)

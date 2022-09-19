@@ -45,7 +45,7 @@ internal sealed class IccResponseCurve : IEquatable<IccResponseCurve>
     public IccResponseNumber[][] ResponseArrays { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccResponseCurve other)
+    public bool Equals(IccResponseCurve? other)
     {
         if (other is null)
         {

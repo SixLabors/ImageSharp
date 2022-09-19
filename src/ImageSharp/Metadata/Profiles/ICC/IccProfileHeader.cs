@@ -18,7 +18,7 @@ public sealed class IccProfileHeader
     /// <summary>
     /// Gets or sets the preferred CMM (Color Management Module) type.
     /// </summary>
-    public string CmmType { get; set; }
+    public string? CmmType { get; set; }
 
     /// <summary>
     /// Gets or sets the profiles version number.
@@ -49,7 +49,7 @@ public sealed class IccProfileHeader
     /// Gets or sets the file signature. Should always be "acsp".
     /// Value will be ignored when writing a profile.
     /// </summary>
-    public string FileSignature { get; set; }
+    public string? FileSignature { get; set; }
 
     /// <summary>
     /// Gets or sets the primary platform this profile as created for
@@ -90,7 +90,7 @@ public sealed class IccProfileHeader
     /// <summary>
     /// Gets or sets profile creator signature.
     /// </summary>
-    public string CreatorSignature { get; set; }
+    public string? CreatorSignature { get; set; }
 
     /// <summary>
     /// Gets or sets the profile ID (hash).

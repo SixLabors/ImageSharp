@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -13,23 +15,23 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
     /// <summary>
     /// The byte array to read the ICC profile from
     /// </summary>
-    private readonly byte[] data;
+    private readonly byte[]? data;
 
     /// <summary>
     /// The backing file for the <see cref="Entries"/> property
     /// </summary>
-    private IccTagDataEntry[] entries;
+    private IccTagDataEntry[]? entries;
 
     /// <summary>
     /// ICC profile header
     /// </summary>
-    private IccProfileHeader header;
+    private IccProfileHeader? header;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
     /// </summary>
     public IccProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -37,7 +39,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
     /// </summary>
     /// <param name="data">The raw ICC profile data</param>
-    public IccProfile(byte[] data) => this.data = data;
+    public IccProfile(byte[]? data) => this.data = data;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
@@ -178,6 +180,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         return IccWriter.Write(this);
     }
 
+    [MemberNotNull(nameof(header))]
     private void InitializeHeader()
     {
         if (this.header != null)
@@ -195,6 +198,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         this.header = IccReader.ReadHeader(this.data);
     }
 
+    [MemberNotNull(nameof(entries))]
     private void InitializeEntries()
     {
         if (this.entries != null)

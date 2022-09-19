@@ -21,12 +21,12 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
     /// <param name="clutValues">CLUT</param>
     /// <param name="curveA">A Curve</param>
     public IccLutBToATagDataEntry(
-        IccTagDataEntry[] curveB,
-        float[,] matrix3x3,
-        float[] matrix3x1,
-        IccTagDataEntry[] curveM,
-        IccClut clutValues,
-        IccTagDataEntry[] curveA)
+        IccTagDataEntry[]? curveB,
+        float[,]? matrix3x3,
+        float[]? matrix3x1,
+        IccTagDataEntry[]? curveM,
+        IccClut? clutValues,
+        IccTagDataEntry[]? curveA)
         : this(curveB, matrix3x3, matrix3x1, curveM, clutValues, curveA, IccProfileTag.Unknown)
     {
     }
@@ -42,12 +42,12 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
     /// <param name="curveA">A Curve</param>
     /// <param name="tagSignature">Tag Signature</param>
     public IccLutBToATagDataEntry(
-        IccTagDataEntry[] curveB,
-        float[,] matrix3x3,
-        float[] matrix3x1,
-        IccTagDataEntry[] curveM,
-        IccClut clutValues,
-        IccTagDataEntry[] curveA,
+        IccTagDataEntry[]? curveB,
+        float[,]? matrix3x3,
+        float[]? matrix3x1,
+        IccTagDataEntry[]? curveM,
+        IccClut? clutValues,
+        IccTagDataEntry[]? curveA,
         IccProfileTag tagSignature)
         : base(IccTypeSignature.LutBToA, tagSignature)
     {
@@ -65,37 +65,37 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
 
         if (this.IsBMatrixMClutA())
         {
-            Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-            Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
-            Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
+            Guard.IsTrue(this.CurveB!.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
+            Guard.IsTrue(this.CurveM!.Length! == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
+            Guard.MustBeBetweenOrEqualTo(this.CurveA!.Length, 1, 15, nameof(this.CurveA));
 
             this.InputChannelCount = 3;
-            this.OutputChannelCount = curveA.Length;
+            this.OutputChannelCount = curveA!.Length;
 
-            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+            Guard.IsTrue(this.InputChannelCount == clutValues!.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
             Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
         }
         else if (this.IsBMatrixM())
         {
-            Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-            Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
+            Guard.IsTrue(this.CurveB!.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
+            Guard.IsTrue(this.CurveM!.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
 
             this.InputChannelCount = this.OutputChannelCount = 3;
         }
         else if (this.IsBClutA())
         {
-            Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
-            Guard.MustBeBetweenOrEqualTo(this.CurveB.Length, 1, 15, nameof(this.CurveB));
+            Guard.MustBeBetweenOrEqualTo(this.CurveA!.Length, 1, 15, nameof(this.CurveA));
+            Guard.MustBeBetweenOrEqualTo(this.CurveB!.Length, 1, 15, nameof(this.CurveB));
 
-            this.InputChannelCount = curveB.Length;
-            this.OutputChannelCount = curveA.Length;
+            this.InputChannelCount = curveB!.Length;
+            this.OutputChannelCount = curveA!.Length;
 
-            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
+            Guard.IsTrue(this.InputChannelCount == clutValues!.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
             Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
         }
         else if (this.IsB())
         {
-            this.InputChannelCount = this.OutputChannelCount = this.CurveB.Length;
+            this.InputChannelCount = this.OutputChannelCount = this.CurveB!.Length;
         }
         else
         {
@@ -126,22 +126,22 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
     /// <summary>
     /// Gets the color lookup table
     /// </summary>
-    public IccClut ClutValues { get; }
+    public IccClut? ClutValues { get; }
 
     /// <summary>
     /// Gets the B Curve
     /// </summary>
-    public IccTagDataEntry[] CurveB { get; }
+    public IccTagDataEntry[]? CurveB { get; }
 
     /// <summary>
     /// Gets the M Curve
     /// </summary>
-    public IccTagDataEntry[] CurveM { get; }
+    public IccTagDataEntry[]? CurveM { get; }
 
     /// <summary>
     /// Gets the A Curve
     /// </summary>
-    public IccTagDataEntry[] CurveA { get; }
+    public IccTagDataEntry[]? CurveA { get; }
 
     /// <inheritdoc/>
     public override bool Equals(IccTagDataEntry? other) => other is IccLutBToATagDataEntry entry && this.Equals(entry);
@@ -164,7 +164,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
             && this.OutputChannelCount == other.OutputChannelCount
             && this.Matrix3x3.Equals(other.Matrix3x3)
             && this.Matrix3x1.Equals(other.Matrix3x1)
-            && this.ClutValues.Equals(other.ClutValues)
+            && this.ClutValues!.Equals(other.ClutValues)
             && EqualsCurve(this.CurveB, other.CurveB)
             && EqualsCurve(this.CurveM, other.CurveM)
             && EqualsCurve(this.CurveA, other.CurveA);
@@ -190,7 +190,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
         return hashCode.ToHashCode();
     }
 
-    private static bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
+    private static bool EqualsCurve(IccTagDataEntry[]? thisCurves, IccTagDataEntry[]? entryCurves)
     {
         bool thisNull = thisCurves is null;
         bool entryNull = entryCurves is null;
@@ -205,7 +205,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
             return false;
         }
 
-        return thisCurves.SequenceEqual(entryCurves);
+        return thisCurves!.SequenceEqual(entryCurves!);
     }
 
     private bool IsBMatrixMClutA()
@@ -219,7 +219,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
 
     private bool IsB() => this.CurveB != null;
 
-    private void VerifyCurve(IccTagDataEntry[] curves, string name)
+    private void VerifyCurve(IccTagDataEntry[]? curves, string name)
     {
         if (curves != null)
         {
@@ -228,7 +228,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
         }
     }
 
-    private static void VerifyMatrix(float[,] matrix3x3, float[] matrix3x1)
+    private static void VerifyMatrix(float[,]? matrix3x3, float[]? matrix3x1)
     {
         if (matrix3x1 != null)
         {
@@ -242,7 +242,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
         }
     }
 
-    private static Vector3? CreateMatrix3x1(float[] matrix)
+    private static Vector3? CreateMatrix3x1(float[]? matrix)
     {
         if (matrix is null)
         {
@@ -252,7 +252,7 @@ internal sealed class IccLutBToATagDataEntry : IccTagDataEntry, IEquatable<IccLu
         return new Vector3(matrix[0], matrix[1], matrix[2]);
     }
 
-    private static Matrix4x4? CreateMatrix3x3(float[,] matrix)
+    private static Matrix4x4? CreateMatrix3x3(float[,]? matrix)
     {
         if (matrix is null)
         {

@@ -72,6 +72,6 @@ internal sealed partial class IccDataWriter
     /// <returns>The number of bytes written</returns>
     public int WriteClutProcessElement(IccClutProcessElement value)
     {
-        return this.WriteClut(value.ClutValue);
+        return this.WriteClut(value.ClutValue!);
     }
 }

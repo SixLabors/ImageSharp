@@ -111,7 +111,7 @@ internal sealed class IccClut : IEquatable<IccClut>
     public byte[] GridPointCount { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccClut other)
+    public bool Equals(IccClut? other)
     {
         if (other is null)
         {

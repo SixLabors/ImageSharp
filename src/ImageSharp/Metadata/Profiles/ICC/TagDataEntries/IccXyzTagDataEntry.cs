@@ -34,7 +34,7 @@ internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTag
     public Vector3[] Data { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         if (base.Equals(other) && other is IccXyzTagDataEntry entry)
         {
@@ -46,7 +46,7 @@ internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTag
 
     /// <inheritdoc />
     public bool Equals(IccXyzTagDataEntry? other)
-        => this.Equals((IccTagDataEntry)other);
+        => this.Equals((IccTagDataEntry?)other);
 
     /// <inheritdoc />
     public override bool Equals(object? obj)

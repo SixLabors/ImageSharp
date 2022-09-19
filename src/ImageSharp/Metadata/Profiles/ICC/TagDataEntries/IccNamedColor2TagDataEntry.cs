@@ -71,7 +71,7 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     /// <param name="suffix">Suffix</param>
     /// <param name="colors">The named colors</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccNamedColor2TagDataEntry(int vendorFlags, string prefix, string suffix, IccNamedColor[] colors, IccProfileTag tagSignature)
+    public IccNamedColor2TagDataEntry(int vendorFlags, string? prefix, string? suffix, IccNamedColor[] colors, IccProfileTag tagSignature)
         : base(IccTypeSignature.NamedColor2, tagSignature)
     {
         Guard.NotNull(colors, nameof(colors));
@@ -99,12 +99,12 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     /// <summary>
     /// Gets the prefix
     /// </summary>
-    public string Prefix { get; }
+    public string? Prefix { get; }
 
     /// <summary>
     /// Gets the suffix
     /// </summary>
-    public string Suffix { get; }
+    public string? Suffix { get; }
 
     /// <summary>
     /// Gets the vendor specific flags

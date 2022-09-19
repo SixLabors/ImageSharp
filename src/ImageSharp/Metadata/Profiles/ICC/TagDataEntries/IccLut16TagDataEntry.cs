@@ -24,7 +24,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     /// <param name="inputValues">Input LUT</param>
     /// <param name="clutValues">CLUT</param>
     /// <param name="outputValues">Output LUT</param>
-    public IccLut16TagDataEntry(IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues)
+    public IccLut16TagDataEntry(IccLut[] inputValues, IccClut? clutValues, IccLut[] outputValues)
         : this(IdentityMatrix, inputValues, clutValues, outputValues, IccProfileTag.Unknown)
     {
     }
@@ -36,7 +36,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     /// <param name="clutValues">CLUT</param>
     /// <param name="outputValues">Output LUT</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccLut16TagDataEntry(IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues, IccProfileTag tagSignature)
+    public IccLut16TagDataEntry(IccLut[] inputValues, IccClut? clutValues, IccLut[] outputValues, IccProfileTag tagSignature)
         : this(IdentityMatrix, inputValues, clutValues, outputValues, tagSignature)
     {
     }
@@ -48,7 +48,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     /// <param name="inputValues">Input LUT</param>
     /// <param name="clutValues">CLUT</param>
     /// <param name="outputValues">Output LUT</param>
-    public IccLut16TagDataEntry(float[,] matrix, IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues)
+    public IccLut16TagDataEntry(float[,] matrix, IccLut[] inputValues, IccClut? clutValues, IccLut[] outputValues)
         : this(matrix, inputValues, clutValues, outputValues, IccProfileTag.Unknown)
     {
     }
@@ -61,7 +61,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     /// <param name="clutValues">CLUT</param>
     /// <param name="outputValues">Output LUT</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccLut16TagDataEntry(float[,] matrix, IccLut[] inputValues, IccClut clutValues, IccLut[] outputValues, IccProfileTag tagSignature)
+    public IccLut16TagDataEntry(float[,] matrix, IccLut[] inputValues, IccClut? clutValues, IccLut[] outputValues, IccProfileTag tagSignature)
         : base(IccTypeSignature.Lut16, tagSignature)
     {
         Guard.NotNull(matrix, nameof(matrix));
@@ -101,7 +101,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
     /// <summary>
     /// Gets the color lookup table
     /// </summary>
-    public IccClut ClutValues { get; }
+    public IccClut? ClutValues { get; }
 
     /// <summary>
     /// Gets the output lookup table
@@ -127,7 +127,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
         return base.Equals(other)
             && this.Matrix.Equals(other.Matrix)
             && this.InputValues.AsSpan().SequenceEqual(other.InputValues)
-            && this.ClutValues.Equals(other.ClutValues)
+            && this.ClutValues!.Equals(other.ClutValues)
             && this.OutputValues.AsSpan().SequenceEqual(other.OutputValues);
     }
 

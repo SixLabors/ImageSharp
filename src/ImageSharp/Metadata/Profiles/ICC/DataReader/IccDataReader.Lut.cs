@@ -41,7 +41,7 @@ internal sealed partial class IccDataReader
     /// <param name="isFloat">If true, it's read as CLUTf32,
     /// else read as either CLUT8 or CLUT16 depending on embedded information</param>
     /// <returns>The read CLUT</returns>
-    public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
+    public IccClut? ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
     {
         // Grid-points are always 16 bytes long but only 0-inChCount are used
         var gridPointCount = new byte[inChannelCount];
@@ -73,7 +73,7 @@ internal sealed partial class IccDataReader
     /// <param name="outChannelCount">Output channel count</param>
     /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
     /// <returns>The read CLUT8</returns>
-    public IccClut ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
+    public IccClut? ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
     {
         int start = this.currentIndex;
         int length = 0;
@@ -107,7 +107,7 @@ internal sealed partial class IccDataReader
     /// <param name="outChannelCount">Output channel count</param>
     /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
     /// <returns>The read CLUT16</returns>
-    public IccClut ReadClut16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
+    public IccClut? ReadClut16(int inChannelCount, int outChannelCount, byte[] gridPointCount)
     {
         int start = this.currentIndex;
         int length = 0;
@@ -141,7 +141,7 @@ internal sealed partial class IccDataReader
     /// <param name="outChCount">Output channel count</param>
     /// <param name="gridPointCount">Grid point count for each CLUT channel</param>
     /// <returns>The read CLUTf32</returns>
-    public IccClut ReadClutF32(int inChCount, int outChCount, byte[] gridPointCount)
+    public IccClut? ReadClutF32(int inChCount, int outChCount, byte[] gridPointCount)
     {
         int start = this.currentIndex;
         int length = 0;

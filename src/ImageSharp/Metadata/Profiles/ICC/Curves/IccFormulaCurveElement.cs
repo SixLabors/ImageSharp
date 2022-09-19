@@ -66,7 +66,7 @@ internal sealed class IccFormulaCurveElement : IccCurveSegment, IEquatable<IccFo
     public float E { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccCurveSegment other)
+    public override bool Equals(IccCurveSegment? other)
     {
         if (base.Equals(other) && other is IccFormulaCurveElement segment)
         {
@@ -83,7 +83,7 @@ internal sealed class IccFormulaCurveElement : IccCurveSegment, IEquatable<IccFo
     }
 
     /// <inheritdoc />
-    public bool Equals(IccFormulaCurveElement other) => this.Equals((IccCurveSegment)other);
+    public bool Equals(IccFormulaCurveElement? other) => this.Equals((IccCurveSegment?)other);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => this.Equals(obj as IccFormulaCurveElement);

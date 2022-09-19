@@ -121,7 +121,7 @@ internal sealed class IccParametricCurve : IEquatable<IccParametricCurve>
     public float F { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccParametricCurve other)
+    public bool Equals(IccParametricCurve? other)
     {
         if (other is null)
         {

@@ -36,7 +36,7 @@ internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve
     public IccCurveSegment[] Segments { get; }
 
     /// <inheritdoc />
-    public bool Equals(IccOneDimensionalCurve other)
+    public bool Equals(IccOneDimensionalCurve? other)
     {
         if (other is null)
         {

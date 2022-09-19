@@ -19,7 +19,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
     private static long totalOomRetries;
 
     // A Monitor to wait/signal when we are low on memory.
-    private static object lowMemoryMonitor;
+    private static object? lowMemoryMonitor;
 
     public static readonly UnmanagedMemoryHandle NullHandle;
 
@@ -113,9 +113,9 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
         if (Volatile.Read(ref lowMemoryMonitor) != null)
         {
             // We are low on memory. Signal all threads waiting in AllocateHandle().
-            Monitor.Enter(lowMemoryMonitor);
-            Monitor.PulseAll(lowMemoryMonitor);
-            Monitor.Exit(lowMemoryMonitor);
+            Monitor.Enter(lowMemoryMonitor!);
+            Monitor.PulseAll(lowMemoryMonitor!);
+            Monitor.Exit(lowMemoryMonitor!);
         }
 
         this.lengthInBytes = 0;

@@ -15,7 +15,7 @@ internal abstract partial class MemoryGroup<T>
     public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
     {
         private IMemoryOwner<T>[] memoryOwners;
-        private RefCountedMemoryLifetimeGuard groupLifetimeGuard;
+        private RefCountedMemoryLifetimeGuard? groupLifetimeGuard;
 
         public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
             : base(bufferLength, totalLength)
@@ -122,7 +122,7 @@ internal abstract partial class MemoryGroup<T>
 
         public override void RecreateViewAfterSwap()
         {
-            this.View.Invalidate();
+            this.View?.Invalidate();
             this.View = new MemoryGroupView<T>(this);
         }
 
@@ -140,7 +140,7 @@ internal abstract partial class MemoryGroup<T>
                 return;
             }
 
-            this.View.Invalidate();
+            this.View?.Invalidate();
 
             if (this.groupLifetimeGuard != null)
             {
@@ -154,7 +154,6 @@ internal abstract partial class MemoryGroup<T>
                 }
             }
 
-            this.memoryOwners = null;
             this.IsValid = false;
             this.groupLifetimeGuard = null;
         }

@@ -18,7 +18,7 @@ public static class Buffer2DExtensions
     /// <param name="buffer">The buffer.</param>
     /// <typeparam name="T">The element type.</typeparam>
     /// <returns>The MemoryGroup.</returns>
-    public static IMemoryGroup<T> GetMemoryGroup<T>(this Buffer2D<T> buffer)
+    public static IMemoryGroup<T>? GetMemoryGroup<T>(this Buffer2D<T> buffer)
         where T : struct
     {
         Guard.NotNull(buffer, nameof(buffer));

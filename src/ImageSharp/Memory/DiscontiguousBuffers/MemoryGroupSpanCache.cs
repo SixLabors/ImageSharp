@@ -27,7 +27,7 @@ internal unsafe struct MemoryGroupSpanCache
             if (owner0 is SharedArrayPoolBuffer<T> sharedPoolBuffer)
             {
                 memoryGroupSpanCache.Mode = SpanCacheMode.SingleArray;
-                memoryGroupSpanCache.SingleArray = sharedPoolBuffer.Array;
+                memoryGroupSpanCache.SingleArray = sharedPoolBuffer.Array!;
             }
             else if (owner0 is UnmanagedBuffer<T> unmanagedBuffer)
             {

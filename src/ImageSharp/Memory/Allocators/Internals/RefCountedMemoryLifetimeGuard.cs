@@ -14,7 +14,7 @@ internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
     private int refCount = 1;
     private int disposed;
     private int released;
-    private string allocationStackTrace;
+    private string? allocationStackTrace;
 
     protected RefCountedMemoryLifetimeGuard()
     {

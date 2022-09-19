@@ -14,8 +14,8 @@ namespace SixLabors.ImageSharp.Memory.Internals;
 /// </summary>
 internal sealed class Gen2GcCallback : CriticalFinalizerObject
 {
-    private readonly Func<bool> callback0;
-    private readonly Func<object, bool> callback1;
+    private readonly Func<bool>? callback0;
+    private readonly Func<object, bool>? callback1;
     private GCHandle weakTargetObj;
 
     private Gen2GcCallback(Func<bool> callback) => this.callback0 = callback;
@@ -31,7 +31,7 @@ internal sealed class Gen2GcCallback : CriticalFinalizerObject
         if (this.weakTargetObj.IsAllocated)
         {
             // Check to see if the target object is still alive.
-            object targetObj = this.weakTargetObj.Target;
+            object? targetObj = this.weakTargetObj.Target;
             if (targetObj == null)
             {
                 // The target object is dead, so this callback object is no longer needed.
@@ -42,7 +42,7 @@ internal sealed class Gen2GcCallback : CriticalFinalizerObject
             // Execute the callback method.
             try
             {
-                if (!this.callback1(targetObj))
+                if (!this.callback1!(targetObj))
                 {
                     // If the callback returns false, this callback object is no longer needed.
                     this.weakTargetObj.Free();
@@ -63,7 +63,7 @@ internal sealed class Gen2GcCallback : CriticalFinalizerObject
             // Execute the callback method.
             try
             {
-                if (!this.callback0())
+                if (!this.callback0!())
                 {
                     // If the callback returns false, this callback object is no longer needed.
                     return;

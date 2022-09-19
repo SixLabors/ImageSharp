@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory;
 internal class MemoryGroupView<T> : IMemoryGroup<T>
     where T : struct
 {
-    private MemoryGroup<T> owner;
+    private MemoryGroup<T>? owner;
     private readonly MemoryOwnerWrapper[] memoryWrappers;
 
     public MemoryGroupView(MemoryGroup<T> owner)
@@ -40,7 +41,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         get
         {
             this.EnsureIsValid();
-            return this.owner.Count;
+            return this.owner!.Count;
         }
     }
 
@@ -49,7 +50,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         get
         {
             this.EnsureIsValid();
-            return this.owner.BufferLength;
+            return this.owner!.BufferLength;
         }
     }
 
@@ -58,7 +59,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         get
         {
             this.EnsureIsValid();
-            return this.owner.TotalLength;
+            return this.owner!.TotalLength;
         }
     }
 
@@ -125,13 +126,13 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         public override Span<T> GetSpan()
         {
             this.view.EnsureIsValid();
-            return this.view.owner[this.index].Span;
+            return this.view.owner![this.index].Span;
         }
 
         public override MemoryHandle Pin(int elementIndex = 0)
         {
             this.view.EnsureIsValid();
-            return this.view.owner[this.index].Pin();
+            return this.view.owner![this.index].Pin();
         }
 
         public override void Unpin()

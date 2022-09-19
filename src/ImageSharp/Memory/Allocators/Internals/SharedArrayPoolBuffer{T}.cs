@@ -21,7 +21,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         this.lifetimeGuard = new LifetimeGuard(this.Array);
     }
 
-    public byte[] Array { get; private set; }
+    public byte[]? Array { get; private set; }
 
     protected override void Dispose(bool disposing)
     {
@@ -40,7 +40,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         return MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
     }
 
-    protected override object GetPinnableObject() => this.Array;
+    protected override object GetPinnableObject() => this.Array!;
 
     public void AddRef()
     {
@@ -61,7 +61,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     private sealed class LifetimeGuard : RefCountedMemoryLifetimeGuard
     {
-        private byte[] array;
+        private byte[]? array;
 
         public LifetimeGuard(byte[] array) => this.array = array;
 
@@ -72,7 +72,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
             // This is not ideal, but subsequent leaks will end up returning arrays to per-cpu buckets,
             // meaning likely a different bucket than it was rented from,
             // but this is PROBABLY better than not returning the arrays at all.
-            ArrayPool<byte>.Shared.Return(this.array);
+            ArrayPool<byte>.Shared.Return(this.array!);
             this.array = null;
         }
     }

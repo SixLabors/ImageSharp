@@ -43,12 +43,12 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata metadata = null!;
 
     /// <summary>
     /// Gets or sets the alpha data, if an ALPH chunk is present.
     /// </summary>
-    private IMemoryOwner<byte> alphaData;
+    private IMemoryOwner<byte> alphaData = null!;
 
     /// <summary>
     /// Used for allocating memory during the decoding operations.
@@ -58,17 +58,17 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream currentStream;
+    private BufferedReadStream currentStream = null!;
 
     /// <summary>
     /// The webp specific metadata.
     /// </summary>
-    private WebpMetadata webpMetadata;
+    private WebpMetadata webpMetadata = null!;
 
     /// <summary>
     /// Information about the webp image.
     /// </summary>
-    private WebpImageInfo webImageInfo;
+    private WebpImageInfo webImageInfo = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
@@ -87,13 +87,13 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
+    public Size? Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
 
     /// <inheritdoc />
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> image = null;
+        Image<TPixel>? image = null;
         try
         {
             this.metadata = new ImageMetadata();
@@ -118,12 +118,12 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
-                    var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    var losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader!, this.memoryAllocator, this.configuration);
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
                 {
-                    var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    var lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader!, this.memoryAllocator, this.configuration);
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 

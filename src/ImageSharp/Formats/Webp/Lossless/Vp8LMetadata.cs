@@ -9,7 +9,7 @@ internal class Vp8LMetadata
 {
     public int ColorCacheSize { get; set; }
 
-    public ColorCache ColorCache { get; set; }
+    public ColorCache? ColorCache { get; set; }
 
     public int HuffmanMask { get; set; }
 
@@ -17,11 +17,11 @@ internal class Vp8LMetadata
 
     public int HuffmanXSize { get; set; }
 
-    public IMemoryOwner<uint> HuffmanImage { get; set; }
+    public IMemoryOwner<uint>? HuffmanImage { get; set; }
 
     public int NumHTreeGroups { get; set; }
 
-    public HTreeGroup[] HTreeGroups { get; set; }
+    public HTreeGroup[]? HTreeGroups { get; set; }
 
-    public HuffmanCode[] HuffmanTables { get; set; }
+    public HuffmanCode[]? HuffmanTables { get; set; }
 }

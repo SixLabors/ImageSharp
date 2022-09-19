@@ -33,7 +33,7 @@ internal class Vp8BitWriter : BitWriterBase
     private const int B_HU_PRED = 9;
 #pragma warning restore SA1310 // Field names should not contain underscore
 
-    private readonly Vp8Encoder enc;
+    private readonly Vp8Encoder enc = null!;
 
     private int range;
 
@@ -82,7 +82,7 @@ internal class Vp8BitWriter : BitWriterBase
     public int PutCoeffs(int ctx, Vp8Residual residual)
     {
         int n = residual.First;
-        Vp8ProbaArray p = residual.Prob[n].Probabilities[ctx];
+        Vp8ProbaArray p = residual.Prob![n].Probabilities[ctx];
         if (!this.PutBit(residual.Last >= 0, p.Probabilities[0]))
         {
             return 0;
@@ -413,9 +413,9 @@ internal class Vp8BitWriter : BitWriterBase
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
     public void WriteEncodedImageToStream(
         Stream stream,
-        ExifProfile exifProfile,
-        XmpProfile xmpProfile,
-        IccProfile iccProfile,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
         uint width,
         uint height,
         bool hasAlpha,
@@ -423,9 +423,9 @@ internal class Vp8BitWriter : BitWriterBase
         bool alphaDataIsCompressed)
     {
         bool isVp8X = false;
-        byte[] exifBytes = null;
-        byte[] xmpBytes = null;
-        byte[] iccProfileBytes = null;
+        byte[]? exifBytes = null;
+        byte[]? xmpBytes = null;
+        byte[]? iccProfileBytes = null;
         uint riffSize = 0;
         if (exifProfile != null)
         {
@@ -489,12 +489,12 @@ internal class Vp8BitWriter : BitWriterBase
             stream.WriteByte(0);
         }
 
-        if (exifProfile != null)
+        if (exifProfile != null && exifBytes != null)
         {
             this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
         }
 
-        if (xmpProfile != null)
+        if (xmpProfile != null && xmpBytes != null)
         {
             this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
         }
@@ -675,9 +675,9 @@ internal class Vp8BitWriter : BitWriterBase
         bool isVp8X,
         uint width,
         uint height,
-        ExifProfile exifProfile,
-        XmpProfile xmpProfile,
-        byte[] iccProfileBytes,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        byte[]? iccProfileBytes,
         bool hasAlpha,
         Span<byte> alphaData,
         bool alphaDataIsCompressed)

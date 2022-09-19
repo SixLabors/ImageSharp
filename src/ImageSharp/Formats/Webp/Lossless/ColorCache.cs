@@ -15,7 +15,7 @@ internal class ColorCache
     /// <summary>
     /// Gets the color entries.
     /// </summary>
-    public uint[] Colors { get; private set; }
+    public uint[] Colors { get; private set; } = null!;
 
     /// <summary>
     /// Gets the hash shift: 32 - hashBits.
@@ -47,7 +47,7 @@ internal class ColorCache
     public void Insert(uint bgra)
     {
         int key = HashPix(bgra, this.HashShift);
-        this.Colors[key] = bgra;
+        this.Colors![key] = bgra;
     }
 
     /// <summary>

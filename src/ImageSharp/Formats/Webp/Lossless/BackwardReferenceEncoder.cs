@@ -49,7 +49,7 @@ internal static class BackwardReferenceEncoder
         int lz77TypeBest = 0;
         double bitCostBest = -1;
         int cacheBitsInitial = cacheBits;
-        Vp8LHashChain hashChainBox = null;
+        Vp8LHashChain? hashChainBox = null;
         var stats = new Vp8LStreaks();
         var bitsEntropy = new Vp8LBitEntropy();
         for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
@@ -100,8 +100,8 @@ internal static class BackwardReferenceEncoder
         // Improve on simple LZ77 but only for high quality (TraceBackwards is costly).
         if ((lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard || lz77TypeBest == (int)Vp8LLz77Type.Lz77Box) && quality >= 25)
         {
-            Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
-            BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp, best, worst);
+            Vp8LHashChain? hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
+            BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp!, best, worst);
             var histo = new Vp8LHistogram(worst, cacheBits);
             double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
             if (bitCostTrace < bitCostBest)

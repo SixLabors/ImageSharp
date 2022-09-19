@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Decoder : IDisposable
 {
-    private Vp8MacroBlock leftMacroBlock;
+    private Vp8MacroBlock leftMacroBlock = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8Decoder"/> class.
@@ -140,7 +140,7 @@ internal class Vp8Decoder : IDisposable
     /// <summary>
     /// Gets or sets the top intra modes values: 4 * MbWidth.
     /// </summary>
-    public byte[] IntraT { get; set; }
+    public byte[] IntraT { get; set; } = null!;
 
     /// <summary>
     /// Gets the left intra modes values.

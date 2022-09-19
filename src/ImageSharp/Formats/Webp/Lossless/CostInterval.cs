@@ -32,7 +32,7 @@ internal class CostInterval
 
     public int Index { get; set; }
 
-    public CostInterval Previous { get; set; }
+    public CostInterval? Previous { get; set; }
 
-    public CostInterval Next { get; set; }
+    public CostInterval? Next { get; set; }
 }

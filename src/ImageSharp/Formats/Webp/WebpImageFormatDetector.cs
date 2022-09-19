@@ -12,7 +12,7 @@ public sealed class WebpImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 12;
 
     /// <inheritdoc />
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
         => this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

@@ -75,7 +75,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration configuration = null!;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.

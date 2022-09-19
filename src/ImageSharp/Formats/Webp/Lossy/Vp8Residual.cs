@@ -26,11 +26,11 @@ internal class Vp8Residual
 
     public short[] Coeffs { get; } = new short[16];
 
-    public Vp8BandProbas[] Prob { get; set; }
+    public Vp8BandProbas[]? Prob { get; set; }
 
-    public Vp8Stats[] Stats { get; set; }
+    public Vp8Stats[]? Stats { get; set; }
 
-    public Vp8Costs[] Costs { get; set; }
+    public Vp8Costs[]? Costs { get; set; }
 
     public void Init(int first, int coeffType, Vp8EncProba prob)
     {
@@ -86,7 +86,7 @@ internal class Vp8Residual
     public int RecordCoeffs(int ctx)
     {
         int n = this.First;
-        Vp8StatsArray s = this.Stats[n].Stats[ctx];
+        Vp8StatsArray s = this.Stats![n].Stats[ctx];
         if (this.Last < 0)
         {
             RecordStats(0, s, 0);
@@ -145,9 +145,9 @@ internal class Vp8Residual
     public int GetResidualCost(int ctx0)
     {
         int n = this.First;
-        int p0 = this.Prob[n].Probabilities[ctx0].Probabilities[0];
-        Vp8Costs[] costs = this.Costs;
-        Vp8CostArray t = costs[n].Costs[ctx0];
+        int p0 = this.Prob![n].Probabilities[ctx0].Probabilities[0];
+        Vp8Costs[]? costs = this.Costs;
+        Vp8CostArray t = costs![n].Costs[ctx0];
 
         // bitCost(1, p0) is already incorporated in t[] tables, but only if ctx != 0
         // (as required by the syntax). For ctx0 == 0, we need to add it here or it'll

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 internal class AlphaEncoder : IDisposable
 {
-    private IMemoryOwner<byte> alphaData;
+    private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
     /// Encodes the alpha channel data.

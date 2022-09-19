@@ -235,7 +235,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// Writes the EXIF profile.
     /// </summary>
     /// <param name="exifProfile">The exif profile.</param>
-    private void WriteExifProfile(ExifProfile exifProfile)
+    private void WriteExifProfile(ExifProfile? exifProfile)
     {
         if (exifProfile is null || exifProfile.Values.Count == 0)
         {
@@ -245,7 +245,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         const int maxBytesApp1 = 65533; // 64k - 2 padding bytes
         const int maxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
-        byte[] data = exifProfile.ToByteArray();
+        byte[] data = exifProfile.ToByteArray()!;
 
         if (data.Length == 0)
         {

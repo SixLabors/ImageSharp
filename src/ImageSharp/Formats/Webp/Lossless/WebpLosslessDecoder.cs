@@ -102,7 +102,7 @@ internal sealed class WebpLosslessDecoder
         }
     }
 
-    public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
+    public IMemoryOwner<uint>? DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
     {
         int transformXSize = xSize;
         int transformYSize = ySize;
@@ -212,7 +212,7 @@ internal sealed class WebpLosslessDecoder
         int col = lastPixel % width;
         const int lenCodeLimit = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes;
         int colorCacheSize = decoder.Metadata.ColorCacheSize;
-        ColorCache colorCache = decoder.Metadata.ColorCache;
+        ColorCache? colorCache = decoder.Metadata.ColorCache;
         int colorCacheLimit = lenCodeLimit + colorCacheSize;
         int mask = decoder.Metadata.HuffmanMask;
         Span<HTreeGroup> hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
@@ -231,7 +231,7 @@ internal sealed class WebpLosslessDecoder
             if (hTreeGroup[0].IsTrivialCode)
             {
                 pixelData[decodedPixels] = hTreeGroup[0].LiteralArb;
-                AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                AdvanceByOne(ref col, ref row, width, colorCache!, ref decodedPixels, pixelData, ref lastCached);
                 continue;
             }
 
@@ -246,7 +246,7 @@ internal sealed class WebpLosslessDecoder
 
                 if (code == PackedNonLiteralCode)
                 {
-                    AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                    AdvanceByOne(ref col, ref row, width, colorCache!, ref decodedPixels, pixelData, ref lastCached);
                     continue;
                 }
             }
@@ -281,7 +281,7 @@ internal sealed class WebpLosslessDecoder
                     pixelData[decodedPixels] = (uint)(((byte)alpha << 24) | ((byte)red << 16) | ((byte)code << 8) | (byte)blue);
                 }
 
-                AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
+                AdvanceByOne(ref col, ref row, width, colorCache!, ref decodedPixels, pixelData, ref lastCached);
             }
             else if (code < lenCodeLimit)
             {
@@ -326,11 +326,11 @@ internal sealed class WebpLosslessDecoder
                 int key = code - lenCodeLimit;
                 while (lastCached < decodedPixels)
                 {
-                    colorCache.Insert(pixelData[lastCached]);
+                    colorCache!.Insert(pixelData[lastCached]);
                     lastCached++;
                 }
 
-                pixelData[decodedPixels] = colorCache.Lookup(key);
+                pixelData[decodedPixels] = colorCache!.Lookup(key);
                 AdvanceByOne(ref col, ref row, width, colorCache, ref decodedPixels, pixelData, ref lastCached);
             }
             else
@@ -376,8 +376,8 @@ internal sealed class WebpLosslessDecoder
             int huffmanYSize = LosslessUtils.SubSampleSize(ySize, huffmanPrecision);
             int huffmanPixels = huffmanXSize * huffmanYSize;
 
-            IMemoryOwner<uint> huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
-            Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
+            IMemoryOwner<uint>? huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
+            Span<uint> huffmanImageSpan = huffmanImage!.GetSpan();
             decoder.Metadata.HuffmanSubSampleBits = huffmanPrecision;
 
             // TODO: Isn't huffmanPixels the length of the span?
@@ -393,7 +393,7 @@ internal sealed class WebpLosslessDecoder
             }
 
             numHTreeGroups = numHTreeGroupsMax;
-            decoder.Metadata.HuffmanImage = huffmanImage;
+            decoder.Metadata.HuffmanImage = huffmanImage!;
         }
 
         // Find maximum alphabet size for the hTree group.
@@ -656,11 +656,11 @@ internal sealed class WebpLosslessDecoder
                     transform.Bits = 3;
                 }
 
-                using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
+                using (IMemoryOwner<uint>? colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
                 {
                     int finalNumColors = 1 << (8 >> transform.Bits);
                     IMemoryOwner<uint> newColorMap = this.memoryAllocator.Allocate<uint>(finalNumColors, AllocationOptions.Clean);
-                    LosslessUtils.ExpandColorMap((int)numColors, colorMap.GetSpan(), newColorMap.GetSpan());
+                    LosslessUtils.ExpandColorMap((int)numColors, colorMap!.GetSpan(), newColorMap.GetSpan());
                     transform.Data = newColorMap;
                 }
 
@@ -673,7 +673,7 @@ internal sealed class WebpLosslessDecoder
                 transform.Bits = (int)this.bitReader.ReadValue(3) + 2;
                 int blockWidth = LosslessUtils.SubSampleSize(transform.XSize, transform.Bits);
                 int blockHeight = LosslessUtils.SubSampleSize(transform.YSize, transform.Bits);
-                transform.Data = this.DecodeImageStream(decoder, blockWidth, blockHeight, false);
+                transform.Data = this.DecodeImageStream(decoder, blockWidth, blockHeight, false)!;
                 break;
         }
 
@@ -903,7 +903,7 @@ internal sealed class WebpLosslessDecoder
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Span<HTreeGroup> GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
     {
-        uint metaIndex = GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
+        uint metaIndex = GetMetaIndex(metadata.HuffmanImage!, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
         return metadata.HTreeGroups.AsSpan((int)metaIndex);
     }
 

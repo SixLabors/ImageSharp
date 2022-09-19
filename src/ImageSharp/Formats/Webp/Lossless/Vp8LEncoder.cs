@@ -157,7 +157,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Gets or sets the scratch memory for bgra rows used for predictions.
     /// </summary>
-    public IMemoryOwner<uint> BgraScratch { get; set; }
+    public IMemoryOwner<uint> BgraScratch { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the packed image width.
@@ -177,7 +177,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Gets or sets the transform data.
     /// </summary>
-    public IMemoryOwner<uint> TransformData { get; set; }
+    public IMemoryOwner<uint> TransformData { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the cache bits. If equal to 0, don't use color cache.
@@ -578,7 +578,7 @@ internal class Vp8LEncoder : IDisposable
             // two as a temporary for later usage.
             Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
-            this.bitWriter.Reset(bwInit);
+            this.bitWriter!.Reset(bwInit);
             Vp8LHistogram tmpHisto = new(cacheBits);
             List<Vp8LHistogram> histogramImage = new(histogramImageXySize);
             for (int i = 0; i < histogramImageXySize; i++)
@@ -587,7 +587,7 @@ internal class Vp8LEncoder : IDisposable
             }
 
             // Build histogram image and symbols from backward references.
-            HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, this.HistoBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+            HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, this.HistoBits, cacheBits, histogramImage!, tmpHisto, histogramSymbols);
 
             // Create Huffman bit lengths and codes for each histogram image.
             int histogramImageSize = histogramImage.Count;
@@ -673,14 +673,14 @@ internal class Vp8LEncoder : IDisposable
             if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
             {
                 Vp8LBitWriter tmp = this.bitWriter;
-                this.bitWriter = bitWriterBest;
+                this.bitWriter = bitWriterBest!;
                 bitWriterBest = tmp;
             }
 
             isFirstIteration = false;
         }
 
-        this.bitWriter = bitWriterBest;
+        this.bitWriter = bitWriterBest!;
     }
 
     /// <summary>

@@ -53,7 +53,7 @@ internal class Vp8Encoder : IDisposable
     /// <summary>
     /// A bit writer for writing lossy webp streams.
     /// </summary>
-    private Vp8BitWriter bitWriter;
+    private Vp8BitWriter bitWriter = null!;
 
     private readonly Vp8RdLevel rdOptLevel;
 
@@ -195,7 +195,7 @@ internal class Vp8Encoder : IDisposable
     /// <summary>
     /// Gets the segment features.
     /// </summary>
-    public Vp8EncSegmentHeader SegmentHeader { get; private set; }
+    public Vp8EncSegmentHeader SegmentHeader { get; private set; } = null!;
 
     /// <summary>
     /// Gets the segment infos.

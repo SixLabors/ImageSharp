@@ -113,7 +113,7 @@ internal class AlphaDecoder : IDisposable
     /// <summary>
     /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
     /// </summary>
-    private WebpLosslessDecoder LosslessDecoder { get; }
+    private WebpLosslessDecoder? LosslessDecoder { get; }
 
     /// <summary>
     /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.
@@ -170,11 +170,11 @@ internal class AlphaDecoder : IDisposable
         {
             if (this.Use8BDecode)
             {
-                this.LosslessDecoder.DecodeAlphaData(this);
+                this.LosslessDecoder!.DecodeAlphaData(this);
             }
             else
             {
-                this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
+                this.LosslessDecoder!.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
                 this.ExtractAlphaRows(this.Vp8LDec);
             }
         }
@@ -424,7 +424,7 @@ internal class AlphaDecoder : IDisposable
 
         for (int i = 0; i < hdr.NumHTreeGroups; i++)
         {
-            List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
+            List<HuffmanCode[]> htrees = hdr.HTreeGroups![i].HTrees;
             if (htrees[HuffIndex.Red][0].BitsUsed > 0)
             {
                 return false;

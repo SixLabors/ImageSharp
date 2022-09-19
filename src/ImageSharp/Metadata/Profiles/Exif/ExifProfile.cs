@@ -204,11 +204,11 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Converts this instance to a byte array.
     /// </summary>
     /// <returns>The <see cref="T:byte[]"/></returns>
-    public byte[]? ToByteArray()
+    public byte[] ToByteArray()
     {
         if (this.values is null)
         {
-            return this.data;
+            return this.data!;
         }
 
         if (this.values.Count == 0)

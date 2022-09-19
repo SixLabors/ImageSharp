@@ -85,7 +85,7 @@ internal sealed class WebpLossyDecoder
         Vp8Proba proba = new();
         Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
 
-        using (Vp8Decoder decoder = new(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba, this.memoryAllocator))
+        using (Vp8Decoder decoder = new(info.Vp8FrameHeader!, pictureHeader, vp8SegmentHeader, proba, this.memoryAllocator))
         {
             Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
 
@@ -1035,7 +1035,7 @@ internal sealed class WebpLossyDecoder
             int bit0 = br.GetBit(p[9 + bit1]);
             int cat = (2 * bit1) + bit0;
             v = 0;
-            byte[] tab = null;
+            byte[]? tab = null;
             switch (cat)
             {
                 case 0:
@@ -1055,7 +1055,7 @@ internal sealed class WebpLossyDecoder
                     break;
             }
 
-            for (int i = 0; i < tab.Length; i++)
+            for (int i = 0; i < tab!.Length; i++)
             {
                 v += v + br.GetBit(tab[i]);
             }
@@ -1156,7 +1156,7 @@ internal sealed class WebpLossyDecoder
     {
         uint size = this.bitReader.Remaining - this.bitReader.PartitionLength;
         int startIdx = (int)this.bitReader.PartitionLength;
-        Span<byte> sz = this.bitReader.Data.Slice(startIdx);
+        Span<byte> sz = this.bitReader.Data!.Slice(startIdx);
         int sizeLeft = (int)size;
         dec.NumPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
         int lastPart = dec.NumPartsMinusOne;
@@ -1172,13 +1172,13 @@ internal sealed class WebpLossyDecoder
                 pSize = sizeLeft;
             }
 
-            dec.Vp8BitReaders[p] = new Vp8BitReader(this.bitReader.Data, (uint)pSize, partStart);
+            dec.Vp8BitReaders[p] = new Vp8BitReader(this.bitReader.Data!, (uint)pSize, partStart);
             partStart += pSize;
             sizeLeft -= pSize;
             sz = sz[3..];
         }
 
-        dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
+        dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data!, (uint)sizeLeft, partStart);
     }
 
     private void ParseDequantizationIndices(Vp8Decoder decoder)

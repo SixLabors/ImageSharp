@@ -137,12 +137,12 @@ internal class Vp8LBitWriter : BitWriterBase
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, IccProfile iccProfile, uint width, uint height, bool hasAlpha)
+    public void WriteEncodedImageToStream(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha)
     {
         bool isVp8X = false;
-        byte[] exifBytes = null;
-        byte[] xmpBytes = null;
-        byte[] iccBytes = null;
+        byte[]? exifBytes = null;
+        byte[]? xmpBytes = null;
+        byte[]? iccBytes = null;
         uint riffSize = 0;
         if (exifProfile != null)
         {
@@ -205,12 +205,12 @@ internal class Vp8LBitWriter : BitWriterBase
             stream.WriteByte(0);
         }
 
-        if (exifProfile != null)
+        if (exifProfile != null && exifBytes != null)
         {
             this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
         }
 
-        if (xmpProfile != null)
+        if (xmpProfile != null && xmpBytes != null)
         {
             this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
         }

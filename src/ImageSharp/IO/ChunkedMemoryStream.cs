@@ -18,7 +18,7 @@ internal sealed class ChunkedMemoryStream : Stream
     private readonly MemoryAllocator allocator;
 
     // Data
-    private MemoryChunk memoryChunk;
+    private MemoryChunk? memoryChunk;
 
     // The total number of allocated chunks
     private int chunkCount;
@@ -30,13 +30,13 @@ internal sealed class ChunkedMemoryStream : Stream
     private bool isDisposed;
 
     // Current chunk to write to
-    private MemoryChunk writeChunk;
+    private MemoryChunk? writeChunk;
 
     // Offset into chunk to write to
     private int writeOffset;
 
     // Current chunk to read from
-    private MemoryChunk readChunk;
+    private MemoryChunk? readChunk;
 
     // Offset into chunk to read from
     private int readOffset;
@@ -69,10 +69,10 @@ internal sealed class ChunkedMemoryStream : Stream
             this.EnsureNotDisposed();
 
             int length = 0;
-            MemoryChunk chunk = this.memoryChunk;
+            MemoryChunk? chunk = this.memoryChunk;
             while (chunk != null)
             {
-                MemoryChunk next = chunk.Next;
+                MemoryChunk? next = chunk.Next;
                 if (next != null)
                 {
                     length += chunk.Length;
@@ -102,11 +102,11 @@ internal sealed class ChunkedMemoryStream : Stream
             }
 
             int pos = 0;
-            MemoryChunk chunk = this.memoryChunk;
+            MemoryChunk? chunk = this.memoryChunk;
             while (chunk != this.readChunk)
             {
-                pos += chunk.Length;
-                chunk = chunk.Next;
+                pos += chunk!.Length;
+                chunk = chunk.Next!;
             }
 
             pos += this.readOffset;
@@ -124,14 +124,14 @@ internal sealed class ChunkedMemoryStream : Stream
             }
 
             // Back up current position in case new position is out of range
-            MemoryChunk backupReadChunk = this.readChunk;
+            MemoryChunk? backupReadChunk = this.readChunk;
             int backupReadOffset = this.readOffset;
 
             this.readChunk = null;
             this.readOffset = 0;
 
             int leftUntilAtPos = (int)value;
-            MemoryChunk chunk = this.memoryChunk;
+            MemoryChunk? chunk = this.memoryChunk;
             while (chunk != null)
             {
                 if ((leftUntilAtPos < chunk.Length)
@@ -253,7 +253,7 @@ internal sealed class ChunkedMemoryStream : Stream
             this.readOffset = 0;
         }
 
-        IMemoryOwner<byte> chunkBuffer = this.readChunk.Buffer;
+        IMemoryOwner<byte>? chunkBuffer = this.readChunk.Buffer;
         int chunkSize = this.readChunk.Length;
         if (this.readChunk.Next is null)
         {
@@ -284,7 +284,7 @@ internal sealed class ChunkedMemoryStream : Stream
             }
 
             int readCount = Math.Min(count, chunkSize - this.readOffset);
-            chunkBuffer.Slice(this.readOffset, readCount).CopyTo(buffer[offset..]);
+            chunkBuffer!.Slice(this.readOffset, readCount).CopyTo(buffer[offset..]);
             offset += readCount;
             count -= readCount;
             this.readOffset += readCount;
@@ -311,7 +311,7 @@ internal sealed class ChunkedMemoryStream : Stream
             this.readOffset = 0;
         }
 
-        IMemoryOwner<byte> chunkBuffer = this.readChunk.Buffer;
+        IMemoryOwner<byte>? chunkBuffer = this.readChunk.Buffer;
         int chunkSize = this.readChunk.Length;
         if (this.readChunk.Next is null)
         {
@@ -331,7 +331,7 @@ internal sealed class ChunkedMemoryStream : Stream
             chunkBuffer = this.readChunk.Buffer;
         }
 
-        return chunkBuffer.GetSpan()[this.readOffset++];
+        return chunkBuffer!.GetSpan()[this.readOffset++];
     }
 
     /// <inheritdoc/>
@@ -363,7 +363,7 @@ internal sealed class ChunkedMemoryStream : Stream
             this.writeOffset = 0;
         }
 
-        Span<byte> chunkBuffer = this.writeChunk.Buffer.GetSpan();
+        Span<byte> chunkBuffer = this.writeChunk!.Buffer!.GetSpan();
         int chunkSize = this.writeChunk.Length;
         int count = buffer.Length;
         int offset = 0;
@@ -375,7 +375,7 @@ internal sealed class ChunkedMemoryStream : Stream
                 this.writeChunk.Next = this.AllocateMemoryChunk();
                 this.writeChunk = this.writeChunk.Next;
                 this.writeOffset = 0;
-                chunkBuffer = this.writeChunk.Buffer.GetSpan();
+                chunkBuffer = this.writeChunk.Buffer!.GetSpan();
                 chunkSize = this.writeChunk.Length;
             }
 
@@ -400,8 +400,8 @@ internal sealed class ChunkedMemoryStream : Stream
             this.writeOffset = 0;
         }
 
-        IMemoryOwner<byte> chunkBuffer = this.writeChunk.Buffer;
-        int chunkSize = this.writeChunk.Length;
+        IMemoryOwner<byte>? chunkBuffer = this.writeChunk?.Buffer;
+        int chunkSize = this.writeChunk!.Length;
 
         if (this.writeOffset == chunkSize)
         {
@@ -412,7 +412,7 @@ internal sealed class ChunkedMemoryStream : Stream
             chunkBuffer = this.writeChunk.Buffer;
         }
 
-        chunkBuffer.GetSpan()[this.writeOffset++] = value;
+        chunkBuffer!.GetSpan()[this.writeOffset++] = value;
     }
 
     /// <summary>
@@ -424,7 +424,7 @@ internal sealed class ChunkedMemoryStream : Stream
         int length = (int)this.Length; // This will throw if stream is closed
         byte[] copy = new byte[this.Length];
 
-        MemoryChunk backupReadChunk = this.readChunk;
+        MemoryChunk? backupReadChunk = this.readChunk;
         int backupReadOffset = this.readOffset;
 
         this.readChunk = this.memoryChunk;
@@ -458,7 +458,7 @@ internal sealed class ChunkedMemoryStream : Stream
             this.readOffset = 0;
         }
 
-        IMemoryOwner<byte> chunkBuffer = this.readChunk.Buffer;
+        IMemoryOwner<byte>? chunkBuffer = this.readChunk.Buffer;
         int chunkSize = this.readChunk.Length;
         if (this.readChunk.Next is null)
         {
@@ -489,7 +489,7 @@ internal sealed class ChunkedMemoryStream : Stream
             }
 
             int writeCount = chunkSize - this.readOffset;
-            stream.Write(chunkBuffer.GetSpan(), this.readOffset, writeCount);
+            stream.Write(chunkBuffer!.GetSpan(), this.readOffset, writeCount);
             this.readOffset = chunkSize;
         }
     }
@@ -528,7 +528,7 @@ internal sealed class ChunkedMemoryStream : Stream
         };
     }
 
-    private static void ReleaseMemoryChunks(MemoryChunk chunk)
+    private static void ReleaseMemoryChunks(MemoryChunk? chunk)
     {
         while (chunk != null)
         {
@@ -553,9 +553,9 @@ internal sealed class ChunkedMemoryStream : Stream
     {
         private bool isDisposed;
 
-        public IMemoryOwner<byte> Buffer { get; set; }
+        public IMemoryOwner<byte>? Buffer { get; set; }
 
-        public MemoryChunk Next { get; set; }
+        public MemoryChunk? Next { get; set; }
 
         public int Length { get; set; }
 
@@ -565,7 +565,7 @@ internal sealed class ChunkedMemoryStream : Stream
             {
                 if (disposing)
                 {
-                    this.Buffer.Dispose();
+                    this.Buffer!.Dispose();
                 }
 
                 this.Buffer = null;

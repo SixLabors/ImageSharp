@@ -16,7 +16,7 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// Initializes a new instance of the <see cref="XmpProfile"/> class.
     /// </summary>
     public XmpProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -24,7 +24,7 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// Initializes a new instance of the <see cref="XmpProfile"/> class.
     /// </summary>
     /// <param name="data">The UTF8 encoded byte array to read the XMP profile from.</param>
-    public XmpProfile(byte[] data) => this.Data = data;
+    public XmpProfile(byte[]? data) => this.Data = data;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XmpProfile"/> class
@@ -41,15 +41,15 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// <summary>
     /// Gets the XMP raw data byte array.
     /// </summary>
-    internal byte[] Data { get; private set; }
+    internal byte[]? Data { get; private set; }
 
     /// <summary>
     /// Gets the raw XML document containing the XMP profile.
     /// </summary>
     /// <returns>The <see cref="XDocument"/></returns>
-    public XDocument GetDocument()
+    public XDocument? GetDocument()
     {
-        byte[] byteArray = this.Data;
+        byte[]? byteArray = this.Data;
         if (byteArray is null)
         {
             return null;
@@ -76,7 +76,7 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// <returns>The <see cref="T:Byte[]"/></returns>
     public byte[] ToByteArray()
     {
-        byte[] result = new byte[this.Data.Length];
+        byte[] result = new byte[this.Data!.Length];
         this.Data.AsSpan().CopyTo(result);
         return result;
     }

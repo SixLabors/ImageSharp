@@ -213,6 +213,7 @@ public sealed class Configuration
     /// <see cref="TgaConfigurationModule"/>.
     /// <see cref="TiffConfigurationModule"/>.
     /// <see cref="WebpConfigurationModule"/>.
+    /// <see cref="ExrConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -223,5 +224,6 @@ public sealed class Configuration
             new PbmConfigurationModule(),
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
-            new WebpConfigurationModule());
+            new WebpConfigurationModule(),
+            new ExrConfigurationModule());
 }

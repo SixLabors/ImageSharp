@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
@@ -19,7 +20,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     /// <summary>
     /// <see cref="JpegFrame"/> instance containing decoding-related information.
     /// </summary>
-    private JpegFrame frame = null!;
+    private JpegFrame? frame;
 
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
@@ -116,6 +117,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         this.scanBuffer = new JpegBitReader(this.stream);
 
+        ArgumentNullException.ThrowIfNull(this.frame);
+
         this.frame.AllocateComponents();
 
         if (!this.frame.Progressive)
@@ -134,6 +137,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     }
 
     /// <inheritdoc/>
+    [MemberNotNull(nameof(frame))]
     public void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
     {
         this.frame = frame;
@@ -150,6 +154,10 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             this.ParseBaselineDataInterleaved();
             this.spectralConverter?.CommitConversion();
         }
+        else if (this.frame is null)
+        {
+            ArgumentNullException.ThrowIfNull(this.frame);
+        }
         else if (this.frame.ComponentCount == 1)
         {
             this.spectralConverter?.PrepareForDecoding();
@@ -165,6 +173,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private void ParseBaselineDataInterleaved()
     {
         int mcu = 0;
+        ArgumentNullException.ThrowIfNull(this.frame);
+
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
@@ -232,6 +242,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
         JpegComponent? component = this.components?[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
@@ -269,6 +280,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataSingleComponent()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
+
         JpegComponent? component = this.frame.Components?[0];
 
         ArgumentNullException.ThrowIfNull(component);
@@ -384,6 +397,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     {
         // Interleaved
         int mcu = 0;
+        ArgumentNullException.ThrowIfNull(this.frame);
+
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader buffer = ref this.scanBuffer;
@@ -442,6 +457,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
+
         JpegComponent? component = this.components?[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 

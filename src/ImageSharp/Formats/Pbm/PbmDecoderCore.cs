@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -44,7 +45,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata metadata = null!;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
@@ -95,6 +96,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// Processes the ppm header.
     /// </summary>
     /// <param name="stream">The input stream.</param>
+    [MemberNotNull(nameof(metadata))]
     private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[2];

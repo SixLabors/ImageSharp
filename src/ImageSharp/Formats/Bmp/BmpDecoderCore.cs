@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -58,19 +59,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     private const int RleDelta = 0x02;
 
     /// <summary>
-    /// The stream to decode from.
-    /// </summary>
-    private BufferedReadStream stream = null!;
-
-    /// <summary>
     /// The metadata.
     /// </summary>
-    private ImageMetadata metadata = null!;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// The bitmap specific metadata.
     /// </summary>
-    private BmpMetadata bmpMetadata = null!;
+    private BmpMetadata? bmpMetadata;
 
     /// <summary>
     /// The file header containing general information.
@@ -141,24 +137,25 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                     {
                         if (this.bmpMetadata.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
                         {
-                            this.ReadRgb32Slow(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                         else
                         {
-                            this.ReadRgb32Fast(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                            this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                     }
                     else if (this.infoHeader.BitsPerPixel == 24)
                     {
-                        this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                     }
                     else if (this.infoHeader.BitsPerPixel == 16)
                     {
-                        this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                     }
                     else if (this.infoHeader.BitsPerPixel <= 8)
                     {
                         this.ReadRgbPalette(
+                            stream,
                             pixels,
                             palette,
                             this.infoHeader.Width,
@@ -171,19 +168,19 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                     break;
 
                 case BmpCompression.RLE24:
-                    this.ReadRle24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                    this.ReadRle24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted, stream);
 
                     break;
 
                 case BmpCompression.RLE8:
                 case BmpCompression.RLE4:
-                    this.ReadRle(this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                    this.ReadRle(this.infoHeader.Compression, pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted, stream);
 
                     break;
 
                 case BmpCompression.BitFields:
                 case BmpCompression.BI_ALPHABITFIELDS:
-                    this.ReadBitFields(pixels, inverted);
+                    this.ReadBitFields(stream, pixels, inverted);
 
                     break;
 
@@ -251,12 +248,13 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadBitFields<TPixel>(Buffer2D<TPixel> pixels, bool inverted)
+    private void ReadBitFields<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (this.infoHeader.BitsPerPixel == 16)
         {
             this.ReadRgb16(
+                stream,
                 pixels,
                 this.infoHeader.Width,
                 this.infoHeader.Height,
@@ -268,6 +266,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         else
         {
             this.ReadRgb32BitFields(
+                stream,
                 pixels,
                 this.infoHeader.Width,
                 this.infoHeader.Height,
@@ -291,7 +290,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle<TPixel>(BmpCompression compression, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
+    private void ReadRle<TPixel>(BmpCompression compression, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted, BufferedReadStream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
@@ -304,11 +303,11 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             Span<byte> bufferSpan = buffer.Memory.Span;
             if (compression is BmpCompression.RLE8)
             {
-                this.UncompressRle8(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+                this.UncompressRle8(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan, stream);
             }
             else
             {
-                this.UncompressRle4(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+                this.UncompressRle4(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan, stream);
             }
 
             for (int y = 0; y < height; y++)
@@ -371,7 +370,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRle24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+    private void ReadRle24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, BufferedReadStream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
@@ -383,7 +382,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
             Span<byte> bufferSpan = buffer.GetSpan();
 
-            this.UncompressRle24(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+            this.UncompressRle24(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan, stream);
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
@@ -449,14 +448,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="buffer">Buffer for uncompressed data.</param>
     /// <param name="undefinedPixels">Keeps track over skipped and therefore undefined pixels.</param>
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle4(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
+    private void UncompressRle4(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels, BufferedReadStream stream)
     {
         Span<byte> cmd = stackalloc byte[2];
         int count = 0;
 
         while (count < buffer.Length)
         {
-            if (this.stream.Read(cmd, 0, cmd.Length) != 2)
+            if (stream.Read(cmd, 0, cmd.Length) != 2)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from the stream while uncompressing RLE4 bitmap.");
             }
@@ -477,8 +476,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         break;
 
                     case RleDelta:
-                        int dx = this.stream.ReadByte();
-                        int dy = this.stream.ReadByte();
+                        int dx = stream.ReadByte();
+                        int dy = stream.ReadByte();
                         count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
 
                         break;
@@ -491,7 +490,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
                         byte[] run = new byte[bytesToRead];
 
-                        this.stream.Read(run, 0, run.Length);
+                        stream.Read(run, 0, run.Length);
 
                         int idx = 0;
                         for (int i = 0; i < max; i++)
@@ -511,7 +510,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // Absolute mode data is aligned to two-byte word-boundary.
                         int padding = bytesToRead & 1;
 
-                        this.stream.Skip(padding);
+                        stream.Skip(padding);
 
                         break;
                 }
@@ -554,14 +553,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="buffer">Buffer for uncompressed data.</param>
     /// <param name="undefinedPixels">Keeps track of skipped and therefore undefined pixels.</param>
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle8(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
+    private void UncompressRle8(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels, BufferedReadStream stream)
     {
         Span<byte> cmd = stackalloc byte[2];
         int count = 0;
 
         while (count < buffer.Length)
         {
-            if (this.stream.Read(cmd, 0, cmd.Length) != 2)
+            if (stream.Read(cmd, 0, cmd.Length) != 2)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE8 bitmap.");
             }
@@ -582,8 +581,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         break;
 
                     case RleDelta:
-                        int dx = this.stream.ReadByte();
-                        int dy = this.stream.ReadByte();
+                        int dx = stream.ReadByte();
+                        int dy = stream.ReadByte();
                         count += RleSkipDelta(count, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
 
                         break;
@@ -595,7 +594,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
                         byte[] run = new byte[length];
 
-                        this.stream.Read(run, 0, run.Length);
+                        stream.Read(run, 0, run.Length);
 
                         run.AsSpan().CopyTo(buffer[count..]);
 
@@ -604,7 +603,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // Absolute mode data is aligned to two-byte word-boundary.
                         int padding = length & 1;
 
-                        this.stream.Skip(padding);
+                        stream.Skip(padding);
 
                         break;
                 }
@@ -633,14 +632,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="buffer">Buffer for uncompressed data.</param>
     /// <param name="undefinedPixels">Keeps track of skipped and therefore undefined pixels.</param>
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
-    private void UncompressRle24(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
+    private void UncompressRle24(int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels, BufferedReadStream stream)
     {
         Span<byte> cmd = stackalloc byte[2];
         int uncompressedPixels = 0;
 
         while (uncompressedPixels < buffer.Length)
         {
-            if (this.stream.Read(cmd, 0, cmd.Length) != 2)
+            if (stream.Read(cmd, 0, cmd.Length) != 2)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE24 bitmap.");
             }
@@ -661,8 +660,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         break;
 
                     case RleDelta:
-                        int dx = this.stream.ReadByte();
-                        int dy = this.stream.ReadByte();
+                        int dx = stream.ReadByte();
+                        int dy = stream.ReadByte();
                         uncompressedPixels += RleSkipDelta(uncompressedPixels, w, dx, dy, undefinedPixels, rowsWithUndefinedPixels);
 
                         break;
@@ -674,7 +673,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
                         byte[] run = new byte[length * 3];
 
-                        this.stream.Read(run, 0, run.Length);
+                        stream.Read(run, 0, run.Length);
 
                         run.AsSpan().CopyTo(buffer[(uncompressedPixels * 3)..]);
 
@@ -683,7 +682,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // Absolute mode data is aligned to two-byte word-boundary.
                         int padding = run.Length & 1;
 
-                        this.stream.Skip(padding);
+                        stream.Skip(padding);
 
                         break;
                 }
@@ -692,8 +691,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             {
                 int max = uncompressedPixels + cmd[0];
                 byte blueIdx = cmd[1];
-                byte greenIdx = (byte)this.stream.ReadByte();
-                byte redIdx = (byte)this.stream.ReadByte();
+                byte greenIdx = (byte)stream.ReadByte();
+                byte redIdx = (byte)stream.ReadByte();
 
                 int bufferIdx = uncompressedPixels * 3;
                 for (; uncompressedPixels < max; uncompressedPixels++)
@@ -807,7 +806,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="bytesPerColorMapEntry">Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
     /// the bytes per color palette entry's can be 3 bytes instead of 4.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRgbPalette<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bitsPerPixel, int bytesPerColorMapEntry, bool inverted)
+    private void ReadRgbPalette<TPixel>( BufferedReadStream stream, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bitsPerPixel, int bytesPerColorMapEntry, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Pixels per byte (bits per pixel).
@@ -832,7 +831,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         for (int y = 0; y < height; y++)
         {
             int newY = Invert(y, height, inverted);
-            if (this.stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -867,7 +866,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="redMask">The bitmask for the red channel.</param>
     /// <param name="greenMask">The bitmask for the green channel.</param>
     /// <param name="blueMask">The bitmask for the blue channel.</param>
-    private void ReadRgb16<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask = DefaultRgb16RMask, int greenMask = DefaultRgb16GMask, int blueMask = DefaultRgb16BMask)
+    private void ReadRgb16<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask = DefaultRgb16RMask, int greenMask = DefaultRgb16GMask, int blueMask = DefaultRgb16BMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 2);
@@ -888,7 +887,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(bufferSpan) == 0)
+            if (stream.Read(bufferSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -938,7 +937,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRgb24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+    private void ReadRgb24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 3);
@@ -947,7 +946,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -970,7 +969,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRgb32Fast<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+    private void ReadRgb32Fast<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 4);
@@ -979,7 +978,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -1003,7 +1002,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="width">The width of the bitmap.</param>
     /// <param name="height">The height of the bitmap.</param>
     /// <param name="inverted">Whether the bitmap is inverted.</param>
-    private void ReadRgb32Slow<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
+    private void ReadRgb32Slow<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int padding = CalculatePadding(width, 4);
@@ -1011,7 +1010,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         using IMemoryOwner<Bgra32> bgraRow = this.memoryAllocator.Allocate<Bgra32>(width);
         Span<byte> rowSpan = row.GetSpan();
         Span<Bgra32> bgraRowSpan = bgraRow.GetSpan();
-        long currentPosition = this.stream.Position;
+        long currentPosition = stream.Position;
         bool hasAlpha = false;
 
         // Loop though the rows checking each pixel. We start by assuming it's
@@ -1019,7 +1018,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         // actually a BGRA image, and change tactics accordingly.
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -1048,14 +1047,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         }
 
         // Reset our stream for a second pass.
-        this.stream.Position = currentPosition;
+        stream.Position = currentPosition;
 
         // Process the pixels in bulk taking the raw alpha component value.
         if (hasAlpha)
         {
             for (int y = 0; y < height; y++)
             {
-                if (this.stream.Read(rowSpan) == 0)
+                if (stream.Read(rowSpan) == 0)
                 {
                     BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
                 }
@@ -1076,7 +1075,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         // Slow path. We need to set each alpha component value to fully opaque.
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -1112,7 +1111,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="greenMask">The bitmask for the green channel.</param>
     /// <param name="blueMask">The bitmask for the blue channel.</param>
     /// <param name="alphaMask">The bitmask for the alpha channel.</param>
-    private void ReadRgb32BitFields<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
+    private void ReadRgb32BitFields<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
@@ -1141,7 +1140,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
         for (int y = 0; y < height; y++)
         {
-            if (this.stream.Read(bufferSpan) == 0)
+            if (stream.Read(bufferSpan) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
             }
@@ -1227,10 +1226,12 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Reads the <see cref="BmpInfoHeader"/> from the stream.
     /// </summary>
-    private void ReadInfoHeader()
+    [MemberNotNull(nameof(metadata))]
+    [MemberNotNull(nameof(bmpMetadata))]
+    private void ReadInfoHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
-        long infoHeaderStart = this.stream.Position;
+        long infoHeaderStart = stream.Position;
 
         // Resolution is stored in PPM.
         this.metadata = new ImageMetadata
@@ -1239,7 +1240,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         };
 
         // Read the header size.
-        this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
+        stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
 
         int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
         if (headerSize is < BmpInfoHeader.CoreSize or > BmpInfoHeader.MaxHeaderSize)
@@ -1248,7 +1249,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         }
 
         // Read the rest of the header.
-        this.stream.Read(buffer, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+        stream.Read(buffer, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
 
         BmpInfoHeaderType infoHeaderType = BmpInfoHeaderType.WinVersion2;
         if (headerSize == BmpInfoHeader.CoreSize)
@@ -1274,7 +1275,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             if (this.infoHeader.Compression == BmpCompression.BitFields)
             {
                 byte[] bitfieldsBuffer = new byte[12];
-                this.stream.Read(bitfieldsBuffer, 0, 12);
+                stream.Read(bitfieldsBuffer, 0, 12);
                 Span<byte> data = bitfieldsBuffer.AsSpan();
                 this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
@@ -1283,7 +1284,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
             {
                 byte[] bitfieldsBuffer = new byte[16];
-                this.stream.Read(bitfieldsBuffer, 0, 16);
+                stream.Read(bitfieldsBuffer, 0, 16);
                 Span<byte> data = bitfieldsBuffer.AsSpan();
                 this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
@@ -1323,12 +1324,12 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
                 // Read color profile.
-                long streamPosition = this.stream.Position;
+                long streamPosition = stream.Position;
                 byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-                this.stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
-                this.stream.Read(iccProfileData);
+                stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+                stream.Read(iccProfileData);
                 this.metadata.IccProfile = new IccProfile(iccProfileData);
-                this.stream.Position = streamPosition;
+                stream.Position = streamPosition;
             }
         }
         else
@@ -1357,10 +1358,10 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Reads the <see cref="BmpFileHeader"/> from the stream.
     /// </summary>
-    private void ReadFileHeader()
+    private void ReadFileHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
-        this.stream.Read(buffer, 0, BmpFileHeader.Size);
+        stream.Read(buffer, 0, BmpFileHeader.Size);
 
         short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(buffer);
         switch (fileTypeMarker)
@@ -1374,7 +1375,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
                 // Because we only decode the first bitmap in the array, the array header will be ignored.
                 // The bitmap file header of the first image follows the array header.
-                this.stream.Read(buffer, 0, BmpFileHeader.Size);
+                stream.Read(buffer, 0, BmpFileHeader.Size);
                 this.fileHeader = BmpFileHeader.Parse(buffer);
                 if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
                 {
@@ -1397,12 +1398,12 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="palette">The color palette.</param>
     /// <returns>Bytes per color palette entry. Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
     /// the bytes per color palette entry's can be 3 bytes instead of 4.</returns>
+    [MemberNotNull(nameof(metadata))]
+    [MemberNotNull(nameof(bmpMetadata))]
     private int ReadImageHeaders(BufferedReadStream stream, out bool inverted, out byte[] palette)
     {
-        this.stream = stream;
-
-        this.ReadFileHeader();
-        this.ReadInfoHeader();
+        this.ReadFileHeader(stream);
+        this.ReadInfoHeader(stream);
 
         // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
         // If the height is negative, then this is a Windows bitmap whose origin
@@ -1456,7 +1457,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         {
             // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
             // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-            if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
+            if ((stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException(
                     $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
@@ -1464,21 +1465,21 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
             palette = new byte[colorMapSizeBytes];
 
-            if (this.stream.Read(palette, 0, colorMapSizeBytes) == 0)
+            if (stream.Read(palette, 0, colorMapSizeBytes) == 0)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for the palette!");
             }
         }
 
-        int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
-        if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
+        int skipAmount = this.fileHeader.Offset - (int)stream.Position;
+        if ((skipAmount + (int)stream.Position) > stream.Length)
         {
             BmpThrowHelper.ThrowInvalidImageContentException("Invalid file header offset found. Offset is greater than the stream length.");
         }
 
         if (skipAmount > 0)
         {
-            this.stream.Skip(skipAmount);
+            stream.Skip(skipAmount);
         }
 
         return bytesPerColorMapEntry;

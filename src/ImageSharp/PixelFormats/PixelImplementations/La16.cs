@@ -79,7 +79,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     public readonly bool Equals(La16 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is La16 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is La16 other && this.Equals(other);
 
     /// <inheritdoc />
     public override readonly string ToString() => $"La16({this.L}, {this.A})";

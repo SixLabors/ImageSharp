@@ -142,7 +142,7 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Bgra4444 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Bgra4444 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

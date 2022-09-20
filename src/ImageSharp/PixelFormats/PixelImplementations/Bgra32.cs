@@ -286,7 +286,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Bgra32 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Bgra32 other && this.Equals(other);
 
     /// <inheritdoc/>
     public readonly bool Equals(Bgra32 other) => this.Bgra.Equals(other.Bgra);

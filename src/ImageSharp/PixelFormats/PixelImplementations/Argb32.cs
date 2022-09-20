@@ -333,7 +333,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Argb32 argb32 && this.Equals(argb32);
+    public override readonly bool Equals(object? obj) => obj is Argb32 argb32 && this.Equals(argb32);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

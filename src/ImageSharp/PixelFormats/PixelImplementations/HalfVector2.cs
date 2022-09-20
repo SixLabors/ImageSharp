@@ -156,7 +156,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     }
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is HalfVector2 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is HalfVector2 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

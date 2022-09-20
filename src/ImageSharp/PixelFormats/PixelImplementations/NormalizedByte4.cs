@@ -153,7 +153,7 @@ public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<u
     public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is NormalizedByte4 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is NormalizedByte4 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

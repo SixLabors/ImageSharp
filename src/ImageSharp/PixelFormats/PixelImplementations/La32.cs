@@ -81,7 +81,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public readonly bool Equals(La32 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is La32 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is La32 other && this.Equals(other);
 
     /// <inheritdoc />
     public override readonly string ToString() => $"La32({this.L}, {this.A})";

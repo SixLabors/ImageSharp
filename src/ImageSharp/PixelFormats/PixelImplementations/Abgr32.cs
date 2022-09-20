@@ -334,7 +334,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Abgr32 abgr32 && this.Equals(abgr32);
+    public override readonly bool Equals(object? obj) => obj is Abgr32 abgr32 && this.Equals(abgr32);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

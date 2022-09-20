@@ -163,7 +163,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     public readonly Vector2 ToVector2() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Short2 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Short2 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

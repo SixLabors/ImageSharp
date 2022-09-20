@@ -139,7 +139,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     public readonly float ToSingle() => HalfTypeHelper.Unpack(this.PackedValue);
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is HalfSingle other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is HalfSingle other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

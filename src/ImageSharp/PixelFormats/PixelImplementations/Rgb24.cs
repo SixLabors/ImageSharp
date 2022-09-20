@@ -240,7 +240,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Rgb24 other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

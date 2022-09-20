@@ -140,7 +140,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Rgba1010102 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Rgba1010102 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

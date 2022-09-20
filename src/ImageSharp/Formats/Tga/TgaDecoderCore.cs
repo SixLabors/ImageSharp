@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -28,12 +29,12 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The metadata.
     /// </summary>
-    private ImageMetadata metadata = null!;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// The tga specific metadata.
     /// </summary>
-    private TgaMetadata tgaMetadata = null!;
+    private TgaMetadata? tgaMetadata;
 
     /// <summary>
     /// The file header containing general information about the image.
@@ -155,7 +156,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 case 8:
                     if (this.fileHeader.ImageType.IsRunLengthEncoded())
                     {
-                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1, origin);
+                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, this.tgaMetadata.AlphaChannelBits, pixels, 1, origin);
                     }
                     else
                     {
@@ -168,7 +169,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 case 16:
                     if (this.fileHeader.ImageType.IsRunLengthEncoded())
                     {
-                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2, origin);
+                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, this.tgaMetadata.AlphaChannelBits, pixels, 2, origin);
                     }
                     else
                     {
@@ -180,7 +181,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 case 24:
                     if (this.fileHeader.ImageType.IsRunLengthEncoded())
                     {
-                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 3, origin);
+                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, this.tgaMetadata.AlphaChannelBits, pixels, 3, origin);
                     }
                     else
                     {
@@ -192,11 +193,11 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 case 32:
                     if (this.fileHeader.ImageType.IsRunLengthEncoded())
                     {
-                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 4, origin);
+                        this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, this.tgaMetadata.AlphaChannelBits, pixels, 4, origin);
                     }
                     else
                     {
-                        this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, pixels, origin);
+                        this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, this.tgaMetadata.AlphaChannelBits, pixels, origin);
                     }
 
                     break;
@@ -524,12 +525,12 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <param name="height">The height of the image.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
+    private void ReadBgra32<TPixel>(int width, int height, byte alphaChannelBits, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
         bool invertX = InvertX(origin);
-        if (this.tgaMetadata.AlphaChannelBits == 8 && !invertX)
+        if (alphaChannelBits == 8 && !invertX)
         {
             using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0);
             Span<byte> rowSpan = row.GetSpan();
@@ -560,14 +561,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadBgra32Pixel(x, color, pixelRow);
+                    this.ReadBgra32Pixel(x, alphaChannelBits, color, pixelRow);
                 }
             }
             else
             {
                 for (int x = 0; x < width; x++)
                 {
-                    this.ReadBgra32Pixel(x, color, pixelRow);
+                    this.ReadBgra32Pixel(x, alphaChannelBits, color, pixelRow);
                 }
             }
         }
@@ -582,11 +583,10 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
     /// <param name="bytesPerPixel">The bytes per pixel.</param>
     /// <param name="origin">The image origin.</param>
-    private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, TgaImageOrigin origin)
+    private void ReadRle<TPixel>(int width, int height, byte alphaChannelBits, Buffer2D<TPixel> pixels, int bytesPerPixel, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
-        byte alphaBits = this.tgaMetadata.AlphaChannelBits;
         using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
         {
             Span<byte> bufferSpan = buffer.GetSpan();
@@ -631,7 +631,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                             }
                             else
                             {
-                                byte alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                byte alpha = alphaChannelBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
                                 color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
                             }
 
@@ -708,7 +708,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgra32Pixel<TPixel>(int x, TPixel color, Span<TPixel> pixelRow)
+    private void ReadBgra32Pixel<TPixel>(int x, byte alphaChannelBits, TPixel color, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = this.currentStream.Read(this.scratchBuffer, 0, 4);
@@ -717,7 +717,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgra pixel");
         }
 
-        byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
+        byte alpha = alphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
         color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));
         pixelRow[x] = color;
     }
@@ -916,6 +916,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <returns>The image origin.</returns>
+    [MemberNotNull(nameof(tgaMetadata))]
+    [MemberNotNull(nameof(metadata))]
     private TgaImageOrigin ReadFileHeader(BufferedReadStream stream)
     {
         this.currentStream = stream;

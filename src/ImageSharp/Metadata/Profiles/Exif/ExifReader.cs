@@ -91,9 +91,9 @@ internal abstract class BaseExifReader
 
     private readonly MemoryAllocator? allocator;
     private readonly Stream data;
-    private List<ExifTag> invalidTags = null!;
+    private List<ExifTag>? invalidTags;
 
-    private List<ulong> subIfds = null!;
+    private List<ulong>? subIfds;
 
     protected BaseExifReader(Stream stream, MemoryAllocator? allocator)
     {

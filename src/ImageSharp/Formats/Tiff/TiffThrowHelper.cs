@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
 internal static class TiffThrowHelper

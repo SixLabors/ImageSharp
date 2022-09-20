@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// </summary>
 public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 {
-    private Collection<IptcValue> values;
+    private Collection<IptcValue>? values;
 
     private const byte IptcTagMarkerByte = 0x1c;
 
@@ -29,7 +30,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     public IptcProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -37,7 +38,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     /// <param name="data">The byte array to read the iptc profile from.</param>
-    public IptcProfile(byte[] data)
+    public IptcProfile(byte[]? data)
     {
         this.Data = data;
         this.Initialize();
@@ -77,7 +78,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <summary>
     /// Gets the byte data of the IPTC profile.
     /// </summary>
-    public byte[] Data { get; private set; }
+    public byte[]? Data { get; private set; }
 
     /// <summary>
     /// Gets the values of this iptc profile.
@@ -201,7 +202,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
             }
         }
 
-        this.values.Add(new IptcValue(tag, encoding, value, strict));
+        this.values?.Add(new IptcValue(tag, encoding, value, strict));
     }
 
     /// <summary>
@@ -309,6 +310,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
         return offset;
     }
 
+    [MemberNotNull(nameof(values))]
     private void Initialize()
     {
         if (this.values != null)
@@ -358,7 +360,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>true if any value has UTF-8 encoding.</returns>
     private bool HasValuesInUtf8()
     {
-        foreach (IptcValue value in this.values)
+        foreach (IptcValue value in this.values!)
         {
             if (value.Encoding == Encoding.UTF8)
             {

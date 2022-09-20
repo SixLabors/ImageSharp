@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// </summary>
 public sealed class IptcValue : IDeepCloneable<IptcValue>
 {
-    private byte[] data = Array.Empty<byte>();
-    private Encoding encoding;
+    private byte[]? data = Array.Empty<byte>();
+    private Encoding? encoding;
 
     internal IptcValue(IptcValue other)
     {
@@ -59,7 +59,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <summary>
     /// Gets or sets the encoding to use for the Value.
     /// </summary>
-    public Encoding Encoding
+    public Encoding? Encoding
     {
         get => this.encoding;
         set
@@ -87,7 +87,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     public string Value
     {
-        get => this.encoding.GetString(this.data);
+        get => this.encoding!.GetString(this.data!);
         set
         {
             if (string.IsNullOrEmpty(value))
@@ -101,7 +101,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
                 if (this.Strict && value.Length > maxLength)
                 {
                     string cappedValue = value[..maxLength];
-                    valueBytes = this.encoding.GetBytes(cappedValue);
+                    valueBytes = this.encoding!.GetBytes(cappedValue);
 
                     // It is still possible that the bytes of the string exceed the limit.
                     if (valueBytes.Length > maxLength)
@@ -111,7 +111,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
                 }
                 else
                 {
-                    valueBytes = this.encoding.GetBytes(value);
+                    valueBytes = this.encoding!.GetBytes(value);
                 }
 
                 this.data = valueBytes;
@@ -122,7 +122,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <summary>
     /// Gets the length of the value.
     /// </summary>
-    public int Length => this.data.Length;
+    public int Length => this.data!.Length;
 
     /// <inheritdoc/>
     public IptcValue DeepClone() => new IptcValue(this);
@@ -139,7 +139,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
             return true;
         }
 
-        return this.Equals(obj as IptcValue);
+        return this.Equals((obj as IptcValue)!);
     }
 
     /// <summary>
@@ -164,7 +164,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
             return false;
         }
 
-        if (this.data.Length != other.data.Length)
+        if (this.data!.Length != other.data!.Length)
         {
             return false;
         }
@@ -192,7 +192,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <returns>A <see cref="byte"/> array.</returns>
     public byte[] ToByteArray()
     {
-        var result = new byte[this.data.Length];
+        var result = new byte[this.data!.Length];
         this.data.CopyTo(result, 0);
         return result;
     }
@@ -208,10 +208,10 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     /// <param name="encoding">The encoding to use.</param>
     /// <returns>A string that represents the current value with the specified encoding.</returns>
-    public string ToString(Encoding encoding)
+    public string ToString(Encoding? encoding)
     {
         Guard.NotNull(encoding, nameof(encoding));
 
-        return encoding.GetString(this.data);
+        return encoding.GetString(this.data!);
     }
 }

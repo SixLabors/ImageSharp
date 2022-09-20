@@ -65,7 +65,6 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
             this.ditherProcessor.Dispose();
         }
 
-        this.paletteOwner = null;
         base.Dispose(disposing);
     }
 

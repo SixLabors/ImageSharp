@@ -68,6 +68,5 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     public void Dispose()
     {
         this.pixelMap?.Dispose();
-        this.pixelMap = null;
     }
 }

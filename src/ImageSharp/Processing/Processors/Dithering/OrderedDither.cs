@@ -209,7 +209,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
 
     /// <inheritdoc/>
     public bool Equals(IDither? other)
-        => this.Equals((object)other);
+        => this.Equals((object?)other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

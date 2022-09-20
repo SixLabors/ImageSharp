@@ -410,7 +410,7 @@ internal static class ResizeHelper
             ThrowInvalid("Manual resizing requires a target location and size.");
         }
 
-        Rectangle targetRectangle = options.TargetRectangle.Value;
+        Rectangle targetRectangle = options.TargetRectangle!.Value;
 
         int targetX = targetRectangle.X;
         int targetY = targetRectangle.Y;

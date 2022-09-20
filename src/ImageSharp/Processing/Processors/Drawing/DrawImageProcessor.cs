@@ -64,7 +64,7 @@ public class DrawImageProcessor : IImageProcessor
     {
         var visitor = new ProcessorFactoryVisitor<TPixelBg>(configuration, this, source, sourceRectangle);
         this.Image.AcceptVisitor(visitor);
-        return visitor.Result;
+        return visitor.Result!;
     }
 
     private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
@@ -83,7 +83,7 @@ public class DrawImageProcessor : IImageProcessor
             this.sourceRectangle = sourceRectangle;
         }
 
-        public IImageProcessor<TPixelBg> Result { get; private set; }
+        public IImageProcessor<TPixelBg>? Result { get; private set; }
 
         public void Visit<TPixelFg>(Image<TPixelFg> image)
             where TPixelFg : unmanaged, IPixel<TPixelFg>

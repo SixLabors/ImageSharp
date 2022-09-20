@@ -19,8 +19,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
     private readonly Size destinationSize;
     private readonly Matrix3x2 transformMatrix;
     private readonly IResampler resampler;
-    private ImageFrame<TPixel> source;
-    private ImageFrame<TPixel> destination;
+    private ImageFrame<TPixel>? source;
+    private ImageFrame<TPixel>? destination;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
@@ -52,8 +52,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         where TResampler : struct, IResampler
     {
         Configuration configuration = this.Configuration;
-        ImageFrame<TPixel> source = this.source;
-        ImageFrame<TPixel> destination = this.destination;
+        ImageFrame<TPixel>? source = this.source;
+        ImageFrame<TPixel>? destination = this.destination;
         Matrix3x2 matrix = this.transformMatrix;
 
         // Handle transforms that result in output identical to the original.
@@ -61,8 +61,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (matrix.Equals(Matrix3x2.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
-            Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
+            var interest = Rectangle.Intersect(this.SourceRectangle, destination!.Bounds());
+            Buffer2DRegion<TPixel> sourceBuffer = source!.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
             {
@@ -78,9 +78,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (sampler is NearestNeighborResampler)
         {
             var nnOperation = new NNAffineOperation(
-                source.PixelBuffer,
+                source!.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-                destination.PixelBuffer,
+                destination!.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
@@ -93,9 +93,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
         var operation = new AffineOperation<TResampler>(
             configuration,
-            source.PixelBuffer,
+            source!.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-            destination.PixelBuffer,
+            destination!.PixelBuffer,
             in sampler,
             matrix);
 

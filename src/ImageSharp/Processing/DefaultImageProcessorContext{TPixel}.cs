@@ -16,7 +16,7 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
 {
     private readonly bool mutate;
     private readonly Image<TPixel> source;
-    private Image<TPixel> destination;
+    private Image<TPixel>? destination;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultImageProcessorContext{TPixel}"/> class.
@@ -53,7 +53,7 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
             this.destination = this.source.Clone();
         }
 
-        return this.destination;
+        return this.destination!;
     }
 
     /// <inheritdoc/>
@@ -86,7 +86,7 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
         }
 
         // Standard processing pipeline.
-        using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.Configuration, this.destination, rectangle))
+        using (IImageProcessor<TPixel> specificProcessor = processor.CreatePixelSpecificProcessor(this.Configuration, this.destination!, rectangle))
         {
             specificProcessor.Execute();
         }

@@ -75,7 +75,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
     private readonly Box[] colorCube;
-    private EuclideanPixelMap<TPixel> pixelMap;
+    private EuclideanPixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
@@ -174,7 +174,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     {
         if (this.isDithering)
         {
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
         Rgba32 rgba = default;
@@ -202,9 +202,6 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             this.momentsOwner?.Dispose();
             this.tagsOwner?.Dispose();
             this.paletteOwner?.Dispose();
-            this.momentsOwner = null;
-            this.tagsOwner = null;
-            this.paletteOwner = null;
             this.pixelMap?.Dispose();
             this.pixelMap = null;
         }
@@ -868,7 +865,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         public int Volume;
 
         /// <inheritdoc/>
-        public override readonly bool Equals(object obj)
+        public override readonly bool Equals(object? obj)
             => obj is Box box
             && this.Equals(box);
 

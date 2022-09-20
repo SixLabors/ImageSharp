@@ -158,7 +158,7 @@ public static partial class ProcessingExtensions
 
         var visitor = new ProcessingVisitor(configuration, operation, false);
         source.AcceptVisitor(visitor);
-        return visitor.ResultImage;
+        return visitor.ResultImage!;
     }
 
     /// <summary>
@@ -281,7 +281,7 @@ public static partial class ProcessingExtensions
             this.mutate = mutate;
         }
 
-        public Image ResultImage { get; private set; }
+        public Image? ResultImage { get; private set; }
 
         public void Visit<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>

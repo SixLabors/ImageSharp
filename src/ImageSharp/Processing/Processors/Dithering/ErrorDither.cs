@@ -220,7 +220,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
 
     /// <inheritdoc/>
     public bool Equals(IDither? other)
-        => this.Equals((object)other);
+        => this.Equals((object?)other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -19,8 +19,8 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
     private readonly Size destinationSize;
     private readonly IResampler resampler;
     private readonly Matrix4x4 transformMatrix;
-    private ImageFrame<TPixel> source;
-    private ImageFrame<TPixel> destination;
+    private ImageFrame<TPixel>? source;
+    private ImageFrame<TPixel>? destination;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
@@ -52,8 +52,8 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TResampler : struct, IResampler
     {
         Configuration configuration = this.Configuration;
-        ImageFrame<TPixel> source = this.source;
-        ImageFrame<TPixel> destination = this.destination;
+        ImageFrame<TPixel>? source = this.source;
+        ImageFrame<TPixel>? destination = this.destination;
         Matrix4x4 matrix = this.transformMatrix;
 
         // Handle transforms that result in output identical to the original.
@@ -61,8 +61,8 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         if (matrix.Equals(Matrix4x4.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
-            Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
+            var interest = Rectangle.Intersect(this.SourceRectangle, destination!.Bounds());
+            Buffer2DRegion<TPixel> sourceBuffer = source!.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
             {
@@ -78,9 +78,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         if (sampler is NearestNeighborResampler)
         {
             var nnOperation = new NNProjectiveOperation(
-                source.PixelBuffer,
+                source!.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-                destination.PixelBuffer,
+                destination!.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
@@ -93,9 +93,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
         var operation = new ProjectiveOperation<TResampler>(
             configuration,
-            source.PixelBuffer,
+            source!.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-            destination.PixelBuffer,
+            destination!.PixelBuffer,
             in sampler,
             matrix);
 

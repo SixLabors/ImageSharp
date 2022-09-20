@@ -16,7 +16,7 @@ public abstract partial class Image
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(string filePath)
+    public static IImageFormat? DetectFormat(string filePath)
         => DetectFormat(DecoderOptions.Default, filePath);
 
     /// <summary>
@@ -26,7 +26,7 @@ public abstract partial class Image
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(DecoderOptions options, string filePath)
+    public static IImageFormat? DetectFormat(DecoderOptions options, string filePath)
     {
         Guard.NotNull(options, nameof(options));
 
@@ -41,8 +41,8 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(string filePath)
-        => Identify(filePath, out IImageFormat _);
+    public static IImageInfo? Identify(string filePath)
+        => Identify(filePath, out IImageFormat? _);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
@@ -52,7 +52,7 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(string filePath, out IImageFormat format)
+    public static IImageInfo? Identify(string filePath, out IImageFormat? format)
         => Identify(DecoderOptions.Default, filePath, out format);
 
     /// <summary>
@@ -65,7 +65,7 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(DecoderOptions options, string filePath, out IImageFormat format)
+    public static IImageInfo? Identify(DecoderOptions options, string filePath, out IImageFormat? format)
     {
         Guard.NotNull(options, nameof(options));
         using Stream file = options.Configuration.FileSystem.OpenRead(filePath);
@@ -82,7 +82,7 @@ public abstract partial class Image
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
     /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<IImageInfo> IdentifyAsync(string filePath, CancellationToken cancellationToken = default)
+    public static Task<IImageInfo?> IdentifyAsync(string filePath, CancellationToken cancellationToken = default)
         => IdentifyAsync(DecoderOptions.Default, filePath, cancellationToken);
 
     /// <summary>
@@ -96,12 +96,12 @@ public abstract partial class Image
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
     /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static async Task<IImageInfo> IdentifyAsync(
+    public static async Task<IImageInfo?> IdentifyAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        (IImageInfo ImageInfo, IImageFormat Format) res =
+        (IImageInfo? ImageInfo, IImageFormat? Format) res =
             await IdentifyWithFormatAsync(options, filePath, cancellationToken).ConfigureAwait(false);
         return res.ImageInfo;
     }
@@ -116,7 +116,7 @@ public abstract partial class Image
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
     /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<(IImageInfo? ImageInfo, IImageFormat? Format)> IdentifyWithFormatAsync(
         string filePath,
         CancellationToken cancellationToken = default)
         => IdentifyWithFormatAsync(DecoderOptions.Default, filePath, cancellationToken);
@@ -132,7 +132,7 @@ public abstract partial class Image
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
     /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static async Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static async Task<(IImageInfo? ImageInfo, IImageFormat? Format)> IdentifyWithFormatAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)
@@ -163,7 +163,7 @@ public abstract partial class Image
     /// Thrown if the stream is not readable nor seekable.
     /// </exception>
     /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-    public static Image Load(string path, out IImageFormat format)
+    public static Image Load(string path, out IImageFormat? format)
         => Load(DecoderOptions.Default, path, out format);
 
     /// <summary>
@@ -192,13 +192,13 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-    public static async Task<Image> LoadAsync(
+    public static async Task<Image?> LoadAsync(
         DecoderOptions options,
         string path,
         CancellationToken cancellationToken = default)
     {
         using Stream stream = options.Configuration.FileSystem.OpenRead(path);
-        (Image img, _) = await LoadWithFormatAsync(options, stream, cancellationToken)
+        (Image? img, _) = await LoadWithFormatAsync(options, stream, cancellationToken)
             .ConfigureAwait(false);
         return img;
     }
@@ -215,7 +215,7 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-    public static Task<Image> LoadAsync(string path, CancellationToken cancellationToken = default)
+    public static Task<Image?> LoadAsync(string path, CancellationToken cancellationToken = default)
         => LoadAsync(DecoderOptions.Default, path, cancellationToken);
 
     /// <summary>
@@ -230,7 +230,7 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-    public static Task<Image<TPixel>> LoadAsync<TPixel>(string path, CancellationToken cancellationToken = default)
+    public static Task<Image<TPixel>?> LoadAsync<TPixel>(string path, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
         => LoadAsync<TPixel>(DecoderOptions.Default, path, cancellationToken);
 
@@ -247,7 +247,7 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
-    public static async Task<Image<TPixel>> LoadAsync<TPixel>(
+    public static async Task<Image<TPixel>?> LoadAsync<TPixel>(
         DecoderOptions options,
         string path,
         CancellationToken cancellationToken = default)
@@ -256,7 +256,7 @@ public abstract partial class Image
         Guard.NotNull(options, nameof(options));
 
         using Stream stream = options.Configuration.FileSystem.OpenRead(path);
-        (Image<TPixel> img, _) =
+        (Image<TPixel>? img, _) =
             await LoadWithFormatAsync<TPixel>(options, stream, cancellationToken).ConfigureAwait(false);
         return img;
     }
@@ -286,7 +286,7 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-    public static Image<TPixel> Load<TPixel>(string path, out IImageFormat format)
+    public static Image<TPixel> Load<TPixel>(string path, out IImageFormat? format)
         where TPixel : unmanaged, IPixel<TPixel>
         => Load<TPixel>(DecoderOptions.Default, path, out format);
 
@@ -325,7 +325,7 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-    public static Image<TPixel> Load<TPixel>(DecoderOptions options, string path, out IImageFormat format)
+    public static Image<TPixel> Load<TPixel>(DecoderOptions options, string path, out IImageFormat? format)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(options, nameof(options));
@@ -348,7 +348,7 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-    public static Image Load(DecoderOptions options, string path, out IImageFormat format)
+    public static Image Load(DecoderOptions options, string path, out IImageFormat? format)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(path, nameof(path));

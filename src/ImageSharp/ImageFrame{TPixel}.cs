@@ -342,7 +342,6 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         if (disposing)
         {
             this.PixelBuffer?.Dispose();
-            this.PixelBuffer = null;
         }
 
         this.isDisposed = true;
@@ -399,7 +398,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         if (typeof(TPixel2) == typeof(TPixel))
         {
-            return this.Clone(configuration) as ImageFrame<TPixel2>;
+            return (this.Clone(configuration) as ImageFrame<TPixel2>)!;
         }
 
         var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());

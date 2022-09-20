@@ -98,7 +98,7 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {
@@ -142,7 +142,7 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {
@@ -183,6 +183,6 @@ public static partial class ImageExtensions
 
         // Always available.
         stream.TryGetBuffer(out ArraySegment<byte> buffer);
-        return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array, 0, (int)stream.Length)}";
+        return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array!, 0, (int)stream.Length)}";
     }
 }

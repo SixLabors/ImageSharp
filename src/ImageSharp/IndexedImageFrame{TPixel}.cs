@@ -108,8 +108,6 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
             this.isDisposed = true;
             this.pixelBuffer.Dispose();
             this.paletteOwner.Dispose();
-            this.pixelBuffer = null;
-            this.paletteOwner = null;
         }
     }
 }

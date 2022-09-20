@@ -16,7 +16,7 @@ public abstract partial class Image
     /// </summary>
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
     /// <returns>The format or null if none found.</returns>
-    public static IImageFormat DetectFormat(ReadOnlySpan<byte> data)
+    public static IImageFormat? DetectFormat(ReadOnlySpan<byte> data)
         => DetectFormat(DecoderOptions.Default, data);
 
     /// <summary>
@@ -26,7 +26,7 @@ public abstract partial class Image
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(DecoderOptions options, ReadOnlySpan<byte> data)
+    public static IImageFormat? DetectFormat(DecoderOptions options, ReadOnlySpan<byte> data)
     {
         Guard.NotNull(options, nameof(options.Configuration));
 
@@ -39,7 +39,7 @@ public abstract partial class Image
 
         foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
         {
-            IImageFormat f = detector.DetectFormat(data);
+            IImageFormat? f = detector.DetectFormat(data);
 
             if (f != null)
             {
@@ -59,7 +59,7 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat _);
+    public static IImageInfo? Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat? _);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
@@ -71,7 +71,7 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(ReadOnlySpan<byte> data, out IImageFormat format)
+    public static IImageInfo? Identify(ReadOnlySpan<byte> data, out IImageFormat? format)
         => Identify(DecoderOptions.Default, data, out format);
 
     /// <summary>
@@ -86,7 +86,7 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
     /// </returns>
-    public static unsafe IImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
+    public static unsafe IImageInfo? Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat? format)
     {
         fixed (byte* ptr = data)
         {
@@ -118,7 +118,7 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-    public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, out IImageFormat format)
+    public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, out IImageFormat? format)
         where TPixel : unmanaged, IPixel<TPixel>
         => Load<TPixel>(DecoderOptions.Default, data, out format);
 
@@ -158,7 +158,7 @@ public abstract partial class Image
     public static unsafe Image<TPixel> Load<TPixel>(
         DecoderOptions options,
         ReadOnlySpan<byte> data,
-        out IImageFormat format)
+        out IImageFormat? format)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         fixed (byte* ptr = data)
@@ -189,7 +189,7 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <exception cref="NotSupportedException">Image format is not supported.</exception>
     /// <returns>The <see cref="Image"/>.</returns>
-    public static Image Load(ReadOnlySpan<byte> data, out IImageFormat format)
+    public static Image Load(ReadOnlySpan<byte> data, out IImageFormat? format)
         => Load(DecoderOptions.Default, data, out format);
 
     /// <summary>
@@ -215,7 +215,7 @@ public abstract partial class Image
     public static unsafe Image Load(
         DecoderOptions options,
         ReadOnlySpan<byte> data,
-        out IImageFormat format)
+        out IImageFormat? format)
     {
         fixed (byte* ptr = data)
         {

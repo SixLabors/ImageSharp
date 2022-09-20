@@ -427,7 +427,7 @@ public sealed class Image<TPixel> : Image
     {
         Guard.NotNull(frames, nameof(frames));
 
-        ImageFrame<TPixel> rootFrame = frames.FirstOrDefault();
+        ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault();
 
         if (rootFrame == null)
         {

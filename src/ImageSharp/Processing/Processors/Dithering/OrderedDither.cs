@@ -118,7 +118,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
 
         int spread = CalculatePaletteSpread(destination.Palette.Length);
         float scale = quantizer.Options.DitherScale;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
@@ -149,7 +149,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
 
         int spread = CalculatePaletteSpread(processor.Palette.Length);
         float scale = processor.DitherScale;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {

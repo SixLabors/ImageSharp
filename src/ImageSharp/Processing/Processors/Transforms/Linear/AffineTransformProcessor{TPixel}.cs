@@ -62,8 +62,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         {
             // The clone will be blank here copy all the pixel data over
             var interest = Rectangle.Intersect(this.SourceRectangle, destination!.Bounds());
-            Buffer2DRegion<TPixel> sourceBuffer = source!.PixelBuffer.GetRegion(interest);
-            Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> sourceBuffer = source!.PixelBuffer!.GetRegion(interest);
+            Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer!.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
             {
                 sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
@@ -78,9 +78,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (sampler is NearestNeighborResampler)
         {
             var nnOperation = new NNAffineOperation(
-                source!.PixelBuffer,
+                source!.PixelBuffer!,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-                destination!.PixelBuffer,
+                destination!.PixelBuffer!,
                 matrix);
 
             ParallelRowIterator.IterateRows(
@@ -93,9 +93,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
         var operation = new AffineOperation<TResampler>(
             configuration,
-            source!.PixelBuffer,
+            source!.PixelBuffer!,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-            destination!.PixelBuffer,
+            destination!.PixelBuffer!,
             in sampler,
             matrix);
 

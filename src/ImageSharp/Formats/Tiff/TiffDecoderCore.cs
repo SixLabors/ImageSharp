@@ -356,7 +356,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
         int bitsPerPixel = this.BitsPerPixel;
 
-        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+        Buffer2D<TPixel> pixels = frame.PixelBuffer!;
 
         var stripBuffers = new IMemoryOwner<byte>[stripsPerPixel];
 
@@ -447,7 +447,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         using IMemoryOwner<byte> stripBuffer = this.memoryAllocator.Allocate<byte>(uncompressedStripSize, AllocationOptions.Clean);
         Span<byte> stripBufferSpan = stripBuffer.GetSpan();
-        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+        Buffer2D<TPixel> pixels = frame.PixelBuffer!;
 
         using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
             this.Options,

@@ -251,7 +251,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         try
         {
-            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer!;
             if (webpInfo!.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader!, this.memoryAllocator, this.configuration);
@@ -289,7 +289,7 @@ internal class WebpAnimationDecoder : IDisposable
     private static void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer;
+        Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer!;
         int decodedRowIdx = 0;
         for (int y = frameY; y < frameY + frameHeight; y++)
         {
@@ -313,8 +313,8 @@ internal class WebpAnimationDecoder : IDisposable
     private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, int frameX, int frameY, int frameWidth, int frameHeight)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> srcPixels = src.PixelBuffer;
-        Buffer2D<TPixel> dstPixels = dst.PixelBuffer;
+        Buffer2D<TPixel> srcPixels = src.PixelBuffer!;
+        Buffer2D<TPixel> dstPixels = dst.PixelBuffer!;
         PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
         for (int y = frameY; y < frameY + frameHeight; y++)
         {
@@ -341,7 +341,7 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         Rectangle interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
-        Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
+        Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer!.GetRegion(interest);
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
         pixelRegion.Fill(backgroundPixel);
     }

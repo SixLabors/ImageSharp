@@ -25,6 +25,6 @@ public static partial class ImageExtensions
     internal static Buffer2D<TPixel> GetRootFramePixelBuffer<TPixel>(this Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        return image.Frames.RootFrame.PixelBuffer;
+        return image.Frames.RootFrame.PixelBuffer!;
     }
 }

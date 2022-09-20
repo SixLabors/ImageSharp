@@ -41,7 +41,7 @@ internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
         ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
         int offsetY = interest.Top;
         int offsetX = interest.Left;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         for (int y = interest.Y; y < interest.Height; y++)
         {

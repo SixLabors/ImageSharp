@@ -62,7 +62,7 @@ internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
         rowColors.GetSpan().Fill(vignetteColor);
 
-        var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
+        var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer!);
         ParallelRowIterator.IterateRows<RowOperation, float>(
             configuration,
             interest,

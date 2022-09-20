@@ -25,7 +25,7 @@ internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
     {
         var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        var operation = new OpaqueRowOperation(this.Configuration, source.PixelBuffer, interest);
+        var operation = new OpaqueRowOperation(this.Configuration, source.PixelBuffer!, interest);
         ParallelRowIterator.IterateRows<OpaqueRowOperation, Vector4>(this.Configuration, interest, in operation);
     }
 

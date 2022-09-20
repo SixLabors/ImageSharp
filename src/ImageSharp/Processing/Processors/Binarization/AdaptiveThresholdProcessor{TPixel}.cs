@@ -42,7 +42,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 0, 255);
 
         using Buffer2D<ulong> intImage = source.CalculateIntegralImage(interest);
-        RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize);
+        RowOperation operation = new(configuration, interest, source.PixelBuffer!, intImage, upper, lower, thresholdLimit, clusterSize);
         ParallelRowIterator.IterateRows<RowOperation, L8>(
             configuration,
             interest,

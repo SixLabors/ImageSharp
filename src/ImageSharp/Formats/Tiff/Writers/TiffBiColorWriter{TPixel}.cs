@@ -67,7 +67,7 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
             Span<byte> rows = this.bitStrip.Slice(0, bytesPerStrip);
             rows.Clear();
-            Buffer2D<TPixel> blackWhiteBuffer = this.imageBlackWhite.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel> blackWhiteBuffer = this.imageBlackWhite.Frames.RootFrame.PixelBuffer!;
 
             int outputRowIdx = 0;
             int lastRow = y + height;

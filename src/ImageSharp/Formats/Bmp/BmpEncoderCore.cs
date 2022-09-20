@@ -314,7 +314,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> pixels = image.PixelBuffer;
+        Buffer2D<TPixel> pixels = image.PixelBuffer!;
         switch (this.bitsPerPixel)
         {
             case BmpBitsPerPixel.Pixel32:
@@ -505,7 +505,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         }
 
         stream.Write(colorPalette);
-        Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.PixelBuffer!;
         for (int y = image.Height - 1; y >= 0; y--)
         {
             ReadOnlySpan<TPixel> inputPixelRow = imageBuffer.DangerousGetRowSpan(y);

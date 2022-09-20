@@ -1021,7 +1021,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.Frames.RootFrame.PixelBuffer!;
         for (int pass = 0; pass < 7; pass++)
         {
             int startRow = Adam7.FirstRow[pass];

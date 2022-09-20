@@ -63,7 +63,7 @@ public static partial class ProcessingExtensions
 
         Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(interest.Width, interest.Height);
         ulong sumX0 = 0;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         using (IMemoryOwner<L8> tempRow = configuration.MemoryAllocator.Allocate<L8>(interest.Width))
         {

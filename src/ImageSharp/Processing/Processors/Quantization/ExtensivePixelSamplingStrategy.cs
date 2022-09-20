@@ -17,7 +17,7 @@ public class ExtensivePixelSamplingStrategy : IPixelSamplingStrategy
     {
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            yield return frame.PixelBuffer.GetRegion();
+            yield return frame.PixelBuffer!.GetRegion();
         }
     }
 }

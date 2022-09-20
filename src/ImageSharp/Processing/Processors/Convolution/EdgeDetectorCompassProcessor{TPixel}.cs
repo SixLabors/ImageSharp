@@ -83,7 +83,7 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
                 processor.Apply(pass);
             }
 
-            var operation = new RowOperation(source.PixelBuffer, pass.PixelBuffer, interest);
+            var operation = new RowOperation(source.PixelBuffer!, pass.PixelBuffer!, interest);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 interest,

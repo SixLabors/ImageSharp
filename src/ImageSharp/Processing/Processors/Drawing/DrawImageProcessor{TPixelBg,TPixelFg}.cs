@@ -98,7 +98,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
                 "Cannot draw image because the source image does not overlap the target image.");
         }
 
-        var operation = new RowOperation(source.PixelBuffer, targetImage.Frames.RootFrame.PixelBuffer, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+        var operation = new RowOperation(source.PixelBuffer!, targetImage.Frames.RootFrame.PixelBuffer!, blender, configuration, minX, width, locationY, targetX, this.Opacity);
         ParallelRowIterator.IterateRows(
             configuration,
             workingRect,

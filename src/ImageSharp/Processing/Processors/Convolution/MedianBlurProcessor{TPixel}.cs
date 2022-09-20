@@ -42,7 +42,7 @@ internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
         MedianRowOperation<TPixel> operation = new(
             interest,
             targetPixels,
-            source.PixelBuffer,
+            source.PixelBuffer!,
             map,
             kernelSize,
             this.Configuration,
@@ -53,6 +53,6 @@ internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
             operationBounds,
             in operation);
 
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer!, targetPixels);
     }
 }

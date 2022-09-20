@@ -137,14 +137,14 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.NotNull(source, nameof(source));
 
         this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
-            source.PixelBuffer.Width,
+            source.PixelBuffer!.Width,
             source.PixelBuffer.Height,
             configuration.PreferContiguousImageBuffers);
         source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
     }
 
     /// <inheritdoc/>
-    public Buffer2D<TPixel> PixelBuffer { get; private set; }
+    public Buffer2D<TPixel>? PixelBuffer { get; private set; }
 
     /// <summary>
     /// Gets or sets the pixel at the specified position.
@@ -159,14 +159,14 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         get
         {
             this.VerifyCoords(x, y);
-            return this.PixelBuffer.GetElementUnsafe(x, y);
+            return this.PixelBuffer!.GetElementUnsafe(x, y);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set
         {
             this.VerifyCoords(x, y);
-            this.PixelBuffer.GetElementUnsafe(x, y) = value;
+            this.PixelBuffer!.GetElementUnsafe(x, y) = value;
         }
     }
 
@@ -178,7 +178,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         Guard.NotNull(processPixels, nameof(processPixels));
 
-        this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+        this.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
 
         try
         {
@@ -205,8 +205,8 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.NotNull(frame2, nameof(frame2));
         Guard.NotNull(processPixels, nameof(processPixels));
 
-        this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
-        frame2.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+        this.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
+        frame2.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
 
         try
         {
@@ -240,9 +240,9 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.NotNull(frame3, nameof(frame3));
         Guard.NotNull(processPixels, nameof(processPixels));
 
-        this.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
-        frame2.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
-        frame3.PixelBuffer.FastMemoryGroup.IncreaseRefCounts();
+        this.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
+        frame2.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
+        frame3.PixelBuffer!.FastMemoryGroup.IncreaseRefCounts();
 
         try
         {
@@ -303,7 +303,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
     /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref TPixel GetPixelReference(int x, int y) => ref this.PixelBuffer[x, y];
+    internal ref TPixel GetPixelReference(int x, int y) => ref this.PixelBuffer![x, y];
 
     /// <summary>
     /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
@@ -316,7 +316,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }
 
-        this.PixelBuffer.FastMemoryGroup.CopyTo(target.FastMemoryGroup);
+        this.PixelBuffer!.FastMemoryGroup.CopyTo(target.FastMemoryGroup);
     }
 
     /// <summary>
@@ -327,8 +327,8 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         Guard.NotNull(pixelSource, nameof(pixelSource));
 
-        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
-        this.UpdateSize(this.PixelBuffer.Size());
+        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer!, pixelSource.PixelBuffer!);
+        this.UpdateSize(this.PixelBuffer!.Size());
     }
 
     /// <inheritdoc/>
@@ -342,6 +342,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         if (disposing)
         {
             this.PixelBuffer?.Dispose();
+            this.PixelBuffer = null;
         }
 
         this.isDisposed = true;
@@ -351,7 +352,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         if (typeof(TPixel) == typeof(TDestinationPixel))
         {
-            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
+            this.PixelBuffer!.FastMemoryGroup.TransformTo(destination, (s, d) =>
             {
                 Span<TPixel> d1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(d);
                 s.CopyTo(d1);
@@ -359,7 +360,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
             return;
         }
 
-        this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d)
+        this.PixelBuffer!.FastMemoryGroup.TransformTo(destination, (s, d)
             => PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d));
     }
 
@@ -402,7 +403,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         }
 
         var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
-        var operation = new RowIntervalOperation<TPixel2>(this.PixelBuffer, target.PixelBuffer, configuration);
+        var operation = new RowIntervalOperation<TPixel2>(this.PixelBuffer!, target.PixelBuffer!, configuration);
 
         ParallelRowIterator.IterateRowIntervals(
             configuration,
@@ -418,7 +419,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="value">The value to initialize the bitmap with.</param>
     internal void Clear(TPixel value)
     {
-        MemoryGroup<TPixel> group = this.PixelBuffer.FastMemoryGroup;
+        MemoryGroup<TPixel> group = this.PixelBuffer!.FastMemoryGroup;
 
         if (value.Equals(default))
         {

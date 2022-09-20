@@ -459,7 +459,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     int mcuColMulh = mcuCol * h;
                     for (int y = 0; y < v; y++)
                     {
-                        Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
+                        Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(y);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                         for (int x = 0; x < h; x++)
@@ -515,7 +515,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Decode from binary to spectral.
             for (int j = 0; j < h; j++)
             {
-                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
+                Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int k = 0; k < w; k++)
@@ -559,7 +559,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         for (int j = 0; j < h; j++)
         {
             this.cancellationToken.ThrowIfCancellationRequested();
-            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
+            Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(j);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
             for (int i = 0; i < w; i++)
@@ -611,7 +611,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     for (int y = 0; y < v; y++)
                     {
                         int blockRow = (mcuRow * v) + y;
-                        Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(blockRow);
+                        Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(blockRow);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                         for (int x = 0; x < h; x++)
@@ -657,7 +657,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
 
-                Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(j);
+                Span<Block8x8> blockSpan = component.SpectralBlocks!.DangerousGetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)

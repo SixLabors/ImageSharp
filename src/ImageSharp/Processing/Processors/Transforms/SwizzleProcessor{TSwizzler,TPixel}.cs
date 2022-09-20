@@ -27,7 +27,7 @@ internal class SwizzleProcessor<TSwizzler, TPixel> : TransformProcessor<TPixel>
     {
         Point p = default;
         Point newPoint;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
         for (p.Y = 0; p.Y < source.Height; p.Y++)
         {
             Span<TPixel> rowSpan = sourceBuffer.DangerousGetRowSpan(p.Y);

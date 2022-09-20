@@ -74,7 +74,7 @@ internal class PlainEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();
@@ -107,7 +107,7 @@ internal class PlainEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
         Span<L16> rowSpan = row.GetSpan();
@@ -140,7 +140,7 @@ internal class PlainEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
         Span<Rgb24> rowSpan = row.GetSpan();
@@ -179,7 +179,7 @@ internal class PlainEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
         Span<Rgb48> rowSpan = row.GetSpan();
@@ -218,7 +218,7 @@ internal class PlainEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();

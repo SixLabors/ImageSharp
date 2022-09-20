@@ -440,7 +440,7 @@ internal class Vp8LEncoder : IDisposable
     private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer!;
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);

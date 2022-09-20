@@ -80,7 +80,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         // Preliminary gamma highlight pass
         if (this.gamma == 3F)
         {
-            var gammaOperation = new ApplyGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer, this.Configuration);
+            var gammaOperation = new ApplyGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer!, this.Configuration);
             ParallelRowIterator.IterateRows<ApplyGamma3ExposureRowOperation, Vector4>(
                 this.Configuration,
                 sourceRectangle,
@@ -88,7 +88,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         }
         else
         {
-            var gammaOperation = new ApplyGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
+            var gammaOperation = new ApplyGammaExposureRowOperation(sourceRectangle, source.PixelBuffer!, this.Configuration, this.gamma);
             ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
                 this.Configuration,
                 sourceRectangle,
@@ -104,7 +104,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         // Apply the inverse gamma exposure pass, and write the final pixel data
         if (this.gamma == 3F)
         {
-            var operation = new ApplyInverseGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration);
+            var operation = new ApplyInverseGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer!, processingBuffer, this.Configuration);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 sourceRectangle,
@@ -112,7 +112,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         }
         else
         {
-            var operation = new ApplyInverseGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, 1 / this.gamma);
+            var operation = new ApplyInverseGammaExposureRowOperation(sourceRectangle, source.PixelBuffer!, processingBuffer, this.Configuration, 1 / this.gamma);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 sourceRectangle,
@@ -164,7 +164,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             var horizontalOperation = new FirstPassConvolutionRowOperation(
                 sourceRectangle,
                 firstPassBuffer,
-                source.PixelBuffer,
+                source.PixelBuffer!,
                 mapXY,
                 kernel,
                 configuration);

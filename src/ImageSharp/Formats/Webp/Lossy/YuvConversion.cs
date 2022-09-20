@@ -272,7 +272,7 @@ internal static class YuvConversion
     public static bool ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer!;
         int width = imageBuffer.Width;
         int height = imageBuffer.Height;
         int uvWidth = (width + 1) >> 1;

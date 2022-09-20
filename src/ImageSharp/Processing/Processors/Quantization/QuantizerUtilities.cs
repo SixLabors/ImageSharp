@@ -51,7 +51,7 @@ public static class QuantizerUtilities
         Guard.NotNull(source, nameof(source));
 
         var interest = Rectangle.Intersect(source.Bounds(), bounds);
-        Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
+        Buffer2DRegion<TPixel> region = source.PixelBuffer!.GetRegion(interest);
 
         // Collect the palette. Required before the second pass runs.
         quantizer.AddPaletteColors(region);
@@ -121,7 +121,7 @@ public static class QuantizerUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IDither dither = quantizer.Options.Dither;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         if (dither is null)
         {

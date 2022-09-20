@@ -89,7 +89,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
         else
         {
             using var image = Image.Load<Rgb24>(stream);
-            CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
+            CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer!);
         }
     }
 

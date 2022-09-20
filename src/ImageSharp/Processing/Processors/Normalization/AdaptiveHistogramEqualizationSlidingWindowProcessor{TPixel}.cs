@@ -157,7 +157,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
             parallelOptions,
             bottomBorderOperation.Invoke);
 
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer!, targetPixels);
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
             return;
         }
 
-        CopyPixelRowFast(source.PixelBuffer, rowPixels, x, y, tileWidth, configuration);
+        CopyPixelRowFast(source.PixelBuffer!, rowPixels, x, y, tileWidth, configuration);
     }
 
     /// <summary>
@@ -354,7 +354,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                 {
                     if (this.useFastPath)
                     {
-                        CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
+                        CopyPixelRowFast(this.source.PixelBuffer!, pixelRow, x - this.swInfos.HalfTileWidth, dy, this.swInfos.TileWidth, this.configuration);
                     }
                     else
                     {
@@ -388,7 +388,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                     // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                     if (this.useFastPath)
                     {
-                        CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                        CopyPixelRowFast(this.source.PixelBuffer!, pixelRow, x - this.swInfos.HalfTileWidth, y - this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                     }
                     else
                     {
@@ -400,7 +400,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                     // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                     if (this.useFastPath)
                     {
-                        CopyPixelRowFast(this.source.PixelBuffer, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
+                        CopyPixelRowFast(this.source.PixelBuffer!, pixelRow, x - this.swInfos.HalfTileWidth, y + this.swInfos.HalfTileWidth, this.swInfos.TileWidth, this.configuration);
                     }
                     else
                     {

@@ -50,7 +50,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         ParallelExecutionSettings parallelSettings =
             ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-        var operation = new RowOperation(bounds, source.PixelBuffer, destination.PixelBuffer);
+        var operation = new RowOperation(bounds, source.PixelBuffer!, destination.PixelBuffer!);
 
         ParallelRowIterator.IterateRows(
             bounds,

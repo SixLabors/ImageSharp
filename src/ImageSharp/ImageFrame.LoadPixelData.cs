@@ -43,7 +43,7 @@ public partial class ImageFrame
         var image = new ImageFrame<TPixel>(configuration, width, height);
 
         data = data[..count];
-        data.CopyTo(image.PixelBuffer.FastMemoryGroup);
+        data.CopyTo(image.PixelBuffer!.FastMemoryGroup);
 
         return image;
     }

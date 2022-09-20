@@ -27,5 +27,5 @@ internal interface IPixelSource<TPixel>
     /// <summary>
     /// Gets the pixel buffer.
     /// </summary>
-    Buffer2D<TPixel> PixelBuffer { get; }
+    Buffer2D<TPixel>? PixelBuffer { get; }
 }

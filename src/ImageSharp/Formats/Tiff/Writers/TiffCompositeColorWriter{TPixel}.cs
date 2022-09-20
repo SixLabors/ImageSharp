@@ -39,7 +39,7 @@ internal abstract class TiffCompositeColorWriter<TPixel> : TiffBaseColorWriter<T
         int stripPixelsRowIdx = 0;
         for (int row = y; row < lastRow; row++)
         {
-            Span<TPixel> stripPixelsRow = this.Image.PixelBuffer.DangerousGetRowSpan(row);
+            Span<TPixel> stripPixelsRow = this.Image.PixelBuffer!.DangerousGetRowSpan(row);
             stripPixelsRow.CopyTo(stripPixels.Slice(stripPixelsRowIdx * width, width));
             stripPixelsRowIdx++;
         }

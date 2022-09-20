@@ -22,7 +22,7 @@ internal sealed class DownScalingComponentProcessor2 : ComponentProcessor
 
     public override void CopyBlocksToColorBuffer(int spectralStep)
     {
-        Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
+        Buffer2D<Block8x8>? spectralBuffer = this.Component.SpectralBlocks;
 
         float maximumValue = this.Frame.MaxColorChannelValue;
         float normalizationValue = MathF.Ceiling(maximumValue / 2);
@@ -41,7 +41,7 @@ internal sealed class DownScalingComponentProcessor2 : ComponentProcessor
             int yBuffer = y * this.BlockAreaSize.Height;
 
             Span<float> colorBufferRow = this.ColorBuffer.DangerousGetRowSpan(yBuffer);
-            Span<Block8x8> blockRow = spectralBuffer.DangerousGetRowSpan(yBlockStart + y);
+            Span<Block8x8> blockRow = spectralBuffer!.DangerousGetRowSpan(yBlockStart + y);
 
             for (int xBlock = 0; xBlock < spectralBuffer.Width; xBlock++)
             {

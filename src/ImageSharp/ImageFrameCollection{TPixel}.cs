@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -133,7 +134,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     /// <param name="source">The <seealso cref="ImageFrame{TPixel}"/> to clone and insert into the <seealso cref="ImageFrameCollection{TPixel}"/>.</param>
     /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
     /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
-    public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel> source)
+    public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel>? source)
     {
         this.EnsureNotDisposed();
 
@@ -313,7 +314,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     protected override ImageFrame NonGenericGetFrame(int index) => this[index];
 
     /// <inheritdoc />
-    protected override ImageFrame NonGenericInsertFrame(int index, ImageFrame source)
+    protected override ImageFrame NonGenericInsertFrame(int index, ImageFrame? source)
     {
         Guard.NotNull(source, nameof(source));
 
@@ -328,7 +329,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     }
 
     /// <inheritdoc />
-    protected override ImageFrame NonGenericAddFrame(ImageFrame source)
+    protected override ImageFrame NonGenericAddFrame(ImageFrame? source)
     {
         Guard.NotNull(source, nameof(source));
 
@@ -379,7 +380,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     /// <inheritdoc/>
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
 
-    private void ValidateFrame(ImageFrame<TPixel> frame)
+    private void ValidateFrame([NotNull]ImageFrame<TPixel>? frame)
     {
         Guard.NotNull(frame, nameof(frame));
 
@@ -412,7 +413,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
             this.parent.GetConfiguration(),
             source.Size(),
             source.Metadata.DeepClone());
-        source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);
+        source.CopyPixelsTo(result.PixelBuffer!.FastMemoryGroup);
         return result;
     }
 }

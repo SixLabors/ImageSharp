@@ -74,7 +74,7 @@ public abstract partial class Image
 
         var image = new Image<TPixel>(configuration, width, height);
         data = data[..count];
-        data.CopyTo(image.Frames.RootFrame.PixelBuffer.FastMemoryGroup);
+        data.CopyTo(image.Frames.RootFrame.PixelBuffer!.FastMemoryGroup);
 
         return image;
     }

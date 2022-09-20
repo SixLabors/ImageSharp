@@ -60,7 +60,7 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
             // Enumerate all pixels
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                yield return frame.PixelBuffer.GetRegion();
+                yield return frame.PixelBuffer!.GetRegion();
             }
         }
         else
@@ -97,7 +97,7 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
             {
                 int frameIdx = pos / image.Height;
                 int y = pos % image.Height;
-                return image.Frames[frameIdx].PixelBuffer.GetRegion(0, y, image.Width, 1);
+                return image.Frames[frameIdx].PixelBuffer!.GetRegion(0, y, image.Width, 1);
             }
         }
     }

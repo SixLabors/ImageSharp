@@ -35,7 +35,7 @@ internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
         {
             // No default needed as we have already set the pixels.
             case FlipMode.Vertical:
-                FlipX(source.PixelBuffer, this.Configuration);
+                FlipX(source.PixelBuffer!, this.Configuration);
                 break;
             case FlipMode.Horizontal:
                 FlipY(source, this.Configuration);
@@ -72,7 +72,7 @@ internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void FlipY(ImageFrame<TPixel> source, Configuration configuration)
     {
-        var operation = new RowOperation(source.PixelBuffer);
+        var operation = new RowOperation(source.PixelBuffer!);
         ParallelRowIterator.IterateRows(
             configuration,
             source.Bounds(),

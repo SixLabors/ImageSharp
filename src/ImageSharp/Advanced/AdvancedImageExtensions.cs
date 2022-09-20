@@ -115,7 +115,7 @@ public static class AdvancedImageExtensions
     /// <exception cref="ArgumentNullException">Thrown when the <paramref name="source"/> in <see langword="null"/>.</exception>
     public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => source?.PixelBuffer.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
+        => source?.PixelBuffer!.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
@@ -148,7 +148,7 @@ public static class AdvancedImageExtensions
         Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
         Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-        return source.PixelBuffer.GetSafeRowMemory(rowIndex);
+        return source.PixelBuffer!.GetSafeRowMemory(rowIndex);
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ public static class AdvancedImageExtensions
         Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
         Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-        return source.Frames.RootFrame.PixelBuffer.GetSafeRowMemory(rowIndex);
+        return source.Frames.RootFrame.PixelBuffer!.GetSafeRowMemory(rowIndex);
     }
 
     /// <summary>

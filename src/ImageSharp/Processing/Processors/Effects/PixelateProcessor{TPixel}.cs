@@ -45,7 +45,7 @@ internal class PixelateProcessor<TPixel> : ImageProcessor<TPixel>
         Parallel.ForEach(
         range,
         this.Configuration.GetParallelOptions(),
-        new RowOperation(interest, size, source.PixelBuffer).Invoke);
+        new RowOperation(interest, size, source.PixelBuffer!).Invoke);
     }
 
     private readonly struct RowOperation

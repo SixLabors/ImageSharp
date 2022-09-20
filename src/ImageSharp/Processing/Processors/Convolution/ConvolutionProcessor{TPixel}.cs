@@ -64,14 +64,14 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
         {
             map.BuildSamplingOffsetMap(this.KernelXY, interest);
 
-            var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
+            var operation = new RowOperation(interest, targetPixels, source.PixelBuffer!, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                this.Configuration,
                operationBounds,
                in operation);
         }
 
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer!, targetPixels);
     }
 
     /// <summary>

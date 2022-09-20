@@ -60,7 +60,7 @@ internal class BinaryEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<byte> row = allocator.Allocate<byte>(width);
         Span<byte> rowSpan = row.GetSpan();
@@ -85,7 +85,7 @@ internal class BinaryEncoder
         const int bytesPerPixel = 2;
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
@@ -110,7 +110,7 @@ internal class BinaryEncoder
         const int bytesPerPixel = 3;
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
@@ -135,7 +135,7 @@ internal class BinaryEncoder
         const int bytesPerPixel = 6;
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<byte> row = allocator.Allocate<byte>(width * bytesPerPixel);
         Span<byte> rowSpan = row.GetSpan();
@@ -159,7 +159,7 @@ internal class BinaryEncoder
     {
         int width = image.Width;
         int height = image.Height;
-        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> pixelBuffer = image.PixelBuffer!;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();

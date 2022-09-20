@@ -41,7 +41,7 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
         var operation = new RowOperation(
             interest.X,
-            source.PixelBuffer,
+            source.PixelBuffer!,
             upper,
             lower,
             threshold,

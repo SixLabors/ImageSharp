@@ -138,7 +138,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> pixels = image.PixelBuffer;
+        Buffer2D<TPixel> pixels = image.PixelBuffer!;
         switch (this.bitsPerPixel)
         {
             case TgaBitsPerPixel.Pixel8:
@@ -169,7 +169,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32 color = default;
-        Buffer2D<TPixel> pixels = image.PixelBuffer;
+        Buffer2D<TPixel> pixels = image.PixelBuffer!;
         for (int y = 0; y < image.Height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);

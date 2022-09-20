@@ -103,7 +103,7 @@ internal class AlphaEncoder : IDisposable
     private static IMemoryOwner<byte> ExtractAlphaChannel<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer!;
         int height = image.Height;
         int width = image.Width;
         IMemoryOwner<byte> alphaDataBuffer = memoryAllocator.Allocate<byte>(width * height);

@@ -49,7 +49,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
         var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-        var operation = new RowOperation(interest.X, source.PixelBuffer, this.Configuration, this.modifiers, this.rowDelegate);
+        var operation = new RowOperation(interest.X, source.PixelBuffer!, this.Configuration, this.modifiers, this.rowDelegate);
 
         ParallelRowIterator.IterateRows<RowOperation, Vector4>(
             this.Configuration,

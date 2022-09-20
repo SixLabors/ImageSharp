@@ -539,7 +539,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 writeY = y;
             }
 
-            ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
+            ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer!.DangerousGetRowSpan(writeY));
 
             if (!transFlag)
             {
@@ -595,7 +595,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
 
         var interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
-        Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
+        Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer!.GetRegion(interest);
         pixelRegion.Clear();
 
         this.restoreArea = null;

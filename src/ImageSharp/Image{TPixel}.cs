@@ -187,7 +187,7 @@ public sealed class Image<TPixel> : Image
             this.EnsureNotDisposed();
 
             this.VerifyCoords(x, y);
-            return this.PixelSourceUnsafe.PixelBuffer.GetElementUnsafe(x, y);
+            return this.PixelSourceUnsafe.PixelBuffer!.GetElementUnsafe(x, y);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -196,7 +196,7 @@ public sealed class Image<TPixel> : Image
             this.EnsureNotDisposed();
 
             this.VerifyCoords(x, y);
-            this.PixelSourceUnsafe.PixelBuffer.GetElementUnsafe(x, y) = value;
+            this.PixelSourceUnsafe.PixelBuffer!.GetElementUnsafe(x, y) = value;
         }
     }
 
@@ -207,7 +207,7 @@ public sealed class Image<TPixel> : Image
     public void ProcessPixelRows(PixelAccessorAction<TPixel> processPixels)
     {
         Guard.NotNull(processPixels, nameof(processPixels));
-        Buffer2D<TPixel> buffer = this.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> buffer = this.Frames.RootFrame.PixelBuffer!;
         buffer.FastMemoryGroup.IncreaseRefCounts();
 
         try
@@ -235,8 +235,8 @@ public sealed class Image<TPixel> : Image
         Guard.NotNull(image2, nameof(image2));
         Guard.NotNull(processPixels, nameof(processPixels));
 
-        Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer;
-        Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer!;
+        Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer!;
 
         buffer1.FastMemoryGroup.IncreaseRefCounts();
         buffer2.FastMemoryGroup.IncreaseRefCounts();
@@ -273,9 +273,9 @@ public sealed class Image<TPixel> : Image
         Guard.NotNull(image3, nameof(image3));
         Guard.NotNull(processPixels, nameof(processPixels));
 
-        Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer;
-        Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer;
-        Buffer2D<TPixel3> buffer3 = image3.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> buffer1 = this.Frames.RootFrame.PixelBuffer!;
+        Buffer2D<TPixel2> buffer2 = image2.Frames.RootFrame.PixelBuffer!;
+        Buffer2D<TPixel3> buffer3 = image3.Frames.RootFrame.PixelBuffer!;
 
         buffer1.FastMemoryGroup.IncreaseRefCounts();
         buffer2.FastMemoryGroup.IncreaseRefCounts();

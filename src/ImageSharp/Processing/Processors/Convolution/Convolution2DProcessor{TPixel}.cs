@@ -76,7 +76,7 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
             var operation = new Convolution2DRowOperation<TPixel>(
                 interest,
                 targetPixels,
-                source.PixelBuffer,
+                source.PixelBuffer!,
                 map,
                 this.KernelY,
                 this.KernelX,
@@ -89,6 +89,6 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
                 in operation);
         }
 
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer!, targetPixels);
     }
 }

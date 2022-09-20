@@ -105,7 +105,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
         int offsetY = bounds.Top;
         int offsetX = bounds.Left;
         float scale = quantizer.Options.DitherScale;
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
 
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
@@ -135,7 +135,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
             ThrowDefaultInstance();
         }
 
-        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer!;
         float scale = processor.DitherScale;
         for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
@@ -173,7 +173,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
 
         int offset = this.offset;
         DenseMatrix<float> matrix = this.matrix;
-        Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.PixelBuffer!;
 
         // Loop through and distribute the error amongst neighboring pixels.
         for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)

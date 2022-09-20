@@ -69,7 +69,7 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     /// <param name="source">The <seealso cref="ImageFrame"/> to clone and insert into the <seealso cref="ImageFrameCollection"/>.</param>
     /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
     /// <returns>The cloned <see cref="ImageFrame"/>.</returns>
-    public ImageFrame InsertFrame(int index, ImageFrame source)
+    public ImageFrame InsertFrame(int index, ImageFrame? source)
     {
         this.EnsureNotDisposed();
 
@@ -81,7 +81,7 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     /// </summary>
     /// <param name="source">The raw pixel data to generate the <seealso cref="ImageFrame{TPixel}"/> from.</param>
     /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
-    public ImageFrame AddFrame(ImageFrame source)
+    public ImageFrame AddFrame(ImageFrame? source)
     {
         this.EnsureNotDisposed();
 
@@ -226,14 +226,14 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     /// <param name="index">The index.</param>
     /// <param name="source">The frame.</param>
     /// <returns>The new frame.</returns>
-    protected abstract ImageFrame NonGenericInsertFrame(int index, ImageFrame source);
+    protected abstract ImageFrame NonGenericInsertFrame(int index, ImageFrame? source);
 
     /// <summary>
     /// Implements <see cref="AddFrame"/>.
     /// </summary>
     /// <param name="source">The frame.</param>
     /// <returns>The new frame.</returns>
-    protected abstract ImageFrame NonGenericAddFrame(ImageFrame source);
+    protected abstract ImageFrame NonGenericAddFrame(ImageFrame? source);
 
     /// <summary>
     /// Implements <see cref="ExportFrame"/>.

@@ -51,7 +51,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
         // Build the histogram of the grayscale levels.
-        var grayscaleOperation = new GrayscaleLevelsRowOperation(interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
+        var grayscaleOperation = new GrayscaleLevelsRowOperation(interest, histogramBuffer, source.PixelBuffer!, this.LuminanceLevels);
         ParallelRowIterator.IterateRows(
             this.Configuration,
             interest,
@@ -74,7 +74,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
         // Apply the cdf to each pixel of the image
-        var cdfOperation = new CdfApplicationRowOperation(interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+        var cdfOperation = new CdfApplicationRowOperation(interest, cdfBuffer, source.PixelBuffer!, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
         ParallelRowIterator.IterateRows(
             this.Configuration,
             interest,

@@ -78,37 +78,37 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 yStart += tileHeight;
             }
 
-            var operation = new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source.PixelBuffer);
+            var operation = new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source.PixelBuffer!);
             ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
                 in operation);
 
             // Fix left column
-            ProcessBorderColumn(source.PixelBuffer, cdfData, 0, sourceHeight, this.Tiles, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
+            ProcessBorderColumn(source.PixelBuffer!, cdfData, 0, sourceHeight, this.Tiles, tileHeight, xStart: 0, xEnd: halfTileWidth, luminanceLevels);
 
             // Fix right column
             int rightBorderStartX = ((this.Tiles - 1) * tileWidth) + halfTileWidth;
-            ProcessBorderColumn(source.PixelBuffer, cdfData, this.Tiles - 1, sourceHeight, this.Tiles, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
+            ProcessBorderColumn(source.PixelBuffer!, cdfData, this.Tiles - 1, sourceHeight, this.Tiles, tileHeight, xStart: rightBorderStartX, xEnd: sourceWidth, luminanceLevels);
 
             // Fix top row
-            ProcessBorderRow(source.PixelBuffer, cdfData, 0, sourceWidth, this.Tiles, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+            ProcessBorderRow(source.PixelBuffer!, cdfData, 0, sourceWidth, this.Tiles, tileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
             // Fix bottom row
             int bottomBorderStartY = ((this.Tiles - 1) * tileHeight) + halfTileHeight;
-            ProcessBorderRow(source.PixelBuffer, cdfData, this.Tiles - 1, sourceWidth, this.Tiles, tileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
+            ProcessBorderRow(source.PixelBuffer!, cdfData, this.Tiles - 1, sourceWidth, this.Tiles, tileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
             // Left top corner
-            ProcessCornerTile(source.PixelBuffer, cdfData, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+            ProcessCornerTile(source.PixelBuffer!, cdfData, 0, 0, xStart: 0, xEnd: halfTileWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
             // Left bottom corner
-            ProcessCornerTile(source.PixelBuffer, cdfData, 0, this.Tiles - 1, xStart: 0, xEnd: halfTileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
+            ProcessCornerTile(source.PixelBuffer!, cdfData, 0, this.Tiles - 1, xStart: 0, xEnd: halfTileWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
 
             // Right top corner
-            ProcessCornerTile(source.PixelBuffer, cdfData, this.Tiles - 1, 0, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
+            ProcessCornerTile(source.PixelBuffer!, cdfData, this.Tiles - 1, 0, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: 0, yEnd: halfTileHeight, luminanceLevels);
 
             // Right bottom corner
-            ProcessCornerTile(source.PixelBuffer, cdfData, this.Tiles - 1, this.Tiles - 1, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
+            ProcessCornerTile(source.PixelBuffer!, cdfData, this.Tiles - 1, this.Tiles - 1, xStart: rightBorderStartX, xEnd: sourceWidth, yStart: bottomBorderStartY, yEnd: sourceHeight, luminanceLevels);
         }
     }
 
@@ -514,7 +514,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 this.tileWidth,
                 this.tileHeight,
                 this.luminanceLevels,
-                source.PixelBuffer);
+                source.PixelBuffer!);
 
             ParallelRowIterator.IterateRowIntervals(
                 this.configuration,

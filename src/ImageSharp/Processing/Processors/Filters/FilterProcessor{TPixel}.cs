@@ -35,7 +35,7 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
         var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-        var operation = new RowOperation(interest.X, source.PixelBuffer, this.definition.Matrix, this.Configuration);
+        var operation = new RowOperation(interest.X, source.PixelBuffer!, this.definition.Matrix, this.Configuration);
 
         ParallelRowIterator.IterateRows<RowOperation, Vector4>(
             this.Configuration,

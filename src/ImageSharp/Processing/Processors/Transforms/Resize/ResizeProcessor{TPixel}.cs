@@ -164,8 +164,8 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             interest,
             widthFactor,
             heightFactor,
-            source.PixelBuffer,
-            destination.PixelBuffer);
+            source.PixelBuffer!,
+            destination.PixelBuffer!);
 
         ParallelRowIterator.IterateRows(
             configuration,
@@ -204,7 +204,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         premultiplyAlpha &= needsPremultiplication;
         PixelConversionModifiers conversionModifiers = GetModifiers(compand, premultiplyAlpha);
 
-        Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);
+        Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer!.GetRegion(sourceRectangle);
 
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
@@ -219,7 +219,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         worker.Initialize();
 
         var workingInterval = new RowInterval(interest.Top, interest.Bottom);
-        worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
+        worker.FillDestinationPixels(workingInterval, destination.PixelBuffer!);
     }
 
     private readonly struct NNRowOperation : IRowOperation

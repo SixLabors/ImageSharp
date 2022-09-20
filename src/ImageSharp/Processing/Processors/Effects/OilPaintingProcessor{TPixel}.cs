@@ -40,13 +40,13 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
         source.CopyTo(targetPixels);
 
-        RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, this.definition.Levels);
+        RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer!, this.Configuration, brushSize >> 1, this.definition.Levels);
         ParallelRowIterator.IterateRowIntervals(
             this.Configuration,
             this.SourceRectangle,
             in operation);
 
-        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
+        Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer!, targetPixels);
     }
 
     /// <summary>

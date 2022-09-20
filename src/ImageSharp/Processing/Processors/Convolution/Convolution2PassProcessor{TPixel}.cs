@@ -84,7 +84,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         var horizontalOperation = new HorizontalConvolutionRowOperation(
             interest,
             firstPassPixels,
-            source.PixelBuffer,
+            source.PixelBuffer!,
             mapXY,
             this.Kernel,
             this.Configuration,
@@ -98,7 +98,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         // Vertical convolution
         var verticalOperation = new VerticalConvolutionRowOperation(
             interest,
-            source.PixelBuffer,
+            source.PixelBuffer!,
             firstPassPixels,
             mapXY,
             this.Kernel,

@@ -197,7 +197,6 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <param name="value">The value.</param>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
     public void SetValue<TValueType>(ExifTag<TValueType> tag, TValueType value)
-        where TValueType : struct
         => this.SetValueInternal(tag, value);
 
     /// <summary>

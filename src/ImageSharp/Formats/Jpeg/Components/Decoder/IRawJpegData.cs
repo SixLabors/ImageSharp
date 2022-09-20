@@ -21,5 +21,5 @@ internal interface IRawJpegData : IDisposable
     /// <summary>
     /// Gets the quantization tables, in natural order.
     /// </summary>
-    Block8x8F[] QuantizationTables { get; }
+    Block8x8F[]? QuantizationTables { get; }
 }

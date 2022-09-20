@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -49,7 +50,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains exif data.
     /// </summary>
-    private byte[] exifData = null!;
+    private byte[]? exifData;
 
     /// <summary>
     /// Whether the image has an ICC marker.
@@ -59,7 +60,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains ICC data.
     /// </summary>
-    private byte[] iccData = null!;
+    private byte[]? iccData;
 
     /// <summary>
     /// Whether the image has a IPTC data.
@@ -69,7 +70,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains IPTC data.
     /// </summary>
-    private byte[] iptcData = null!;
+    private byte[]? iptcData;
 
     /// <summary>
     /// Whether the image has a XMP data.
@@ -79,7 +80,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Contains XMP data.
     /// </summary>
-    private byte[] xmpData = null!;
+    private byte[]? xmpData;
 
     /// <summary>
     /// Whether the image has a APP14 adobe marker. This is needed to determine image encoded colorspace.
@@ -104,7 +105,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// The arithmetic decoding tables.
     /// </summary>
-    private List<ArithmeticDecodingTable> arithmeticDecodingTables = null!;
+    private List<ArithmeticDecodingTable>? arithmeticDecodingTables;
 
     /// <summary>
     /// The restart interval.
@@ -152,7 +153,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <summary>
     /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    public ImageMetadata Metadata { get; private set; } = null!;
+    public ImageMetadata? Metadata { get; private set; }
 
     /// <inheritdoc/>
     public JpegColorSpace ColorSpace { get; private set; }
@@ -166,7 +167,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     JpegComponent[]? IRawJpegData.Components => this.Components;
 
     /// <inheritdoc/>
-    public Block8x8F[] QuantizationTables { get; private set; } = null!;
+    public Block8x8F[]? QuantizationTables { get; private set; }
 
     /// <summary>
     /// Finds the next file marker within the byte stream.
@@ -217,6 +218,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
+        ArgumentNullException.ThrowIfNull(this.Metadata);
+
         return new Image<TPixel>(
             this.configuration,
             spectralConverter.GetPixelBuffer(cancellationToken),
@@ -234,6 +237,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame!.PixelSize;
+        ArgumentNullException.ThrowIfNull(this.Metadata);
+
         return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), pixelSize.Width, pixelSize.Height, this.Metadata);
     }
 
@@ -636,6 +641,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         if (this.hasExif)
         {
+            ArgumentNullException.ThrowIfNull(this.Metadata);
+
             this.Metadata.ExifProfile = new ExifProfile(this.exifData);
         }
     }
@@ -650,6 +657,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             IccProfile profile = new(this.iccData);
             if (profile.CheckIsValid())
             {
+                ArgumentNullException.ThrowIfNull(this.Metadata);
+
                 this.Metadata.IccProfile = profile;
             }
         }
@@ -662,6 +671,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         if (this.hasIptc)
         {
+            ArgumentNullException.ThrowIfNull(this.Metadata);
+
             this.Metadata.IptcProfile = new IptcProfile(this.iptcData);
         }
     }
@@ -673,6 +684,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         if (this.hasXmp)
         {
+            ArgumentNullException.ThrowIfNull(this.Metadata);
+
             this.Metadata.XmpProfile = new XmpProfile(this.xmpData);
         }
     }
@@ -684,6 +697,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
         {
+            ArgumentNullException.ThrowIfNull(this.Metadata);
+
             this.Metadata.HorizontalResolution = this.jFif.XDensity;
             this.Metadata.VerticalResolution = this.jFif.YDensity;
             this.Metadata.ResolutionUnits = this.jFif.DensityUnits;
@@ -695,6 +710,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
             if (horizontalValue > 0 && verticalValue > 0)
             {
+                ArgumentNullException.ThrowIfNull(this.Metadata);
+
                 this.Metadata.HorizontalResolution = horizontalValue;
                 this.Metadata.VerticalResolution = verticalValue;
                 this.Metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.Metadata.ExifProfile!);
@@ -704,6 +721,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
     private double GetExifResolutionValue(ExifTag<Rational> tag)
     {
+        ArgumentNullException.ThrowIfNull(this.Metadata);
+
         IExifValue<Rational>? resolution = this.Metadata.ExifProfile!.GetValue(tag);
 
         return resolution is null ? 0 : resolution.Value.ToDouble();
@@ -951,6 +970,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
+    [MemberNotNull(nameof(arithmeticDecodingTables))]
     private void ProcessArithmeticTable(BufferedReadStream stream, int remaining)
     {
         this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
@@ -1055,6 +1075,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </exception>
     private void ProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
     {
+        ArgumentNullException.ThrowIfNull(this.Metadata);
+
         JpegMetadata jpegMetadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
 
         while (remaining > 0)
@@ -1075,6 +1097,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             remaining--;
 
             // Decoding single 8x8 table
+            ArgumentNullException.ThrowIfNull(this.QuantizationTables);
+
             ref Block8x8F table = ref this.QuantizationTables[tableIndex];
             switch (tablePrecision)
             {
@@ -1199,6 +1223,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+        ArgumentNullException.ThrowIfNull(this.Metadata);
+
         this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
         remaining -= length;
@@ -1477,6 +1503,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
         if (this.scanDecoder is ArithmeticScanDecoder arithmeticScanDecoder)
         {
+            ArgumentNullException.ThrowIfNull(this.arithmeticDecodingTables);
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 

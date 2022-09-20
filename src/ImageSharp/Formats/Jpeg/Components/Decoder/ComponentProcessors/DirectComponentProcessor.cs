@@ -15,6 +15,8 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
     public DirectComponentProcessor(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
         : base(memoryAllocator, frame, postProcessorBufferSize, component, blockSize: 8)
     {
+        ArgumentNullException.ThrowIfNull(rawJpeg.QuantizationTables);
+
         this.dequantizationTable = rawJpeg.QuantizationTables[component.QuantizationTableIndex];
         FloatingPointDCT.AdjustToIDCT(ref this.dequantizationTable);
     }

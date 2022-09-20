@@ -15,7 +15,10 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
 
     public DownScalingComponentProcessor8(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
         : base(memoryAllocator, frame, postProcessorBufferSize, component, 1)
-        => this.dcDequantizatizer = 0.125f * rawJpeg.QuantizationTables[component.QuantizationTableIndex][0];
+    {
+        ArgumentNullException.ThrowIfNull(rawJpeg.QuantizationTables);
+        this.dcDequantizatizer = 0.125f * rawJpeg.QuantizationTables[component.QuantizationTableIndex][0];
+    }
 
     public override void CopyBlocksToColorBuffer(int spectralStep)
     {

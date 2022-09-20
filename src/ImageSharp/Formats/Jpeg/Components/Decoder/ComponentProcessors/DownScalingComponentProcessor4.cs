@@ -16,6 +16,8 @@ internal sealed class DownScalingComponentProcessor4 : ComponentProcessor
     public DownScalingComponentProcessor4(MemoryAllocator memoryAllocator, JpegFrame frame, IRawJpegData rawJpeg, Size postProcessorBufferSize, IJpegComponent component)
         : base(memoryAllocator, frame, postProcessorBufferSize, component, 2)
     {
+        ArgumentNullException.ThrowIfNull(rawJpeg.QuantizationTables);
+
         this.dequantizationTable = rawJpeg.QuantizationTables[component.QuantizationTableIndex];
         ScaledFloatingPointDCT.AdjustToIDCT(ref this.dequantizationTable);
     }

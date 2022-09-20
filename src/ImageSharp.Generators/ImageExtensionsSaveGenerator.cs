@@ -52,7 +52,7 @@ public static partial class ImageExtensions
 
         foreach (string format in ImageFormats)
         {
-            stringBuilder.AppendLine($@"
+            string methods = $@"
     /// <summary>
     /// Saves the image to the given stream with the {format} format.
     /// </summary>
@@ -153,10 +153,11 @@ public static partial class ImageExtensions
         source.SaveAsync(
             stream,
             encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder({format}Format.Instance),
-            cancellationToken);");
+            cancellationToken);";
+            stringBuilder.AppendLine(methods);
         }
 
-        stringBuilder.Append("}");
+        stringBuilder.Append('}');
 
         SourceText sourceText = SourceText.From(stringBuilder.ToString(), Encoding.UTF8);
         ctx.AddSource("ImageExtensions.Save.g.cs", sourceText);

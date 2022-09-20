@@ -77,7 +77,7 @@ public class TiffFrameMetadata : IDeepCloneable
     {
         if (profile != null)
         {
-            if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)!.Value, out TiffBitsPerSample bitsPerSample))
+            if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)!.Value!, out TiffBitsPerSample bitsPerSample))
             {
                 meta.BitsPerSample = bitsPerSample;
             }

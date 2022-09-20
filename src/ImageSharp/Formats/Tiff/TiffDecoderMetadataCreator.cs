@@ -33,7 +33,7 @@ internal static class TiffDecoderMetadataCreator
             {
                 ImageFrame<TPixel> frame = frames[i];
                 ImageFrameMetadata frameMetaData = frame.Metadata;
-                if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[]? iptcBytes))
+                if (TryGetIptc(frameMetaData.ExifProfile!.Values, out byte[]? iptcBytes))
                 {
                     frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
                 }
@@ -55,7 +55,7 @@ internal static class TiffDecoderMetadataCreator
         return imageMetaData;
     }
 
-    public static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
+    public static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile? exifProfile)
     {
         var imageMetaData = new ImageMetadata();
         SetResolution(imageMetaData, exifProfile);
@@ -67,7 +67,7 @@ internal static class TiffDecoderMetadataCreator
         return imageMetaData;
     }
 
-    private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)
+    private static void SetResolution(ImageMetadata imageMetaData, ExifProfile? exifProfile)
     {
         imageMetaData.ResolutionUnits = exifProfile != null ? UnitConverter.ExifProfileToResolutionUnit(exifProfile) : PixelResolutionUnit.PixelsPerInch;
         double? horizontalResolution = exifProfile?.GetValue(ExifTag.XResolution)?.Value.ToDouble();
@@ -92,14 +92,14 @@ internal static class TiffDecoderMetadataCreator
         {
             if (iptc.DataType == ExifDataType.Byte || iptc.DataType == ExifDataType.Undefined)
             {
-                iptcBytes = (byte[])iptc.GetValue();
+                iptcBytes = (byte[])iptc.GetValue()!;
                 return true;
             }
 
             // Some Encoders write the data type of IPTC as long.
             if (iptc.DataType == ExifDataType.Long)
             {
-                uint[] iptcValues = (uint[])iptc.GetValue();
+                uint[] iptcValues = (uint[])iptc.GetValue()!;
                 iptcBytes = new byte[iptcValues.Length * 4];
                 Buffer.BlockCopy(iptcValues, 0, iptcBytes, 0, iptcValues.Length * 4);
                 if (iptcBytes[0] == 0x1c)

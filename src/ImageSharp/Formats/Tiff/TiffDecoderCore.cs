@@ -249,8 +249,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip)!.Value : TiffConstants.RowsPerStripInfinity;
 
-        var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets)!.GetValue();
-        var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts)!.GetValue();
+        var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets)!.GetValue()!;
+        var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts)!.GetValue()!;
 
         using IMemoryOwner<ulong>? stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
         using IMemoryOwner<ulong>? stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);

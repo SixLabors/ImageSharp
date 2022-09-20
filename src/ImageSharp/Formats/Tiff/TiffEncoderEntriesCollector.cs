@@ -57,7 +57,7 @@ internal class TiffEncoderEntriesCollector
         {
             ImageFrame rootFrame = image.Frames.RootFrame;
             ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile ?? new ExifProfile();
-            XmpProfile rootFrameXmpProfile = rootFrame.Metadata.XmpProfile;
+            XmpProfile? rootFrameXmpProfile = rootFrame.Metadata.XmpProfile;
 
             this.ProcessProfiles(image.Metadata, rootFrameExifProfile, rootFrameXmpProfile);
             this.ProcessMetadata(rootFrameExifProfile);

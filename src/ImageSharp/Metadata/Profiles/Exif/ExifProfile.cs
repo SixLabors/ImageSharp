@@ -246,7 +246,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <param name="value">The value.</param>
-    internal void SetValueInternal(ExifTag tag, object value)
+    internal void SetValueInternal(ExifTag tag, object? value)
     {
         foreach (IExifValue exifValue in this.Values)
         {

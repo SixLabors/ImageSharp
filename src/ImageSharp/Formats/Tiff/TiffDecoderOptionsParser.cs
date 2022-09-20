@@ -31,7 +31,7 @@ internal static class TiffDecoderOptionsParser
         IExifValue? extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
         if (extraSamplesExifValue is not null)
         {
-            short[] extraSamples = (short[])extraSamplesExifValue.GetValue();
+            short[] extraSamples = (short[])extraSamplesExifValue.GetValue()!;
             if (extraSamples.Length != 1)
             {
                 TiffThrowHelper.ThrowNotSupported("ExtraSamples is only supported with one extra sample for alpha data.");

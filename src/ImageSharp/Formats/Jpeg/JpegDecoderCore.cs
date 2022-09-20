@@ -697,14 +697,14 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             {
                 this.Metadata.HorizontalResolution = horizontalValue;
                 this.Metadata.VerticalResolution = verticalValue;
-                this.Metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.Metadata.ExifProfile);
+                this.Metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.Metadata.ExifProfile!);
             }
         }
     }
 
     private double GetExifResolutionValue(ExifTag<Rational> tag)
     {
-        IExifValue<Rational>? resolution = this.Metadata.ExifProfile.GetValue(tag);
+        IExifValue<Rational>? resolution = this.Metadata.ExifProfile!.GetValue(tag);
 
         return resolution is null ? 0 : resolution.Value.ToDouble();
     }

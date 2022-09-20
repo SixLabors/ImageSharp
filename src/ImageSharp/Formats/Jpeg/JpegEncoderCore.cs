@@ -289,7 +289,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
     /// </exception>
-    private void WriteIptcProfile(IptcProfile iptcProfile)
+    private void WriteIptcProfile(IptcProfile? iptcProfile)
     {
         const int maxBytes = 65533;
         if (iptcProfile is null || !iptcProfile.Values.Any())
@@ -298,8 +298,8 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         }
 
         iptcProfile.UpdateData();
-        byte[] data = iptcProfile.Data;
-        if (data.Length == 0)
+        byte[]? data = iptcProfile.Data;
+        if (data!.Length == 0)
         {
             return;
         }
@@ -331,7 +331,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if the XMP profile size exceeds the limit of 65533 bytes.
     /// </exception>
-    private void WriteXmpProfile(XmpProfile xmpProfile)
+    private void WriteXmpProfile(XmpProfile? xmpProfile)
     {
         if (xmpProfile is null)
         {
@@ -342,7 +342,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         const int maxBytes = 65533;
         const int maxData = maxBytes - xmpOverheadLength;
 
-        byte[] data = xmpProfile.Data;
+        byte[]? data = xmpProfile.Data;
 
         if (data is null || data.Length == 0)
         {

@@ -120,7 +120,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         this.WriteComments(gifMetadata, stream);
 
         // Write application extensions.
-        XmpProfile xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
+        XmpProfile? xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
         this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
 
         if (useGlobalTable)
@@ -324,7 +324,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// <param name="frameCount">The frame count fo this image.</param>
     /// <param name="repeatCount">The animated image repeat count.</param>
     /// <param name="xmpProfile">The XMP metadata profile. Null if profile is not to be written.</param>
-    private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile xmpProfile)
+    private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile? xmpProfile)
     {
         // Application Extension: Loop repeat count.
         if (frameCount > 1 && repeatCount != 1)
@@ -336,7 +336,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         // Application Extension: XMP Profile.
         if (xmpProfile != null)
         {
-            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data);
+            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data!);
             this.WriteExtension(xmpExtension, stream);
         }
     }

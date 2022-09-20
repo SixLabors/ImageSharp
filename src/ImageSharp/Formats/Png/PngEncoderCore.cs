@@ -666,9 +666,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             return;
         }
 
-        byte[] xmpData = meta.XmpProfile.Data;
+        byte[]? xmpData = meta.XmpProfile.Data;
 
-        if (xmpData.Length == 0)
+        if (xmpData!.Length == 0)
         {
             return;
         }

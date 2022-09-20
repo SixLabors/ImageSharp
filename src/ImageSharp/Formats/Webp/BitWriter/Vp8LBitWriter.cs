@@ -155,7 +155,7 @@ internal class Vp8LBitWriter : BitWriterBase
         {
             isVp8X = true;
             xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes);
+            riffSize += MetadataChunkSize(xmpBytes!);
         }
 
         if (iccProfile != null)

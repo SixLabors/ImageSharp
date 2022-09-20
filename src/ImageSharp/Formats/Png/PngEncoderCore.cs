@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -78,12 +79,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <summary>
     /// The raw data of previous scanline.
     /// </summary>
-    private IMemoryOwner<byte> previousScanline = null!;
+    private IMemoryOwner<byte>? previousScanline;
 
     /// <summary>
     /// The raw data of current scanline.
     /// </summary>
-    private IMemoryOwner<byte> currentScanline = null!;
+    private IMemoryOwner<byte>? currentScanline;
 
     /// <summary>
     /// The color profile name.
@@ -156,8 +157,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        this.previousScanline.Dispose();
-        this.currentScanline.Dispose();
+        this.previousScanline?.Dispose();
+        this.currentScanline?.Dispose();
     }
 
     /// <summary>
@@ -218,6 +219,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
+
         Span<byte> rawScanlineSpan = this.currentScanline.GetSpan();
         ref byte rawScanlineSpanRef = ref MemoryMarshal.GetReference(rawScanlineSpan);
 
@@ -300,6 +303,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private void CollectTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
         Span<byte> rawScanlineSpan = this.currentScanline.GetSpan();
 
         switch (this.bytesPerPixel)
@@ -384,6 +388,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             case PngColorType.Palette:
 
+                ArgumentNullException.ThrowIfNull(this.currentScanline);
+
                 if (this.bitDepth < 8)
                 {
                     PngEncoderHelpers.ScaleDownFrom8BitArray(quantized!.DangerousGetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
@@ -411,6 +417,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="attempt">Used for attempting optimized filtering.</param>
     private void FilterPixelBytes(ref Span<byte> filter, ref Span<byte> attempt)
     {
+        ArgumentNullException.ThrowIfNull(this.previousScanline);
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
+
         switch (this.options.FilterMethod)
         {
             case PngFilterMethod.None:
@@ -470,6 +479,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ref Span<byte> filter,
         ref Span<byte> attempt)
     {
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
+
         // CollectPixelBytes
         if (this.bitDepth < 8)
         {
@@ -491,6 +502,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="attempt">Used for attempting optimized filtering.</param>
     private void ApplyOptimalFilteredScanline(ref Span<byte> filter, ref Span<byte> attempt)
     {
+        ArgumentNullException.ThrowIfNull(this.previousScanline);
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
+
         // Palette images don't compress well with adaptive filtering.
         // Nor do images comprising a single row.
         if (this.options.ColorType == PngColorType.Palette || this.height == 1 || this.bitDepth < 8)
@@ -971,6 +985,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Allocates the buffers for each scanline.
     /// </summary>
     /// <param name="bytesPerScanline">The bytes per scanline.</param>
+    [MemberNotNull(nameof(currentScanline))]
+    [MemberNotNull(nameof(previousScanline))]
     private void AllocateScanlineBuffers(int bytesPerScanline)
     {
         // Clean up from any potential previous runs.
@@ -1186,8 +1202,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SwapScanlineBuffers()
     {
-        ref IMemoryOwner<byte> prev = ref this.previousScanline;
-        ref IMemoryOwner<byte> current = ref this.currentScanline;
+        ArgumentNullException.ThrowIfNull(this.previousScanline);
+        ArgumentNullException.ThrowIfNull(this.currentScanline);
+
+        ref IMemoryOwner<byte>? prev = ref this.previousScanline;
+        ref IMemoryOwner<byte>? current = ref this.currentScanline;
         RuntimeUtility.Swap(ref prev, ref current);
     }
 }

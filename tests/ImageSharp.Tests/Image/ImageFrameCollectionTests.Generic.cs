@@ -40,7 +40,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> addedFrame = this.Collection.AddFrame((ImageFrame<Rgba32>)null);
                 });
 
-            Assert.StartsWith("Parameter \"frame\" must be not null.", ex.Message);
+            Assert.StartsWith("Value cannot be null. (Parameter 'frame", ex.Message);
         }
 
         [Fact]
@@ -54,7 +54,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> addedFrame = this.Collection.AddFrame(data);
                 });
 
-            Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
+            Assert.StartsWith("Value cannot be null. (Parameter 'source'", ex.Message);
         }
 
         [Fact]
@@ -91,7 +91,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> insertedFrame = this.Collection.InsertFrame(1, null);
                 });
 
-            Assert.StartsWith("Parameter \"frame\" must be not null.", ex.Message);
+            Assert.StartsWith("Value cannot be null. (Parameter 'frame'", ex.Message);
         }
 
         [Fact]

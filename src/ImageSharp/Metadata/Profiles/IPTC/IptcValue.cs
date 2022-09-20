@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 public sealed class IptcValue : IDeepCloneable<IptcValue>
 {
     private byte[]? data = Array.Empty<byte>();
-    private Encoding? encoding;
+    private Encoding encoding;
 
     internal IptcValue(IptcValue other)
     {
@@ -28,6 +28,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
 
         this.Tag = other.Tag;
         this.Strict = other.Strict;
+        this.encoding = Encoding.UTF8;
     }
 
     internal IptcValue(IptcTag tag, byte[] value, bool strict)
@@ -59,7 +60,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <summary>
     /// Gets or sets the encoding to use for the Value.
     /// </summary>
-    public Encoding? Encoding
+    public Encoding Encoding
     {
         get => this.encoding;
         set
@@ -87,7 +88,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     public string Value
     {
-        get => this.encoding!.GetString(this.data!);
+        get => this.encoding.GetString(this.data!);
         set
         {
             if (string.IsNullOrEmpty(value))
@@ -101,7 +102,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
                 if (this.Strict && value.Length > maxLength)
                 {
                     string cappedValue = value[..maxLength];
-                    valueBytes = this.encoding!.GetBytes(cappedValue);
+                    valueBytes = this.encoding.GetBytes(cappedValue);
 
                     // It is still possible that the bytes of the string exceed the limit.
                     if (valueBytes.Length > maxLength)
@@ -111,7 +112,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
                 }
                 else
                 {
-                    valueBytes = this.encoding!.GetBytes(value);
+                    valueBytes = this.encoding.GetBytes(value);
                 }
 
                 this.data = valueBytes;

@@ -42,5 +42,5 @@ internal class Vp8LTransform
     /// <summary>
     /// Gets or sets the transform data.
     /// </summary>
-    public IMemoryOwner<uint> Data { get; set; } = null!;
+    public IMemoryOwner<uint>? Data { get; set; }
 }

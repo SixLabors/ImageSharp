@@ -277,6 +277,7 @@ internal class AlphaDecoder : IDisposable
     {
         int bitsPerPixel = 8 >> transform.Bits;
         int width = transform.XSize;
+        ArgumentNullException.ThrowIfNull(transform.Data);
         Span<uint> colorMap = transform.Data.Memory.Span;
         if (bitsPerPixel < 8)
         {

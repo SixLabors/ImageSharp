@@ -266,6 +266,7 @@ internal static unsafe class LosslessUtils
         int bitsPerPixel = 8 >> transform.Bits;
         int width = transform.XSize;
         int height = transform.YSize;
+        ArgumentNullException.ThrowIfNull(transform.Data);
         Span<uint> colorMap = transform.Data.GetSpan();
         int decodedPixels = 0;
         if (bitsPerPixel < 8)
@@ -328,6 +329,7 @@ internal static unsafe class LosslessUtils
         int tilesPerRow = SubSampleSize(width, transform.Bits);
         int y = 0;
         int predRowIdxStart = (y >> transform.Bits) * tilesPerRow;
+        ArgumentNullException.ThrowIfNull(transform.Data);
         Span<uint> transformData = transform.Data.GetSpan();
 
         int pixelPos = 0;
@@ -573,6 +575,7 @@ internal static unsafe class LosslessUtils
                 uint* output = outputFixed;
 
                 int width = transform.XSize;
+                ArgumentNullException.ThrowIfNull(transform.Data);
                 Span<uint> transformData = transform.Data.GetSpan();
 
                 // First Row follows the L (mode=1) mode.

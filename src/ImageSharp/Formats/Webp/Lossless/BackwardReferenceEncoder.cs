@@ -207,7 +207,10 @@ internal static class BackwardReferenceEncoder
                         int key = ColorCache.HashPix(bgra[pos], 32 - cacheBitsMax);
                         for (int i = cacheBitsMax; i >= 1; --i, key >>= 1)
                         {
-                            colorCache[i].Colors[key] = bgra[pos];
+                            uint[]? colors = colorCache[i].Colors;
+                            ArgumentNullException.ThrowIfNull(colors);
+
+                            colors[key] = bgra[pos];
                         }
 
                         bgraPrev = bgra[pos];

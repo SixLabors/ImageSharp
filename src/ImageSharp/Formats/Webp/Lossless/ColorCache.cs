@@ -15,7 +15,7 @@ internal class ColorCache
     /// <summary>
     /// Gets the color entries.
     /// </summary>
-    public uint[] Colors { get; private set; } = null!;
+    public uint[]? Colors { get; private set; }
 
     /// <summary>
     /// Gets the hash shift: 32 - hashBits.
@@ -56,7 +56,11 @@ internal class ColorCache
     /// <param name="key">The key to lookup.</param>
     /// <returns>The color for the key.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public uint Lookup(int key) => this.Colors[key];
+    public uint Lookup(int key)
+    {
+        ArgumentNullException.ThrowIfNull(this.Colors);
+        return this.Colors[key];
+    }
 
     /// <summary>
     /// Returns the index of the given color.
@@ -67,6 +71,7 @@ internal class ColorCache
     public int Contains(uint bgra)
     {
         int key = HashPix(bgra, this.HashShift);
+        ArgumentNullException.ThrowIfNull(this.Colors);
         return (this.Colors[key] == bgra) ? key : -1;
     }
 
@@ -84,7 +89,11 @@ internal class ColorCache
     /// <param name="key">The key.</param>
     /// <param name="bgra">The color to add.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void Set(uint key, uint bgra) => this.Colors[key] = bgra;
+    public void Set(uint key, uint bgra)
+    {
+        ArgumentNullException.ThrowIfNull(this.Colors);
+        this.Colors[key] = bgra;
+    }
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int HashPix(uint argb, int shift) => (int)((argb * HashMul) >> shift);

@@ -86,7 +86,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     /// <summary>
     /// The input data for compression.
     /// </summary>
-    private byte[] inputBuf = null!;
+    private byte[]? inputBuf;
 
     /// <summary>
     /// The offset into inputBuf, where input data starts.
@@ -339,7 +339,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     /// <summary>
     /// Fill the window
     /// </summary>
-    public void FillWindow()
+    private void FillWindow()
     {
         // If the window is almost full and there is insufficient lookahead,
         // move the upper half to the lower one to make room in the upper half.
@@ -357,6 +357,8 @@ internal sealed unsafe class DeflaterEngine : IDisposable
             {
                 more = this.inputEnd - this.inputOff;
             }
+
+            ArgumentNullException.ThrowIfNull(this.inputBuf);
 
             Unsafe.CopyBlockUnaligned(
                 ref this.window.Span[this.strstart + this.lookahead],

@@ -43,7 +43,7 @@ internal class Vp8LDecoder : IDisposable
     /// <summary>
     /// Gets or sets the transformations which needs to be reversed.
     /// </summary>
-    public List<Vp8LTransform> Transforms { get; set; } = null!;
+    public List<Vp8LTransform>? Transforms { get; set; }
 
     /// <summary>
     /// Gets the pixel data.

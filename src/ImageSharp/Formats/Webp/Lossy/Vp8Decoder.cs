@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Decoder : IDisposable
 {
-    private Vp8MacroBlock leftMacroBlock = null!;
+    private Vp8MacroBlock? leftMacroBlock;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8Decoder"/> class.

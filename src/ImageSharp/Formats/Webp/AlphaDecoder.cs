@@ -58,6 +58,7 @@ internal class AlphaDecoder : IDisposable
 
         if (this.Compressed)
         {
+            ArgumentNullException.ThrowIfNull(this.Vp8LDec.Transforms);
             var bitReader = new Vp8LBitReader(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
@@ -232,6 +233,8 @@ internal class AlphaDecoder : IDisposable
             Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
             Span<byte> dst = output[(this.Width * firstRow)..];
             Span<byte> input = pixelDataAsBytes[(this.Vp8LDec.Width * firstRow)..];
+
+            ArgumentNullException.ThrowIfNull(this.Vp8LDec.Transforms);
 
             if (this.Vp8LDec.Transforms.Count == 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
             {

@@ -157,7 +157,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Gets or sets the scratch memory for bgra rows used for predictions.
     /// </summary>
-    public IMemoryOwner<uint> BgraScratch { get; set; } = null!;
+    public IMemoryOwner<uint>? BgraScratch { get; set; }
 
     /// <summary>
     /// Gets or sets the packed image width.
@@ -177,7 +177,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Gets or sets the transform data.
     /// </summary>
-    public IMemoryOwner<uint> TransformData { get; set; } = null!;
+    public IMemoryOwner<uint>? TransformData { get; set; }
 
     /// <summary>
     /// Gets or sets the cache bits. If equal to 0, don't use color cache.
@@ -721,6 +721,8 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
 
+        ArgumentNullException.ThrowIfNull(this.BgraScratch);
+        ArgumentNullException.ThrowIfNull(this.TransformData);
         PredictorEncoder.ResidualImage(
             width,
             height,
@@ -749,6 +751,7 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
+        ArgumentNullException.ThrowIfNull(this.TransformData);
         PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
@@ -1830,9 +1833,9 @@ internal class Vp8LEncoder : IDisposable
     {
         this.Bgra.Dispose();
         this.EncodedData.Dispose();
-        this.BgraScratch.Dispose();
+        this.BgraScratch?.Dispose();
         this.Palette.Dispose();
-        this.TransformData.Dispose();
+        this.TransformData?.Dispose();
         this.HashChain.Dispose();
     }
 }

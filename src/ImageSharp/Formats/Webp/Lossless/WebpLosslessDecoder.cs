@@ -621,6 +621,7 @@ internal sealed class WebpLosslessDecoder
         Vp8LTransformType transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
         Vp8LTransform transform = new(transformType, xSize, ySize);
 
+        ArgumentNullException.ThrowIfNull(decoder.Transforms);
         // Each transform is allowed to be used only once.
         foreach (Vp8LTransform decoderTransform in decoder.Transforms)
         {
@@ -689,6 +690,7 @@ internal sealed class WebpLosslessDecoder
     /// <param name="memoryAllocator">The memory allocator is needed to allocate memory during the predictor transform.</param>
     public static void ApplyInverseTransforms(Vp8LDecoder decoder, Span<uint> pixelData, MemoryAllocator memoryAllocator)
     {
+        ArgumentNullException.ThrowIfNull(decoder.Transforms);
         List<Vp8LTransform> transforms = decoder.Transforms;
         for (int i = transforms.Count - 1; i >= 0; i--)
         {

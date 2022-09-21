@@ -65,7 +65,7 @@ internal sealed class WebpLossyDecoder
     /// <param name="height">The height of the image.</param>
     /// <param name="info">Information about the image.</param>
     /// <param name="alphaData">The ALPH chunk data.</param>
-    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte> alphaData)
+    public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info, IMemoryOwner<byte>? alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Paragraph 9.2: color space and clamp type follow.
@@ -110,6 +110,8 @@ internal sealed class WebpLossyDecoder
 
             if (info.Features?.Alpha == true)
             {
+                ArgumentNullException.ThrowIfNull(alphaData);
+
                 using (AlphaDecoder alphaDecoder = new(
                     width,
                     height,

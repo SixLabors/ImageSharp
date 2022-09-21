@@ -27,29 +27,29 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// </summary>
     private readonly Configuration configuration;
 
-    private JpegFrame frame = null!;
+    private JpegFrame? frame;
 
-    private IRawJpegData jpegData = null!;
+    private IRawJpegData? jpegData;
 
     /// <summary>
     /// Jpeg component converters from decompressed spectral to color data.
     /// </summary>
-    private ComponentProcessor[] componentProcessors = null!;
+    private ComponentProcessor[]? componentProcessors;
 
     /// <summary>
     /// Color converter from jpeg color space to target pixel color space.
     /// </summary>
-    private JpegColorConverterBase colorConverter = null!;
+    private JpegColorConverterBase? colorConverter;
 
     /// <summary>
     /// Intermediate buffer of RGB components used in color conversion.
     /// </summary>
-    private IMemoryOwner<byte> rgbBuffer = null!;
+    private IMemoryOwner<byte>? rgbBuffer;
 
     /// <summary>
     /// Proxy buffer used in packing from RGB to target TPixel pixels.
     /// </summary>
-    private IMemoryOwner<TPixel> paddedProxyPixelRow = null!;
+    private IMemoryOwner<TPixel>? paddedProxyPixelRow;
 
     /// <summary>
     /// Resulting 2D pixel buffer.
@@ -124,6 +124,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private void ConvertStride(int spectralStep)
     {
         ArgumentNullException.ThrowIfNull(this.pixelBuffer);
+        ArgumentNullException.ThrowIfNull(this.componentProcessors);
 
         int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
@@ -140,9 +141,11 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
 
+            ArgumentNullException.ThrowIfNull(this.colorConverter);
             this.colorConverter.ConvertToRgbInplace(values);
             values = values.Slice(0, width); // slice away Jpeg padding
 
+            ArgumentNullException.ThrowIfNull(this.rgbBuffer);
             Span<byte> r = this.rgbBuffer.Slice(0, width);
             Span<byte> g = this.rgbBuffer.Slice(width, width);
             Span<byte> b = this.rgbBuffer.Slice(width * 2, width);
@@ -160,6 +163,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             }
             else
             {
+                ArgumentNullException.ThrowIfNull(this.paddedProxyPixelRow);
                 Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
                 PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, proxyRow);
                 proxyRow[..width].CopyTo(this.pixelBuffer.DangerousGetRowSpan(yy));
@@ -184,6 +188,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         MemoryAllocator allocator = this.configuration.MemoryAllocator;
 
         // color converter from RGB to TPixel
+        ArgumentNullException.ThrowIfNull(this.frame);
+        ArgumentNullException.ThrowIfNull(this.jpegData);
         JpegColorConverterBase converter = this.GetColorConverter(this.frame, this.jpegData);
         this.colorConverter = converter;
 
@@ -222,6 +228,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         // Convert next pixel stride using single spectral `stride'
         // Note that zero passing eliminates extra virtual call
         this.ConvertStride(spectralStep: 0);
+
+        ArgumentNullException.ThrowIfNull(this.componentProcessors);
 
         foreach (ComponentProcessor cpp in this.componentProcessors)
         {

@@ -58,10 +58,10 @@ internal class AlphaDecoder : IDisposable
 
         if (this.Compressed)
         {
-            ArgumentNullException.ThrowIfNull(this.Vp8LDec.Transforms);
             var bitReader = new Vp8LBitReader(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
+            ArgumentNullException.ThrowIfNull(this.Vp8LDec.Transforms);
             this.Use8BDecode = this.Vp8LDec.Transforms.Count > 0 && Is8BOptimizable(this.Vp8LDec.Metadata);
         }
     }

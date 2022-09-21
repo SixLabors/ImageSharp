@@ -45,17 +45,17 @@ internal class WebpAnimationDecoder : IDisposable
     /// <summary>
     /// The abstract metadata.
     /// </summary>
-    private ImageMetadata metadata = null!;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// The gif specific metadata.
     /// </summary>
-    private WebpMetadata webpMetadata = null!;
+    private WebpMetadata? webpMetadata;
 
     /// <summary>
     /// The alpha data, if an ALPH chunk is present.
     /// </summary>
-    private IMemoryOwner<byte> alphaData = null!;
+    private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
@@ -166,6 +166,7 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel> imageFrame;
         if (previousFrame is null)
         {
+            ArgumentNullException.ThrowIfNull(this.metadata);
             image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
 
             SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);

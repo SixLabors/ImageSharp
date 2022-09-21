@@ -37,7 +37,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration = null!;
+    private Configuration? configuration;
 
     /// <summary>
     /// The quantizer for creating color palette image.
@@ -211,6 +211,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
             this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
 
         TiffEncoderEntriesCollector entriesCollector = new();
+        ArgumentNullException.ThrowIfNull(this.configuration);
         using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
             this.PhotometricInterpretation,
             frame,

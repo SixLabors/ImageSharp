@@ -34,11 +34,6 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     private readonly IJpegEncoderOptions options;
 
     /// <summary>
-    /// The output stream. All attempted writes after the first error become no-ops.
-    /// </summary>
-    private Stream outputStream = null!;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
     /// </summary>
     /// <param name="options">The options.</param>
@@ -67,8 +62,6 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        this.outputStream = stream;
-
         ImageMetadata metadata = image.Metadata;
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
@@ -77,39 +70,39 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         using var frame = new JpegFrame(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
-        this.WriteStartOfImage();
+        this.WriteStartOfImage(stream);
 
         // Write APP0 marker
         if (frameConfig.AdobeColorTransformMarkerFlag is null)
         {
-            this.WriteJfifApplicationHeader(metadata);
+            this.WriteJfifApplicationHeader(metadata, stream);
         }
 
         // Write APP14 marker with adobe color extension
         else
         {
-            this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value);
+            this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value, stream);
         }
 
         // Write Exif, XMP, ICC and IPTC profiles
-        this.WriteProfiles(metadata);
+        this.WriteProfiles(metadata, stream);
 
         // Write the image dimensions.
-        this.WriteStartOfFrame(image.Width, image.Height, frameConfig);
+        this.WriteStartOfFrame(image.Width, image.Height, frameConfig, stream);
 
         // Write the Huffman tables.
         var scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
-        this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder);
+        this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder, stream);
 
         // Write the quantization tables.
-        this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.options.Quality, jpegMetadata);
+        this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.options.Quality, jpegMetadata, stream);
 
         // Write scans with actual pixel data
         using var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables);
-        this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, cancellationToken);
+        this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, stream, cancellationToken);
 
         // Write the End Of Image marker.
-        this.WriteEndOfImageMarker();
+        this.WriteEndOfImageMarker(stream);
 
         stream.Flush();
     }
@@ -117,20 +110,20 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Write the start of image marker.
     /// </summary>
-    private void WriteStartOfImage()
+    private void WriteStartOfImage(Stream outputStream)
     {
         // Markers are always prefixed with 0xff.
         this.buffer[0] = JpegConstants.Markers.XFF;
         this.buffer[1] = JpegConstants.Markers.SOI;
 
-        this.outputStream.Write(this.buffer, 0, 2);
+        outputStream.Write(this.buffer, 0, 2);
     }
 
     /// <summary>
     /// Writes the application header containing the JFIF identifier plus extra data.
     /// </summary>
     /// <param name="meta">The image metadata.</param>
-    private void WriteJfifApplicationHeader(ImageMetadata meta)
+    private void WriteJfifApplicationHeader(ImageMetadata meta, Stream outputStream)
     {
         // Write the JFIF headers
         this.buffer[0] = JpegConstants.Markers.XFF;
@@ -168,13 +161,13 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         this.buffer[16] = 0x00; // Thumbnail width
         this.buffer[17] = 0x00; // Thumbnail height
 
-        this.outputStream.Write(this.buffer, 0, 18);
+        outputStream.Write(this.buffer, 0, 18);
     }
 
     /// <summary>
     /// Writes the Define Huffman Table marker and tables.
     /// </summary>
-    private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder)
+    private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder, Stream outputStream)
     {
         if (tableConfigs is null)
         {
@@ -188,15 +181,15 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             markerlen += 1 + 16 + tableConfigs[i].Table.Values.Length;
         }
 
-        this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
+        this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen, outputStream);
         for (int i = 0; i < tableConfigs.Length; i++)
         {
             JpegHuffmanTableConfig tableConfig = tableConfigs[i];
 
             int header = (tableConfig.Class << 4) | tableConfig.DestinationIndex;
-            this.outputStream.WriteByte((byte)header);
-            this.outputStream.Write(tableConfig.Table.Count);
-            this.outputStream.Write(tableConfig.Table.Values);
+            outputStream.WriteByte((byte)header);
+            outputStream.Write(tableConfig.Table.Count);
+            outputStream.Write(tableConfig.Table.Values);
 
             scanEncoder.BuildHuffmanTable(tableConfig);
         }
@@ -205,9 +198,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the APP14 marker to indicate the image is in RGB color space.
     /// </summary>
-    private void WriteApp14Marker(byte colorTransform)
+    private void WriteApp14Marker(byte colorTransform, Stream outputStream)
     {
-        this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + Components.Decoder.AdobeMarker.Length);
+        this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + Components.Decoder.AdobeMarker.Length, outputStream);
 
         // Identifier: ASCII "Adobe".
         this.buffer[0] = 0x41;
@@ -228,14 +221,14 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // Color transform byte
         this.buffer[11] = colorTransform;
 
-        this.outputStream.Write(this.buffer.AsSpan(0, 12));
+        outputStream.Write(this.buffer.AsSpan(0, 12));
     }
 
     /// <summary>
     /// Writes the EXIF profile.
     /// </summary>
     /// <param name="exifProfile">The exif profile.</param>
-    private void WriteExifProfile(ExifProfile? exifProfile)
+    private void WriteExifProfile(ExifProfile? exifProfile, Stream outputStream)
     {
         if (exifProfile is null || exifProfile.Values.Count == 0)
         {
@@ -259,9 +252,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         int app1Length = bytesToWrite + 2;
 
         // Write the app marker, EXIF marker, and data
-        this.WriteApp1Header(app1Length);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
-        this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
+        this.WriteApp1Header(app1Length, outputStream);
+        outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
+        outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
         remaining -= bytesToWrite;
 
         // If the exif data exceeds 64K, write it in multiple APP1 Markers
@@ -270,13 +263,13 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             bytesToWrite = remaining > maxBytesWithExifId ? maxBytesWithExifId : remaining;
             app1Length = bytesToWrite + 2 + exifMarkerLength;
 
-            this.WriteApp1Header(app1Length);
+            this.WriteApp1Header(app1Length, outputStream);
 
             // Write Exif00 marker
-            this.outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
+            outputStream.Write(Components.Decoder.ProfileResolver.ExifMarker);
 
             // Write the exif data
-            this.outputStream.Write(data, idx, bytesToWrite);
+            outputStream.Write(data, idx, bytesToWrite);
 
             remaining -= bytesToWrite;
         }
@@ -289,7 +282,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
     /// </exception>
-    private void WriteIptcProfile(IptcProfile? iptcProfile)
+    private void WriteIptcProfile(IptcProfile? iptcProfile, Stream outputStream)
     {
         const int maxBytes = 65533;
         if (iptcProfile is null || !iptcProfile.Values.Any())
@@ -313,15 +306,15 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
                           Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker.Length +
                           Components.Decoder.ProfileResolver.AdobeIptcMarker.Length +
                           2 + 4 + data.Length;
-        this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker);
-        this.outputStream.Write(Components.Decoder.ProfileResolver.AdobeIptcMarker);
-        this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
-        this.outputStream.WriteByte(0);
+        this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13, outputStream);
+        outputStream.Write(Components.Decoder.ProfileResolver.AdobePhotoshopApp13Marker);
+        outputStream.Write(Components.Decoder.ProfileResolver.AdobeImageResourceBlockMarker);
+        outputStream.Write(Components.Decoder.ProfileResolver.AdobeIptcMarker);
+        outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
+        outputStream.WriteByte(0);
         BinaryPrimitives.WriteInt32BigEndian(this.buffer, data.Length);
-        this.outputStream.Write(this.buffer, 0, 4);
-        this.outputStream.Write(data, 0, data.Length);
+        outputStream.Write(this.buffer, 0, 4);
+        outputStream.Write(data, 0, data.Length);
     }
 
     /// <summary>
@@ -331,7 +324,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if the XMP profile size exceeds the limit of 65533 bytes.
     /// </exception>
-    private void WriteXmpProfile(XmpProfile? xmpProfile)
+    private void WriteXmpProfile(XmpProfile? xmpProfile, Stream outputStream)
     {
         if (xmpProfile is null)
         {
@@ -364,9 +357,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             dataLength -= length;
 
             int app1Length = 2 + Components.Decoder.ProfileResolver.XmpMarker.Length + length;
-            this.WriteApp1Header(app1Length);
-            this.outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
-            this.outputStream.Write(data, offset, length);
+            this.WriteApp1Header(app1Length, outputStream);
+            outputStream.Write(Components.Decoder.ProfileResolver.XmpMarker);
+            outputStream.Write(data, offset, length);
 
             offset += length;
         }
@@ -376,22 +369,22 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// Writes the App1 header.
     /// </summary>
     /// <param name="app1Length">The length of the data the app1 marker contains.</param>
-    private void WriteApp1Header(int app1Length)
-        => this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1);
+    private void WriteApp1Header(int app1Length, Stream outputStream)
+        => this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1, outputStream);
 
     /// <summary>
     /// Writes a AppX header.
     /// </summary>
     /// <param name="length">The length of the data the app marker contains.</param>
     /// <param name="appMarker">The app marker to write.</param>
-    private void WriteAppHeader(int length, byte appMarker)
+    private void WriteAppHeader(int length, byte appMarker, Stream outputStream)
     {
         this.buffer[0] = JpegConstants.Markers.XFF;
         this.buffer[1] = appMarker;
         this.buffer[2] = (byte)((length >> 8) & 0xFF);
         this.buffer[3] = (byte)(length & 0xFF);
 
-        this.outputStream.Write(this.buffer, 0, 4);
+        outputStream.Write(this.buffer, 0, 4);
     }
 
     /// <summary>
@@ -401,7 +394,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ImageFormatException">
     /// Thrown if any of the ICC profiles size exceeds the limit.
     /// </exception>
-    private void WriteIccProfile(IccProfile? iccProfile)
+    private void WriteIccProfile(IccProfile? iccProfile, Stream outputStream)
     {
         if (iccProfile is null)
         {
@@ -449,7 +442,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             this.buffer[2] = (byte)((markerLength >> 8) & 0xFF);
             this.buffer[3] = (byte)(markerLength & 0xFF);
 
-            this.outputStream.Write(this.buffer, 0, 4);
+            outputStream.Write(this.buffer, 0, 4);
 
             this.buffer[0] = (byte)'I';
             this.buffer[1] = (byte)'C';
@@ -466,8 +459,8 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             this.buffer[12] = (byte)current; // The position within the collection.
             this.buffer[13] = (byte)count; // The total number of profiles.
 
-            this.outputStream.Write(this.buffer, 0, iccOverheadLength);
-            this.outputStream.Write(data, offset, length);
+            outputStream.Write(this.buffer, 0, iccOverheadLength);
+            outputStream.Write(data, offset, length);
 
             current++;
             offset += length;
@@ -478,7 +471,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// Writes the metadata profiles to the image.
     /// </summary>
     /// <param name="metadata">The image metadata.</param>
-    private void WriteProfiles(ImageMetadata metadata)
+    private void WriteProfiles(ImageMetadata metadata, Stream outputStream)
     {
         if (metadata is null)
         {
@@ -491,22 +484,22 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // - APP2 ICC
         // - APP13 IPTC
         metadata.SyncProfiles();
-        this.WriteExifProfile(metadata.ExifProfile);
-        this.WriteXmpProfile(metadata.XmpProfile);
-        this.WriteIccProfile(metadata.IccProfile);
-        this.WriteIptcProfile(metadata.IptcProfile);
+        this.WriteExifProfile(metadata.ExifProfile, outputStream);
+        this.WriteXmpProfile(metadata.XmpProfile, outputStream);
+        this.WriteIccProfile(metadata.IccProfile, outputStream);
+        this.WriteIptcProfile(metadata.IptcProfile, outputStream);
     }
 
     /// <summary>
     /// Writes the Start Of Frame (Baseline) marker.
     /// </summary>
-    private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame)
+    private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame, Stream outputStream)
     {
         JpegComponentConfig[] components = frame.Components;
 
         // Length (high byte, low byte), 8 + components * 3.
         int markerlen = 8 + (3 * components.Length);
-        this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);
+        this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen, outputStream);
         this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
         this.buffer[1] = (byte)(height >> 8);
         this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
@@ -532,13 +525,13 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             bufferSpan[0] = components[i].Id;
         }
 
-        this.outputStream.Write(this.buffer, 0, (3 * (components.Length - 1)) + 9);
+        outputStream.Write(this.buffer, 0, (3 * (components.Length - 1)) + 9);
     }
 
     /// <summary>
     /// Writes the StartOfScan marker.
     /// </summary>
-    private void WriteStartOfScan(Span<JpegComponentConfig> components)
+    private void WriteStartOfScan(Span<JpegComponentConfig> components, Stream outputStream)
     {
         // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
         // - the marker length "\x00\x0c",
@@ -574,37 +567,37 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         this.buffer[sosSize - 1] = 0x00; // Ss - Start of spectral selection.
         this.buffer[sosSize] = 0x3f; // Se - End of spectral selection.
         this.buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
-        this.outputStream.Write(this.buffer, 0, sosSize + 2);
+        outputStream.Write(this.buffer, 0, sosSize + 2);
     }
 
     /// <summary>
     /// Writes the EndOfImage marker.
     /// </summary>
-    private void WriteEndOfImageMarker()
+    private void WriteEndOfImageMarker(Stream outputStream)
     {
         this.buffer[0] = JpegConstants.Markers.XFF;
         this.buffer[1] = JpegConstants.Markers.EOI;
-        this.outputStream.Write(this.buffer, 0, 2);
+        outputStream.Write(this.buffer, 0, 2);
     }
 
     /// <summary>
     /// Writes scans for given config.
     /// </summary>
-    private void WriteHuffmanScans<TPixel>(JpegFrame frame, JpegFrameConfig frameConfig, SpectralConverter<TPixel> spectralConverter, HuffmanScanEncoder encoder, CancellationToken cancellationToken)
+    private void WriteHuffmanScans<TPixel>(JpegFrame frame, JpegFrameConfig frameConfig, SpectralConverter<TPixel> spectralConverter, HuffmanScanEncoder encoder, Stream outputStream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (frame.Components.Length == 1)
         {
             frame.AllocateComponents(fullScan: false);
 
-            this.WriteStartOfScan(frameConfig.Components);
+            this.WriteStartOfScan(frameConfig.Components, outputStream);
             encoder.EncodeScanBaselineSingleComponent(frame.Components[0], spectralConverter, cancellationToken);
         }
         else if (frame.Interleaved)
         {
             frame.AllocateComponents(fullScan: false);
 
-            this.WriteStartOfScan(frameConfig.Components);
+            this.WriteStartOfScan(frameConfig.Components, outputStream);
             encoder.EncodeScanBaselineInterleaved(frameConfig.EncodingColor, frame, spectralConverter, cancellationToken);
         }
         else
@@ -615,7 +608,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             Span<JpegComponentConfig> components = frameConfig.Components;
             for (int i = 0; i < frame.Components.Length; i++)
             {
-                this.WriteStartOfScan(components.Slice(i, 1));
+                this.WriteStartOfScan(components.Slice(i, 1), outputStream);
                 encoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
             }
         }
@@ -626,14 +619,14 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <param name="marker">The marker to write.</param>
     /// <param name="length">The marker length.</param>
-    private void WriteMarkerHeader(byte marker, int length)
+    private void WriteMarkerHeader(byte marker, int length, Stream outputStream)
     {
         // Markers are always prefixed with 0xff.
         this.buffer[0] = JpegConstants.Markers.XFF;
         this.buffer[1] = marker;
         this.buffer[2] = (byte)(length >> 8);
         this.buffer[3] = (byte)(length & 0xff);
-        this.outputStream.Write(this.buffer, 0, 4);
+        outputStream.Write(this.buffer, 0, 4);
     }
 
     /// <summary>
@@ -650,13 +643,13 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="configs">Quantization tables configs.</param>
     /// <param name="optionsQuality">Optional quality value from the options.</param>
     /// <param name="metadata">Jpeg metadata instance.</param>
-    private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, int? optionsQuality, JpegMetadata metadata)
+    private void WriteDefineQuantizationTables(JpegQuantizationTableConfig[] configs, int? optionsQuality, JpegMetadata metadata, Stream outputStream)
     {
         int dataLen = configs.Length * (1 + Block8x8.Size);
 
         // Marker + quantization table lengths.
         int markerlen = 2 + dataLen;
-        this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
+        this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen, outputStream);
 
         byte[] buffer = new byte[dataLen];
         int offset = 0;
@@ -686,7 +679,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         }
 
         // write filled buffer to the stream
-        this.outputStream.Write(buffer);
+        outputStream.Write(buffer);
 
         static int GetQualityForTable(int destIndex, int? encoderQuality, JpegMetadata metadata) => destIndex switch
         {

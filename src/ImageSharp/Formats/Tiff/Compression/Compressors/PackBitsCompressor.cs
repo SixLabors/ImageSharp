@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 
 internal sealed class PackBitsCompressor : TiffBaseCompressor
 {
-    private IMemoryOwner<byte> pixelData = null!;
+    private IMemoryOwner<byte>? pixelData;
 
     public PackBitsCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel)
         : base(output, allocator, width, bitsPerPixel)
@@ -31,6 +31,8 @@ internal sealed class PackBitsCompressor : TiffBaseCompressor
     {
         DebugGuard.IsTrue(rows.Length % height == 0, "Invalid height");
         DebugGuard.IsTrue(this.BytesPerRow == rows.Length / height, "The widths must match");
+
+        ArgumentNullException.ThrowIfNull(this.pixelData);
 
         Span<byte> span = this.pixelData.GetSpan();
         for (int i = 0; i < height; i++)

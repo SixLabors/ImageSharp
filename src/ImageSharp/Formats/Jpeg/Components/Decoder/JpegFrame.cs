@@ -73,13 +73,13 @@ internal sealed class JpegFrame : IDisposable
     /// <summary>
     /// Gets or sets the component id collection.
     /// </summary>
-    public byte[] ComponentIds { get; set; } = null!;
+    public byte[]? ComponentIds { get; set; }
 
     /// <summary>
     /// Gets or sets the order in which to process the components.
     /// in interleaved mode.
     /// </summary>
-    public byte[] ComponentOrder { get; set; } = null!;
+    public byte[]? ComponentOrder { get; set; }
 
     /// <summary>
     /// Gets or sets the frame component collection.

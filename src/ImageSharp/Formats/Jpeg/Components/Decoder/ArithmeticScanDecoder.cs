@@ -443,6 +443,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 int mcuCol = mcu % mcusPerLine;
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
+                    ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
                     int order = this.frame.ComponentOrder[k];
                     ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
@@ -545,6 +546,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         ArithmeticDecodingComponent? component = (ArithmeticDecodingComponent?)this.components?[this.frame.ComponentOrder[0]];
         ref JpegBitReader reader = ref this.scanBuffer;
 
@@ -595,6 +597,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 int mcuRow = Math.DivRem(mcu, mcusPerLine, out int mcuCol);
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
+                    ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
                     int order = this.frame.ComponentOrder[k];
                     ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
@@ -641,6 +644,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         ArithmeticDecodingComponent? component = this.components?[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
         ref JpegBitReader reader = ref this.scanBuffer;
 

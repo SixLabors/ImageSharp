@@ -1437,14 +1437,16 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
         // selectorsCount*2 bytes: component index + huffman tables indices
         stream.Read(this.temp, 0, selectorsBytes);
-
-        this.Frame!.Interleaved = this.Frame.ComponentCount == selectorsCount;
+        ArgumentNullException.ThrowIfNull(this.Frame);
+        this.Frame.Interleaved = this.Frame.ComponentCount == selectorsCount;
         for (int i = 0; i < selectorsBytes; i += 2)
         {
             // 1 byte: Component id
             int componentSelectorId = this.temp[i];
 
             int componentIndex = -1;
+            ArgumentNullException.ThrowIfNull(this.Frame);
+            ArgumentNullException.ThrowIfNull(this.Frame.ComponentIds);
             for (int j = 0; j < this.Frame?.ComponentIds.Length; j++)
             {
                 byte id = this.Frame.ComponentIds[j];
@@ -1462,7 +1464,9 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component id in scan: {componentSelectorId}.");
             }
 
-            this.Frame!.ComponentOrder[i / 2] = (byte)componentIndex;
+            ArgumentNullException.ThrowIfNull(this.Frame);
+            ArgumentNullException.ThrowIfNull(this.Frame.ComponentOrder);
+            this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
 
             IJpegComponent? component = this.Frame?.Components?[componentIndex];
 

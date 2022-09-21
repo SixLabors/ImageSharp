@@ -190,6 +190,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 int mcuCol = mcu % mcusPerLine;
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
+                    ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
                     int order = this.frame.ComponentOrder[k];
                     JpegComponent? component = this.components?[order] as JpegComponent;
 
@@ -243,6 +244,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     private void ParseBaselineDataNonInterleaved()
     {
         ArgumentNullException.ThrowIfNull(this.frame);
+        ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         JpegComponent? component = this.components?[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
@@ -412,6 +414,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 int mcuCol = mcu % mcusPerLine;
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
+                    ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
                     int order = this.frame.ComponentOrder[k];
                     JpegComponent? component = this.components?[order] as JpegComponent;
 
@@ -459,6 +462,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     {
         ArgumentNullException.ThrowIfNull(this.frame);
 
+        ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         JpegComponent? component = this.components?[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 

@@ -22,7 +22,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     /// <summary>
     /// <see cref="JpegFrame"/> instance containing decoding-related information.
     /// </summary>
-    private JpegFrame frame = null!;
+    private JpegFrame? frame;
 
     /// <summary>
     /// Shortcut for <see cref="frame"/>.Components.
@@ -48,9 +48,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private JpegBitReader scanBuffer;
 
-    private ArithmeticDecodingTable?[] dcDecodingTables = null!;
+    private ArithmeticDecodingTable?[]? dcDecodingTables;
 
-    private ArithmeticDecodingTable?[] acDecodingTables = null!;
+    private ArithmeticDecodingTable?[]? acDecodingTables;
 
     private readonly byte[] fixedBin = { 113, 0, 0, 0 };
 
@@ -225,6 +225,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             ArithmeticDecodingComponent? component = this.components[i] as ArithmeticDecodingComponent;
 
             ArgumentNullException.ThrowIfNull(component);
+            ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
+            ArgumentNullException.ThrowIfNull(this.acDecodingTables);
 
             this.dcDecodingTables[i] = GetArithmeticTable(arithmeticDecodingTables, true, component.DcTableId);
             component.DcStatistics = this.CreateOrGetStatisticsBin(true, component.DcTableId);
@@ -247,6 +249,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         this.scanBuffer = new JpegBitReader(this.stream);
 
+        ArgumentNullException.ThrowIfNull(this.frame);
         this.frame.AllocateComponents();
 
         if (this.frame.Progressive)
@@ -331,6 +334,10 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             this.spectralConverter?.PrepareForDecoding();
             this.ParseBaselineDataInterleaved();
             this.spectralConverter?.CommitConversion();
+        }
+        else if (this.frame is null)
+        {
+            ArgumentNullException.ThrowIfNull(this.frame);
         }
         else if (this.frame.ComponentCount == 1)
         {
@@ -428,6 +435,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private void ParseBaselineDataInterleaved()
     {
         int mcu = 0;
+        ArgumentNullException.ThrowIfNull(this.frame);
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader reader = ref this.scanBuffer;
@@ -448,6 +456,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
                     ArgumentNullException.ThrowIfNull(component);
+                    ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
+                    ArgumentNullException.ThrowIfNull(this.acDecodingTables);
 
                     ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
                     ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
@@ -497,9 +507,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataSingleComponent()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
         ArithmeticDecodingComponent? component = this.frame.Components?[0] as ArithmeticDecodingComponent;
 
         ArgumentNullException.ThrowIfNull(component);
+        ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
+        ArgumentNullException.ThrowIfNull(this.acDecodingTables);
 
         int mcuLines = this.frame.McusPerColumn;
         int w = component.WidthInBlocks;
@@ -546,11 +559,14 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
         ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         ArithmeticDecodingComponent? component = (ArithmeticDecodingComponent?)this.components?[this.frame.ComponentOrder[0]];
         ref JpegBitReader reader = ref this.scanBuffer;
 
         ArgumentNullException.ThrowIfNull(component);
+        ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
+        ArgumentNullException.ThrowIfNull(this.acDecodingTables);
 
         int w = component.WidthInBlocks;
         int h = component.HeightInBlocks;
@@ -585,6 +601,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private void ParseProgressiveDataInterleaved()
     {
         int mcu = 0;
+        ArgumentNullException.ThrowIfNull(this.frame);
         int mcusPerColumn = this.frame.McusPerColumn;
         int mcusPerLine = this.frame.McusPerLine;
         ref JpegBitReader reader = ref this.scanBuffer;
@@ -602,6 +619,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     ArithmeticDecodingComponent? component = this.components?[order] as ArithmeticDecodingComponent;
 
                     ArgumentNullException.ThrowIfNull(component);
+                    ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
 
                     ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
 
@@ -644,6 +662,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
+        ArgumentNullException.ThrowIfNull(this.frame);
         ArgumentNullException.ThrowIfNull(this.frame.ComponentOrder);
         ArithmeticDecodingComponent? component = this.components?[this.frame.ComponentOrder[0]] as ArithmeticDecodingComponent;
         ref JpegBitReader reader = ref this.scanBuffer;
@@ -655,6 +674,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         if (this.SpectralStart == 0)
         {
+            ArgumentNullException.ThrowIfNull(this.dcDecodingTables);
             ref ArithmeticDecodingTable? dcDecodingTable = ref this.dcDecodingTables[component.DcTableId];
 
             for (int j = 0; j < h; j++)
@@ -682,6 +702,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
         else
         {
+            ArgumentNullException.ThrowIfNull(this.acDecodingTables);
             ref ArithmeticDecodingTable? acDecodingTable = ref this.acDecodingTables[component.AcTableId];
 
             for (int j = 0; j < h; j++)

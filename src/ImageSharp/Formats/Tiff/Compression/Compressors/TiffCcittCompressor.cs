@@ -175,7 +175,7 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
 
     private byte bitPosition;
 
-    private IMemoryOwner<byte> compressedDataBuffer = null!;
+    private IMemoryOwner<byte>? compressedDataBuffer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffCcittCompressor" /> class.
@@ -498,6 +498,7 @@ internal abstract class TiffCcittCompressor : TiffBaseCompressor
         DebugGuard.IsTrue(rows.Length / height == this.Width, "Values must be equals");
         DebugGuard.IsTrue(rows.Length % height == 0, "Values must be equals");
 
+        ArgumentNullException.ThrowIfNull(this.compressedDataBuffer);
         this.compressedDataBuffer.Clear();
         Span<byte> compressedData = this.compressedDataBuffer.GetSpan();
 

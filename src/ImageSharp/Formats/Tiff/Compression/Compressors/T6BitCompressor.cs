@@ -26,7 +26,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
         (7u, 2u)
     };
 
-    private IMemoryOwner<byte> referenceLineBuffer = null!;
+    private IMemoryOwner<byte>? referenceLineBuffer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="T6BitCompressor"/> class.
@@ -52,6 +52,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     protected override void CompressStrip(Span<byte> pixelsAsGray, int height, Span<byte> compressedData)
     {
         // Initial reference line is all white.
+        ArgumentNullException.ThrowIfNull(this.referenceLineBuffer);
         Span<byte> referenceLine = this.referenceLineBuffer.GetSpan();
         referenceLine.Fill(0xff);
 

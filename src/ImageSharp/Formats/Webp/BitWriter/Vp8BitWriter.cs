@@ -33,7 +33,7 @@ internal class Vp8BitWriter : BitWriterBase
     private const int B_HU_PRED = 9;
 #pragma warning restore SA1310 // Field names should not contain underscore
 
-    private readonly Vp8Encoder enc = null!;
+    private readonly Vp8Encoder? enc;
 
     private int range;
 
@@ -461,6 +461,7 @@ internal class Vp8BitWriter : BitWriterBase
 
         this.Finish();
         uint numBytes = (uint)this.NumBytes();
+        ArgumentNullException.ThrowIfNull(this.enc);
         int mbSize = this.enc.Mbw * this.enc.Mbh;
         int expectedSize = mbSize * 7 / 8;
 
@@ -522,6 +523,7 @@ internal class Vp8BitWriter : BitWriterBase
 
     private void WriteSegmentHeader(Vp8BitWriter bitWriter)
     {
+        ArgumentNullException.ThrowIfNull(this.enc);
         Vp8EncSegmentHeader hdr = this.enc.SegmentHeader;
         Vp8EncProba proba = this.enc.Proba;
         if (bitWriter.PutBitUniform(hdr.NumSegments > 1 ? 1 : 0) != 0)
@@ -559,6 +561,7 @@ internal class Vp8BitWriter : BitWriterBase
 
     private void WriteFilterHeader(Vp8BitWriter bitWriter)
     {
+        ArgumentNullException.ThrowIfNull(this.enc);
         Vp8FilterHeader hdr = this.enc.FilterHeader;
         bool useLfDelta = hdr.I4x4LfDelta != 0;
         bitWriter.PutBitUniform(hdr.Simple ? 1 : 0);
@@ -583,6 +586,7 @@ internal class Vp8BitWriter : BitWriterBase
     // Nominal quantization parameters
     private void WriteQuant(Vp8BitWriter bitWriter)
     {
+        ArgumentNullException.ThrowIfNull(this.enc);
         bitWriter.PutBits((uint)this.enc.BaseQuant, 7);
         bitWriter.PutSignedBits(this.enc.DqY1Dc, 4);
         bitWriter.PutSignedBits(this.enc.DqY2Dc, 4);
@@ -593,6 +597,7 @@ internal class Vp8BitWriter : BitWriterBase
 
     private void WriteProbas(Vp8BitWriter bitWriter)
     {
+        ArgumentNullException.ThrowIfNull(this.enc);
         Vp8EncProba probas = this.enc.Proba;
         for (int t = 0; t < WebpConstants.NumTypes; ++t)
         {
@@ -622,6 +627,7 @@ internal class Vp8BitWriter : BitWriterBase
     // Writes the partition #0 modes (that is: all intra modes)
     private void CodeIntraModes(Vp8BitWriter bitWriter)
     {
+        ArgumentNullException.ThrowIfNull(this.enc);
         var it = new Vp8EncIterator(this.enc.YTop, this.enc.UvTop, this.enc.Nz, this.enc.MbInfo, this.enc.Preds, this.enc.TopDerr, this.enc.Mbw, this.enc.Mbh);
         int predsWidth = this.enc.PredsWidth;
 
@@ -717,6 +723,7 @@ internal class Vp8BitWriter : BitWriterBase
     private void WriteFrameHeader(Stream stream, uint size0)
     {
         uint profile = 0;
+        ArgumentNullException.ThrowIfNull(this.enc);
         int width = this.enc.Width;
         int height = this.enc.Height;
         byte[] vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];

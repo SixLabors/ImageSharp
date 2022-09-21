@@ -99,7 +99,7 @@ public static class AdvancedImageExtensions
     /// <param name="source">The source image</param>
     /// <returns>Returns the bounds of the image</returns>
     private static Configuration GetConfiguration(IConfigurationProvider source)
-        => source?.Configuration ?? Configuration.Default;
+        => source.Configuration ?? Configuration.Default;
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
@@ -115,7 +115,7 @@ public static class AdvancedImageExtensions
     /// <exception cref="ArgumentNullException">Thrown when the <paramref name="source"/> in <see langword="null"/>.</exception>
     public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => source?.PixelBuffer!.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
+        => source.PixelBuffer!.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
@@ -131,7 +131,7 @@ public static class AdvancedImageExtensions
     /// <exception cref="ArgumentNullException">Thrown when the <paramref name="source"/> in <see langword="null"/>.</exception>
     public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => source?.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
+        => source.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory

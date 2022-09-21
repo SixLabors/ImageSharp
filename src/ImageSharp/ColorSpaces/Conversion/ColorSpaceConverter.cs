@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion;

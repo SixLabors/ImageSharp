@@ -11,5 +11,5 @@ internal interface IConfigurationProvider
     /// <summary>
     /// Gets the configuration which allows altering default behaviour or extending the library.
     /// </summary>
-    Configuration Configuration { get; }
+    Configuration? Configuration { get; }
 }

@@ -26,7 +26,7 @@ public sealed class GifDecoder : IImageDecoder
         Guard.NotNull(stream, nameof(stream));
 
         GifDecoderCore decoder = new(options);
-        Image<TPixel>? image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+        Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
         ArgumentNullException.ThrowIfNull(image);
 

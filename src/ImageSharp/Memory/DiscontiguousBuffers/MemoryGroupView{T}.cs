@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;

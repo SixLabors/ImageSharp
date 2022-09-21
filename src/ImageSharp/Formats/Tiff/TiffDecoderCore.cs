@@ -39,11 +39,6 @@ internal class TiffDecoderCore : IImageDecoderInternals
     private readonly uint maxFrames;
 
     /// <summary>
-    /// The stream to decode from.
-    /// </summary>
-    private BufferedReadStream inputStream = null!;
-
-    /// <summary>
     /// Indicates the byte order of the stream.
     /// </summary>
     private ByteOrder byteOrder;
@@ -159,7 +154,6 @@ internal class TiffDecoderCore : IImageDecoderInternals
         var frames = new List<ImageFrame<TPixel>>();
         try
         {
-            this.inputStream = stream;
             var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
 
             IEnumerable<ExifProfile> directories = reader.Read();
@@ -170,7 +164,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             foreach (ExifProfile ifd in directories)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
+                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(stream, ifd, cancellationToken);
                 frames.Add(frame);
 
                 if (++frameCount == this.maxFrames)
@@ -208,7 +202,6 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <inheritdoc/>
     public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        this.inputStream = stream;
         var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
         IEnumerable<ExifProfile> directories = reader.Read();
 
@@ -229,7 +222,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <param name="tags">The IFD tags.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
     /// <returns>The tiff frame.</returns>
-    private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
+    private ImageFrame<TPixel> DecodeFrame<TPixel>(BufferedReadStream stream, ExifProfile tags, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         var imageFrameMetaData = new ImageFrameMetadata();
@@ -258,6 +251,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
             this.DecodeStripsPlanar(
+                stream,
                 frame,
                 rowsPerStrip,
                 stripOffsets,
@@ -267,6 +261,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         else
         {
             this.DecodeStripsChunky(
+                stream,
                 frame,
                 rowsPerStrip,
                 stripOffsets,
@@ -349,7 +344,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
     /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
+    private void DecodeStripsPlanar<TPixel>(BufferedReadStream stream, ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int stripsPerPixel = this.BitsPerSample.Channels;
@@ -402,7 +397,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 for (int planeIndex = 0; planeIndex < stripsPerPixel; planeIndex++)
                 {
                     decompressor.Decompress(
-                        this.inputStream,
+                        stream,
                         stripOffsets[stripIndex],
                         stripByteCounts[stripIndex],
                         stripHeight,
@@ -433,7 +428,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <param name="stripOffsets">The strip offsets.</param>
     /// <param name="stripByteCounts">The strip byte counts.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
+    private void DecodeStripsChunky<TPixel>(BufferedReadStream stream, ImageFrame<TPixel> frame, int rowsPerStrip, Span<ulong> stripOffsets, Span<ulong> stripByteCounts, CancellationToken cancellationToken)
        where TPixel : unmanaged, IPixel<TPixel>
     {
         // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -491,7 +486,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             }
 
             decompressor.Decompress(
-                this.inputStream,
+                stream,
                 stripOffsets[stripIndex],
                 stripByteCounts[stripIndex],
                 stripHeight,

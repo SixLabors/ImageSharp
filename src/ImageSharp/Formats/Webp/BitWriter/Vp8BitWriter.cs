@@ -524,6 +524,7 @@ internal class Vp8BitWriter : BitWriterBase
     private void WriteSegmentHeader(Vp8BitWriter bitWriter)
     {
         ArgumentNullException.ThrowIfNull(this.enc);
+        ArgumentNullException.ThrowIfNull(this.enc.SegmentHeader);
         Vp8EncSegmentHeader hdr = this.enc.SegmentHeader;
         Vp8EncProba proba = this.enc.Proba;
         if (bitWriter.PutBitUniform(hdr.NumSegments > 1 ? 1 : 0) != 0)
@@ -636,6 +637,7 @@ internal class Vp8BitWriter : BitWriterBase
             Vp8MacroBlockInfo mb = it.CurrentMacroBlockInfo;
             int predIdx = it.PredIdx;
             Span<byte> preds = it.Preds.AsSpan(predIdx);
+            ArgumentNullException.ThrowIfNull(this.enc.SegmentHeader);
             if (this.enc.SegmentHeader.UpdateMap)
             {
                 bitWriter.PutSegment(mb.Segment, this.enc.Proba.Segments);

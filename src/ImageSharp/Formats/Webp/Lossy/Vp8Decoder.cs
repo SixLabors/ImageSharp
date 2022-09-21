@@ -140,7 +140,7 @@ internal class Vp8Decoder : IDisposable
     /// <summary>
     /// Gets or sets the top intra modes values: 4 * MbWidth.
     /// </summary>
-    public byte[] IntraT { get; set; } = null!;
+    public byte[]? IntraT { get; set; }
 
     /// <summary>
     /// Gets the left intra modes values.

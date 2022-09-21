@@ -53,7 +53,7 @@ internal class Vp8Encoder : IDisposable
     /// <summary>
     /// A bit writer for writing lossy webp streams.
     /// </summary>
-    private Vp8BitWriter bitWriter = null!;
+    private Vp8BitWriter? bitWriter;
 
     private readonly Vp8RdLevel rdOptLevel;
 
@@ -195,7 +195,7 @@ internal class Vp8Encoder : IDisposable
     /// <summary>
     /// Gets the segment features.
     /// </summary>
-    public Vp8EncSegmentHeader SegmentHeader { get; private set; } = null!;
+    public Vp8EncSegmentHeader? SegmentHeader { get; private set; }
 
     /// <summary>
     /// Gets the segment infos.
@@ -519,6 +519,8 @@ internal class Vp8Encoder : IDisposable
         }
         while (it.Next() && --nbMbs > 0);
 
+        ArgumentNullException.ThrowIfNull(this.SegmentHeader);
+
         sizeP0 += this.SegmentHeader.Size;
         if (stats.DoSizeSearch)
         {
@@ -598,6 +600,8 @@ internal class Vp8Encoder : IDisposable
     // Simplified k-Means, to assign Nb segments based on alpha-histogram.
     private void AssignSegments(int[] alphas)
     {
+        ArgumentNullException.ThrowIfNull(this.SegmentHeader);
+
         int nb = this.SegmentHeader.NumSegments < NumMbSegments ? this.SegmentHeader.NumSegments : NumMbSegments;
         int[] centers = new int[NumMbSegments];
         int weightedAverage = 0;
@@ -692,6 +696,7 @@ internal class Vp8Encoder : IDisposable
 
     private void SetSegmentAlphas(int[] centers, int mid)
     {
+        ArgumentNullException.ThrowIfNull(this.SegmentHeader);
         int nb = this.SegmentHeader.NumSegments;
         Vp8SegmentInfo[] dqm = this.SegmentInfos;
         int min = centers[0], max = centers[0];
@@ -729,6 +734,7 @@ internal class Vp8Encoder : IDisposable
 
     private void SetSegmentParams(float quality)
     {
+        ArgumentNullException.ThrowIfNull(this.SegmentHeader);
         int nb = this.SegmentHeader.NumSegments;
         Vp8SegmentInfo[] dqm = this.SegmentInfos;
         double amp = WebpConstants.SnsToDq * this.spatialNoiseShaping / 100.0d / 128.0d;
@@ -820,6 +826,7 @@ internal class Vp8Encoder : IDisposable
             ++p[mb.Segment];
         }
 
+        ArgumentNullException.ThrowIfNull(this.SegmentHeader);
         if (this.SegmentHeader.NumSegments > 1)
         {
             byte[] probas = this.Proba.Segments;
@@ -998,6 +1005,7 @@ internal class Vp8Encoder : IDisposable
 
         it.NzToBytes();
 
+        ArgumentNullException.ThrowIfNull(this.bitWriter);
         int pos1 = this.bitWriter.NumBytes();
         if (i16)
         {

@@ -54,11 +54,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The stream to decode from.
-    /// </summary>
-    private BufferedReadStream currentStream = null!;
-
-    /// <summary>
     /// The png header.
     /// </summary>
     private PngHeader header;
@@ -81,22 +76,22 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The palette containing color information for indexed png's.
     /// </summary>
-    private byte[] palette = null!;
+    private byte[]? palette;
 
     /// <summary>
     /// The palette containing alpha channel color information for indexed png's.
     /// </summary>
-    private byte[] paletteAlpha = null!;
+    private byte[]? paletteAlpha;
 
     /// <summary>
     /// Previous scanline processed.
     /// </summary>
-    private IMemoryOwner<byte> previousScanline = null!;
+    private IMemoryOwner<byte>? previousScanline;
 
     /// <summary>
     /// The current scanline that is being processed.
     /// </summary>
-    private IMemoryOwner<byte> scanline = null!;
+    private IMemoryOwner<byte>? scanline;
 
     /// <summary>
     /// The index of the current scanline being processed.
@@ -151,12 +146,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
-        this.currentStream = stream;
-        this.currentStream.Skip(8);
+        stream.Skip(8);
         Image<TPixel>? image = null;
         try
         {
-            while (this.TryReadChunk(out PngChunk chunk))
+            while (this.TryReadChunk(stream, out PngChunk chunk))
             {
                 try
                 {
@@ -177,7 +171,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.InitializeImage(metadata, out image);
                             }
 
-                            this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata);
+                            this.ReadScanlines(stream, chunk, image.Frames.RootFrame, pngMetadata);
 
                             break;
                         case PngChunkType.Palette:
@@ -251,11 +245,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
-        this.currentStream = stream;
-        this.currentStream.Skip(8);
+        stream.Skip(8);
         try
         {
-            while (this.TryReadChunk(out PngChunk chunk))
+            while (this.TryReadChunk(stream, out PngChunk chunk))
             {
                 try
                 {
@@ -267,7 +260,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Physical:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -276,7 +269,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Gamma:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -290,7 +283,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 goto EOF;
                             }
 
-                            this.SkipChunkDataAndCrc(chunk);
+                            this.SkipChunkDataAndCrc(stream, chunk);
                             break;
                         case PngChunkType.Transparency:
                             byte[] alpha = new byte[chunk.Length];
@@ -307,7 +300,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Text:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -316,7 +309,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.CompressedText:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -325,7 +318,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.InternationalText:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -334,7 +327,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Exif:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                                 break;
                             }
 
@@ -352,7 +345,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         default:
                             if (this.colorMetadataOnly)
                             {
-                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipChunkDataAndCrc(stream, chunk);
                             }
 
                             break;
@@ -556,10 +549,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="chunk">The png chunk containing the compressed scanline data.</param>
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+    private void ReadScanlines<TPixel>(BufferedReadStream stream, PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using ZlibInflateStream deframeStream = new(this.currentStream, this.ReadNextDataChunk);
+        using ZlibInflateStream deframeStream = new(stream, () => this.ReadNextDataChunk(stream));
         deframeStream.AllocateNewBytes(chunk.Length, true);
         DeflateStream? dataStream = deframeStream.CompressedStream;
 
@@ -587,6 +580,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         while (this.currentRow < this.header.Height)
         {
+            ArgumentNullException.ThrowIfNull(this.scanline);
+
             Span<byte> scanlineSpan = this.scanline.GetSpan();
             while (this.currentRowBytesRead < this.bytesPerScanline)
             {
@@ -611,14 +606,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
 
                 case FilterType.Up:
+                    ArgumentNullException.ThrowIfNull(this.previousScanline);
                     UpFilter.Decode(scanlineSpan, this.previousScanline.GetSpan());
                     break;
 
                 case FilterType.Average:
+                    ArgumentNullException.ThrowIfNull(this.previousScanline);
                     AverageFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
                     break;
 
                 case FilterType.Paeth:
+                    ArgumentNullException.ThrowIfNull(this.previousScanline);
                     PaethFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
                     break;
 
@@ -666,6 +664,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 while (this.currentRowBytesRead < bytesPerInterlaceScanline)
                 {
+                    ArgumentNullException.ThrowIfNull(this.scanline);
                     int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
                     if (bytesRead <= 0)
                     {
@@ -676,6 +675,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 }
 
                 this.currentRowBytesRead = 0;
+
+                ArgumentNullException.ThrowIfNull(this.scanline);
+                ArgumentNullException.ThrowIfNull(this.previousScanline);
 
                 Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
                 Span<byte> prevSpan = this.previousScanline.Slice(0, bytesPerInterlaceScanline);
@@ -715,6 +717,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
 
             pass++;
+            ArgumentNullException.ThrowIfNull(this.previousScanline);
             this.previousScanline.Clear();
 
             if (pass < 7)
@@ -1391,16 +1394,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Reads the next data chunk.
     /// </summary>
     /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
-    private int ReadNextDataChunk()
+    private int ReadNextDataChunk(BufferedReadStream stream)
     {
         if (this.nextChunk != null)
         {
             return 0;
         }
 
-        this.currentStream.Read(this.buffer, 0, 4);
+        stream.Read(this.buffer, 0, 4);
 
-        if (this.TryReadChunk(out PngChunk chunk))
+        if (this.TryReadChunk(stream, out PngChunk chunk))
         {
             if (chunk.Type == PngChunkType.Data)
             {
@@ -1421,7 +1424,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <returns>
     /// The <see cref="PngChunk"/>.
     /// </returns>
-    private bool TryReadChunk(out PngChunk chunk)
+    private bool TryReadChunk(BufferedReadStream stream, out PngChunk chunk)
     {
         if (this.nextChunk != null)
         {
@@ -1432,7 +1435,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return true;
         }
 
-        if (!this.TryReadChunkLength(out int length))
+        if (!this.TryReadChunkLength(stream, out int length))
         {
             chunk = default;
 
@@ -1440,10 +1443,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return false;
         }
 
-        while (length < 0 || length > (this.currentStream.Length - this.currentStream.Position))
+        while (length < 0 || length > (stream.Length - stream.Position))
         {
             // Not a valid chunk so try again until we reach a known chunk.
-            if (!this.TryReadChunkLength(out length))
+            if (!this.TryReadChunkLength(stream, out length))
             {
                 chunk = default;
 
@@ -1451,7 +1454,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
         }
 
-        PngChunkType type = this.ReadChunkType();
+        PngChunkType type = this.ReadChunkType(stream);
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
         // We can skip all other chunk data in the stream for better performance.
@@ -1462,19 +1465,19 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return true;
         }
 
-        long pos = this.currentStream.Position;
+        long pos = stream.Position;
         chunk = new PngChunk(
             length: length,
             type: type,
-            data: this.ReadChunkData(length));
+            data: this.ReadChunkData(stream, length));
 
-        this.ValidateChunk(chunk);
+        this.ValidateChunk(stream, chunk);
 
         // Restore the stream position for IDAT chunks, because it will be decoded later and
         // was only read to verifying the CRC is correct.
         if (type == PngChunkType.Data)
         {
-            this.currentStream.Position = pos;
+            stream.Position = pos;
         }
 
         return true;
@@ -1484,9 +1487,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Validates the png chunk.
     /// </summary>
     /// <param name="chunk">The <see cref="PngChunk"/>.</param>
-    private void ValidateChunk(in PngChunk chunk)
+    private void ValidateChunk(BufferedReadStream stream, in PngChunk chunk)
     {
-        uint inputCrc = this.ReadChunkCrc();
+        uint inputCrc = this.ReadChunkCrc(stream);
 
         if (chunk.IsCritical)
         {
@@ -1511,10 +1514,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Reads the cycle redundancy chunk from the data.
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private uint ReadChunkCrc()
+    private uint ReadChunkCrc(BufferedReadStream stream)
     {
         uint crc = 0;
-        if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+        if (stream.Read(this.buffer, 0, 4) == 4)
         {
             crc = BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
         }
@@ -1527,10 +1530,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="chunk">The image format chunk.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void SkipChunkDataAndCrc(in PngChunk chunk)
+    private void SkipChunkDataAndCrc(BufferedReadStream stream, in PngChunk chunk)
     {
-        this.currentStream.Skip(chunk.Length);
-        this.currentStream.Skip(4);
+        stream.Skip(chunk.Length);
+        stream.Skip(4);
     }
 
     /// <summary>
@@ -1538,12 +1541,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="length">The length of the chunk data to read.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private IMemoryOwner<byte> ReadChunkData(int length)
+    private IMemoryOwner<byte> ReadChunkData(BufferedReadStream stream, int length)
     {
         // We rent the buffer here to return it afterwards in Decode()
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
-        this.currentStream.Read(buffer.GetSpan(), 0, length);
+        stream.Read(buffer.GetSpan(), 0, length);
 
         return buffer;
     }
@@ -1555,9 +1558,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Thrown if the input stream is not valid.
     /// </exception>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private PngChunkType ReadChunkType()
+    private PngChunkType ReadChunkType(BufferedReadStream stream)
     {
-        if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+        if (stream.Read(this.buffer, 0, 4) == 4)
         {
             return (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
         }
@@ -1576,9 +1579,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Whether the length was read.
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private bool TryReadChunkLength(out int result)
+    private bool TryReadChunkLength(BufferedReadStream stream, out int result)
     {
-        if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+        if (stream.Read(this.buffer, 0, 4) == 4)
         {
             result = BinaryPrimitives.ReadInt32BigEndian(this.buffer);
 

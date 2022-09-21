@@ -236,7 +236,7 @@ internal static class PngScanlineProcessor
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         ReadOnlySpan<byte> palette,
-        byte[] paletteAlpha)
+        byte[]? paletteAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (palette.IsEmpty)
@@ -287,7 +287,7 @@ internal static class PngScanlineProcessor
         int pixelOffset,
         int increment,
         ReadOnlySpan<byte> palette,
-        byte[] paletteAlpha)
+        byte[]? paletteAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = default;

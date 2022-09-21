@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors;
 
 internal sealed class LzwCompressor : TiffBaseCompressor
 {
-    private TiffLzwEncoder lzwEncoder = null!;
+    private TiffLzwEncoder? lzwEncoder;
 
     public LzwCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
         : base(output, allocator, width, bitsPerPixel, predictor)
@@ -28,6 +28,8 @@ internal sealed class LzwCompressor : TiffBaseCompressor
         {
             HorizontalPredictor.ApplyHorizontalPrediction(rows, this.BytesPerRow, this.BitsPerPixel);
         }
+
+        ArgumentNullException.ThrowIfNull(this.lzwEncoder);
 
         this.lzwEncoder.Encode(rows, this.Output);
     }

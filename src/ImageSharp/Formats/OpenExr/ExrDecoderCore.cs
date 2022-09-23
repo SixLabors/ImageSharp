@@ -96,7 +96,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         ExrPixelType pixelType = this.ValidateChannels();
         this.ReadImageDataType();
 
-        Image<TPixel> image = new (this.configuration, this.Width, this.Height, this.metadata);
+        Image<TPixel> image = new(this.configuration, this.Width, this.Height, this.metadata);
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
         switch (pixelType)
@@ -156,16 +156,15 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadFloatChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += ReadFloatChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
                 for (int x = 0; x < width; x++)
                 {
-                    var pixelValue = new HalfVector4(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
+                    HalfVector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
                     color.FromVector4(pixelValue.ToVector4());
                     pixelRow[x] = color;
                 }
-
             }
 
             stream.Position = nextRowOffsetPosition;
@@ -219,7 +218,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
 
                 for (int x = 0; x < width; x++)
                 {
-                    var pixelValue = new Rgba128(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
+                    Rgba128 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
                     color.FromVector4(pixelValue.ToVector4());
                     pixelRow[x] = color;
                 }
@@ -227,7 +226,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         }
     }
 
-    private int ReadFloatChannelData(
+    private static int ReadFloatChannelData(
         BufferedReadStream stream,
         ExrChannelInfo channel,
         Span<byte> decompressedPixelData,
@@ -240,19 +239,19 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         switch (channel.ChannelName)
         {
             case ExrConstants.ChannelNames.Red:
-                return this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, redPixelData, width);
 
             case ExrConstants.ChannelNames.Blue:
-                return this.ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
 
             case ExrConstants.ChannelNames.Green:
-                return this.ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
 
             case ExrConstants.ChannelNames.Alpha:
-                return this.ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
 
             case ExrConstants.ChannelNames.Luminance:
-                int bytesRead = this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                int bytesRead = ReadChannelData(channel, decompressedPixelData, redPixelData, width);
                 redPixelData.CopyTo(bluePixelData);
                 redPixelData.CopyTo(greenPixelData);
 
@@ -279,19 +278,19 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         switch (channel.ChannelName)
         {
             case ExrConstants.ChannelNames.Red:
-                return this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, redPixelData, width);
 
             case ExrConstants.ChannelNames.Blue:
-                return this.ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, bluePixelData, width);
 
             case ExrConstants.ChannelNames.Green:
-                return this.ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, greenPixelData, width);
 
             case ExrConstants.ChannelNames.Alpha:
-                return this.ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
+                return ReadChannelData(channel, decompressedPixelData, alphaPixelData, width);
 
             case ExrConstants.ChannelNames.Luminance:
-                int bytesRead = this.ReadChannelData(channel, decompressedPixelData, redPixelData, width);
+                int bytesRead = ReadChannelData(channel, decompressedPixelData, redPixelData, width);
                 redPixelData.CopyTo(bluePixelData);
                 redPixelData.CopyTo(greenPixelData);
                 return bytesRead;
@@ -304,31 +303,31 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         }
     }
 
-    private int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width)
+    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width)
     {
         switch (channel.PixelType)
         {
             case ExrPixelType.Half:
-                return this.ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width);
+                return ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width);
             case ExrPixelType.Float:
-                return this.ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width);
+                return ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width);
         }
 
         return 0;
     }
 
-    private int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width)
+    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width)
     {
         switch (channel.PixelType)
         {
             case ExrPixelType.UnsignedInt:
-                return this.ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width);
+                return ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width);
         }
 
         return 0;
     }
 
-    private int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -341,7 +340,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         return offset;
     }
 
-    private int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -354,7 +353,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         return offset;
     }
 
-    private int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData, int width)
+    private static int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -449,7 +448,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     private ExrHeaderAttributes ParseHeaderAttributes(BufferedReadStream stream)
     {
         ExrAttribute attribute = this.ReadAttribute(stream);
-        var header = new ExrHeaderAttributes();
+        ExrHeaderAttributes header = new();
 
         while (!attribute.Equals(ExrAttribute.EmptyAttribute))
         {
@@ -471,7 +470,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
                     header.DisplayWindow = displayWindow;
                     break;
                 case ExrConstants.AttributeNames.LineOrder:
-                    var lineOrder = (ExrLineOrder)stream.ReadByte();
+                    ExrLineOrder lineOrder = (ExrLineOrder)stream.ReadByte();
                     header.LineOrder = lineOrder;
                     break;
                 case ExrConstants.AttributeNames.PixelAspectRatio:
@@ -509,7 +508,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     private ExrAttribute ReadAttribute(BufferedReadStream stream)
     {
         string attributeName = ReadString(stream);
-        if (attributeName.Equals(string.Empty))
+        if (attributeName.Equals(string.Empty, StringComparison.Ordinal))
         {
             return ExrAttribute.EmptyAttribute;
         }
@@ -533,7 +532,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
 
     private List<ExrChannelInfo> ReadChannelList(BufferedReadStream stream, int attributeSize)
     {
-        var channels = new List<ExrChannelInfo>();
+        List<ExrChannelInfo> channels = new();
         while (attributeSize > 1)
         {
             ExrChannelInfo channelInfo = this.ReadChannelInfo(stream, out int bytesRead);
@@ -552,7 +551,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         string channelName = ReadString(stream);
         bytesRead = channelName.Length + 1;
 
-        var pixelType = (ExrPixelType)this.ReadSignedInteger(stream);
+        ExrPixelType pixelType = (ExrPixelType)this.ReadSignedInteger(stream);
         bytesRead += 4;
 
         byte pLinear = (byte)stream.ReadByte();
@@ -572,7 +571,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
 
     private static string ReadString(BufferedReadStream stream)
     {
-        var str = new StringBuilder();
+        StringBuilder str = new();
         int character = stream.ReadByte();
         if (character == 0)
         {
@@ -599,11 +598,11 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         ExrPixelType? pixelType = null;
         for (int i = 0; i < this.Channels.Count; i++)
         {
-            if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance))
+            if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance, StringComparison.Ordinal))
             {
                 if (!pixelType.HasValue)
                 {
@@ -651,27 +650,27 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         bool hasLuminance = false;
         foreach (ExrChannelInfo channelInfo in this.Channels)
         {
-            if (channelInfo.ChannelName.Equals("A"))
+            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
             {
                 hasAlphaChannel = true;
             }
 
-            if (channelInfo.ChannelName.Equals("R"))
+            if (channelInfo.ChannelName.Equals("R", StringComparison.Ordinal))
             {
                 hasRedChannel = true;
             }
 
-            if (channelInfo.ChannelName.Equals("G"))
+            if (channelInfo.ChannelName.Equals("G", StringComparison.Ordinal))
             {
                 hasGreenChannel = true;
             }
 
-            if (channelInfo.ChannelName.Equals("B"))
+            if (channelInfo.ChannelName.Equals("B", StringComparison.Ordinal))
             {
                 hasBlueChannel = true;
             }
 
-            if (channelInfo.ChannelName.Equals("Y"))
+            if (channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
             {
                 hasLuminance = true;
             }
@@ -702,7 +701,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     {
         foreach (ExrChannelInfo channelInfo in this.Channels)
         {
-            if (channelInfo.ChannelName.Equals("A"))
+            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
             {
                 return true;
             }
@@ -716,7 +715,11 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         uint bytesPerRow = 0;
         foreach (ExrChannelInfo channelInfo in this.Channels)
         {
-            if (channelInfo.ChannelName.Equals("A") || channelInfo.ChannelName.Equals("R") || channelInfo.ChannelName.Equals("G") || channelInfo.ChannelName.Equals("B") || channelInfo.ChannelName.Equals("Y"))
+            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("R", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("G", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("B", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
             {
                 if (channelInfo.PixelType == ExrPixelType.Half)
                 {

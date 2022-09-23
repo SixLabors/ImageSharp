@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Six Labors Split License..
+// Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
 
@@ -23,4 +23,3 @@ internal class ExrAttribute
 
     public int Length { get; }
 }
-

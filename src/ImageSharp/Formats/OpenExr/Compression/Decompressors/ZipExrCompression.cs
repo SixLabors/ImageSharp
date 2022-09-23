@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors;
+namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Decompressors;
 
 internal class ZipExrCompression : ExrBaseDecompressor
 {
@@ -21,15 +21,15 @@ internal class ZipExrCompression : ExrBaseDecompressor
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
 
         long pos = stream.Position;
-        using ZlibInflateStream deframeStream = new(
+        using ZlibInflateStream inflateStream = new(
                    stream,
                    () =>
                    {
                        int left = (int)(compressedBytes - (stream.Position - pos));
                        return left > 0 ? left : 0;
                    });
-        deframeStream.AllocateNewBytes((int)this.UncompressedBytes, true);
-        DeflateStream dataStream = deframeStream.CompressedStream;
+        inflateStream.AllocateNewBytes((int)this.UncompressedBytes, true);
+        DeflateStream dataStream = inflateStream.CompressedStream;
 
         int totalRead = 0;
         while (totalRead < buffer.Length)

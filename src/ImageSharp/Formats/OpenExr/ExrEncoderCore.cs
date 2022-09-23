@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.OpenExr.Compression;
 using SixLabors.ImageSharp.Memory;
@@ -162,14 +163,14 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
         Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
-        var rgb = default(Rgb96);
+        Rgb96 rgb = default;
         for (int y = 0; y < height; y++)
         {
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
 
             for (int x = 0; x < width; x++)
             {
-                var vector4 = pixelRowSpan[x].ToVector4();
+                Vector4 vector4 = pixelRowSpan[x].ToVector4();
                 rgb.FromVector4(vector4);
 
                 redBuffer[x] = rgb.R;
@@ -336,10 +337,10 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
     private void WriteAttributeInformation(Stream stream, string name, string type, int size)
     {
         // Write attribute name.
-        this.WriteString(stream, name);
+        WriteString(stream, name);
 
         // Write attribute type.
-        this.WriteString(stream, type);
+        WriteString(stream, type);
 
         // Write attribute size.
         BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)size);
@@ -348,7 +349,7 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
 
     private void WriteChannelInfo(Stream stream, ExrChannelInfo channelInfo)
     {
-        this.WriteString(stream, channelInfo.ChannelName);
+        WriteString(stream, channelInfo.ChannelName);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, (int)channelInfo.PixelType);
         stream.Write(this.buffer.AsSpan(0, 4));
@@ -367,7 +368,7 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
         stream.Write(this.buffer.AsSpan(0, 4));
     }
 
-    private void WriteString(Stream stream, string str)
+    private static void WriteString(Stream stream, string str)
     {
         foreach (char c in str)
         {

@@ -5,11 +5,13 @@ using System.Buffers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Compressors;
+namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Decompressors;
 
 internal class RunLengthCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
+
+    private readonly ushort[] s = new ushort[16];
 
     public RunLengthCompression(MemoryAllocator allocator, uint uncompressedBytes)
         : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
@@ -34,12 +36,6 @@ internal class RunLengthCompression : ExrBaseDecompressor
                     return;
                 }
 
-                // Check the input buffer is big enough to contain 'count' bytes of remaining data.
-                if (compressedBytes < 0)
-                {
-                    return;
-                }
-
                 for (int i = 0; i < count; i++)
                 {
                     uncompressed[offset + i] = ReadNextByte(stream);
@@ -54,12 +50,6 @@ internal class RunLengthCompression : ExrBaseDecompressor
                 compressedBytes -= 2;
 
                 if ((maxLength -= count + 1) < 0)
-                {
-                    return;
-                }
-
-                // Check the input buffer is big enough to contain byte to be duplicated.
-                if (compressedBytes < 0)
                 {
                     return;
                 }

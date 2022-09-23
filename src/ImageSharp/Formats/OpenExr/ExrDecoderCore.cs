@@ -57,12 +57,24 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     /// </summary>
     public Size Dimensions => new(this.Width, this.Height);
 
+    /// <summary>
+    /// Gets or sets the image width.
+    /// </summary>
     private int Width { get; set; }
 
+    /// <summary>
+    /// Gets or sets the image height.
+    /// </summary>
     private int Height { get; set; }
 
+    /// <summary>
+    /// Gets or sets the image channel info's.
+    /// </summary>
     private IList<ExrChannelInfo> Channels { get; set; }
 
+    /// <summary>
+    /// Gets or sets the compression method.
+    /// </summary>
     private ExrCompressionType Compression { get; set; }
 
     private ExrImageDataType ImageDataType { get; set; }
@@ -76,11 +88,15 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.ReadExrHeader(stream);
-        this.IsSupportedCompression();
+        if (!this.IsSupportedCompression())
+        {
+            ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
+        }
+
         ExrPixelType pixelType = this.ValidateChannels();
         this.ReadImageDataType();
 
-        Image<TPixel> image = new Image<TPixel>(this.configuration, this.Width, this.Height, this.metadata);
+        Image<TPixel> image = new (this.configuration, this.Width, this.Height, this.metadata);
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
         switch (pixelType)
@@ -109,6 +125,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int width = this.Width;
         int height = this.Height;
+        int channelCount = this.Channels.Count;
 
         using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
@@ -118,7 +135,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
 
         TPixel color = default;
         for (uint y = 0; y < height; y += rowsPerBlock)
@@ -164,6 +181,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int width = this.Width;
         int height = this.Height;
+        int channelCount = this.Channels.Count;
 
         using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
@@ -173,7 +191,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
 
         TPixel color = default;
         for (uint y = 0; y < height; y += rowsPerBlock)
@@ -609,12 +627,19 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
         return pixelType.Value;
     }
 
-    private void IsSupportedCompression()
+    private bool IsSupportedCompression()
     {
-        if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips and not ExrCompressionType.Zip and not ExrCompressionType.RunLengthEncoded)
+        switch (this.Compression)
         {
-            ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
+            case ExrCompressionType.None:
+            case ExrCompressionType.Zip:
+            case ExrCompressionType.Zips:
+            case ExrCompressionType.RunLengthEncoded:
+            case ExrCompressionType.B44:
+                return true;
         }
+
+        return false;
     }
 
     private void ReadImageDataType()

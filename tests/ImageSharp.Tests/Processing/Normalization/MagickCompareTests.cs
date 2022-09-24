@@ -19,12 +19,15 @@ public class MagickCompareTests
     public void AutoLevel_CompareToMagick<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
-        using Stream stream = LoadAsStream(provider);
-        var magickImage = new MagickImage(stream);
+        Image<TPixel> imageFromMagick;
+        using (Stream stream = LoadAsStream(provider))
+        {
+            var magickImage = new MagickImage(stream);
 
-        // Apply Auto Level using the Grey (BT.709) channel.
-        magickImage.AutoLevel(Channels.Gray);
-        Image<TPixel> imageFromMagick = ConvertImageFromMagick<TPixel>(magickImage);
+            // Apply Auto Level using the Grey (BT.709) channel.
+            magickImage.AutoLevel(Channels.Gray);
+            imageFromMagick = ConvertImageFromMagick<TPixel>(magickImage);
+        }
 
         using (Image<TPixel> image = provider.GetImage())
         {

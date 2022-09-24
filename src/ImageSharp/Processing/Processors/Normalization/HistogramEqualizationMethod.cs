@@ -24,7 +24,8 @@ public enum HistogramEqualizationMethod : int
     AdaptiveSlidingWindow,
 
     /// <summary>
-    /// Global histogram equalization, but applied to each color channel separately.
+    /// Adjusts the brightness levels of a particular image by scaling to the
+    /// minimum and maximum values to the full brightness range.
     /// </summary>
     AutoLevel
 }

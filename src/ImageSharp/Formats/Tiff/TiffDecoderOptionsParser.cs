@@ -99,6 +99,7 @@ internal static class TiffDecoderOptionsParser
         options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
         options.FillOrder = fillOrder;
         options.JpegTables = exifProfile.GetValue(ExifTag.JPEGTables)?.Value;
+        options.OldJpegCompressionStartOfImageMarker = exifProfile.GetValue(ExifTag.JPEGInterchangeFormat)?.Value;
 
         options.ParseColorType(exifProfile);
         options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -470,6 +471,25 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.Ccitt1D:
             {
                 options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                break;
+            }
+
+            case TiffCompression.OldJpeg:
+            {
+                options.CompressionType = TiffDecoderCompressionType.OldJpeg;
+
+                if (!options.OldJpegCompressionStartOfImageMarker.HasValue)
+                {
+                    TiffThrowHelper.ThrowNotSupported("Missing SOI marker offset for tiff with old jpeg compression");
+                }
+
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+                {
+                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                    options.ColorType = TiffColorType.Rgb;
+                }
+
                 break;
             }
 

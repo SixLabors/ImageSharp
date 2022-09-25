@@ -182,14 +182,14 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
             var sourceAccess = new PixelAccessor<TPixel>(this.source);
             Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y);
-            int levels = this.luminanceLevels;
+            int levelsMinusOne = this.luminanceLevels - 1;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
                 // TODO: We should bulk convert here.
                 ref TPixel pixel = ref pixelRow[x];
-                var vector = pixel.ToVector4() * levels;
+                var vector = pixel.ToVector4() * levelsMinusOne;
 
                 uint originalX = (uint)MathF.Round(vector.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;

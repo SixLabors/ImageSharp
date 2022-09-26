@@ -755,6 +755,9 @@ public static class TestImageExtensions
                 this.source = source;
             }
 
+            public int GetRequiredBufferLength(Rectangle bounds)
+                => bounds.Width;
+
             public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
                 for (int y = rows.Min; y < rows.Max; y++)

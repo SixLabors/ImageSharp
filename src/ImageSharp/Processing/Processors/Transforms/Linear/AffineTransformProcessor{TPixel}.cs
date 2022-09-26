@@ -176,6 +176,11 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, source.Width, destination.Width);
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(in RowInterval rows, Span<Vector4> span)
         {

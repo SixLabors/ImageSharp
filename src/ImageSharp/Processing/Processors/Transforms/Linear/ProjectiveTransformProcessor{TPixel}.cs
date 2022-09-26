@@ -176,6 +176,11 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
             this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Width, destination.Width);
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(in RowInterval rows, Span<Vector4> span)
         {

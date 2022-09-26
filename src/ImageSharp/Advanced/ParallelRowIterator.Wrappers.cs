@@ -63,7 +63,7 @@ public static partial class ParallelRowIterator
         private readonly int minY;
         private readonly int maxY;
         private readonly int stepY;
-        private readonly int width;
+        private readonly int bufferLength;
         private readonly MemoryAllocator allocator;
         private readonly T action;
 
@@ -72,14 +72,14 @@ public static partial class ParallelRowIterator
             int minY,
             int maxY,
             int stepY,
-            int width,
+            int bufferLength,
             MemoryAllocator allocator,
             in T action)
         {
             this.minY = minY;
             this.maxY = maxY;
             this.stepY = stepY;
-            this.width = width;
+            this.bufferLength = bufferLength;
             this.allocator = allocator;
             this.action = action;
         }
@@ -96,7 +96,7 @@ public static partial class ParallelRowIterator
 
             int yMax = Math.Min(yMin + this.stepY, this.maxY);
 
-            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.width);
+            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.bufferLength);
 
             Span<TBuffer> span = buffer.Memory.Span;
 
@@ -153,7 +153,7 @@ public static partial class ParallelRowIterator
         private readonly int minY;
         private readonly int maxY;
         private readonly int stepY;
-        private readonly int width;
+        private readonly int bufferLength;
         private readonly MemoryAllocator allocator;
         private readonly T operation;
 
@@ -162,14 +162,14 @@ public static partial class ParallelRowIterator
             int minY,
             int maxY,
             int stepY,
-            int width,
+            int bufferLength,
             MemoryAllocator allocator,
             in T operation)
         {
             this.minY = minY;
             this.maxY = maxY;
             this.stepY = stepY;
-            this.width = width;
+            this.bufferLength = bufferLength;
             this.allocator = allocator;
             this.operation = operation;
         }
@@ -187,7 +187,7 @@ public static partial class ParallelRowIterator
             int yMax = Math.Min(yMin + this.stepY, this.maxY);
             var rows = new RowInterval(yMin, yMax);
 
-            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.width);
+            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.bufferLength);
 
             Unsafe.AsRef(in this.operation).Invoke(in rows, buffer.Memory.Span);
         }

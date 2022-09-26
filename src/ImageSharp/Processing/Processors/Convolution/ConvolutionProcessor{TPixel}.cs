@@ -108,6 +108,11 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
             // Span is 2x bounds.

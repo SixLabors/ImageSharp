@@ -43,6 +43,11 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         this.wChannelStart = this.zChannelStart + kernelCount;
     }
 
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public int GetRequiredBufferLength(Rectangle bounds)
+        => bounds.Width;
+
     public void Invoke(int y, Span<Vector4> span)
     {
         // Span has kernelSize^2 followed by bound width.

@@ -134,6 +134,44 @@ public class HistogramEqualizationTests
         }
     }
 
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Rgba32)]
+    public void AutoLevel_SeparateChannels_CompareToReferenceOutput<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage())
+        {
+            var options = new HistogramEqualizationOptions
+            {
+                Method = HistogramEqualizationMethod.AutoLevel,
+                LuminanceLevels = 256,
+                SyncChannels = false
+            };
+            image.Mutate(x => x.HistogramEqualization(options));
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, extension: "png");
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Rgba32)]
+    public void AutoLevel_SynchronizedChannels_CompareToReferenceOutput<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage())
+        {
+            var options = new HistogramEqualizationOptions
+            {
+                Method = HistogramEqualizationMethod.AutoLevel,
+                LuminanceLevels = 256,
+                SyncChannels = true
+            };
+            image.Mutate(x => x.HistogramEqualization(options));
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, extension: "png");
+        }
+    }
+
     /// <summary>
     /// This is regression test for a bug with the calculation of the y-start positions,
     /// where it could happen that one too much start position was calculated in some cases.

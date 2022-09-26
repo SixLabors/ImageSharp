@@ -22,4 +22,10 @@ public enum HistogramEqualizationMethod : int
     /// Adaptive histogram equalization using sliding window. Slower then the tile interpolation mode, but can yield to better results.
     /// </summary>
     AdaptiveSlidingWindow,
+
+    /// <summary>
+    /// Adjusts the brightness levels of a particular image by scaling the
+    /// minimum and maximum values to the full brightness range.
+    /// </summary>
+    AutoLevel
 }

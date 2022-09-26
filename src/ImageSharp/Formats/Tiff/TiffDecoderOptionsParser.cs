@@ -37,7 +37,7 @@ internal static class TiffDecoderOptionsParser
                 TiffThrowHelper.ThrowNotSupported("ExtraSamples is only supported with one extra sample for alpha data.");
             }
 
-            var extraSamplesType = (TiffExtraSampleType)extraSamples[0];
+            TiffExtraSampleType extraSamplesType = (TiffExtraSampleType)extraSamples[0];
             options.ExtraSamplesType = extraSamplesType;
             if (extraSamplesType is not (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
             {
@@ -478,16 +478,12 @@ internal static class TiffDecoderOptionsParser
             {
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
 
+                // Like libtiff: always assume PhotometricInterpretation to be YCbCr, if the compression is old jpeg.
+                options.PhotometricInterpretation = TiffPhotometricInterpretation.YCbCr;
+
                 if (!options.OldJpegCompressionStartOfImageMarker.HasValue)
                 {
                     TiffThrowHelper.ThrowNotSupported("Missing SOI marker offset for tiff with old jpeg compression");
-                }
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
                 }
 
                 break;

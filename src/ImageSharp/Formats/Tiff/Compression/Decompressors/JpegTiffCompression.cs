@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// <summary>
 /// Class to handle cases where TIFF image data is compressed as a jpeg stream.
 /// </summary>
-internal class JpegTiffCompression : TiffBaseDecompressor
+internal sealed class JpegTiffCompression : TiffBaseDecompressor
 {
     private readonly JpegDecoderOptions options;
 
@@ -70,16 +69,16 @@ internal class JpegTiffCompression : TiffBaseDecompressor
     {
         if (this.jpegTables != null)
         {
-            this.DecodeJpegData(stream, buffer, true, cancellationToken);
+            this.DecodeJpegData(stream, buffer, cancellationToken);
         }
         else
         {
             using Image<Rgb24> image = Image.Load<Rgb24>(stream);
-            CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
+            JpegCompressionUtils.CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
         }
     }
 
-    protected void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, bool loadTables, CancellationToken cancellationToken)
+    private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
     {
         using JpegDecoderCore jpegDecoder = new(this.options);
         Configuration configuration = this.options.GeneralOptions.Configuration;
@@ -91,15 +90,11 @@ internal class JpegTiffCompression : TiffBaseDecompressor
                 using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
                 HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
 
-                if (loadTables)
-                {
-                    jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
-                }
-
+                jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
                 using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
-                CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
                 break;
             }
 
@@ -109,45 +104,17 @@ internal class JpegTiffCompression : TiffBaseDecompressor
                 using SpectralConverter<Rgb24> spectralConverter = new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
                 HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
 
-                if (loadTables)
-                {
-                    jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
-                }
-
+                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
-                CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
                 break;
             }
 
             default:
                 TiffThrowHelper.ThrowNotSupported($"Jpeg compressed tiff with photometric interpretation {this.photometricInterpretation} is not supported");
                 break;
-        }
-    }
-
-    private static void CopyImageBytesToBuffer(Span<byte> buffer, Buffer2D<Rgb24> pixelBuffer)
-    {
-        int offset = 0;
-        for (int y = 0; y < pixelBuffer.Height; y++)
-        {
-            Span<Rgb24> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
-            Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
-            rgbBytes.CopyTo(buffer[offset..]);
-            offset += rgbBytes.Length;
-        }
-    }
-
-    private static void CopyImageBytesToBuffer(Span<byte> buffer, Buffer2D<L8> pixelBuffer)
-    {
-        int offset = 0;
-        for (int y = 0; y < pixelBuffer.Height; y++)
-        {
-            Span<L8> pixelRowSpan = pixelBuffer.DangerousGetRowSpan(y);
-            Span<byte> rgbBytes = MemoryMarshal.AsBytes(pixelRowSpan);
-            rgbBytes.CopyTo(buffer[offset..]);
-            offset += rgbBytes.Length;
         }
     }
 

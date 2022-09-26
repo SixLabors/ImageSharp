@@ -64,10 +64,6 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
 
         var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        // We use a rectangle 3x the interest width to allocate a buffer big enough
-        // for source and target bulk pixel conversion.
-        var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 3, interest.Height);
-
         using (var map = new KernelSamplingMap(allocator))
         {
             // Since the kernel sizes are identical we can use a single map.
@@ -85,7 +81,7 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
 
             ParallelRowIterator.IterateRows<Convolution2DRowOperation<TPixel>, Vector4>(
                 this.Configuration,
-                operationBounds,
+                interest,
                 in operation);
         }
 

@@ -413,6 +413,9 @@ public class ParallelRowIteratorTests
         public TestRowIntervalOperation(Action<RowInterval> action)
             => this.action = action;
 
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
         public void Invoke(in RowInterval rows) => this.action(rows);
     }
 
@@ -423,6 +426,9 @@ public class ParallelRowIteratorTests
 
         public TestRowIntervalOperation(RowIntervalAction<TBuffer> action)
             => this.action = action;
+
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
 
         public void Invoke(in RowInterval rows, Span<TBuffer> span)
             => this.action(rows, span);

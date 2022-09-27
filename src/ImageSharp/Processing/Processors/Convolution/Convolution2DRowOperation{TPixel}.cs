@@ -47,6 +47,11 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
     }
 
     /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public int GetRequiredBufferLength(Rectangle bounds)
+        => 3 * bounds.Width;
+
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Invoke(int y, Span<Vector4> span)
     {

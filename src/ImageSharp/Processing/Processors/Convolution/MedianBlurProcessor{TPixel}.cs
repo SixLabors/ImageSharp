@@ -31,11 +31,6 @@ internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        // We use a rectangle with width set wider, to allocate a buffer big enough
-        // for kernel source, channel buffers, source rows and target bulk pixel conversion.
-        int operationWidth = (2 * kernelSize * kernelSize) + interest.Width + (kernelSize * interest.Width);
-        Rectangle operationBounds = new(interest.X, interest.Y, operationWidth, interest.Height);
-
         using KernelSamplingMap map = new(this.Configuration.MemoryAllocator);
         map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);
 
@@ -50,7 +45,7 @@ internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         ParallelRowIterator.IterateRows<MedianRowOperation<TPixel>, Vector4>(
             this.Configuration,
-            operationBounds,
+            interest,
             in operation);
 
         Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);

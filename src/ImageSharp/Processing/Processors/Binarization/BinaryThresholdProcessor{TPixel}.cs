@@ -87,6 +87,11 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         }
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Invoke(int y, Span<Rgb24> span)
         {

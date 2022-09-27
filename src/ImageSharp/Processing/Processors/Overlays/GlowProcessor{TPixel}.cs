@@ -93,6 +93,11 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
             this.source = source;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<float> span)
         {

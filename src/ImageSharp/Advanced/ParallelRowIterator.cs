@@ -118,11 +118,12 @@ public static partial class ParallelRowIterator
         int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
+        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
-            using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width);
+            using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(bufferLength);
             Span<TBuffer> span = buffer.Memory.Span;
 
             for (int y = top; y < bottom; y++)
@@ -135,7 +136,7 @@ public static partial class ParallelRowIterator
 
         int verticalStep = DivideCeil(height, numOfSteps);
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, width, allocator, in operation);
+        var wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,
@@ -244,12 +245,13 @@ public static partial class ParallelRowIterator
         int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
+        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
             var rows = new RowInterval(top, bottom);
-            using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width);
+            using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(bufferLength);
 
             Unsafe.AsRef(operation).Invoke(in rows, buffer.Memory.Span);
 
@@ -258,7 +260,7 @@ public static partial class ParallelRowIterator
 
         int verticalStep = DivideCeil(height, numOfSteps);
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, width, allocator, in operation);
+        var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,

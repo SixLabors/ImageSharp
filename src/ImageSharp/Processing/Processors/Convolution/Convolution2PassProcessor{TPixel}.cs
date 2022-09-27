@@ -70,10 +70,6 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        // We use a rectangle 2x the interest width to allocate a buffer big enough
-        // for source and target bulk pixel conversion.
-        var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 2, interest.Height);
-
         // We can create a single sampling map with the size as if we were using the non separated 2D kernel
         // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
         using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
@@ -92,7 +88,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
             this.Configuration,
-            operationBounds,
+            interest,
             in horizontalOperation);
 
         // Vertical convolution
@@ -107,7 +103,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         ParallelRowIterator.IterateRows<VerticalConvolutionRowOperation, Vector4>(
             this.Configuration,
-            operationBounds,
+            interest,
             in verticalOperation);
     }
 
@@ -142,6 +138,11 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.configuration = configuration;
             this.preserveAlpha = preserveAlpha;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => 2 * bounds.Width;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -303,6 +304,11 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.configuration = configuration;
             this.preserveAlpha = preserveAlpha;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => 2 * bounds.Width;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

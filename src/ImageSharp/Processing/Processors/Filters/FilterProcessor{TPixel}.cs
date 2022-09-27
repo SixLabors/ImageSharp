@@ -68,6 +68,11 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);

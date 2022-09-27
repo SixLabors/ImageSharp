@@ -222,6 +222,11 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
             int boundsX = this.bounds.X;
@@ -291,6 +296,11 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
@@ -327,6 +337,13 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             this.bounds = bounds;
             this.targetPixels = targetPixels;
             this.configuration = configuration;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+        {
+            return bounds.Width;
         }
 
         /// <inheritdoc/>

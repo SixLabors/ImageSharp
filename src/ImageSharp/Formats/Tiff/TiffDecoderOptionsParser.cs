@@ -478,8 +478,9 @@ internal static class TiffDecoderOptionsParser
             {
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
 
-                // Like libtiff: always assume PhotometricInterpretation to be YCbCr, if the compression is old jpeg.
-                options.PhotometricInterpretation = TiffPhotometricInterpretation.YCbCr;
+                // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                options.ColorType = TiffColorType.Rgb;
 
                 if (!options.OldJpegCompressionStartOfImageMarker.HasValue)
                 {

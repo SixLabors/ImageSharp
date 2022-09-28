@@ -190,7 +190,7 @@ internal ref struct HashLut
         if (index != -1)
         {
             ref int v = ref MemoryMarshal.GetReference(this.values);
-            value = Unsafe.Add(ref v, index);
+            value = Unsafe.Add(ref v, (uint)index);
             return true;
         }
 

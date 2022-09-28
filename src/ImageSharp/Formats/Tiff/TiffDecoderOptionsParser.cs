@@ -476,15 +476,18 @@ internal static class TiffDecoderOptionsParser
 
             case TiffCompression.OldJpeg:
             {
-                options.CompressionType = TiffDecoderCompressionType.OldJpeg;
-
-                // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                options.ColorType = TiffColorType.Rgb;
-
                 if (!options.OldJpegCompressionStartOfImageMarker.HasValue)
                 {
                     TiffThrowHelper.ThrowNotSupported("Missing SOI marker offset for tiff with old jpeg compression");
+                }
+
+                options.CompressionType = TiffDecoderCompressionType.OldJpeg;
+
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+                {
+                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                    options.ColorType = TiffColorType.Rgb;
                 }
 
                 break;

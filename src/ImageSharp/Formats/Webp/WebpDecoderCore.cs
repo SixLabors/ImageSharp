@@ -221,7 +221,9 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                     }
                     else
                     {
-                        WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
+                        // Ignore unknown chunks.
+                        uint chunkSize = this.ReadChunkSize();
+                        this.currentStream.Skip((int)chunkSize);
                     }
                 }
 

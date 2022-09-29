@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Tests.IO;
@@ -9,13 +10,10 @@ public class BufferedReadStreamTests
 {
     private readonly Configuration configuration;
 
-    public BufferedReadStreamTests()
-    {
-        this.configuration = Configuration.CreateDefaultInstance();
-    }
+    public BufferedReadStreamTests() => this.configuration = Configuration.CreateDefaultInstance();
 
     public static readonly TheoryData<int> BufferSizes =
-        new TheoryData<int>()
+        new()
         {
             1, 2, 4, 8,
             16, 97, 503,
@@ -352,6 +350,31 @@ public class BufferedReadStreamTests
         }
     }
 
+    [Fact]
+    public void BufferedStreamSettingPositionWorksMultipleTimes()
+    {
+        // This test replicates an issue, which was caused by setting the stream position multiple times.
+        // This was then lead to the read buffer not being filled correctly.
+        int bufferSize = 16;
+        this.configuration.StreamProcessingBufferSize = bufferSize;
+        using MemoryStream stream = this.CreateTestStream(bufferSize * 2);
+        byte[] expected = stream.ToArray();
+        using var reader = new BufferedReadStream(this.configuration, stream);
+
+        // Read more then fits into the buffer.
+        for (int i = 0; i < 20; i++)
+        {
+            reader.ReadByte();
+        }
+
+        // Set the Position twice.
+        reader.Position = 10;
+        reader.Position = 3;
+
+        int actual = reader.ReadByte();
+        Assert.Equal(expected[3], actual);
+    }
+
     private MemoryStream CreateTestStream(int length)
     {
         var buffer = new byte[length];
@@ -370,9 +393,6 @@ public class BufferedReadStreamTests
         {
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return base.Read(buffer, offset, 1);
-        }
+        public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, 1);
     }
 }

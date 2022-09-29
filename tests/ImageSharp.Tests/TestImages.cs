@@ -796,6 +796,8 @@ public static class TestImages
         public const string RgbJpegCompressed = "Tiff/rgb_jpegcompression.tiff";
         public const string RgbJpegCompressed2 = "Tiff/twain-rgb-jpeg-with-bogus-ycbcr-subsampling.tiff";
         public const string RgbOldJpegCompressed = "Tiff/OldJpegCompression.tiff";
+        public const string RgbOldJpegCompressed2 = "Tiff/OldJpegCompression2.tiff";
+        public const string RgbOldJpegCompressed3 = "Tiff/OldJpegCompression3.tiff";
         public const string YCbCrOldJpegCompressed = "Tiff/YCbCrOldJpegCompressed.tiff";
         public const string RgbWithStripsJpegCompressed = "Tiff/rgb_jpegcompressed_stripped.tiff";
         public const string RgbJpegCompressedNoJpegTable = "Tiff/rgb_jpegcompressed_nojpegtable.tiff";

@@ -34,9 +34,14 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
+        long stripOffset = stream.Position;
         stream.Position = this.startOfImageMarker;
 
         this.DecodeJpegData(stream, buffer, cancellationToken);
+
+        // Setting the stream position to the expected position.
+        // This is a workaround for some images having set the stripBytesCount not equal to the compressed jpeg data.
+        stream.Position = stripOffset + byteCount;
     }
 
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)

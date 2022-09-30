@@ -49,6 +49,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.BaseStream = stream;
         this.Length = stream.Length;
+        this.Position = (int)stream.Position;
         this.BufferSize = configuration.StreamProcessingBufferSize;
         this.maxBufferIndex = this.BufferSize - 1;
         this.readBuffer = ArrayPool<byte>.Shared.Rent(this.BufferSize);
@@ -58,8 +59,8 @@ internal sealed class BufferedReadStream : Stream
             this.pinnedReadBuffer = (byte*)this.readBufferHandle.Pointer;
         }
 
-        this.Position = (int)stream.Position;
-        this.FillReadBuffer();
+        // This triggers a full read on first attempt.
+        this.readBufferIndex = this.BufferSize;
     }
 
     /// <summary>
@@ -98,7 +99,6 @@ internal sealed class BufferedReadStream : Stream
                 this.BaseStream.Seek(value, SeekOrigin.Begin);
                 this.readerPosition = value;
                 this.readBufferIndex = this.BufferSize;
-                this.FillReadBuffer();
             }
         }
     }

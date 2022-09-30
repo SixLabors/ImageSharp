@@ -334,9 +334,8 @@ public class BufferedReadStreamTests
         bufferedStream.Position = 10;
         bufferedStream.Position = 3;
 
-        // readValue is 25, but should be 3
-        int readValue = bufferedStream.ReadByte();
-        Assert.Equal(3, readValue);
+        int actual = bufferedStream.ReadByte();
+        Assert.Equal(3, actual);
     }
 
     private static MemoryStream CreateTestStream(int length)

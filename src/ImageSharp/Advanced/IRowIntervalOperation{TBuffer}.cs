@@ -13,6 +13,13 @@ public interface IRowIntervalOperation<TBuffer>
     where TBuffer : unmanaged
 {
     /// <summary>
+    /// Return the minimal required number of items in the buffer passed on <see cref="Invoke" />.
+    /// </summary>
+    /// <param name="bounds">The bounds of the operation.</param>
+    /// <returns>The required buffer length.</returns>
+    int GetRequiredBufferLength(Rectangle bounds);
+
+    /// <summary>
     /// Invokes the method passing the row interval and a buffer.
     /// </summary>
     /// <param name="rows">The row interval.</param>

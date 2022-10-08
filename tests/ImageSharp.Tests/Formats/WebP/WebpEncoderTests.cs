@@ -288,7 +288,7 @@ public class WebpEncoderTests
             referenceDecoder: new MagickReferenceDecoder());
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
-        Assert.True(encodedBytes <= expectedFileSize);
+        Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
     }
 
     [Theory]

@@ -384,6 +384,13 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         // If no photometric interpretation was chosen, the input image bit per pixel should be preserved.
         if (!photometricInterpretation.HasValue)
         {
+            if (IsOneBitCompression(this.CompressionType))
+            {
+                // We need to make sure bits per pixel is set to Bit1 now. WhiteIsZero is set because its the default for bilevel compressed data.
+                this.SetEncoderOptions(TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.WhiteIsZero, compression, TiffPredictor.None);
+                return;
+            }
+
             // At the moment only 8 and 32 bits per pixel can be preserved by the tiff encoder.
             if (inputBitsPerPixel == 8)
             {

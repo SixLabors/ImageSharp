@@ -934,6 +934,7 @@ public static class TestImages
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
         public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
+        public const string Issues2255 = "Tiff/Issues/Issue2255.png";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

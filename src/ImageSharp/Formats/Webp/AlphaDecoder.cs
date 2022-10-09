@@ -61,7 +61,13 @@ internal class AlphaDecoder : IDisposable
             var bitReader = new Vp8LBitReader(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
-            this.Use8BDecode = this.Vp8LDec.Transforms.Count > 0 && Is8BOptimizable(this.Vp8LDec.Metadata);
+
+            // Special case: if alpha data uses only the color indexing transform and
+            // doesn't use color cache (a frequent case), we will use DecodeAlphaData()
+            // method that only needs allocation of 1 byte per pixel (alpha channel).
+            this.Use8BDecode = this.Vp8LDec.Transforms.Count is 1
+                               && this.Vp8LDec.Transforms[0].TransformType == Vp8LTransformType.ColorIndexingTransform
+                               && Is8BOptimizable(this.Vp8LDec.Metadata);
         }
     }
 

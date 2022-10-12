@@ -80,7 +80,7 @@ public abstract class TiffEncoderBaseTester
     protected static void TestTiffEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,
         TiffBitsPerPixel? bitsPerPixel,
-        TiffPhotometricInterpretation photometricInterpretation,
+        TiffPhotometricInterpretation? photometricInterpretation,
         TiffCompression compression = TiffCompression.None,
         TiffPredictor predictor = TiffPredictor.None,
         bool useExactComparer = true,

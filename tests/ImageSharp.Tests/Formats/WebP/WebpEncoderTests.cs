@@ -267,28 +267,51 @@ public class WebpEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, false, 64020)]
-    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, true, 16200)]
-    public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, bool compressed, int expectedFileSize)
+    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, 64020)]
+    public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedFileSize)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         var encoder = new WebpEncoder()
         {
             FileFormat = WebpFileFormatType.Lossy,
-            UseAlphaCompression = compressed
+            UseAlphaCompression = false
         };
 
         using Image<TPixel> image = provider.GetImage();
         string encodedFile = image.VerifyEncoder(
             provider,
             "webp",
-            $"with_alpha_compressed_{compressed}",
+            "with_alpha",
             encoder,
             ImageComparer.Tolerant(0.04f),
             referenceDecoder: new MagickReferenceDecoder());
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
-        Assert.True(encodedBytes <= expectedFileSize);
+        Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, 16200)]
+    public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedFileSize)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        var encoder = new WebpEncoder()
+        {
+            FileFormat = WebpFileFormatType.Lossy,
+            UseAlphaCompression = true
+        };
+
+        using Image<TPixel> image = provider.GetImage();
+        string encodedFile = image.VerifyEncoder(
+            provider,
+            "webp",
+            "with_alpha_compressed",
+            encoder,
+            ImageComparer.Tolerant(0.04f),
+            referenceDecoder: new MagickReferenceDecoder());
+
+        int encodedBytes = File.ReadAllBytes(encodedFile).Length;
+        Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
     }
 
     [Theory]

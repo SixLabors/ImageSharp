@@ -668,6 +668,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32)]
     [WithFile(RgbOldJpegCompressed3, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32)]
     [WithFile(YCbCrOldJpegCompressed, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

@@ -62,6 +62,21 @@ public class GeneralFormatTests
     }
 
     [Fact]
+    public async Task ReadOriginIsRespectedOnLoadAsync()
+    {
+        using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
+        using Image<Rgb24> i = await Image.LoadAsync<Rgb24>(stream);
+        long position1 = stream.Position;
+        Assert.NotEqual(0, position1);
+
+        using Image<Rgb24> j = await Image.LoadAsync<Rgb24>(stream);
+        long position2 = stream.Position;
+        Assert.True(position2 > position1);
+
+        Assert.NotEqual(i[5, 5], j[5, 5]);
+    }
+
+    [Fact]
     public void ImageCanEncodeToString()
     {
         string path = TestEnvironment.CreateOutputDirectory("ToString");

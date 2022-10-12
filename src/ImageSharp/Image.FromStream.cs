@@ -517,6 +517,7 @@ public abstract partial class Image
     /// <param name="stream">The input stream.</param>
     /// <param name="action">The action to perform.</param>
     /// <returns>The <typeparamref name="T"/>.</returns>
+    /// <exception cref="NotSupportedException">Cannot read from the stream.</exception>
     internal static T WithSeekableStream<T>(
         DecoderOptions options,
         Stream stream,

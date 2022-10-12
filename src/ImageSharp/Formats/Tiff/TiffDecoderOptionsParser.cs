@@ -481,6 +481,11 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("Missing SOI marker offset for tiff with old jpeg compression");
                 }
 
+                if (options.PlanarConfiguration is TiffPlanarConfiguration.Planar)
+                {
+                    TiffThrowHelper.ThrowNotSupported("Old Jpeg compression is not supported with planar configuration");
+                }
+
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
 
                 if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)

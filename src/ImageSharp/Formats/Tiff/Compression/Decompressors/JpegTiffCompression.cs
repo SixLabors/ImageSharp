@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -73,8 +74,8 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
         }
         else
         {
-            using Image<Rgb24> image = Image.Load<Rgb24>(stream);
-            JpegCompressionUtils.CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
+            using Image<Rgb24> image = Image.Load<Rgb24>(this.options.GeneralOptions, stream);
+            JpegCompressionUtils.CopyImageBytesToBuffer(this.options.GeneralOptions.Configuration, buffer, image.Frames.RootFrame.PixelBuffer);
         }
     }
 
@@ -94,7 +95,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
                 using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
 
@@ -108,7 +109,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);
                 break;
             }
 

@@ -58,7 +58,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
                 using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
 
@@ -70,7 +70,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
-                JpegCompressionUtils.CopyImageBytesToBuffer(buffer, decompressedBuffer);
+                JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);
                 break;
             }
 

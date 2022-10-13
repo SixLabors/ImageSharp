@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    /// <summary>
-    /// <see cref="Configuration"/> instance associated with current
-    /// decoding routine.
-    /// </summary>
-    private readonly Configuration configuration;
 
     private JpegFrame frame;
 
@@ -81,10 +76,14 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// <param name="targetSize">Optional target size for decoded image.</param>
     public SpectralConverter(Configuration configuration, Size? targetSize = null)
     {
-        this.configuration = configuration;
-
+        this.Configuration = configuration;
         this.targetSize = targetSize;
     }
+
+    /// <summary>
+    /// Gets the configuration instance associated with current decoding routine.
+    /// </summary>
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets converted pixel buffer.
@@ -177,7 +176,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     {
         DebugGuard.IsTrue(this.colorConverter == null, "SpectralConverter.PrepareForDecoding() must be called once.");
 
-        MemoryAllocator allocator = this.configuration.MemoryAllocator;
+        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
 
         // color converter from RGB to TPixel
         JpegColorConverterBase converter = this.GetColorConverter(this.frame, this.jpegData);
@@ -196,7 +195,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         this.pixelBuffer = allocator.Allocate2D<TPixel>(
             pixelSize.Width,
             pixelSize.Height,
-            this.configuration.PreferContiguousImageBuffers);
+            this.Configuration.PreferContiguousImageBuffers);
         this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
         // component processors from spectral to RGB
@@ -225,7 +224,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
     protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)
     {
-        MemoryAllocator allocator = this.configuration.MemoryAllocator;
+        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
         var componentProcessors = new ComponentProcessor[frame.Components.Length];
         for (int i = 0; i < componentProcessors.Length; i++)
         {

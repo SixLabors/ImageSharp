@@ -19,10 +19,10 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
     private readonly TiffPhotometricInterpretation photometricInterpretation;
 
     public OldJpegTiffCompression(
+        JpegDecoderOptions options,
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
-        JpegDecoderOptions options,
         uint startOfImageMarker,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)

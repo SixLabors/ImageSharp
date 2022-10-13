@@ -63,11 +63,11 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.OldJpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new OldJpegTiffCompression(allocator, width, bitsPerPixel, new() { GeneralOptions = options }, oldJpegStartOfImageMarker, photometricInterpretation);
+                return new OldJpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new WebpTiffCompression(allocator, width, bitsPerPixel, options);
+                return new WebpTiffCompression(options, allocator, width, bitsPerPixel);
 
             default:
                 throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

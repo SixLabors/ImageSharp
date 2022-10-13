@@ -141,7 +141,7 @@ internal sealed class BufferedReadStream : Stream
 
         // Our buffer has been read.
         // We need to refill and start again.
-        if (this.readBufferIndex < 0 || this.readBufferIndex > this.maxBufferIndex)
+        if ((uint)this.readBufferIndex > (uint)this.maxBufferIndex)
         {
             this.FillReadBuffer();
         }

@@ -34,6 +34,7 @@ public class MagickReferenceDecoder : IImageDecoder
         };
 
         var settings = new MagickReadSettings();
+        settings.FrameCount = (int)options.MaxFrames;
         settings.SetDefines(bmpReadDefines);
 
         using var magickImageCollection = new MagickImageCollection(stream, settings);

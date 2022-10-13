@@ -10,52 +10,38 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 
-/// <summary>
-/// Class to handle cases where TIFF image data is compressed as a jpeg stream.
-/// </summary>
-internal sealed class JpegTiffCompression : TiffBaseDecompressor
+internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 {
     private readonly JpegDecoderOptions options;
 
-    private readonly byte[] jpegTables;
+    private readonly uint startOfImageMarker;
 
     private readonly TiffPhotometricInterpretation photometricInterpretation;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JpegTiffCompression"/> class.
-    /// </summary>
-    /// <param name="options">The specialized jpeg decoder options.</param>
-    /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
-    /// <param name="width">The image width.</param>
-    /// <param name="bitsPerPixel">The bits per pixel.</param>
-    /// <param name="jpegTables">The JPEG tables containing the quantization and/or Huffman tables.</param>
-    /// <param name="photometricInterpretation">The photometric interpretation.</param>
-    public JpegTiffCompression(
+    public OldJpegTiffCompression(
         JpegDecoderOptions options,
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
-        byte[] jpegTables,
+        uint startOfImageMarker,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)
     {
         this.options = options;
-        this.jpegTables = jpegTables;
+        this.startOfImageMarker = startOfImageMarker;
         this.photometricInterpretation = photometricInterpretation;
     }
 
-    /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        if (this.jpegTables != null)
-        {
-            this.DecodeJpegData(stream, buffer, cancellationToken);
-        }
-        else
-        {
-            using Image<Rgb24> image = Image.Load<Rgb24>(this.options.GeneralOptions, stream);
-            JpegCompressionUtils.CopyImageBytesToBuffer(this.options.GeneralOptions.Configuration, buffer, image.Frames.RootFrame.PixelBuffer);
-        }
+        long stripOffset = stream.Position;
+        stream.Position = this.startOfImageMarker;
+
+        this.DecodeJpegData(stream, buffer, cancellationToken);
+
+        // Setting the stream position to the expected position.
+        // This is a workaround for some images having set the stripBytesCount not equal to the compressed jpeg data.
+        stream.Position = stripOffset + byteCount;
     }
 
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
@@ -68,9 +54,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.WhiteIsZero:
             {
                 using SpectralConverter<L8> spectralConverterGray = new GrayJpegSpectralConverter<L8>(configuration);
-                HuffmanScanDecoder scanDecoderGray = new(stream, spectralConverterGray, cancellationToken);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoderGray);
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
                 using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
@@ -81,10 +65,8 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
             case TiffPhotometricInterpretation.YCbCr:
             case TiffPhotometricInterpretation.Rgb:
             {
-                using SpectralConverter<Rgb24> spectralConverter = new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
-                HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);
+                using SpectralConverter<Rgb24> spectralConverter = new TiffOldJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
-                jpegDecoder.LoadTables(this.jpegTables, scanDecoder);
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
                 using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);

@@ -21,6 +21,7 @@ internal static class TiffDecompressorsFactory
         TiffPredictor predictor,
         FaxCompressionOptions faxOptions,
         byte[] jpegTables,
+        uint oldJpegStartOfImageMarker,
         TiffFillOrder fillOrder,
         ByteOrder byteOrder)
     {
@@ -59,6 +60,10 @@ internal static class TiffDecompressorsFactory
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                 return new JpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, jpegTables, photometricInterpretation);
+
+            case TiffDecoderCompressionType.OldJpeg:
+                DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
+                return new OldJpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

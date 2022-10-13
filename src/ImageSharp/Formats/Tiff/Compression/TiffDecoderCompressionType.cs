@@ -52,4 +52,9 @@ internal enum TiffDecoderCompressionType
     /// The image data is compressed as a WEBP stream.
     /// </summary>
     Webp = 8,
+
+    /// <summary>
+    /// The image data is compressed as a OldJPEG compressed stream.
+    /// </summary>
+    OldJpeg = 9,
 }

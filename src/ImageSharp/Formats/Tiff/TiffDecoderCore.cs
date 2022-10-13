@@ -127,6 +127,11 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public byte[] JpegTables { get; set; }
 
     /// <summary>
+    /// Gets or sets the start of image marker for old Jpeg compression.
+    /// </summary>
+    public uint? OldJpegCompressionStartOfImageMarker { get; set; }
+
+    /// <summary>
     /// Gets or sets the planar configuration type to use when decoding the image.
     /// </summary>
     public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -232,7 +237,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var imageFrameMetaData = new ImageFrameMetadata();
+        ImageFrameMetadata imageFrameMetaData = new();
         if (!this.skipMetadata)
         {
             imageFrameMetaData.ExifProfile = tags;
@@ -245,12 +250,12 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         int width = GetImageWidth(tags);
         int height = GetImageHeight(tags);
-        var frame = new ImageFrame<TPixel>(this.configuration, width, height, imageFrameMetaData);
+        ImageFrame<TPixel> frame = new(this.configuration, width, height, imageFrameMetaData);
 
         int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
 
-        var stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
-        var stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
+        Array stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
+        Array stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
 
         using IMemoryOwner<ulong> stripOffsetsMemory = this.ConvertNumbers(stripOffsetsArray, out Span<ulong> stripOffsets);
         using IMemoryOwner<ulong> stripByteCountsMemory = this.ConvertNumbers(stripByteCountsArray, out Span<ulong> stripByteCounts);
@@ -358,7 +363,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-        var stripBuffers = new IMemoryOwner<byte>[stripsPerPixel];
+        IMemoryOwner<byte>[] stripBuffers = new IMemoryOwner<byte>[stripsPerPixel];
 
         try
         {
@@ -379,6 +384,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 this.Predictor,
                 this.FaxCompressionOptions,
                 this.JpegTables,
+                this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
                 this.FillOrder,
                 this.byteOrder);
 
@@ -460,6 +466,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             this.Predictor,
             this.FaxCompressionOptions,
             this.JpegTables,
+            this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
             this.FillOrder,
             this.byteOrder);
 

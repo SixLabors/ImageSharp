@@ -21,7 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
-
     private JpegFrame frame;
 
     private IRawJpegData jpegData;
@@ -133,7 +132,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         {
             int y = yy - this.pixelRowCounter;
 
-            var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
+            JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
             this.colorConverter.ConvertToRgbInplace(values);
             values = values.Slice(0, width); // slice away Jpeg padding
@@ -202,7 +201,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         int bufferWidth = majorBlockWidth * blockPixelSize;
         int batchSize = converter.ElementsPerBatch;
         int batchRemainder = bufferWidth & (batchSize - 1);
-        var postProcessorBufferSize = new Size(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
+        Size postProcessorBufferSize = new(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
         this.componentProcessors = this.CreateComponentProcessors(this.frame, this.jpegData, blockPixelSize, postProcessorBufferSize);
 
         // single 'stride' rgba32 buffer for conversion between spectral and TPixel
@@ -225,7 +224,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     protected ComponentProcessor[] CreateComponentProcessors(JpegFrame frame, IRawJpegData jpegData, int blockPixelSize, Size processorBufferSize)
     {
         MemoryAllocator allocator = this.Configuration.MemoryAllocator;
-        var componentProcessors = new ComponentProcessor[frame.Components.Length];
+        ComponentProcessor[] componentProcessors = new ComponentProcessor[frame.Components.Length];
         for (int i = 0; i < componentProcessors.Length; i++)
         {
             componentProcessors[i] = blockPixelSize switch

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Six Labors Split License.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
@@ -9,15 +9,10 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 
-/// <summary>
-/// Implements decoding pixel data with photometric interpretation of type 'CieLab'.
-/// </summary>
-internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
+internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly ColorSpaceConverter ColorSpaceConverter = new();
-
-    private const float Inv255 = 1.0f / 255.0f;
+    private const float Inv255 = 1 / 255.0f;
 
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -27,17 +22,15 @@ internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-
             for (int x = 0; x < pixelRow.Length; x++)
             {
-                float l = (data[offset] & 0xFF) * 100f * Inv255;
-                CieLab lab = new(l, (sbyte)data[offset + 1], (sbyte)data[offset + 2]);
-                Rgb rgb = ColorSpaceConverter.ToRgb(lab);
+                Cmyk cmyk = new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, data[offset + 3] * Inv255);
+                Rgb rgb = ColorSpaceConverter.ToRgb(in cmyk);
 
                 color.FromVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
                 pixelRow[x] = color;
 
-                offset += 3;
+                offset += 4;
             }
         }
     }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -42,26 +41,6 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
     {
         this.options = options;
         this.jpegTables = jpegTables;
-        this.photometricInterpretation = photometricInterpretation;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JpegTiffCompression"/> class.
-    /// </summary>
-    /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
-    /// <param name="width">The image width.</param>
-    /// <param name="bitsPerPixel">The bits per pixel.</param>
-    /// <param name="options">The specialized jpeg decoder options.</param>
-    /// <param name="photometricInterpretation">The photometric interpretation.</param>
-    public JpegTiffCompression(
-        MemoryAllocator memoryAllocator,
-        int width,
-        int bitsPerPixel,
-        JpegDecoderOptions options,
-        TiffPhotometricInterpretation photometricInterpretation)
-        : base(memoryAllocator, width, bitsPerPixel)
-    {
-        this.options = options;
         this.photometricInterpretation = photometricInterpretation;
     }
 

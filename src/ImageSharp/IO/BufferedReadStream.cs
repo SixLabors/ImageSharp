@@ -172,7 +172,7 @@ internal sealed class BufferedReadStream : Stream
 
         // Too big for remaining buffer but less than entire buffer length
         // Copy to buffer then read from there.
-        if (this.readBufferIndex < 0 || (count + this.readBufferIndex > this.BufferSize))
+        if (this.readBufferIndex < 0 || (this.readBufferIndex > this.BufferSize - count))
         {
             return this.ReadToBufferViaCopySlow(buffer);
         }

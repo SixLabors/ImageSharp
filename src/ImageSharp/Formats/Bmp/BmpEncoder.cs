@@ -2,16 +2,20 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
+public sealed class BmpEncoder : QuantizingImageEncoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BmpEncoder"/> class.
+    /// </summary>
+    public BmpEncoder() => this.Quantizer = KnownQuantizers.Wu;
+
     /// <summary>
     /// Gets or sets the number of bits per pixel.
     /// </summary>
@@ -25,25 +29,17 @@ public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
     /// </summary>
     public bool SupportTransparency { get; set; }
 
-    /// <summary>
-    /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
-    /// Defaults to Wu Quantizer.
-    /// </summary>
-    public IQuantizer Quantizer { get; set; }
-
     /// <inheritdoc/>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
         encoder.Encode(image, stream);
     }
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

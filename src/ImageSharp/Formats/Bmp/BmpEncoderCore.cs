@@ -95,14 +95,14 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The encoder options.</param>
+    /// <param name="encoder">The Bmp encoder.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
-    public BmpEncoderCore(IBmpEncoderOptions options, MemoryAllocator memoryAllocator)
+    public BmpEncoderCore(BmpEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.bitsPerPixel = options.BitsPerPixel;
-        this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
-        this.infoHeaderType = options.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
+        this.bitsPerPixel = encoder.BitsPerPixel;
+        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
+        this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
     }
 
     /// <summary>

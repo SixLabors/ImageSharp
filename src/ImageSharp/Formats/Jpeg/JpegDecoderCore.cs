@@ -275,7 +275,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 // Get the marker length.
                 int markerContentByteSize = this.ReadUint16(stream) - 2;
 
-                // Check whether stream actually has enought bytes to read
+                // Check whether the stream actually has enough bytes to read
                 // markerContentByteSize is always positive so we cast
                 // to uint to avoid sign extension
                 if (stream.RemainingBytes < (uint)markerContentByteSize)

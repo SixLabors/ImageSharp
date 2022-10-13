@@ -518,7 +518,8 @@ public static class TestImageExtensions
         this Image<TPixel> image,
         ITestImageProvider provider,
         ImageComparer comparer,
-        IImageDecoder referenceDecoder = null)
+        IImageDecoder referenceDecoder = null,
+        DecoderOptions referenceDecoderOptions = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -527,12 +528,12 @@ public static class TestImageExtensions
             throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
         }
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
 
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
-        using var stream = new MemoryStream(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
+        using MemoryStream stream = new(testFile.Bytes);
+        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream, default))
         {
             comparer.VerifySimilarity(original, image);
         }
@@ -553,11 +554,11 @@ public static class TestImageExtensions
             throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
         }
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
 
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
-        using var stream = new MemoryStream(testFile.Bytes);
+        using MemoryStream stream = new(testFile.Bytes);
         using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
         {
             comparer.VerifySimilarity(original, image);

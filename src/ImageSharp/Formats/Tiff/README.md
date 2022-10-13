@@ -30,34 +30,34 @@
 
 ### Compression Formats
 
-|                           |Encoder|Decoder|Comments                  |
-|---------------------------|:-----:|:-----:|--------------------------|
-|None                       |   Y   |   Y   |                          |
-|Ccitt1D                    |   Y   |   Y   |                          |
-|PackBits                   |   Y   |   Y   |                          |
-|CcittGroup3Fax             |   Y   |   Y   |                          |
-|CcittGroup4Fax             |   Y   |   Y   |                          |
+|                           |Encoder|Decoder|Comments                           |
+|---------------------------|:-----:|:-----:|-----------------------------------|
+|None                       |   Y   |   Y   |                                   |
+|Ccitt1D                    |   Y   |   Y   |                                   |
+|PackBits                   |   Y   |   Y   |                                   |
+|CcittGroup3Fax             |   Y   |   Y   |                                   |
+|CcittGroup4Fax             |   Y   |   Y   |                                   |
 |Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case. |
-|Old Jpeg                   |       |       | We should not even try to support this. |
-|Jpeg (Technote 2)          |   Y   |   Y   |                          |
-|Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate.    |
-|Old Deflate (Technote 2)   |       |   Y   |                          |
-|Webp   					|       |   Y   |                          |
+|Old Jpeg                   |       |   Y   | Only with chunky configuration.   |
+|Jpeg (Technote 2)          |   Y   |   Y   |                                   |
+|Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate.             |
+|Old Deflate (Technote 2)   |       |   Y   |                                   |
+|Webp   					|       |   Y   |                                   |
 
 ### Photometric Interpretation Formats
 
-|                           |Encoder|Decoder|Comments                  |
-|---------------------------|:-----:|:-----:|--------------------------|
-|WhiteIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations |
-|BlackIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations |
-|Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation |
-|Rgb (Planar)               |       |   Y   | General implementation only |
-|PaletteColor               |   Y   |   Y   | General implementation only |
-|TransparencyMask           |       |       |                          |
-|Separated (TIFF Extension) |       |       |                          |
-|YCbCr (TIFF Extension)     |       |   Y   |                          |
-|CieLab (TIFF Extension)    |       |   Y   |                          |
-|IccLab (TechNote 1)        |       |       |                          |
+|                           |Encoder|Decoder|Comments                                   |
+|---------------------------|:-----:|:-----:|-------------------------------------------|
+|WhiteIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations. |
+|BlackIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations. |
+|Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation.|
+|Rgb (Planar)               |       |   Y   | General implementation only.              |
+|PaletteColor               |   Y   |   Y   | General implementation only.              |
+|TransparencyMask           |       |       |                                           |
+|Separated (TIFF Extension) |       |       |                                           |
+|YCbCr (TIFF Extension)     |       |   Y   |                                           |
+|CieLab (TIFF Extension)    |       |   Y   |                                           |
+|IccLab (TechNote 1)        |       |       |                                           |
 
 ### Baseline TIFF Tags
 

@@ -25,17 +25,17 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegTiffCompression"/> class.
     /// </summary>
+    /// <param name="options">The specialized jpeg decoder options.</param>
     /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
     /// <param name="width">The image width.</param>
     /// <param name="bitsPerPixel">The bits per pixel.</param>
-    /// <param name="options">The specialized jpeg decoder options.</param>
     /// <param name="jpegTables">The JPEG tables containing the quantization and/or Huffman tables.</param>
     /// <param name="photometricInterpretation">The photometric interpretation.</param>
     public JpegTiffCompression(
+        JpegDecoderOptions options,
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
-        JpegDecoderOptions options,
         byte[] jpegTables,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)

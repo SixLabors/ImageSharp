@@ -54,7 +54,7 @@
 |Rgb (Planar)               |       |   Y   | General implementation only.              |
 |PaletteColor               |   Y   |   Y   | General implementation only.              |
 |TransparencyMask           |       |       |                                           |
-|Separated (TIFF Extension) |       |       |                                           |
+|Separated (TIFF Extension) |       |   Y   |                                           |
 |YCbCr (TIFF Extension)     |       |   Y   |                                           |
 |CieLab (TIFF Extension)    |       |   Y   |                                           |
 |IccLab (TechNote 1)        |       |       |                                           |

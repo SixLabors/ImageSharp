@@ -413,6 +413,23 @@ internal static class TiffDecoderOptionsParser
                 break;
             }
 
+            case TiffPhotometricInterpretation.Separated:
+            {
+                if (options.BitsPerSample.Channels != 4)
+                {
+                    TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CMYK images.");
+                }
+
+                ushort bitsPerChannel = options.BitsPerSample.Channel0;
+                if (bitsPerChannel != 8)
+                {
+                    TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CMYK images.");
+                }
+
+                options.ColorType = TiffColorType.Cmyk;
+                break;
+            }
+
             default:
             {
                 TiffThrowHelper.ThrowNotSupported($"The specified TIFF photometric interpretation is not supported: {options.PhotometricInterpretation}");

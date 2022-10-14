@@ -936,6 +936,8 @@ public static class TestImages
         public const string CieLabPlanar = "Tiff/CieLabPlanar.tiff";
         public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
 
+        public const string Cmyk = "Tiff/Cmyk.tiff";
+
         public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
         public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";

@@ -287,4 +287,9 @@ internal enum TiffColorType
     /// The pixels are stored in CieLab format as planar.
     /// </summary>
     CieLabPlanar,
+
+    /// <summary>
+    /// The pixels are stored as CMYK.
+    /// </summary>
+    Cmyk,
 }

@@ -402,6 +402,16 @@ internal static class TiffColorDecoderFactory<TPixel>
                     "bitsPerSample");
                 return new CieLabTiffColor<TPixel>();
 
+            case TiffColorType.Cmyk:
+                DebugGuard.IsTrue(
+                    bitsPerSample.Channels == 4
+                    && bitsPerSample.Channel3 == 8
+                    && bitsPerSample.Channel2 == 8
+                    && bitsPerSample.Channel1 == 8
+                    && bitsPerSample.Channel0 == 8,
+                    "bitsPerSample");
+                return new CmykTiffColor<TPixel>();
+
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());
         }

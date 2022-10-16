@@ -79,7 +79,7 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             r = Math.Max(this.MinimumScanRatio, r); // always visit the minimum defined portion of the image.
 
-            var ratio = new Rational(r);
+            Rational ratio = new(r);
 
             int denom = (int)ratio.Denominator;
             int num = (int)ratio.Numerator;

@@ -19,7 +19,7 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void AddFrame_OfDifferentPixelType()
         {
-            using (var sourceImage = new Image<Bgra32>(
+            using (Image<Bgra32> sourceImage = new(
                 this.Image.GetConfiguration(),
                 this.Image.Width,
                 this.Image.Height,
@@ -32,7 +32,7 @@ public abstract partial class ImageFrameCollectionTests
                 Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
             Assert.Equal(2, this.Collection.Count);
-            var actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
+            ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
 
             actualFrame.ComparePixelBufferTo(expectedAllBlue);
         }
@@ -40,7 +40,7 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void InsertFrame_OfDifferentPixelType()
         {
-            using (var sourceImage = new Image<Bgra32>(
+            using (Image<Bgra32> sourceImage = new(
                 this.Image.GetConfiguration(),
                 this.Image.Width,
                 this.Image.Height,
@@ -53,25 +53,20 @@ public abstract partial class ImageFrameCollectionTests
                 Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
             Assert.Equal(2, this.Collection.Count);
-            var actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
+            ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
 
             actualFrame.ComparePixelBufferTo(expectedAllBlue);
         }
 
         [Fact]
         public void Constructor_ShouldCreateOneFrame()
-        {
-            Assert.Equal(1, this.Collection.Count);
-        }
+            => Assert.Equal(1, this.Collection.Count);
 
         [Fact]
         public void AddNewFrame_FramesMustHaveSameSize()
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () =>
-                {
-                    this.Collection.AddFrame(new ImageFrame<Rgba32>(Configuration.Default, 1, 1));
-                });
+                () => this.Collection.AddFrame(new ImageFrame<Rgba32>(Configuration.Default, 1, 1)));
 
             Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
@@ -80,10 +75,7 @@ public abstract partial class ImageFrameCollectionTests
         public void AddNewFrame_Frame_FramesNotBeNull()
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () =>
-                {
-                    this.Collection.AddFrame(null);
-                });
+                () => this.Collection.AddFrame(null));
 
             Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
         }
@@ -92,10 +84,7 @@ public abstract partial class ImageFrameCollectionTests
         public void InsertNewFrame_FramesMustHaveSameSize()
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () =>
-                {
-                    this.Collection.InsertFrame(1, new ImageFrame<Rgba32>(Configuration.Default, 1, 1));
-                });
+                () => this.Collection.InsertFrame(1, new ImageFrame<Rgba32>(Configuration.Default, 1, 1)));
 
             Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
@@ -104,10 +93,7 @@ public abstract partial class ImageFrameCollectionTests
         public void InsertNewFrame_FramesNotBeNull()
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () =>
-                {
-                    this.Collection.InsertFrame(1, null);
-                });
+                () => this.Collection.InsertFrame(1, null));
 
             Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
         }
@@ -116,10 +102,7 @@ public abstract partial class ImageFrameCollectionTests
         public void RemoveAtFrame_ThrowIfRemovingLastFrame()
         {
             InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
-                () =>
-                {
-                    this.Collection.RemoveFrame(0);
-                });
+                () => this.Collection.RemoveFrame(0));
             Assert.Equal("Cannot remove last frame.", ex.Message);
         }
 
@@ -134,30 +117,24 @@ public abstract partial class ImageFrameCollectionTests
 
         [Fact]
         public void RootFrameIsFrameAtIndexZero()
-        {
-            Assert.Equal(this.Collection.RootFrame, this.Collection[0]);
-        }
+            => Assert.Equal(this.Collection.RootFrame, this.Collection[0]);
 
         [Theory]
         [WithTestPatternImages(10, 10, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
         public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                ImageFrameCollection nonGenericFrameCollection = img.Frames;
+            using Image<TPixel> img = provider.GetImage();
+            ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
-                nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
-                using (Image cloned = nonGenericFrameCollection.CloneFrame(0))
-                {
-                    Assert.Equal(2, img.Frames.Count);
+            nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10)); // add a frame anyway
+            using Image cloned = nonGenericFrameCollection.CloneFrame(0);
+            Assert.Equal(2, img.Frames.Count);
 
-                    var expectedClone = (Image<TPixel>)cloned;
+            Image<TPixel> expectedClone = (Image<TPixel>)cloned;
 
-                    Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
-                    expectedClone.ComparePixelBufferTo(imgMem);
-                }
-            }
+            Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
+            expectedClone.ComparePixelBufferTo(imgMem);
         }
 
         [Theory]
@@ -165,22 +142,18 @@ public abstract partial class ImageFrameCollectionTests
         public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
-                TPixel[] sourcePixelData = imgMem.ToArray();
+            using Image<TPixel> img = provider.GetImage();
+            Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
+            TPixel[] sourcePixelData = imgMem.ToArray();
 
-                ImageFrameCollection nonGenericFrameCollection = img.Frames;
+            ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
-                nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
-                using (Image cloned = nonGenericFrameCollection.ExportFrame(0))
-                {
-                    Assert.Equal(1, img.Frames.Count);
+            nonGenericFrameCollection.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
+            using Image cloned = nonGenericFrameCollection.ExportFrame(0);
+            Assert.Equal(1, img.Frames.Count);
 
-                    var expectedClone = (Image<TPixel>)cloned;
-                    expectedClone.ComparePixelBufferTo(sourcePixelData.AsSpan());
-                }
-            }
+            Image<TPixel> expectedClone = (Image<TPixel>)cloned;
+            expectedClone.ComparePixelBufferTo(sourcePixelData.AsSpan());
         }
 
         [Fact]
@@ -190,7 +163,7 @@ public abstract partial class ImageFrameCollectionTests
 
             Assert.Equal(2, this.Image.Frames.Count);
 
-            var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
+            ImageFrame<Rgba32> frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
             frame.ComparePixelBufferTo(default(Rgba32));
         }
@@ -202,7 +175,7 @@ public abstract partial class ImageFrameCollectionTests
 
             Assert.Equal(2, this.Image.Frames.Count);
 
-            var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
+            ImageFrame<Rgba32> frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
             frame.ComparePixelBufferTo(Color.HotPink);
         }
@@ -210,132 +183,127 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void MoveFrame_LeavesFrameInCorrectLocation()
         {
-            for (var i = 0; i < 9; i++)
+            for (int i = 0; i < 9; i++)
             {
                 this.Image.Frames.CreateFrame();
             }
 
-            var frame = this.Image.Frames[4];
+            ImageFrame frame = this.Image.Frames[4];
             this.Image.Frames.MoveFrame(4, 7);
-            var newIndex = this.Image.Frames.IndexOf(frame);
+            int newIndex = this.Image.Frames.IndexOf(frame);
             Assert.Equal(7, newIndex);
         }
 
         [Fact]
         public void IndexOf_ReturnsCorrectIndex()
         {
-            for (var i = 0; i < 9; i++)
+            for (int i = 0; i < 9; i++)
             {
                 this.Image.Frames.CreateFrame();
             }
 
-            var frame = this.Image.Frames[4];
-            var index = this.Image.Frames.IndexOf(frame);
+            ImageFrame frame = this.Image.Frames[4];
+            int index = this.Image.Frames.IndexOf(frame);
             Assert.Equal(4, index);
         }
 
         [Fact]
         public void Contains_TrueIfMember()
         {
-            for (var i = 0; i < 9; i++)
+            for (int i = 0; i < 9; i++)
             {
                 this.Image.Frames.CreateFrame();
             }
 
-            var frame = this.Image.Frames[4];
+            ImageFrame frame = this.Image.Frames[4];
             Assert.True(this.Image.Frames.Contains(frame));
         }
 
         [Fact]
         public void Contains_FalseIfNonMember()
         {
-            for (var i = 0; i < 9; i++)
+            for (int i = 0; i < 9; i++)
             {
                 this.Image.Frames.CreateFrame();
             }
 
-            var frame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+            ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
             Assert.False(this.Image.Frames.Contains(frame));
         }
 
         [Fact]
         public void PublicProperties_ThrowIfDisposed()
         {
-            var image = new Image<Rgba32>(Configuration.Default, 10, 10);
-            var frameCollection = image.Frames;
+            Image<Rgba32> image = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> frameCollection = image.Frames;
 
             image.Dispose(); // this should invalidate underlying collection as well
 
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.RootFrame; });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> prop = frameCollection.RootFrame; });
         }
 
         [Fact]
         public void PublicMethods_ThrowIfDisposed()
         {
-            var image = new Image<Rgba32>(Configuration.Default, 10, 10);
-            var frameCollection = image.Frames;
-            var rgba32Array = new Rgba32[0];
+            Image<Rgba32> image = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> frameCollection = image.Frames;
+            Rgba32[] rgba32Array = Array.Empty<Rgba32>();
 
             image.Dispose(); // this should invalidate underlying collection as well
 
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame((ImageFrame)null); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(rgba32Array); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame((ImageFrame<Rgba32>)null); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(rgba32Array.AsSpan()); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CloneFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.Contains(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.ExportFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.GetEnumerator(); });
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.IndexOf(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.InsertFrame(default, default); });
-            Assert.Throws<ObjectDisposedException>(() => { frameCollection.RemoveFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { frameCollection.MoveFrame(default, default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame res = frameCollection.AddFrame((ImageFrame)null); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.AddFrame(rgba32Array); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.AddFrame((ImageFrame<Rgba32>)null); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.AddFrame(rgba32Array.AsSpan()); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = frameCollection.CloneFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { bool res = frameCollection.Contains(default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.CreateFrame(); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.CreateFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = frameCollection.ExportFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { IEnumerator<ImageFrame<Rgba32>> res = frameCollection.GetEnumerator(); });
+            Assert.Throws<ObjectDisposedException>(() => { int prop = frameCollection.IndexOf(default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> prop = frameCollection.InsertFrame(default, default); });
+            Assert.Throws<ObjectDisposedException>(() => frameCollection.RemoveFrame(default));
+            Assert.Throws<ObjectDisposedException>(() => frameCollection.MoveFrame(default, default));
         }
 
         /// <summary>
         /// Integration test for end-to end API validation.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="provider">The test image provider</param>
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image source = provider.GetImage())
-            using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
+            using Image source = provider.GetImage();
+            using Image<TPixel> dest = new(source.GetConfiguration(), source.Width, source.Height);
+            // Giphy.gif has 5 frames
+            ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
+            ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
+            ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
+            ImportFrameAs<Rgba32>(source.Frames, dest.Frames, 3);
+            ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 4);
+
+            // Drop the original empty root frame:
+            dest.Frames.RemoveFrame(0);
+
+            dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
+            dest.CompareToOriginal(provider);
+
+            for (int i = 0; i < 5; i++)
             {
-                // Giphy.gif has 5 frames
-                ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
-                ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
-                ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
-                ImportFrameAs<Rgba32>(source.Frames, dest.Frames, 3);
-                ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 4);
-
-                // Drop the original empty root frame:
-                dest.Frames.RemoveFrame(0);
-
-                dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
-                dest.CompareToOriginal(provider);
-
-                for (int i = 0; i < 5; i++)
-                {
-                    CompareGifMetadata(source.Frames[i], dest.Frames[i]);
-                }
+                CompareGifMetadata(source.Frames[i], dest.Frames[i]);
             }
         }
 
         private static void ImportFrameAs<TPixel>(ImageFrameCollection source, ImageFrameCollection destination, int index)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image temp = source.CloneFrame(index))
-            {
-                using (Image<TPixel> temp2 = temp.CloneAs<TPixel>())
-                {
-                    destination.AddFrame(temp2.Frames.RootFrame);
-                }
-            }
+            using Image temp = source.CloneFrame(index);
+            using Image<TPixel> temp2 = temp.CloneAs<TPixel>();
+            destination.AddFrame(temp2.Frames.RootFrame);
         }
 
         private static void CompareGifMetadata(ImageFrame a, ImageFrame b)

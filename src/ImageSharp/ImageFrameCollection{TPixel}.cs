@@ -374,10 +374,15 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     }
 
     /// <inheritdoc/>
-    public IEnumerator<ImageFrame<TPixel>> GetEnumerator() => this.frames.GetEnumerator();
+    public IEnumerator<ImageFrame<TPixel>> GetEnumerator()
+    {
+        this.EnsureNotDisposed();
+
+        return this.frames.GetEnumerator();
+    }
 
     /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
     private void ValidateFrame(ImageFrame<TPixel> frame)
     {

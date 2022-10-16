@@ -14,9 +14,7 @@ public abstract partial class ImageFrameCollectionTests
     {
         [Fact]
         public void Constructor_ShouldCreateOneFrame()
-        {
-            Assert.Equal(1, this.Collection.Count);
-        }
+            => Assert.Equal(1, this.Collection.Count);
 
         [Fact]
         public void AddNewFrame_FramesMustHaveSameSize()
@@ -24,7 +22,7 @@ public abstract partial class ImageFrameCollectionTests
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                 {
-                    using var frame = new ImageFrame<Rgba32>(Configuration.Default, 1, 1);
+                    using ImageFrame<Rgba32> frame = new(Configuration.Default, 1, 1);
                     using ImageFrame<Rgba32> addedFrame = this.Collection.AddFrame(frame);
                 });
 
@@ -75,7 +73,7 @@ public abstract partial class ImageFrameCollectionTests
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                 {
-                    using var frame = new ImageFrame<Rgba32>(Configuration.Default, 1, 1);
+                    using ImageFrame<Rgba32> frame = new(Configuration.Default, 1, 1);
                     using ImageFrame<Rgba32> insertedFrame = this.Collection.InsertFrame(1, frame);
                 });
 
@@ -100,8 +98,8 @@ public abstract partial class ImageFrameCollectionTests
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                 {
-                    using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                    using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 1, 1);
+                    using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+                    using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 1, 1);
                     new ImageFrameCollection<Rgba32>(
                         this.Image,
                         new[] { imageFrame1, imageFrame2 });
@@ -113,8 +111,8 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void RemoveAtFrame_ThrowIfRemovingLastFrame()
         {
-            using var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame });
 
@@ -126,9 +124,9 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void RemoveAtFrame_CanRemoveFrameZeroIfMultipleFramesExist()
         {
-            using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame1, imageFrame2 });
 
@@ -139,9 +137,9 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void RootFrameIsFrameAtIndexZero()
         {
-            using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame1, imageFrame2 });
 
@@ -151,9 +149,9 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void ConstructorPopulatesFrames()
         {
-            using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame1, imageFrame2 });
 
@@ -163,9 +161,9 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void DisposeClearsCollection()
         {
-            using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame1, imageFrame2 });
 
@@ -177,9 +175,9 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void Dispose_DisposesAllInnerFrames()
         {
-            using var imageFrame1 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            using var imageFrame2 = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-            var collection = new ImageFrameCollection<Rgba32>(
+            using ImageFrame<Rgba32> imageFrame1 = new(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
                 new[] { imageFrame1, imageFrame2 });
 
@@ -188,11 +186,8 @@ public abstract partial class ImageFrameCollectionTests
 
             Assert.All(
                 framesSnapShot,
-                f =>
-                {
-                    // The pixel source of the frame is null after its been disposed.
-                    Assert.Null(f.PixelBuffer);
-                });
+                f => // The pixel source of the frame is null after its been disposed.
+                    Assert.Null(f.PixelBuffer));
         }
 
         [Theory]
@@ -200,18 +195,14 @@ public abstract partial class ImageFrameCollectionTests
         public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                using var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                using ImageFrame addedFrame = img.Frames.AddFrame(imageFrame); // add a frame anyway
-                using (Image<TPixel> cloned = img.Frames.CloneFrame(0))
-                {
-                    Assert.Equal(2, img.Frames.Count);
-                    Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
+            using Image<TPixel> img = provider.GetImage();
+            using ImageFrame<Rgba32> imageFrame = new(Configuration.Default, 10, 10);
+            using ImageFrame addedFrame = img.Frames.AddFrame(imageFrame); // add a frame anyway
+            using Image<TPixel> cloned = img.Frames.CloneFrame(0);
+            Assert.Equal(2, img.Frames.Count);
+            Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMem));
 
-                    cloned.ComparePixelBufferTo(imgMem);
-                }
-            }
+            cloned.ComparePixelBufferTo(imgMem);
         }
 
         [Theory]
@@ -219,19 +210,15 @@ public abstract partial class ImageFrameCollectionTests
         public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
-            {
-                Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMemory));
-                TPixel[] sourcePixelData = imgMemory.ToArray();
+            using Image<TPixel> img = provider.GetImage();
+            Assert.True(img.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imgMemory));
+            TPixel[] sourcePixelData = imgMemory.ToArray();
 
-                using var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                using ImageFrame addedFrame = img.Frames.AddFrame(imageFrame);
-                using (Image<TPixel> cloned = img.Frames.ExportFrame(0))
-                {
-                    Assert.Equal(1, img.Frames.Count);
-                    cloned.ComparePixelBufferTo(sourcePixelData.AsSpan());
-                }
-            }
+            using ImageFrame<Rgba32> imageFrame = new(Configuration.Default, 10, 10);
+            using ImageFrame addedFrame = img.Frames.AddFrame(imageFrame);
+            using Image<TPixel> cloned = img.Frames.ExportFrame(0);
+            Assert.Equal(1, img.Frames.Count);
+            cloned.ComparePixelBufferTo(sourcePixelData.AsSpan());
         }
 
         [Fact]
@@ -266,7 +253,7 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void AddFrame_clones_sourceFrame()
         {
-            using var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> otherFrame = new(Configuration.Default, 10, 10);
             using ImageFrame<Rgba32> addedFrame = this.Image.Frames.AddFrame(otherFrame);
 
             Assert.True(otherFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> otherFrameMem));
@@ -277,7 +264,7 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void InsertFrame_clones_sourceFrame()
         {
-            using var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> otherFrame = new(Configuration.Default, 10, 10);
             using ImageFrame<Rgba32> addedFrame = this.Image.Frames.InsertFrame(0, otherFrame);
 
             Assert.True(otherFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> otherFrameMem));
@@ -332,7 +319,7 @@ public abstract partial class ImageFrameCollectionTests
                 this.Image.Frames.CreateFrame();
             }
 
-            using var frame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
             Assert.False(this.Image.Frames.Contains(frame));
         }
 
@@ -343,14 +330,13 @@ public abstract partial class ImageFrameCollectionTests
             configuration.MemoryAllocator = new TestMemoryAllocator { BufferCapacityInBytes = 1000 };
             configuration.PreferContiguousImageBuffers = true;
 
-            using var image = new Image<Rgba32>(configuration, 100, 100);
+            using Image<Rgba32> image = new(configuration, 100, 100);
             image.Frames.CreateFrame();
             image.Frames.InsertFrame(0, image.Frames[0]);
             image.Frames.CreateFrame(Color.Red);
 
             Assert.Equal(4, image.Frames.Count);
-            IEnumerable<ImageFrame<Rgba32>> frames = image.Frames;
-            foreach (ImageFrame<Rgba32> frame in frames)
+            foreach (ImageFrame<Rgba32> frame in image.Frames)
             {
                 Assert.True(frame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
             }
@@ -359,8 +345,8 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void DisposeCall_NoThrowIfCalledMultiple()
         {
-            var image = new Image<Rgba32>(Configuration.Default, 10, 10);
-            var frameCollection = image.Frames as ImageFrameCollection;
+            Image<Rgba32> image = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> frameCollection = image.Frames;
 
             image.Dispose(); // this should invalidate underlying collection as well
             frameCollection.Dispose();
@@ -369,33 +355,33 @@ public abstract partial class ImageFrameCollectionTests
         [Fact]
         public void PublicProperties_ThrowIfDisposed()
         {
-            var image = new Image<Rgba32>(Configuration.Default, 10, 10);
-            var frameCollection = image.Frames as ImageFrameCollection;
+            Image<Rgba32> image = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> frameCollection = image.Frames;
 
             image.Dispose(); // this should invalidate underlying collection as well
 
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.RootFrame; });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame prop = frameCollection.RootFrame; });
         }
 
         [Fact]
         public void PublicMethods_ThrowIfDisposed()
         {
-            var image = new Image<Rgba32>(Configuration.Default, 10, 10);
-            var frameCollection = image.Frames as ImageFrameCollection;
+            Image<Rgba32> image = new(Configuration.Default, 10, 10);
+            ImageFrameCollection<Rgba32> frameCollection = image.Frames;
 
             image.Dispose(); // this should invalidate underlying collection as well
 
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.AddFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CloneFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.Contains(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.CreateFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.ExportFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = frameCollection.GetEnumerator(); });
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.IndexOf(default); });
-            Assert.Throws<ObjectDisposedException>(() => { var prop = frameCollection.InsertFrame(default, default); });
-            Assert.Throws<ObjectDisposedException>(() => { frameCollection.RemoveFrame(default); });
-            Assert.Throws<ObjectDisposedException>(() => { frameCollection.MoveFrame(default, default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.AddFrame(default(ImageFrame<Rgba32>)); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = frameCollection.CloneFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { bool res = frameCollection.Contains(default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.CreateFrame(); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> res = frameCollection.CreateFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = frameCollection.ExportFrame(default); });
+            Assert.Throws<ObjectDisposedException>(() => { IEnumerator<ImageFrame<Rgba32>> res = frameCollection.GetEnumerator(); });
+            Assert.Throws<ObjectDisposedException>(() => { int prop = frameCollection.IndexOf(default); });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrame<Rgba32> prop = frameCollection.InsertFrame(default, default); });
+            Assert.Throws<ObjectDisposedException>(() => frameCollection.RemoveFrame(default));
+            Assert.Throws<ObjectDisposedException>(() => frameCollection.MoveFrame(default, default));
         }
     }
 }

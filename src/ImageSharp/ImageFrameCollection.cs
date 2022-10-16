@@ -180,7 +180,7 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     }
 
     /// <inheritdoc />
-    public IEnumerator<ImageFrame> GetEnumerator()
+    IEnumerator<ImageFrame> IEnumerable<ImageFrame>.GetEnumerator()
     {
         this.EnsureNotDisposed();
 
@@ -188,7 +188,7 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     }
 
     /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ImageFrame>)this).GetEnumerator();
 
     /// <summary>
     /// Throws <see cref="ObjectDisposedException"/> if the image frame is disposed.
@@ -208,7 +208,7 @@ public abstract class ImageFrameCollection : IDisposable, IEnumerable<ImageFrame
     protected abstract void Dispose(bool disposing);
 
     /// <summary>
-    /// Implements <see cref="GetEnumerator"/>.
+    /// Implements <see cref="IEnumerable{ImageFrame}.GetEnumerator"/>.
     /// </summary>
     /// <returns>The enumerator.</returns>
     protected abstract IEnumerator<ImageFrame> NonGenericGetEnumerator();

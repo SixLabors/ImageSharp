@@ -461,6 +461,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TODO: Should we use the pixel sampling strategy here?
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
 

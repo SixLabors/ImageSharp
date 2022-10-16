@@ -50,7 +50,7 @@ public static class QuantizerUtilities
         Guard.NotNull(quantizer, nameof(quantizer));
         Guard.NotNull(source, nameof(source));
 
-        var interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
         Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
         // Collect the palette. Required before the second pass runs.
@@ -77,9 +77,9 @@ public static class QuantizerUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(source, nameof(source));
-        var interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
 
-        var destination = new IndexedImageFrame<TPixel>(
+        IndexedImageFrame<TPixel> destination = new(
             quantizer.Configuration,
             interest.Width,
             interest.Height,

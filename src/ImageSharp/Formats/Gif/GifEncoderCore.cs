@@ -62,7 +62,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="encoder">The gif encoder.</param>
+    /// <param name="encoder">The encoder with options.</param>
     public GifEncoderCore(Configuration configuration, GifEncoder encoder)
     {
         this.configuration = configuration;

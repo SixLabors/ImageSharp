@@ -14,7 +14,7 @@ public sealed class JpegEncoder : ImageEncoder
     private int? quality;
 
     /// <summary>
-    /// Gets or sets the quality, that will be used to encode the image. Quality
+    /// Gets the quality, that will be used to encode the image. Quality
     /// index must be between 0 and 100 (compression from max to min).
     /// Defaults to <value>75</value>.
     /// </summary>
@@ -22,7 +22,7 @@ public sealed class JpegEncoder : ImageEncoder
     public int? Quality
     {
         get => this.quality;
-        set
+        init
         {
             if (value is < 1 or > 100)
             {
@@ -34,39 +34,27 @@ public sealed class JpegEncoder : ImageEncoder
     }
 
     /// <summary>
-    /// Gets or sets the component encoding mode.
+    /// Gets the component encoding mode.
     /// </summary>
     /// <remarks>
     /// Interleaved encoding mode encodes all color components in a single scan.
     /// Non-interleaved encoding mode encodes each color component in a separate scan.
     /// </remarks>
-    public bool? Interleaved { get; set; }
+    public bool? Interleaved { get; init; }
 
     /// <summary>
-    /// Gets or sets jpeg color for encoding.
+    /// Gets the jpeg color for encoding.
     /// </summary>
-    public JpegEncodingColor? ColorType { get; set; }
+    public JpegEncodingColor? ColorType { get; init; }
 
-    /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <inheritdoc/>
     public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
         JpegEncoderCore encoder = new(this);
         encoder.Encode(image, stream);
     }
 
-    /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <inheritdoc/>
     public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         JpegEncoderCore encoder = new(this);

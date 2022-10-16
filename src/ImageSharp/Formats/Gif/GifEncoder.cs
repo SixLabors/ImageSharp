@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 public sealed class GifEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Gets or sets the color table mode: Global or local.
+    /// Gets the color table mode: Global or local.
     /// </summary>
-    public GifColorTableMode? ColorTableMode { get; set; }
+    public GifColorTableMode? ColorTableMode { get; init; }
 
     /// <inheritdoc/>
     public override void Encode<TPixel>(Image<TPixel> image, Stream stream)

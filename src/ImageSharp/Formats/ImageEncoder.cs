@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats;
 public abstract class ImageEncoder : IImageEncoder, IEncoderOptions
 {
     /// <inheritdoc/>
-    public bool SkipMetadata { get; set; }
+    public bool SkipMetadata { get; init; }
 
     /// <inheritdoc/>
     public abstract void Encode<TPixel>(Image<TPixel> image, Stream stream)
@@ -30,8 +30,8 @@ public abstract class ImageEncoder : IImageEncoder, IEncoderOptions
 public abstract class QuantizingImageEncoder : ImageEncoder, IQuantizingEncoderOptions
 {
     /// <inheritdoc/>
-    public IQuantizer Quantizer { get; set; } = KnownQuantizers.Octree;
+    public IQuantizer Quantizer { get; init; } = KnownQuantizers.Octree;
 
     /// <inheritdoc/>
-    public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; } = new DefaultPixelSamplingStrategy();
+    public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; init; } = new DefaultPixelSamplingStrategy();
 }

@@ -45,13 +45,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="TgaEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The encoder options.</param>
+    /// <param name="encoder">The encoder with options.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
-    public TgaEncoderCore(ITgaEncoderOptions options, MemoryAllocator memoryAllocator)
+    public TgaEncoderCore(TgaEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.bitsPerPixel = options.BitsPerPixel;
-        this.compression = options.Compression;
+        this.bitsPerPixel = encoder.BitsPerPixel;
+        this.compression = encoder.Compression;
     }
 
     /// <summary>
@@ -105,7 +105,9 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
             cMapLength: 0,
             cMapDepth: 0,
             xOffset: 0,
-            yOffset: this.compression is TgaCompression.RunLength ? (short)image.Height : (short)0, // When run length encoding is used, the origin should be top left instead of the default bottom left.
+
+            // When run length encoding is used, the origin should be top left instead of the default bottom left.
+            yOffset: this.compression is TgaCompression.RunLength ? (short)image.Height : (short)0,
             width: (short)image.Width,
             height: (short)image.Height,
             pixelDepth: (byte)this.bitsPerPixel.Value,

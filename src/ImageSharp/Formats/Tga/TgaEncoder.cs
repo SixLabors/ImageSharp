@@ -2,14 +2,13 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tga;
 
 /// <summary>
 /// Image encoder for writing an image to a stream as a targa truevision image.
 /// </summary>
-public sealed class TgaEncoder : IImageEncoder, ITgaEncoderOptions
+public sealed class TgaEncoder : ImageEncoder
 {
     /// <summary>
     /// Gets or sets the number of bits per pixel.
@@ -22,18 +21,16 @@ public sealed class TgaEncoder : IImageEncoder, ITgaEncoderOptions
     public TgaCompression Compression { get; set; } = TgaCompression.RunLength;
 
     /// <inheritdoc/>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encoder = new TgaEncoderCore(this, image.GetMemoryAllocator());
+        TgaEncoderCore encoder = new(this, image.GetMemoryAllocator());
         encoder.Encode(image, stream);
     }
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new TgaEncoderCore(this, image.GetMemoryAllocator());
+        TgaEncoderCore encoder = new(this, image.GetMemoryAllocator());
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

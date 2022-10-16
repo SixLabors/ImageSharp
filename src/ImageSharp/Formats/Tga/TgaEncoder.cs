@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 public sealed class TgaEncoder : ImageEncoder
 {
     /// <summary>
-    /// Gets or sets the number of bits per pixel.
+    /// Gets the number of bits per pixel.
     /// </summary>
-    public TgaBitsPerPixel? BitsPerPixel { get; set; }
+    public TgaBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether no compression or run length compression should be used.
+    /// Gets a value indicating whether no compression or run length compression should be used.
     /// </summary>
-    public TgaCompression Compression { get; set; } = TgaCompression.RunLength;
+    public TgaCompression Compression { get; init; } = TgaCompression.RunLength;
 
     /// <inheritdoc/>
     public override void Encode<TPixel>(Image<TPixel> image, Stream stream)

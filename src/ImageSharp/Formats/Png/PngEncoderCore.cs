@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -12,6 +13,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -46,17 +48,42 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private readonly byte[] chunkDataBuffer = new byte[16];
 
     /// <summary>
-    /// The encoder options
+    /// The encoder with options
     /// </summary>
-    private readonly PngEncoderOptions options;
+    private readonly PngEncoder encoder;
 
     /// <summary>
-    /// The bit depth.
+    /// The gamma value
+    /// </summary>
+    private float? gamma;
+
+    /// <summary>
+    /// The color type.
+    /// </summary>
+    private PngColorType colorType;
+
+    /// <summary>
+    /// The number of bits per sample or per palette index (not per pixel).
     /// </summary>
     private byte bitDepth;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
+    /// The filter method used to prefilter the encoded pixels before compression.
+    /// </summary>
+    private PngFilterMethod filterMethod;
+
+    /// <summary>
+    /// Gets the interlace mode.
+    /// </summary>
+    private PngInterlaceMode interlaceMode;
+
+    /// <summary>
+    /// The chunk filter method. This allows to filter ancillary chunks.
+    /// </summary>
+    private PngChunkFilter chunkFilter;
+
+    /// <summary>
+    /// A value indicating whether to use 16 bit encoding for supported color types.
     /// </summary>
     private bool use16Bit;
 
@@ -95,12 +122,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// </summary>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
     /// <param name="configuration">The configuration.</param>
-    /// <param name="options">The options for influencing the encoder</param>
-    public PngEncoderCore(MemoryAllocator memoryAllocator, Configuration configuration, PngEncoderOptions options)
+    /// <param name="encoder">The encoder with options.</param>
+    public PngEncoderCore(MemoryAllocator memoryAllocator, Configuration configuration, PngEncoder encoder)
     {
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
-        this.options = options;
+        this.encoder = encoder;
     }
 
     /// <summary>
@@ -122,16 +149,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ImageMetadata metadata = image.Metadata;
 
         PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
-        PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
+        this.DeduceOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
         Image<TPixel> clonedImage = null;
-        bool clearTransparency = this.options.TransparentColorMode == PngTransparentColorMode.Clear;
+        bool clearTransparency = this.encoder.TransparentColorMode == PngTransparentColorMode.Clear;
         if (clearTransparency)
         {
             clonedImage = image.Clone();
             ClearTransparentPixels(clonedImage);
         }
 
-        IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image, clonedImage);
+        IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImageAndUpdateBitDepth(image, clonedImage);
 
         stream.Write(PngConstants.HeaderBytes);
 
@@ -171,6 +198,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         where TPixel : unmanaged, IPixel<TPixel> =>
         image.ProcessPixelRows(accessor =>
         {
+            // TODO: We should be able to speed this up with SIMD and masking.
             Rgba32 rgba32 = default;
             Rgba32 transparent = Color.Transparent;
             for (int y = 0; y < accessor.Height; y++)
@@ -189,27 +217,28 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         });
 
     /// <summary>
-    /// Creates the quantized image and sets calculates and sets the bit depth.
+    /// Creates the quantized image and calculates and sets the bit depth.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="image">The image to quantize.</param>
     /// <param name="clonedImage">Cloned image with transparent pixels are changed to black.</param>
     /// <returns>The quantized image.</returns>
-    private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image, Image<TPixel> clonedImage)
+    private IndexedImageFrame<TPixel> CreateQuantizedImageAndUpdateBitDepth<TPixel>(
+        Image<TPixel> image,
+        Image<TPixel> clonedImage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IndexedImageFrame<TPixel> quantized;
-        if (this.options.TransparentColorMode == PngTransparentColorMode.Clear)
+        if (this.encoder.TransparentColorMode == PngTransparentColorMode.Clear)
         {
-            quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
-            this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
+            quantized = CreateQuantizedFrame(this.encoder, this.colorType, this.bitDepth, clonedImage);
         }
         else
         {
-            quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
-            this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
+            quantized = CreateQuantizedFrame(this.encoder, this.colorType, this.bitDepth, image);
         }
 
+        this.bitDepth = CalculateBitDepth(this.colorType, this.bitDepth, quantized);
         return quantized;
     }
 
@@ -223,23 +252,21 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         Span<byte> rawScanlineSpan = this.currentScanline.GetSpan();
         ref byte rawScanlineSpanRef = ref MemoryMarshal.GetReference(rawScanlineSpan);
 
-        if (this.options.ColorType == PngColorType.Grayscale)
+        if (this.colorType == PngColorType.Grayscale)
         {
             if (this.use16Bit)
             {
                 // 16 bit grayscale
-                using (IMemoryOwner<L16> luminanceBuffer = this.memoryAllocator.Allocate<L16>(rowSpan.Length))
-                {
-                    Span<L16> luminanceSpan = luminanceBuffer.GetSpan();
-                    ref L16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
-                    PixelOperations<TPixel>.Instance.ToL16(this.configuration, rowSpan, luminanceSpan);
+                using IMemoryOwner<L16> luminanceBuffer = this.memoryAllocator.Allocate<L16>(rowSpan.Length);
+                Span<L16> luminanceSpan = luminanceBuffer.GetSpan();
+                ref L16 luminanceRef = ref MemoryMarshal.GetReference(luminanceSpan);
+                PixelOperations<TPixel>.Instance.ToL16(this.configuration, rowSpan, luminanceSpan);
 
-                    // Can't map directly to byte array as it's big-endian.
-                    for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
-                    {
-                        L16 luminance = Unsafe.Add(ref luminanceRef, x);
-                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
-                    }
+                // Can't map directly to byte array as it's big-endian.
+                for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
+                {
+                    L16 luminance = Unsafe.Add(ref luminanceRef, x);
+                    BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
                 }
             }
             else if (this.bitDepth == 8)
@@ -382,7 +409,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private void CollectPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan, IndexedImageFrame<TPixel> quantized, int row)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        switch (this.options.ColorType)
+        switch (this.colorType)
         {
             case PngColorType.Palette:
 
@@ -413,7 +440,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="attempt">Used for attempting optimized filtering.</param>
     private void FilterPixelBytes(ref Span<byte> filter, ref Span<byte> attempt)
     {
-        switch (this.options.FilterMethod)
+        switch (this.filterMethod)
         {
             case PngFilterMethod.None:
                 NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
@@ -495,7 +522,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         // Palette images don't compress well with adaptive filtering.
         // Nor do images comprising a single row.
-        if (this.options.ColorType == PngColorType.Palette || this.height == 1 || this.bitDepth < 8)
+        if (this.colorType == PngColorType.Palette || this.height == 1 || this.bitDepth < 8)
         {
             NoneFilter.Encode(this.currentScanline.GetSpan(), filter);
             return;
@@ -543,10 +570,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             width: this.width,
             height: this.height,
             bitDepth: this.bitDepth,
-            colorType: this.options.ColorType.Value,
+            colorType: this.colorType,
             compressionMethod: 0, // None
             filterMethod: 0,
-            interlaceMethod: this.options.InterlaceMethod.Value);
+            interlaceMethod: this.interlaceMode);
 
         header.WriteTo(this.chunkDataBuffer);
 
@@ -593,7 +620,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             byte alpha = rgba.A;
 
             Unsafe.Add(ref colorTableRef, i) = rgba.Rgb;
-            if (alpha > this.options.Threshold)
+            if (alpha > this.encoder.Threshold)
             {
                 alpha = byte.MaxValue;
             }
@@ -619,7 +646,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="meta">The image metadata.</param>
     private void WritePhysicalChunk(Stream stream, ImageMetadata meta)
     {
-        if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) == PngChunkFilter.ExcludePhysicalChunk)
+        if ((this.chunkFilter & PngChunkFilter.ExcludePhysicalChunk) == PngChunkFilter.ExcludePhysicalChunk)
         {
             return;
         }
@@ -636,7 +663,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="meta">The image metadata.</param>
     private void WriteExifChunk(Stream stream, ImageMetadata meta)
     {
-        if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) == PngChunkFilter.ExcludeExifChunk)
+        if ((this.chunkFilter & PngChunkFilter.ExcludeExifChunk) == PngChunkFilter.ExcludeExifChunk)
         {
             return;
         }
@@ -658,7 +685,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private void WriteXmpChunk(Stream stream, ImageMetadata meta)
     {
         const int iTxtHeaderSize = 5;
-        if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+        if ((this.chunkFilter & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
         {
             return;
         }
@@ -731,7 +758,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="meta">The image metadata.</param>
     private void WriteTextChunks(Stream stream, PngMetadata meta)
     {
-        if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+        if ((this.chunkFilter & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
         {
             return;
         }
@@ -754,7 +781,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             {
                 // Write iTXt chunk.
                 byte[] keywordBytes = PngConstants.Encoding.GetBytes(textData.Keyword);
-                byte[] textBytes = textData.Value.Length > this.options.TextCompressionThreshold
+                byte[] textBytes = textData.Value.Length > this.encoder.TextCompressionThreshold
                     ? this.GetZlibCompressedBytes(PngConstants.TranslatedEncoding.GetBytes(textData.Value))
                     : PngConstants.TranslatedEncoding.GetBytes(textData.Value);
 
@@ -768,7 +795,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 keywordBytes.CopyTo(outputBytes);
                 int bytesWritten = keywordBytes.Length;
                 outputBytes[bytesWritten++] = 0;
-                if (textData.Value.Length > this.options.TextCompressionThreshold)
+                if (textData.Value.Length > this.encoder.TextCompressionThreshold)
                 {
                     // Indicate that the text is compressed.
                     outputBytes[bytesWritten++] = 1;
@@ -788,7 +815,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 textBytes.CopyTo(outputBytes[bytesWritten..]);
                 this.WriteChunk(stream, PngChunkType.InternationalText, outputBytes);
             }
-            else if (textData.Value.Length > this.options.TextCompressionThreshold)
+            else if (textData.Value.Length > this.encoder.TextCompressionThreshold)
             {
                 // Write zTXt chunk.
                 byte[] compressedData = this.GetZlibCompressedBytes(PngConstants.Encoding.GetBytes(textData.Value));
@@ -827,7 +854,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private byte[] GetZlibCompressedBytes(byte[] dataBytes)
     {
         using MemoryStream memoryStream = new();
-        using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.options.CompressionLevel))
+        using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
         {
             deflateStream.Write(dataBytes);
         }
@@ -842,15 +869,15 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     private void WriteGammaChunk(Stream stream)
     {
-        if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) == PngChunkFilter.ExcludeGammaChunk)
+        if ((this.chunkFilter & PngChunkFilter.ExcludeGammaChunk) == PngChunkFilter.ExcludeGammaChunk)
         {
             return;
         }
 
-        if (this.options.Gamma > 0)
+        if (this.gamma > 0)
         {
             // 4-byte unsigned integer of gamma * 100,000.
-            uint gammaValue = (uint)(this.options.Gamma * 100_000F);
+            uint gammaValue = (uint)(this.gamma * 100_000F);
 
             BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), gammaValue);
 
@@ -924,9 +951,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         using (MemoryStream memoryStream = new())
         {
-            using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.options.CompressionLevel))
+            using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
             {
-                if (this.options.InterlaceMethod == PngInterlaceMode.Adam7)
+                if (this.interlaceMode == PngInterlaceMode.Adam7)
                 {
                     if (quantized != null)
                     {
@@ -1192,4 +1219,196 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ref IMemoryOwner<byte> current = ref this.currentScanline;
         RuntimeUtility.Swap(ref prev, ref current);
     }
+
+    /// <summary>
+    /// Adjusts the options based upon the given metadata.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="encoder">The encoder with options.</param>
+    /// <param name="pngMetadata">The PNG metadata.</param>
+    /// <param name="use16Bit">if set to <c>true</c> [use16 bit].</param>
+    /// <param name="bytesPerPixel">The bytes per pixel.</param>
+    private void DeduceOptions<TPixel>(
+        PngEncoder encoder,
+        PngMetadata pngMetadata,
+        out bool use16Bit,
+        out int bytesPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Always take the encoder options over the metadata values.
+        this.gamma = encoder.Gamma ?? pngMetadata.Gamma;
+
+        // Use options, then check metadata, if nothing set there then we suggest
+        // a sensible default based upon the pixel format.
+        this.colorType = encoder.ColorType ?? pngMetadata.ColorType ?? SuggestColorType<TPixel>();
+        if (!encoder.FilterMethod.HasValue)
+        {
+            // Specification recommends default filter method None for paletted images and Paeth for others.
+            if (this.colorType == PngColorType.Palette)
+            {
+                this.filterMethod = PngFilterMethod.None;
+            }
+            else
+            {
+                this.filterMethod = PngFilterMethod.Paeth;
+            }
+        }
+
+        // Ensure bit depth and color type are a supported combination.
+        // Bit8 is the only bit depth supported by all color types.
+        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>());
+        byte[] validBitDepths = PngConstants.ColorTypes[this.colorType];
+        if (Array.IndexOf(validBitDepths, bits) == -1)
+        {
+            bits = (byte)PngBitDepth.Bit8;
+        }
+
+        this.bitDepth = bits;
+        use16Bit = bits == (byte)PngBitDepth.Bit16;
+        bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
+
+        this.interlaceMode = (encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod).Value;
+        this.chunkFilter = encoder.SkipMetadata ? PngChunkFilter.ExcludeAll : encoder.ChunkFilter ?? PngChunkFilter.None;
+    }
+
+    /// <summary>
+    /// Creates the quantized frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="encoder">The png encoder.</param>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitDepth">The bits per component.</param>
+    /// <param name="image">The image.</param>
+    private static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
+        IQuantizingEncoderOptions encoder,
+        PngColorType colorType,
+        byte bitDepth,
+        Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (colorType != PngColorType.Palette)
+        {
+            return null;
+        }
+
+        // Use the metadata to determine what quantization depth to use if no quantizer has been set.
+        IQuantizer quantizer = encoder.Quantizer
+            ?? new WuQuantizer(new QuantizerOptions { MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
+
+        // Create quantized frame returning the palette and set the bit depth.
+        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration());
+
+        frameQuantizer.BuildPalette(encoder.GlobalPixelSamplingStrategy, image);
+        return frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+    }
+
+    /// <summary>
+    /// Calculates the bit depth value.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="colorType">The color type.</param>
+    /// <param name="bitDepth">The bits per component.</param>
+    /// <param name="quantizedFrame">The quantized frame.</param>
+    /// <exception cref="NotSupportedException">Bit depth is not supported or not valid.</exception>
+    private static byte CalculateBitDepth<TPixel>(
+        PngColorType colorType,
+        byte bitDepth,
+        IndexedImageFrame<TPixel> quantizedFrame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (colorType == PngColorType.Palette)
+        {
+            byte quantizedBits = (byte)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame.Palette.Length), 1, 8);
+            byte bits = Math.Max(bitDepth, quantizedBits);
+
+            // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
+            // We check again for the bit depth as the bit depth of the color palette from a given quantizer might not
+            // be within the acceptable range.
+            if (bits == 3)
+            {
+                bits = 4;
+            }
+            else if (bits is >= 5 and <= 7)
+            {
+                bits = 8;
+            }
+
+            bitDepth = bits;
+        }
+
+        if (Array.IndexOf(PngConstants.ColorTypes[colorType], bitDepth) == -1)
+        {
+            throw new NotSupportedException("Bit depth is not supported or not valid.");
+        }
+
+        return bitDepth;
+    }
+
+    /// <summary>
+    /// Calculates the correct number of bytes per pixel for the given color type.
+    /// </summary>
+    /// <param name="pngColorType">The color type.</param>
+    /// <param name="use16Bit">Whether to use 16 bits per component.</param>
+    /// <returns>Bytes per pixel.</returns>
+    private static int CalculateBytesPerPixel(PngColorType? pngColorType, bool use16Bit)
+        => pngColorType switch
+        {
+            PngColorType.Grayscale => use16Bit ? 2 : 1,
+            PngColorType.GrayscaleWithAlpha => use16Bit ? 4 : 2,
+            PngColorType.Palette => 1,
+            PngColorType.Rgb => use16Bit ? 6 : 3,
+
+            // PngColorType.RgbWithAlpha
+            _ => use16Bit ? 8 : 4,
+        };
+
+    /// <summary>
+    /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
+    /// This is not exhaustive but covers many common pixel formats.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    private static PngColorType SuggestColorType<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+        => typeof(TPixel) switch
+        {
+            Type t when t == typeof(A8) => PngColorType.GrayscaleWithAlpha,
+            Type t when t == typeof(Argb32) => PngColorType.RgbWithAlpha,
+            Type t when t == typeof(Bgr24) => PngColorType.Rgb,
+            Type t when t == typeof(Bgra32) => PngColorType.RgbWithAlpha,
+            Type t when t == typeof(L8) => PngColorType.Grayscale,
+            Type t when t == typeof(L16) => PngColorType.Grayscale,
+            Type t when t == typeof(La16) => PngColorType.GrayscaleWithAlpha,
+            Type t when t == typeof(La32) => PngColorType.GrayscaleWithAlpha,
+            Type t when t == typeof(Rgb24) => PngColorType.Rgb,
+            Type t when t == typeof(Rgba32) => PngColorType.RgbWithAlpha,
+            Type t when t == typeof(Rgb48) => PngColorType.Rgb,
+            Type t when t == typeof(Rgba64) => PngColorType.RgbWithAlpha,
+            Type t when t == typeof(RgbaVector) => PngColorType.RgbWithAlpha,
+            _ => PngColorType.RgbWithAlpha
+        };
+
+    /// <summary>
+    /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
+    /// This is not exhaustive but covers many common pixel formats.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    private static PngBitDepth SuggestBitDepth<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+        => typeof(TPixel) switch
+        {
+            Type t when t == typeof(A8) => PngBitDepth.Bit8,
+            Type t when t == typeof(Argb32) => PngBitDepth.Bit8,
+            Type t when t == typeof(Bgr24) => PngBitDepth.Bit8,
+            Type t when t == typeof(Bgra32) => PngBitDepth.Bit8,
+            Type t when t == typeof(L8) => PngBitDepth.Bit8,
+            Type t when t == typeof(L16) => PngBitDepth.Bit16,
+            Type t when t == typeof(La16) => PngBitDepth.Bit8,
+            Type t when t == typeof(La32) => PngBitDepth.Bit16,
+            Type t when t == typeof(Rgb24) => PngBitDepth.Bit8,
+            Type t when t == typeof(Rgba32) => PngBitDepth.Bit8,
+            Type t when t == typeof(Rgb48) => PngBitDepth.Bit16,
+            Type t when t == typeof(Rgba64) => PngBitDepth.Bit16,
+            Type t when t == typeof(RgbaVector) => PngBitDepth.Bit16,
+            _ => PngBitDepth.Bit8
+        };
 }

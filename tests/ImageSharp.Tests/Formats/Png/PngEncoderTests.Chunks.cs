@@ -15,9 +15,9 @@ public partial class PngEncoderTests
     public void HeaderChunk_ComesFirst()
     {
         // arrange
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, PngEncoder);
@@ -25,8 +25,8 @@ public partial class PngEncoderTests
         // assert
         memStream.Position = 0;
         Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
-        BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-        var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+        BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+        PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
         Assert.Equal(PngChunkType.Header, type);
     }
 
@@ -34,9 +34,9 @@ public partial class PngEncoderTests
     public void EndChunk_IsLast()
     {
         // arrange
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, PngEncoder);
@@ -47,15 +47,15 @@ public partial class PngEncoderTests
         bool endChunkFound = false;
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             Assert.False(endChunkFound);
             if (type == PngChunkType.End)
             {
                 endChunkFound = true;
             }
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
     }
 
@@ -68,10 +68,10 @@ public partial class PngEncoderTests
     public void Chunk_ComesBeforePlteAndIDat(object chunkTypeObj)
     {
         // arrange
-        var chunkType = (PngChunkType)chunkTypeObj;
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        PngChunkType chunkType = (PngChunkType)chunkTypeObj;
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, PngEncoder);
@@ -83,8 +83,8 @@ public partial class PngEncoderTests
         bool dataFound = false;
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             if (chunkType == type)
             {
                 Assert.False(palFound || dataFound, $"{chunkType} chunk should come before data and palette chunk");
@@ -100,7 +100,7 @@ public partial class PngEncoderTests
                     break;
             }
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
     }
 
@@ -110,10 +110,10 @@ public partial class PngEncoderTests
     public void Chunk_ComesBeforeIDat(object chunkTypeObj)
     {
         // arrange
-        var chunkType = (PngChunkType)chunkTypeObj;
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        PngChunkType chunkType = (PngChunkType)chunkTypeObj;
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, PngEncoder);
@@ -124,8 +124,8 @@ public partial class PngEncoderTests
         bool dataFound = false;
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             if (chunkType == type)
             {
                 Assert.False(dataFound, $"{chunkType} chunk should come before data chunk");
@@ -136,7 +136,7 @@ public partial class PngEncoderTests
                 dataFound = true;
             }
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
     }
 
@@ -144,18 +144,18 @@ public partial class PngEncoderTests
     public void IgnoreMetadata_WillExcludeAllAncillaryChunks()
     {
         // arrange
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
-        var encoder = new PngEncoder() { IgnoreMetadata = true, TextCompressionThreshold = 8 };
-        var expectedChunkTypes = new Dictionary<PngChunkType, bool>()
+        using MemoryStream memStream = new();
+        PngEncoder encoder = new() { SkipMetadata = true, TextCompressionThreshold = 8 };
+        Dictionary<PngChunkType, bool> expectedChunkTypes = new()
         {
             { PngChunkType.Header, false },
             { PngChunkType.Palette, false },
             { PngChunkType.Data, false },
             { PngChunkType.End, false }
         };
-        var excludedChunkTypes = new List<PngChunkType>()
+        List<PngChunkType> excludedChunkTypes = new()
         {
             PngChunkType.Gamma,
             PngChunkType.Exif,
@@ -174,15 +174,15 @@ public partial class PngEncoderTests
         Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             Assert.False(excludedChunkTypes.Contains(chunkType), $"{chunkType} chunk should have been excluded");
             if (expectedChunkTypes.ContainsKey(chunkType))
             {
                 expectedChunkTypes[chunkType] = true;
             }
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
 
         // all expected chunk types should have been seen at least once.
@@ -201,12 +201,12 @@ public partial class PngEncoderTests
     public void ExcludeFilter_Works(object filterObj)
     {
         // arrange
-        var chunkFilter = (PngChunkFilter)filterObj;
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        PngChunkFilter chunkFilter = (PngChunkFilter)filterObj;
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
-        var encoder = new PngEncoder() { ChunkFilter = chunkFilter, TextCompressionThreshold = 8 };
-        var expectedChunkTypes = new Dictionary<PngChunkType, bool>()
+        using MemoryStream memStream = new();
+        PngEncoder encoder = new() { ChunkFilter = chunkFilter, TextCompressionThreshold = 8 };
+        Dictionary<PngChunkType, bool> expectedChunkTypes = new()
         {
             { PngChunkType.Header, false },
             { PngChunkType.Gamma, false },
@@ -219,7 +219,7 @@ public partial class PngEncoderTests
             { PngChunkType.Data, false },
             { PngChunkType.End, false }
         };
-        var excludedChunkTypes = new List<PngChunkType>();
+        List<PngChunkType> excludedChunkTypes = new();
         switch (chunkFilter)
         {
             case PngChunkFilter.ExcludeGammaChunk:
@@ -267,15 +267,15 @@ public partial class PngEncoderTests
         Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             Assert.False(excludedChunkTypes.Contains(chunkType), $"{chunkType} chunk should have been excluded");
             if (expectedChunkTypes.ContainsKey(chunkType))
             {
                 expectedChunkTypes[chunkType] = true;
             }
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
 
         // all expected chunk types should have been seen at least once.
@@ -289,11 +289,11 @@ public partial class PngEncoderTests
     public void ExcludeFilter_WithNone_DoesNotExcludeChunks()
     {
         // arrange
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
-        var encoder = new PngEncoder() { ChunkFilter = PngChunkFilter.None, TextCompressionThreshold = 8 };
-        var expectedChunkTypes = new List<PngChunkType>()
+        using MemoryStream memStream = new();
+        PngEncoder encoder = new() { ChunkFilter = PngChunkFilter.None, TextCompressionThreshold = 8 };
+        List<PngChunkType> expectedChunkTypes = new()
         {
             PngChunkType.Header,
             PngChunkType.Gamma,
@@ -314,11 +314,11 @@ public partial class PngEncoderTests
         Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
         while (bytesSpan.Length > 0)
         {
-            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
-            var chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
             Assert.True(expectedChunkTypes.Contains(chunkType), $"{chunkType} chunk should have been present");
 
-            bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
     }
 }

@@ -15,8 +15,8 @@ internal class TiffEncoderEntriesCollector
 
     public List<IExifValue> Entries { get; } = new List<IExifValue>();
 
-    public void ProcessMetadata(Image image)
-        => new MetadataProcessor(this).Process(image);
+    public void ProcessMetadata(Image image, bool skipMetadata)
+        => new MetadataProcessor(this).Process(image, skipMetadata);
 
     public void ProcessFrameInfo(ImageFrame frame, ImageMetadata imageMetadata)
         => new FrameInfoProcessor(this).Process(frame, imageMetadata);
@@ -41,7 +41,7 @@ internal class TiffEncoderEntriesCollector
 
     private abstract class BaseProcessor
     {
-        public BaseProcessor(TiffEncoderEntriesCollector collector) => this.Collector = collector;
+        protected BaseProcessor(TiffEncoderEntriesCollector collector) => this.Collector = collector;
 
         protected TiffEncoderEntriesCollector Collector { get; }
     }
@@ -53,14 +53,18 @@ internal class TiffEncoderEntriesCollector
         {
         }
 
-        public void Process(Image image)
+        public void Process(Image image, bool skipMetadata)
         {
             ImageFrame rootFrame = image.Frames.RootFrame;
-            ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile ?? new ExifProfile();
+            ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile;
             XmpProfile rootFrameXmpProfile = rootFrame.Metadata.XmpProfile;
 
-            this.ProcessProfiles(image.Metadata, rootFrameExifProfile, rootFrameXmpProfile);
-            this.ProcessMetadata(rootFrameExifProfile);
+            this.ProcessProfiles(image.Metadata, skipMetadata, rootFrameExifProfile, rootFrameXmpProfile);
+
+            if (!skipMetadata)
+            {
+                this.ProcessMetadata(rootFrameExifProfile ?? new ExifProfile());
+            }
 
             if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
             {
@@ -72,39 +76,35 @@ internal class TiffEncoderEntriesCollector
         }
 
         private static bool IsPureMetadata(ExifTag tag)
-        {
-            switch ((ExifTagValue)(ushort)tag)
+            => (ExifTagValue)(ushort)tag switch
             {
-                case ExifTagValue.DocumentName:
-                case ExifTagValue.ImageDescription:
-                case ExifTagValue.Make:
-                case ExifTagValue.Model:
-                case ExifTagValue.Software:
-                case ExifTagValue.DateTime:
-                case ExifTagValue.Artist:
-                case ExifTagValue.HostComputer:
-                case ExifTagValue.TargetPrinter:
-                case ExifTagValue.XMP:
-                case ExifTagValue.Rating:
-                case ExifTagValue.RatingPercent:
-                case ExifTagValue.ImageID:
-                case ExifTagValue.Copyright:
-                case ExifTagValue.MDLabName:
-                case ExifTagValue.MDSampleInfo:
-                case ExifTagValue.MDPrepDate:
-                case ExifTagValue.MDPrepTime:
-                case ExifTagValue.MDFileUnits:
-                case ExifTagValue.SEMInfo:
-                case ExifTagValue.XPTitle:
-                case ExifTagValue.XPComment:
-                case ExifTagValue.XPAuthor:
-                case ExifTagValue.XPKeywords:
-                case ExifTagValue.XPSubject:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+                ExifTagValue.DocumentName or
+                ExifTagValue.ImageDescription or
+                ExifTagValue.Make or
+                ExifTagValue.Model or
+                ExifTagValue.Software or
+                ExifTagValue.DateTime or
+                ExifTagValue.Artist or
+                ExifTagValue.HostComputer or
+                ExifTagValue.TargetPrinter or
+                ExifTagValue.XMP or
+                ExifTagValue.Rating or
+                ExifTagValue.RatingPercent or
+                ExifTagValue.ImageID or
+                ExifTagValue.Copyright or
+                ExifTagValue.MDLabName or
+                ExifTagValue.MDSampleInfo or
+                ExifTagValue.MDPrepDate or
+                ExifTagValue.MDPrepTime or
+                ExifTagValue.MDFileUnits or
+                ExifTagValue.SEMInfo or
+                ExifTagValue.XPTitle or
+                ExifTagValue.XPComment or
+                ExifTagValue.XPAuthor or
+                ExifTagValue.XPKeywords or
+                ExifTagValue.XPSubject => true,
+                _ => false,
+            };
 
         private void ProcessMetadata(ExifProfile exifProfile)
         {
@@ -149,9 +149,9 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private void ProcessProfiles(ImageMetadata imageMetadata, ExifProfile exifProfile, XmpProfile xmpProfile)
+        private void ProcessProfiles(ImageMetadata imageMetadata, bool skipMetadata, ExifProfile exifProfile, XmpProfile xmpProfile)
         {
-            if (exifProfile != null && exifProfile.Parts != ExifParts.None)
+            if (!skipMetadata && (exifProfile != null && exifProfile.Parts != ExifParts.None))
             {
                 foreach (IExifValue entry in exifProfile.Values)
                 {
@@ -167,13 +167,13 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.SubIFDOffset);
+                exifProfile?.RemoveValue(ExifTag.SubIFDOffset);
             }
 
-            if (imageMetadata.IptcProfile != null)
+            if (!skipMetadata && imageMetadata.IptcProfile != null)
             {
                 imageMetadata.IptcProfile.UpdateData();
-                var iptc = new ExifByteArray(ExifTagValue.IPTC, ExifDataType.Byte)
+                ExifByteArray iptc = new(ExifTagValue.IPTC, ExifDataType.Byte)
                 {
                     Value = imageMetadata.IptcProfile.Data
                 };
@@ -182,12 +182,12 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.IPTC);
+                exifProfile?.RemoveValue(ExifTag.IPTC);
             }
 
             if (imageMetadata.IccProfile != null)
             {
-                var icc = new ExifByteArray(ExifTagValue.IccProfile, ExifDataType.Undefined)
+                ExifByteArray icc = new(ExifTagValue.IccProfile, ExifDataType.Undefined)
                 {
                     Value = imageMetadata.IccProfile.ToByteArray()
                 };
@@ -196,12 +196,12 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.IccProfile);
+                exifProfile?.RemoveValue(ExifTag.IccProfile);
             }
 
-            if (xmpProfile != null)
+            if (!skipMetadata && xmpProfile != null)
             {
-                var xmp = new ExifByteArray(ExifTagValue.XMP, ExifDataType.Byte)
+                ExifByteArray xmp = new(ExifTagValue.XMP, ExifDataType.Byte)
                 {
                     Value = xmpProfile.Data
                 };
@@ -210,7 +210,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile.RemoveValue(ExifTag.XMP);
+                exifProfile?.RemoveValue(ExifTag.XMP);
             }
         }
     }
@@ -273,29 +273,29 @@ internal class TiffEncoderEntriesCollector
 
         public void Process(TiffEncoderCore encoder)
         {
-            var planarConfig = new ExifShort(ExifTagValue.PlanarConfiguration)
+            ExifShort planarConfig = new(ExifTagValue.PlanarConfiguration)
             {
                 Value = (ushort)TiffPlanarConfiguration.Chunky
             };
 
-            var samplesPerPixel = new ExifLong(ExifTagValue.SamplesPerPixel)
+            ExifLong samplesPerPixel = new(ExifTagValue.SamplesPerPixel)
             {
                 Value = GetSamplesPerPixel(encoder)
             };
 
             ushort[] bitsPerSampleValue = GetBitsPerSampleValue(encoder);
-            var bitPerSample = new ExifShortArray(ExifTagValue.BitsPerSample)
+            ExifShortArray bitPerSample = new(ExifTagValue.BitsPerSample)
             {
                 Value = bitsPerSampleValue
             };
 
             ushort compressionType = GetCompressionType(encoder);
-            var compression = new ExifShort(ExifTagValue.Compression)
+            ExifShort compression = new(ExifTagValue.Compression)
             {
                 Value = compressionType
             };
 
-            var photometricInterpretation = new ExifShort(ExifTagValue.PhotometricInterpretation)
+            ExifShort photometricInterpretation = new(ExifTagValue.PhotometricInterpretation)
             {
                 Value = (ushort)encoder.PhotometricInterpretation
             };
@@ -306,32 +306,25 @@ internal class TiffEncoderEntriesCollector
             this.Collector.AddOrReplace(compression);
             this.Collector.AddOrReplace(photometricInterpretation);
 
-            if (encoder.HorizontalPredictor == TiffPredictor.Horizontal)
+            if (encoder.HorizontalPredictor == TiffPredictor.Horizontal &&
+                (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
+                                                      TiffPhotometricInterpretation.PaletteColor or
+                                                      TiffPhotometricInterpretation.BlackIsZero))
             {
-                if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ||
-                    encoder.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ||
-                    encoder.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
-                {
-                    var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
+                ExifShort predictor = new(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
-                    this.Collector.AddOrReplace(predictor);
-                }
+                this.Collector.AddOrReplace(predictor);
             }
         }
 
         private static uint GetSamplesPerPixel(TiffEncoderCore encoder)
-        {
-            switch (encoder.PhotometricInterpretation)
+            => encoder.PhotometricInterpretation switch
             {
-                case TiffPhotometricInterpretation.PaletteColor:
-                case TiffPhotometricInterpretation.BlackIsZero:
-                case TiffPhotometricInterpretation.WhiteIsZero:
-                    return 1;
-                case TiffPhotometricInterpretation.Rgb:
-                default:
-                    return 3;
-            }
-        }
+                TiffPhotometricInterpretation.PaletteColor or
+                TiffPhotometricInterpretation.BlackIsZero or
+                TiffPhotometricInterpretation.WhiteIsZero => 1,
+                _ => 3,
+            };
 
         private static ushort[] GetBitsPerSampleValue(TiffEncoderCore encoder)
         {
@@ -342,10 +335,8 @@ internal class TiffEncoderEntriesCollector
                     {
                         return TiffConstants.BitsPerSample4Bit.ToArray();
                     }
-                    else
-                    {
-                        return TiffConstants.BitsPerSample8Bit.ToArray();
-                    }
+
+                    return TiffConstants.BitsPerSample8Bit.ToArray();
 
                 case TiffPhotometricInterpretation.Rgb:
                     return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
@@ -382,9 +373,9 @@ internal class TiffEncoderEntriesCollector
                     // PackBits is allowed for all modes.
                     return (ushort)TiffCompression.PackBits;
                 case TiffCompression.Lzw:
-                    if (encoder.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ||
-                        encoder.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ||
-                        encoder.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
+                    if (encoder.PhotometricInterpretation is TiffPhotometricInterpretation.Rgb or
+                                                             TiffPhotometricInterpretation.PaletteColor or
+                                                             TiffPhotometricInterpretation.BlackIsZero)
                     {
                         return (ushort)TiffCompression.Lzw;
                     }

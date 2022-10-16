@@ -73,6 +73,11 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     /// </summary>
     private const TiffPhotometricInterpretation DefaultPhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
 
+    /// <summary>
+    /// Whether to skip metadata during encoding.
+    /// </summary>
+    private readonly bool skipMetadata;
+
     private readonly List<(long, uint)> frameMarkers = new();
 
     /// <summary>
@@ -90,6 +95,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         this.HorizontalPredictor = options.HorizontalPredictor;
         this.CompressionType = options.Compression;
         this.compressionLevel = options.CompressionLevel ?? DeflateCompressionLevel.DefaultCompression;
+        this.skipMetadata = options.SkipMetadata;
     }
 
     /// <summary>
@@ -232,7 +238,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
 
         if (image != null)
         {
-            entriesCollector.ProcessMetadata(image);
+            entriesCollector.ProcessMetadata(image, this.skipMetadata);
         }
 
         entriesCollector.ProcessFrameInfo(frame, imageMetadata);

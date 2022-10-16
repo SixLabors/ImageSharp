@@ -3,24 +3,21 @@
 
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Writers;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
 [Trait("Format", "Tiff")]
 public class TiffEncoderHeaderTests
 {
-    private static readonly MemoryAllocator MemoryAllocator = MemoryAllocator.Create();
-    private static readonly Configuration Configuration = Configuration.Default;
-    private static readonly ITiffEncoderOptions Options = new TiffEncoder();
+    private static readonly TiffEncoder Encoder = new();
 
     [Fact]
     public void WriteHeader_WritesValidHeader()
     {
-        using var stream = new MemoryStream();
-        var encoder = new TiffEncoderCore(Options, MemoryAllocator);
+        using MemoryStream stream = new();
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
 
-        using (var writer = new TiffStreamWriter(stream))
+        using (TiffStreamWriter writer = new(stream))
         {
             long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
         }
@@ -31,13 +28,11 @@ public class TiffEncoderHeaderTests
     [Fact]
     public void WriteHeader_ReturnsFirstIfdMarker()
     {
-        using var stream = new MemoryStream();
-        var encoder = new TiffEncoderCore(Options, MemoryAllocator);
+        using MemoryStream stream = new();
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
 
-        using (var writer = new TiffStreamWriter(stream))
-        {
-            long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
-            Assert.Equal(4, firstIfdMarker);
-        }
+        using TiffStreamWriter writer = new(stream);
+        long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
+        Assert.Equal(4, firstIfdMarker);
     }
 }

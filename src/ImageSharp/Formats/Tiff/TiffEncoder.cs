@@ -4,47 +4,52 @@
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
 /// <summary>
 /// Encoder for writing the data image to a stream in TIFF format.
 /// </summary>
-public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
+public class TiffEncoder : QuantizingImageEncoder
 {
-    /// <inheritdoc/>
-    public TiffBitsPerPixel? BitsPerPixel { get; set; }
+    /// <summary>
+    /// Gets the number of bits per pixel.
+    /// </summary>
+    public TiffBitsPerPixel? BitsPerPixel { get; init; }
+
+    /// <summary>
+    /// Gets the compression type to use.
+    /// </summary>
+    public TiffCompression? Compression { get; init; }
+
+    /// <summary>
+    /// Gets the compression level 1-9 for the deflate compression mode.
+    /// <remarks>Defaults to <see cref="DeflateCompressionLevel.DefaultCompression" />.</remarks>
+    /// </summary>
+    public DeflateCompressionLevel? CompressionLevel { get; init; }
+
+    /// <summary>
+    /// Gets the PhotometricInterpretation to use. Possible options are RGB, RGB with a color palette, gray or BiColor.
+    /// If no PhotometricInterpretation is specified or it is unsupported by the encoder, RGB will be used.
+    /// </summary>
+    public TiffPhotometricInterpretation? PhotometricInterpretation { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating which horizontal prediction to use. This can improve the compression ratio with deflate or lzw compression.
+    /// </summary>
+    public TiffPredictor? HorizontalPredictor { get; init; }
 
     /// <inheritdoc/>
-    public TiffCompression? Compression { get; set; }
-
-    /// <inheritdoc/>
-    public DeflateCompressionLevel? CompressionLevel { get; set; }
-
-    /// <inheritdoc/>
-    public TiffPhotometricInterpretation? PhotometricInterpretation { get; set; }
-
-    /// <inheritdoc/>
-    public TiffPredictor? HorizontalPredictor { get; set; }
-
-    /// <inheritdoc/>
-    public IQuantizer Quantizer { get; set; }
-
-    /// <inheritdoc/>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encode = new TiffEncoderCore(this, image.GetMemoryAllocator());
+        TiffEncoderCore encode = new(this, image.GetMemoryAllocator());
         encode.Encode(image, stream);
     }
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new TiffEncoderCore(this, image.GetMemoryAllocator());
+        TiffEncoderCore encoder = new(this, image.GetMemoryAllocator());
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

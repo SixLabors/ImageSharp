@@ -149,7 +149,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ImageMetadata metadata = image.Metadata;
 
         PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
-        this.DeduceOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
+        this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
         Image<TPixel> clonedImage = null;
         bool clearTransparency = this.encoder.TransparentColorMode == PngTransparentColorMode.Clear;
         if (clearTransparency)
@@ -1228,7 +1228,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="pngMetadata">The PNG metadata.</param>
     /// <param name="use16Bit">if set to <c>true</c> [use16 bit].</param>
     /// <param name="bytesPerPixel">The bytes per pixel.</param>
-    private void DeduceOptions<TPixel>(
+    private void SanitizeAndSetEncoderOptions<TPixel>(
         PngEncoder encoder,
         PngMetadata pngMetadata,
         out bool use16Bit,
@@ -1298,7 +1298,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         // Create quantized frame returning the palette and set the bit depth.
         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration());
 
-        frameQuantizer.BuildPalette(encoder.GlobalPixelSamplingStrategy, image);
+        frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, image);
         return frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
     }
 

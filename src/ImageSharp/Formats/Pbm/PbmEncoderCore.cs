@@ -65,7 +65,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        this.DeduceOptions(image);
+        this.SanitizeAndSetEncoderOptions(image);
 
         byte signature = this.DeduceSignature();
         this.WriteHeader(stream, signature, image.Size());
@@ -75,7 +75,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
         stream.Flush();
     }
 
-    private void DeduceOptions<TPixel>(Image<TPixel> image)
+    private void SanitizeAndSetEncoderOptions<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.configuration = image.GetConfiguration();

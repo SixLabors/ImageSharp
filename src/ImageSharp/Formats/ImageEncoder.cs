@@ -33,5 +33,5 @@ public abstract class QuantizingImageEncoder : ImageEncoder, IQuantizingEncoderO
     public IQuantizer Quantizer { get; init; } = KnownQuantizers.Octree;
 
     /// <inheritdoc/>
-    public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; init; } = new DefaultPixelSamplingStrategy();
+    public IPixelSamplingStrategy PixelSamplingStrategy { get; init; } = new DefaultPixelSamplingStrategy();
 }

@@ -14,6 +14,7 @@ internal static class TiffColorWriterFactory
         TiffPhotometricInterpretation? photometricInterpretation,
         ImageFrame<TPixel> image,
         IQuantizer quantizer,
+        IPixelSamplingStrategy pixelSamplingStrategy,
         MemoryAllocator memoryAllocator,
         Configuration configuration,
         TiffEncoderEntriesCollector entriesCollector,
@@ -23,7 +24,7 @@ internal static class TiffColorWriterFactory
         switch (photometricInterpretation)
         {
             case TiffPhotometricInterpretation.PaletteColor:
-                return new TiffPaletteWriter<TPixel>(image, quantizer, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
+                return new TiffPaletteWriter<TPixel>(image, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
             case TiffPhotometricInterpretation.BlackIsZero:
             case TiffPhotometricInterpretation.WhiteIsZero:
                 if (bitsPerPixel == 1)

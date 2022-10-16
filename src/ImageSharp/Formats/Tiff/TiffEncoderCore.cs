@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
@@ -40,9 +39,14 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     private Configuration configuration;
 
     /// <summary>
-    /// The quantizer for creating color palette image.
+    /// The quantizer for creating color palette images.
     /// </summary>
     private readonly IQuantizer quantizer;
+
+    /// <summary>
+    /// The pixel sampling strategy for quantization.
+    /// </summary>
+    private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
     /// <summary>
     /// Sets the deflate compression level.
@@ -76,11 +80,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <param name="options">The options for the encoder.</param>
     /// <param name="memoryAllocator">The memory allocator.</param>
-    public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
+    public TiffEncoderCore(TiffEncoder options, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
         this.PhotometricInterpretation = options.PhotometricInterpretation;
-        this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
+        this.quantizer = options.Quantizer;
+        this.pixelSamplingStrategy = options.PixelSamplingStrategy;
         this.BitsPerPixel = options.BitsPerPixel;
         this.HorizontalPredictor = options.HorizontalPredictor;
         this.CompressionType = options.Compression;
@@ -215,6 +220,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
             this.PhotometricInterpretation,
             frame,
             this.quantizer,
+            this.pixelSamplingStrategy,
             this.memoryAllocator,
             this.configuration,
             entriesCollector,
@@ -331,7 +337,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         return nextIfdMarker;
     }
 
-    private void SanitizeAndSetEncoderOptions(TiffBitsPerPixel? bitsPerPixel, int inputBitsPerPixel, TiffPhotometricInterpretation? photometricInterpretation, TiffCompression compression, TiffPredictor predictor)
+    private void SanitizeAndSetEncoderOptions(
+        TiffBitsPerPixel? bitsPerPixel,
+        int inputBitsPerPixel,
+        TiffPhotometricInterpretation? photometricInterpretation,
+        TiffCompression compression,
+        TiffPredictor predictor)
     {
         // BitsPerPixel should be the primary source of truth for the encoder options.
         if (bitsPerPixel.HasValue)

@@ -106,7 +106,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
         this.quantizer = encoder.Quantizer;
-        this.pixelSamplingStrategy = encoder.GlobalPixelSamplingStrategy;
+        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
     }
 

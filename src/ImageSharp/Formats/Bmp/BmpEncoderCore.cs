@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
@@ -93,6 +92,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private readonly IQuantizer quantizer;
 
     /// <summary>
+    /// The pixel sampling strategy for quantization.
+    /// </summary>
+    private readonly IPixelSamplingStrategy pixelSamplingStrategy;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
     /// </summary>
     /// <param name="encoder">The Bmp encoder.</param>
@@ -101,7 +105,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     {
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
-        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
+        this.quantizer = encoder.Quantizer;
+        this.pixelSamplingStrategy = encoder.GlobalPixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
     }
 
@@ -159,7 +164,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
-        this.WriteImage(stream, image.Frames.RootFrame);
+        this.WriteImage(stream, image);
         WriteColorProfile(stream, iccProfileData, buffer);
 
         stream.Flush();
@@ -311,10 +316,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    private void WriteImage<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> pixels = image.PixelBuffer;
+        Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
         switch (this.bitsPerPixel)
         {
             case BmpBitsPerPixel.Pixel32:
@@ -433,8 +438,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write8BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
+    private void Write8BitPixelData<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool isL8 = typeof(TPixel) == typeof(L8);
@@ -456,14 +461,15 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
     /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
-    private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
+    private void Write8BitColor<TPixel>(Stream stream, Image<TPixel> image, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TODO: Should we use the pixel sampling strategy here?
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
 
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
         this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
@@ -487,7 +493,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
     /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
-    private void Write8BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
+    private void Write8BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Create a color palette with 256 different gray values.
@@ -504,7 +510,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         }
 
         stream.Write(colorPalette);
-        Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = image.GetRootFramePixelBuffer();
         for (int y = image.Height - 1; y >= 0; y--)
         {
             ReadOnlySpan<TPixel> inputPixelRow = imageBuffer.DangerousGetRowSpan(y);
@@ -524,14 +530,17 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write4BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    private void Write4BitPixelData<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 16
         });
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize4Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -568,14 +577,17 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write2BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    private void Write2BitPixelData<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 4
         });
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize2Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -621,14 +633,17 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write1BitPixelData<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    private void Write1BitPixelData<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
         {
             MaxColors = 2
         });
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize1Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();

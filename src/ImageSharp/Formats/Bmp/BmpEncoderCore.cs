@@ -99,7 +99,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
     /// </summary>
-    /// <param name="encoder">The Bmp encoder.</param>
+    /// <param name="encoder">The encoder with options.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
     public BmpEncoderCore(BmpEncoder encoder, MemoryAllocator memoryAllocator)
     {

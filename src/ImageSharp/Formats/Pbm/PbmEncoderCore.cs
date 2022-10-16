@@ -22,9 +22,9 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     private Configuration configuration;
 
     /// <summary>
-    /// The encoder options.
+    /// The encoder with options.
     /// </summary>
-    private readonly IPbmEncoderOptions options;
+    private readonly PbmEncoder encoder;
 
     /// <summary>
     /// The encoding for the pixels.
@@ -45,11 +45,11 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     /// Initializes a new instance of the <see cref="PbmEncoderCore"/> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
-    /// <param name="options">The encoder options.</param>
-    public PbmEncoderCore(Configuration configuration, IPbmEncoderOptions options)
+    /// <param name="encoder">The encoder with options.</param>
+    public PbmEncoderCore(Configuration configuration, PbmEncoder encoder)
     {
         this.configuration = configuration;
-        this.options = options;
+        this.encoder = encoder;
     }
 
     /// <summary>
@@ -80,11 +80,11 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     {
         this.configuration = image.GetConfiguration();
         PbmMetadata metadata = image.Metadata.GetPbmMetadata();
-        this.encoding = this.options.Encoding ?? metadata.Encoding;
-        this.colorType = this.options.ColorType ?? metadata.ColorType;
+        this.encoding = this.encoder.Encoding ?? metadata.Encoding;
+        this.colorType = this.encoder.ColorType ?? metadata.ColorType;
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            this.componentType = this.options.ComponentType ?? metadata.ComponentType;
+            this.componentType = this.encoder.ComponentType ?? metadata.ComponentType;
         }
         else
         {

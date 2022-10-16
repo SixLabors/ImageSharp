@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm;
 
@@ -30,36 +29,34 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// </para>
 /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
 /// </summary>
-public sealed class PbmEncoder : IImageEncoder, IPbmEncoderOptions
+public sealed class PbmEncoder : ImageEncoder
 {
     /// <summary>
-    /// Gets or sets the Encoding of the pixels.
+    /// Gets the encoding of the pixels.
     /// </summary>
-    public PbmEncoding? Encoding { get; set; }
+    public PbmEncoding? Encoding { get; init; }
 
     /// <summary>
-    /// Gets or sets the Color type of the resulting image.
+    /// Gets the Color type of the resulting image.
     /// </summary>
-    public PbmColorType? ColorType { get; set; }
+    public PbmColorType? ColorType { get; init; }
 
     /// <summary>
-    /// Gets or sets the data type of the pixels components.
+    /// Gets the Data Type of the pixel components.
     /// </summary>
-    public PbmComponentType? ComponentType { get; set; }
+    public PbmComponentType? ComponentType { get; init; }
 
     /// <inheritdoc/>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encoder = new PbmEncoderCore(image.GetConfiguration(), this);
+        PbmEncoderCore encoder = new(image.GetConfiguration(), this);
         encoder.Encode(image, stream);
     }
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new PbmEncoderCore(image.GetConfiguration(), this);
+        PbmEncoderCore encoder = new(image.GetConfiguration(), this);
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

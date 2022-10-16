@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats;
 public interface IEncoderOptions
 {
     /// <summary>
-    /// Gets or sets a value indicating whether to ignore decoded metadata when encoding.
+    /// Gets a value indicating whether to ignore decoded metadata when encoding.
     /// </summary>
-    bool SkipMetadata { get; set; }
+    bool SkipMetadata { get; init; }
 }
 
 /// <summary>
@@ -22,12 +22,12 @@ public interface IEncoderOptions
 public interface IQuantizingEncoderOptions : IEncoderOptions
 {
     /// <summary>
-    /// Gets or sets the quantizer used to generate the color palette.
+    /// Gets the quantizer used to generate the color palette.
     /// </summary>
-    IQuantizer Quantizer { get; set; }
+    IQuantizer Quantizer { get; init; }
 
     /// <summary>
-    /// Gets or sets the <see cref="IPixelSamplingStrategy"/> used for quantization when building a global color palette.
+    /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building a global color palette.
     /// </summary>
-    IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; }
+    IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; init; }
 }

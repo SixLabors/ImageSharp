@@ -11,17 +11,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 public sealed class BmpEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Gets or sets the number of bits per pixel.
+    /// Gets the number of bits per pixel.
     /// </summary>
-    public BmpBitsPerPixel? BitsPerPixel { get; set; }
+    public BmpBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the encoder should support transparency.
+    /// Gets a value indicating whether the encoder should support transparency.
     /// Note: Transparency support only works together with 32 bits per pixel. This option will
     /// change the default behavior of the encoder of writing a bitmap version 3 info header with no compression.
     /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
     /// </summary>
-    public bool SupportTransparency { get; set; }
+    public bool SupportTransparency { get; init; }
 
     /// <inheritdoc/>
     public override void Encode<TPixel>(Image<TPixel> image, Stream stream)

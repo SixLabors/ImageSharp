@@ -29,7 +29,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// </summary>
     private readonly byte[] buffer = new byte[20];
 
-    private readonly IJpegEncoderOptions options;
+    private readonly JpegEncoder encoder;
 
     /// <summary>
     /// The output stream. All attempted writes after the first error become no-ops.
@@ -39,9 +39,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The options.</param>
-    public JpegEncoderCore(IJpegEncoderOptions options)
-        => this.options = options;
+    /// <param name="encoder">The parent encoder.</param>
+    public JpegEncoderCore(JpegEncoder encoder)
+        => this.encoder = encoder;
 
     public Block8x8F[] QuantizationTables { get; } = new Block8x8F[4];
 
@@ -71,8 +71,8 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        bool interleaved = this.options.Interleaved ?? jpegMetadata.Interleaved ?? true;
-        using var frame = new JpegFrame(image, frameConfig, interleaved);
+        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved ?? true;
+        using JpegFrame frame = new(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
         this.WriteStartOfImage();
@@ -96,14 +96,14 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig);
 
         // Write the Huffman tables.
-        var scanEncoder = new HuffmanScanEncoder(frame.BlocksPerMcu, stream);
+        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, stream);
         this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder);
 
         // Write the quantization tables.
-        this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.options.Quality, jpegMetadata);
+        this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.encoder.Quality, jpegMetadata);
 
         // Write scans with actual pixel data
-        using var spectralConverter = new SpectralConverter<TPixel>(frame, image, this.QuantizationTables);
+        using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
         this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, cancellationToken);
 
         // Write the End Of Image marker.
@@ -172,6 +172,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the Define Huffman Table marker and tables.
     /// </summary>
+    /// <param name="tableConfigs">The table configuration.</param>
+    /// <param name="scanEncoder">The scan encoder.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="tableConfigs"/> is <see langword="null"/>.</exception>
     private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder)
     {
         if (tableConfigs is null)
@@ -203,6 +206,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the APP14 marker to indicate the image is in RGB color space.
     /// </summary>
+    /// <param name="colorTransform">The color transform byte.</param>
     private void WriteApp14Marker(byte colorTransform)
     {
         this.WriteMarkerHeader(JpegConstants.Markers.APP14, 2 + Components.Decoder.AdobeMarker.Length);
@@ -498,6 +502,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the Start Of Frame (Baseline) marker.
     /// </summary>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="frame">The frame configuration.</param>
     private void WriteStartOfFrame(int width, int height, JpegFrameConfig frame)
     {
         JpegComponentConfig[] components = frame.Components;
@@ -536,6 +543,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the StartOfScan marker.
     /// </summary>
+    /// <param name="components">The collecction of component configuration items.</param>
     private void WriteStartOfScan(Span<JpegComponentConfig> components)
     {
         // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
@@ -588,7 +596,18 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes scans for given config.
     /// </summary>
-    private void WriteHuffmanScans<TPixel>(JpegFrame frame, JpegFrameConfig frameConfig, SpectralConverter<TPixel> spectralConverter, HuffmanScanEncoder encoder, CancellationToken cancellationToken)
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="frame">The current frame.</param>
+    /// <param name="frameConfig">The frame configuration.</param>
+    /// <param name="spectralConverter">The spectral converter.</param>
+    /// <param name="encoder">The scan encoder.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void WriteHuffmanScans<TPixel>(
+        JpegFrame frame,
+        JpegFrameConfig frameConfig,
+        SpectralConverter<TPixel> spectralConverter,
+        HuffmanScanEncoder encoder,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (frame.Components.Length == 1)
@@ -696,7 +715,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
-        JpegEncodingColor color = this.options.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+        JpegEncodingColor color = this.encoder.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

@@ -17,19 +17,21 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
     private readonly int maxColors;
     private readonly int colorPaletteSize;
     private readonly int colorPaletteBytes;
-    private readonly IndexedImageFrame<TPixel> quantizedImage;
+    private readonly IndexedImageFrame<TPixel> quantizedFrame;
     private IMemoryOwner<byte> indexedPixelsBuffer;
 
     public TiffPaletteWriter(
-        ImageFrame<TPixel> image,
+        ImageFrame<TPixel> frame,
         IQuantizer quantizer,
+        IPixelSamplingStrategy pixelSamplingStrategy,
         MemoryAllocator memoryAllocator,
         Configuration configuration,
         TiffEncoderEntriesCollector entriesCollector,
         int bitsPerPixel)
-         : base(image, memoryAllocator, configuration, entriesCollector)
+         : base(frame, memoryAllocator, configuration, entriesCollector)
     {
         DebugGuard.NotNull(quantizer, nameof(quantizer));
+        DebugGuard.NotNull(quantizer, nameof(pixelSamplingStrategy));
         DebugGuard.NotNull(configuration, nameof(configuration));
         DebugGuard.NotNull(entriesCollector, nameof(entriesCollector));
         DebugGuard.MustBeBetweenOrEqualTo(bitsPerPixel, 4, 8, nameof(bitsPerPixel));
@@ -38,11 +40,15 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         this.maxColors = this.BitsPerPixel == 4 ? 16 : 256;
         this.colorPaletteSize = this.maxColors * 3;
         this.colorPaletteBytes = this.colorPaletteSize * 2;
-        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration, new QuantizerOptions()
-        {
-            MaxColors = this.maxColors
-        });
-        this.quantizedImage = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(
+            this.Configuration,
+            new QuantizerOptions()
+            {
+                MaxColors = this.maxColors
+            });
+
+        frameQuantizer.BuildPalette(pixelSamplingStrategy, frame);
+        this.quantizedFrame = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
         this.AddColorMapTag();
     }
@@ -66,7 +72,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
             int lastRow = y + height;
             for (int row = y; row < lastRow; row++)
             {
-                ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.DangerousGetRowSpan(row);
+                ReadOnlySpan<byte> indexedPixelRow = this.quantizedFrame.DangerousGetRowSpan(row);
                 int idxPixels = 0;
                 for (int x = 0; x < halfWidth; x++)
                 {
@@ -93,7 +99,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
             int indexedPixelsRowIdx = 0;
             for (int row = y; row < lastRow; row++)
             {
-                ReadOnlySpan<byte> indexedPixelRow = this.quantizedImage.DangerousGetRowSpan(row);
+                ReadOnlySpan<byte> indexedPixelRow = this.quantizedFrame.DangerousGetRowSpan(row);
                 indexedPixelRow.CopyTo(indexedPixels.Slice(indexedPixelsRowIdx * width, width));
                 indexedPixelsRowIdx++;
             }
@@ -105,7 +111,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        this.quantizedImage?.Dispose();
+        this.quantizedFrame?.Dispose();
         this.indexedPixelsBuffer?.Dispose();
     }
 
@@ -114,7 +120,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         using IMemoryOwner<byte> colorPaletteBuffer = this.MemoryAllocator.Allocate<byte>(this.colorPaletteBytes);
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
-        ReadOnlySpan<TPixel> quantizedColors = this.quantizedImage.Palette.Span;
+        ReadOnlySpan<TPixel> quantizedColors = this.quantizedFrame.Palette.Span;
         int quantizedColorBytes = quantizedColors.Length * 3 * 2;
 
         // In the ColorMap, black is represented by 0, 0, 0 and white is represented by 65535, 65535, 65535.
@@ -126,7 +132,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
         // In a TIFF ColorMap, all the Red values come first, followed by the Green values,
         // then the Blue values. Convert the quantized palette to this format.
-        var palette = new ushort[this.colorPaletteSize];
+        ushort[] palette = new ushort[this.colorPaletteSize];
         int paletteIdx = 0;
         for (int i = 0; i < quantizedColors.Length; i++)
         {
@@ -147,7 +153,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
             palette[paletteIdx++] = quantizedColorRgb48[i].B;
         }
 
-        var colorMap = new ExifShortArray(ExifTagValue.ColorMap)
+        ExifShortArray colorMap = new(ExifTagValue.ColorMap)
         {
             Value = palette
         };

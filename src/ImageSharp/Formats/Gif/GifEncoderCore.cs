@@ -70,7 +70,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         this.skipMetadata = encoder.SkipMetadata;
         this.quantizer = encoder.Quantizer;
         this.colorTableMode = encoder.ColorTableMode;
-        this.pixelSamplingStrategy = encoder.GlobalPixelSamplingStrategy;
+        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
     }
 
     /// <summary>
@@ -103,7 +103,8 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             }
             else
             {
-                quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image.Frames.RootFrame);
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
             }
         }
 

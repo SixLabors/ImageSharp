@@ -27,7 +27,7 @@ public interface IQuantizingEncoderOptions : IEncoderOptions
     IQuantizer Quantizer { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building a global color palette.
+    /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building color palettes.
     /// </summary>
-    IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; init; }
+    IPixelSamplingStrategy PixelSamplingStrategy { get; init; }
 }

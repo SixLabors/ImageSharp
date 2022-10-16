@@ -144,7 +144,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = GifColorTableMode.Global,
-            GlobalPixelSamplingStrategy = new DefaultPixelSamplingStrategy(maxPixels, scanRatio)
+            PixelSamplingStrategy = new DefaultPixelSamplingStrategy(maxPixels, scanRatio)
         };
 
         string testOutputFile = provider.Utility.SaveTestOutputFile(

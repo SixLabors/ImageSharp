@@ -20,4 +20,11 @@ public class ExtensivePixelSamplingStrategy : IPixelSamplingStrategy
             yield return frame.PixelBuffer.GetRegion();
         }
     }
+
+    /// <inheritdoc/>
+    public IEnumerable<Buffer2DRegion<TPixel>> EnumeratePixelRegions<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        yield return frame.PixelBuffer.GetRegion();
+    }
 }

@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -55,6 +57,11 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private Vp8BitWriter bitWriter;
 
+    /// <summary>
+    /// Whether to skip metadata during encoding.
+    /// </summary>
+    private readonly bool skipMetadata;
+
     private readonly Vp8RdLevel rdOptLevel;
 
     private int maxI4HeaderBits;
@@ -94,6 +101,7 @@ internal class Vp8Encoder : IDisposable
     /// <param name="width">The width of the input image.</param>
     /// <param name="height">The height of the input image.</param>
     /// <param name="quality">The encoding quality.</param>
+    /// <param name="skipMetadata">Whether to skip metadata encoding.</param>
     /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
     /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
     /// <param name="filterStrength">The filter the strength of the deblocking filter, between 0 (no filtering) and 100 (maximum filtering).</param>
@@ -105,6 +113,7 @@ internal class Vp8Encoder : IDisposable
         int width,
         int height,
         int quality,
+        bool skipMetadata,
         WebpEncodingMethod method,
         int entropyPasses,
         int filterStrength,
@@ -116,6 +125,7 @@ internal class Vp8Encoder : IDisposable
         this.Width = width;
         this.Height = height;
         this.quality = Numerics.Clamp(quality, 0, 100);
+        this.skipMetadata = skipMetadata;
         this.method = method;
         this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
         this.filterStrength = Numerics.Clamp(filterStrength, 0, 100);
@@ -342,7 +352,7 @@ internal class Vp8Encoder : IDisposable
         if (hasAlpha)
         {
             // TODO: This can potentially run in an separate task.
-            IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+            IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.skipMetadata, this.alphaCompression, out alphaDataSize);
             alphaData = encodedAlphaData.GetSpan();
             if (alphaDataSize < pixelCount)
             {
@@ -384,10 +394,14 @@ internal class Vp8Encoder : IDisposable
         // Write bytes from the bitwriter buffer to the stream.
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
         this.bitWriter.WriteEncodedImageToStream(
             stream,
-            metadata.ExifProfile,
-            metadata.XmpProfile,
+            exifProfile,
+            xmpProfile,
             metadata.IccProfile,
             (uint)width,
             (uint)height,

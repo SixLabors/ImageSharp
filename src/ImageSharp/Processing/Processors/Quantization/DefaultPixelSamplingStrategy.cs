@@ -137,7 +137,8 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                int subPos = pos % denom;
+                Debug.Assert(denom > 0);
+                int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {
                     yield return GetRow(pos);

@@ -1336,7 +1336,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             bitDepth = bits;
         }
 
-        if (Array.IndexOf(PngConstants.ColorTypes[colorType], bitDepth) == -1)
+        if (Array.IndexOf(PngConstants.ColorTypes[colorType], bitDepth) < 0)
         {
             throw new NotSupportedException("Bit depth is not supported or not valid.");
         }

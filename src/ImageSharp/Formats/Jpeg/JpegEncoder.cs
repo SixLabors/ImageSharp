@@ -15,7 +15,7 @@ public sealed class JpegEncoder : ImageEncoder
 
     /// <summary>
     /// Gets the quality, that will be used to encode the image. Quality
-    /// index must be between 0 and 100 (compression from max to min).
+    /// index must be between 1 and 100 (compression from max to min).
     /// Defaults to <value>75</value>.
     /// </summary>
     /// <exception cref="ArgumentException">Quality factor must be in [1..100] range.</exception>

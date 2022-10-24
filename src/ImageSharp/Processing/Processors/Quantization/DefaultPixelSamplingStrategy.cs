@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -86,7 +87,8 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                int subPos = pos % denom;
+                Debug.Assert(denom > 0, "Denominator must be greater than zero.");
+                int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {
                     yield return GetRow(pos);
@@ -137,7 +139,7 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                Debug.Assert(denom > 0);
+                Debug.Assert(denom > 0, "Denominator must be greater than zero.");
                 int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {

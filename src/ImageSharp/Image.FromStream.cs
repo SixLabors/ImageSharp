@@ -517,6 +517,7 @@ public abstract partial class Image
     /// <param name="stream">The input stream.</param>
     /// <param name="action">The action to perform.</param>
     /// <returns>The <typeparamref name="T"/>.</returns>
+    /// <exception cref="NotSupportedException">Cannot read from the stream.</exception>
     internal static T WithSeekableStream<T>(
         DecoderOptions options,
         Stream stream,
@@ -587,7 +588,20 @@ public abstract partial class Image
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 
-        return action(memoryStream, cancellationToken);
+        T Action(Stream ms, CancellationToken ct)
+        {
+            // Reset the position of the seekable stream if we did not read to the end
+            // to allow additional reads.
+            T result = action(ms, ct);
+            if (stream.CanSeek && ms.Position != ms.Length)
+            {
+                stream.Position = ms.Position;
+            }
+
+            return result;
+        }
+
+        return Action(memoryStream, cancellationToken);
     }
 
     [DoesNotReturn]

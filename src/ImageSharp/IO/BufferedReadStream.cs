@@ -60,7 +60,7 @@ internal sealed class BufferedReadStream : Stream
         }
 
         // This triggers a full read on first attempt.
-        this.readBufferIndex = this.BufferSize;
+        this.readBufferIndex = int.MinValue;
     }
 
     /// <summary>
@@ -96,8 +96,9 @@ internal sealed class BufferedReadStream : Stream
             else
             {
                 // Base stream seek will throw for us if invalid.
+                this.BaseStream.Seek(value, SeekOrigin.Begin);
                 this.readerPosition = value;
-                this.FillReadBuffer();
+                this.readBufferIndex = int.MinValue;
             }
         }
     }
@@ -140,7 +141,7 @@ internal sealed class BufferedReadStream : Stream
 
         // Our buffer has been read.
         // We need to refill and start again.
-        if (this.readBufferIndex > this.maxBufferIndex)
+        if ((uint)this.readBufferIndex > (uint)this.maxBufferIndex)
         {
             this.FillReadBuffer();
         }
@@ -156,22 +157,7 @@ internal sealed class BufferedReadStream : Stream
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Read(byte[] buffer, int offset, int count)
-    {
-        // Too big for our buffer. Read directly from the stream.
-        if (count > this.BufferSize)
-        {
-            return this.ReadToBufferDirectSlow(buffer, offset, count);
-        }
-
-        // Too big for remaining buffer but less than entire buffer length
-        // Copy to buffer then read from there.
-        if (count + this.readBufferIndex > this.BufferSize)
-        {
-            return this.ReadToBufferViaCopySlow(buffer, offset, count);
-        }
-
-        return this.ReadToBufferViaCopyFast(buffer, offset, count);
-    }
+        => this.Read(buffer.AsSpan(offset, count));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -186,7 +172,7 @@ internal sealed class BufferedReadStream : Stream
 
         // Too big for remaining buffer but less than entire buffer length
         // Copy to buffer then read from there.
-        if (count + this.readBufferIndex > this.BufferSize)
+        if ((uint)this.readBufferIndex > (uint)(this.BufferSize - count))
         {
             return this.ReadToBufferViaCopySlow(buffer);
         }
@@ -206,7 +192,7 @@ internal sealed class BufferedReadStream : Stream
         }
 
         // Reset to trigger full read on next attempt.
-        this.readBufferIndex = this.BufferSize;
+        this.readBufferIndex = int.MinValue;
     }
 
     /// <inheritdoc/>

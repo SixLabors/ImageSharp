@@ -47,6 +47,36 @@ public class GeneralFormatTests
     }
 
     [Fact]
+    public void ReadOriginIsRespectedOnLoad()
+    {
+        using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
+        using Image<Rgb24> i = Image.Load<Rgb24>(stream);
+        long position1 = stream.Position;
+        Assert.NotEqual(0, position1);
+
+        using Image<Rgb24> j = Image.Load<Rgb24>(stream);
+        long position2 = stream.Position;
+        Assert.True(position2 > position1);
+
+        Assert.NotEqual(i[5, 5], j[5, 5]);
+    }
+
+    [Fact]
+    public async Task ReadOriginIsRespectedOnLoadAsync()
+    {
+        using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
+        using Image<Rgb24> i = await Image.LoadAsync<Rgb24>(stream);
+        long position1 = stream.Position;
+        Assert.NotEqual(0, position1);
+
+        using Image<Rgb24> j = await Image.LoadAsync<Rgb24>(stream);
+        long position2 = stream.Position;
+        Assert.True(position2 > position1);
+
+        Assert.NotEqual(i[5, 5], j[5, 5]);
+    }
+
+    [Fact]
     public void ImageCanEncodeToString()
     {
         string path = TestEnvironment.CreateOutputDirectory("ToString");
@@ -155,15 +185,15 @@ public class GeneralFormatTests
         foreach (TestFile file in Files)
         {
             byte[] serialized;
-            using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
-            using (var memoryStream = new MemoryStream())
+            using (Image image = Image.Load(file.Bytes, out IImageFormat mimeType))
+            using (MemoryStream memoryStream = new())
             {
                 image.Save(memoryStream, mimeType);
                 memoryStream.Flush();
                 serialized = memoryStream.ToArray();
             }
 
-            using var image2 = Image.Load<Rgba32>(serialized);
+            using Image<Rgba32> image2 = Image.Load<Rgba32>(serialized);
             image2.Save($"{path}{Path.DirectorySeparatorChar}{file.FileName}");
         }
     }
@@ -198,8 +228,8 @@ public class GeneralFormatTests
 
     public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
     {
-        using var image = Image.LoadPixelData<Rgba32>(new Rgba32[width * height], width, height);
-        using var memoryStream = new MemoryStream();
+        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(new Rgba32[width * height], width, height);
+        using MemoryStream memoryStream = new();
         IImageFormat format = GetFormat(extension);
         image.Save(memoryStream, format);
         memoryStream.Position = 0;
@@ -220,7 +250,7 @@ public class GeneralFormatTests
     {
         byte[] invalid = new byte[10];
 
-        using var memoryStream = new MemoryStream(invalid);
+        using MemoryStream memoryStream = new(invalid);
         IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
 
         Assert.Null(imageInfo);

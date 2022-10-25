@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#nullable enable
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -19,5 +20,5 @@ public interface IImageFormatDetector
     /// </summary>
     /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
     /// <returns>returns the mime type of detected otherwise returns null</returns>
-    IImageFormat DetectFormat(ReadOnlySpan<byte> header);
+    IImageFormat? DetectFormat(ReadOnlySpan<byte> header);
 }

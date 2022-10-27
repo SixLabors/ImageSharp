@@ -87,7 +87,7 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                Debug.Assert(denom > 0, "Denominator must be greater than zero.");
+                DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
                 int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {

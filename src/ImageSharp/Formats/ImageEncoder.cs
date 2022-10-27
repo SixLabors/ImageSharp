@@ -10,9 +10,11 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// The base class for all image encoders.
 /// </summary>
-public abstract class ImageEncoder : IImageEncoder, IEncoderOptions
+public abstract class ImageEncoder : IImageEncoder
 {
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets a value indicating whether to ignore decoded metadata when encoding.
+    /// </summary>
     public bool SkipMetadata { get; init; }
 
     /// <inheritdoc/>
@@ -27,11 +29,15 @@ public abstract class ImageEncoder : IImageEncoder, IEncoderOptions
 /// <summary>
 /// The base class for all image encoders that allow color palette generation via quantization.
 /// </summary>
-public abstract class QuantizingImageEncoder : ImageEncoder, IQuantizingEncoderOptions
+public abstract class QuantizingImageEncoder : ImageEncoder
 {
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the quantizer used to generate the color palette.
+    /// </summary>
     public IQuantizer Quantizer { get; init; } = KnownQuantizers.Octree;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building color palettes.
+    /// </summary>
     public IPixelSamplingStrategy PixelSamplingStrategy { get; init; } = new DefaultPixelSamplingStrategy();
 }

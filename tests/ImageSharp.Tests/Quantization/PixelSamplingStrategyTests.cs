@@ -36,7 +36,7 @@ public class PixelSamplingStrategyTests
     };
 
     [Fact]
-    public void ExtensivePixelSamplingStrategy_EnumeratesAll()
+    public void ExtensivePixelSamplingStrategy_EnumeratesAll_MultiFrame()
     {
         using Image<L8> image = CreateTestImage(100, 100, 100);
         ExtensivePixelSamplingStrategy strategy = new();
@@ -44,6 +44,25 @@ public class PixelSamplingStrategyTests
         foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(image))
         {
             PaintWhite(region);
+        }
+
+        using Image<L8> expected = CreateTestImage(100, 100, 100, true);
+
+        ImageComparer.Exact.VerifySimilarity(expected, image);
+    }
+
+    [Fact]
+    public void ExtensivePixelSamplingStrategy_EnumeratesAll()
+    {
+        using Image<L8> image = CreateTestImage(100, 100, 100);
+        ExtensivePixelSamplingStrategy strategy = new();
+
+        foreach (ImageFrame<L8> frame in image.Frames)
+        {
+            foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(frame))
+            {
+                PaintWhite(region);
+            }
         }
 
         using Image<L8> expected = CreateTestImage(100, 100, 100, true);
@@ -88,10 +107,13 @@ public class PixelSamplingStrategyTests
         DefaultPixelSamplingStrategy strategy = new(maximumNumberOfPixels, 0.1);
 
         long visitedPixels = 0;
-        foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(image))
+        foreach (ImageFrame<L8> frame in image.Frames)
         {
-            PaintWhite(region);
-            visitedPixels += region.Width * region.Height;
+            foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(frame))
+            {
+                PaintWhite(region);
+                visitedPixels += region.Width * region.Height;
+            }
         }
 
         image.DebugSave(

@@ -1280,7 +1280,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="bitDepth">The bits per component.</param>
     /// <param name="image">The image.</param>
     private static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
-        IQuantizingEncoderOptions encoder,
+        QuantizingImageEncoder encoder,
         PngColorType colorType,
         byte bitDepth,
         Image<TPixel> image)

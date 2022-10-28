@@ -37,8 +37,7 @@ public class DecodeJpegParseStreamOnly
     {
         using var memoryStream = new MemoryStream(this.jpegBytes);
         using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
-        var options = new JpegDecoderOptions();
-        options.GeneralOptions.SkipMetadata = true;
+        var options = new JpegDecoderOptions() { GeneralOptions = new() { SkipMetadata = true } };
 
         using var decoder = new JpegDecoderCore(options);
         var spectralConverter = new NoopSpectralConverter();

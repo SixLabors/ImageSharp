@@ -21,27 +21,27 @@ public sealed class DecoderOptions
     internal static DecoderOptions Default { get; } = LazyOptions.Value;
 
     /// <summary>
-    /// Gets or sets a custom Configuration instance to be used by the image processing pipeline.
+    /// Gets a custom configuration instance to be used by the image processing pipeline.
     /// </summary>
-    public Configuration Configuration { get; set; } = Configuration.Default;
+    public Configuration Configuration { get; internal set; } = Configuration.Default;
 
     /// <summary>
-    /// Gets or sets the target size to decode the image into.
+    /// Gets the target size to decode the image into.
     /// </summary>
-    public Size? TargetSize { get; set; }
+    public Size? TargetSize { get; init; }
 
     /// <summary>
-    /// Gets or sets the sampler to use when resizing during decoding.
+    /// Gets the sampler to use when resizing during decoding.
     /// </summary>
-    public IResampler Sampler { get; set; } = KnownResamplers.Box;
+    public IResampler Sampler { get; init; } = KnownResamplers.Box;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to ignore encoded metadata when decoding.
+    /// Gets a value indicating whether to ignore encoded metadata when decoding.
     /// </summary>
-    public bool SkipMetadata { get; set; }
+    public bool SkipMetadata { get; init; }
 
     /// <summary>
-    /// Gets or sets the maximum number of image frames to decode, inclusive.
+    /// Gets the maximum number of image frames to decode, inclusive.
     /// </summary>
-    public uint MaxFrames { get => this.maxFrames; set => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
+    public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
 }

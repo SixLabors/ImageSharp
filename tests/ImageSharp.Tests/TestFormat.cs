@@ -230,7 +230,7 @@ public class TestFormat : IConfigurationModule, IImageFormat
 
     public class TestDecoderOptions : ISpecializedDecoderOptions
     {
-        public DecoderOptions GeneralOptions { get; set; } = new();
+        public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
     }
 
     public class TestEncoder : ImageEncoder

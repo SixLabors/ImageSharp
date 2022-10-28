@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -84,10 +83,10 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             int denom = (int)ratio.Denominator;
             int num = (int)ratio.Numerator;
+            DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
                 int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {
@@ -136,7 +135,6 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             int denom = (int)ratio.Denominator;
             int num = (int)ratio.Numerator;
-
             DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)

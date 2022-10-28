@@ -19,7 +19,7 @@ public partial class ImageTests
 
         protected Image<Bgra4444> localStreamReturnImageAgnostic;
 
-        protected Mock<IImageDecoder> localDecoder;
+        protected Mock<ImageDecoder> localDecoder;
 
         protected IImageFormatDetector localMimeTypeDetector;
 
@@ -59,11 +59,10 @@ public partial class ImageTests
             this.localImageInfoMock = new Mock<IImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
-            var detector = new Mock<IImageInfoDetector>();
-            detector.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            this.localDecoder = new Mock<ImageDecoder>();
+            this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .Returns(this.localImageInfoMock.Object);
 
-            this.localDecoder = detector.As<IImageDecoder>();
             this.localDecoder
                 .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>

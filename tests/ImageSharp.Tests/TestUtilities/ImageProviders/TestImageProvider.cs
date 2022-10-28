@@ -87,29 +87,30 @@ public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IX
     /// <returns>A test image.</returns>
     public abstract Image<TPixel> GetImage();
 
-    public Image<TPixel> GetImage(IImageDecoder decoder)
+    public Image<TPixel> GetImage(ImageDecoder decoder)
         => this.GetImage(decoder, new());
 
-    public Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+    public Task<Image<TPixel>> GetImageAsync(ImageDecoder decoder)
          => this.GetImageAsync(decoder, new());
 
-    public virtual Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
+    public virtual Image<TPixel> GetImage(ImageDecoder decoder, DecoderOptions options)
         => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
 
-    public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
+    public virtual Task<Image<TPixel>> GetImageAsync(ImageDecoder decoder, DecoderOptions options)
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
-    public virtual Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+    public virtual Image<TPixel> GetImage<T>(SpecializedImageDecoder<T> decoder, T options)
         where T : class, ISpecializedDecoderOptions, new()
         => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
 
-    public virtual Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
+    public virtual Task<Image<TPixel>> GetImageAsync<T>(SpecializedImageDecoder<T> decoder, T options)
         where T : class, ISpecializedDecoderOptions, new()
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
     /// <summary>
     /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
     /// </summary>
+    /// <param name="operationsToApply">The operation to apply to the image before returning.</param>
     /// <returns>A test image.</returns>
     public Image<TPixel> GetImage(Action<IImageProcessingContext> operationsToApply)
     {

@@ -64,7 +64,7 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterNullSetDecoder()
     {
-        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, new Mock<IImageDecoder>().Object));
+        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, new Mock<ImageDecoder>().Object));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, null));
     }
@@ -87,14 +87,14 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterMimeTypeDecoderReplacesLast()
     {
-        IImageDecoder decoder1 = new Mock<IImageDecoder>().Object;
+        ImageDecoder decoder1 = new Mock<ImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
-        IImageDecoder found = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        ImageDecoder found = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder1, found);
 
-        IImageDecoder decoder2 = new Mock<IImageDecoder>().Object;
+        ImageDecoder decoder2 = new Mock<ImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
-        IImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        ImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder2, found2);
         Assert.NotEqual(found, found2);
     }
@@ -102,8 +102,8 @@ public class ImageFormatManagerTests
     [Fact]
     public void AddFormatCallsConfig()
     {
-        var provider = new Mock<IConfigurationModule>();
-        var config = new Configuration();
+        Mock<IConfigurationModule> provider = new();
+        Configuration config = new();
         config.Configure(provider.Object);
 
         provider.Verify(x => x.Configure(config));
@@ -113,9 +113,9 @@ public class ImageFormatManagerTests
     public void DetectFormatAllocatesCleanBuffer()
     {
         byte[] jpegImage;
-        using (var buffer = new MemoryStream())
+        using (MemoryStream buffer = new())
         {
-            using var image = new Image<Rgba32>(100, 100);
+            using Image<Rgba32> image = new(100, 100);
             image.SaveAsJpeg(buffer);
             jpegImage = buffer.ToArray();
         }

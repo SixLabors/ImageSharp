@@ -610,7 +610,7 @@ public abstract partial class Image
         StringBuilder sb = new();
         sb.AppendLine("Image cannot be loaded. Available decoders:");
 
-        foreach (KeyValuePair<IImageFormat, IImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
+        foreach (KeyValuePair<IImageFormat, ImageDecoder> val in options.Configuration.ImageFormatsManager.ImageDecoders)
         {
             sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
         }

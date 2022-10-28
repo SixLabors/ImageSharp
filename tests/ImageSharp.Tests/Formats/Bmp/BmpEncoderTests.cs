@@ -278,7 +278,7 @@ public class BmpEncoderTests
 
         // Use the default decoder to test our encoded image. This verifies the content.
         // We do not verify the reference image though as some are invalid.
-        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
         using FileStream stream = File.OpenRead(actualOutputFile);
         using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
         referenceImage.CompareToReferenceOutput(
@@ -309,7 +309,7 @@ public class BmpEncoderTests
 
         // Use the default decoder to test our encoded image. This verifies the content.
         // We do not verify the reference image though as some are invalid.
-        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
         using FileStream stream = File.OpenRead(actualOutputFile);
         using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
         referenceImage.CompareToReferenceOutput(
@@ -378,7 +378,7 @@ public class BmpEncoderTests
         bool supportTransparency = true, // if set to true, will write a V4 header, otherwise a V3 header.
         IQuantizer quantizer = null,
         ImageComparer customComparer = null,
-        IImageDecoder referenceDecoder = null)
+        ImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

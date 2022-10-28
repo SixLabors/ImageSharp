@@ -8,10 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Image decoder for Truevision TGA images.
 /// </summary>
-public sealed class TgaDecoder : IImageDecoder
+public sealed class TgaDecoder : ImageDecoder
 {
     /// <inheritdoc/>
-    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -20,7 +20,7 @@ public sealed class TgaDecoder : IImageDecoder
     }
 
     /// <inheritdoc/>
-    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected internal override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -28,12 +28,12 @@ public sealed class TgaDecoder : IImageDecoder
         TgaDecoderCore decoder = new(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
-        ImageDecoderUtilities.Resize(options, image);
+        Resize(options, image);
 
         return image;
     }
 
     /// <inheritdoc/>
-    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoder)this).Decode<Rgba32>(options, stream, cancellationToken);
+    protected internal override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

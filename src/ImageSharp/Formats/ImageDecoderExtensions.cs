@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Extensions methods for <see cref="IImageDecoder"/> and <see cref="IImageDecoderSpecialized{T}"/>.
+/// Extensions methods for <see cref="ImageDecoder"/> and <see cref="SpecializedImageDecoder{T}"/>.
 /// </summary>
 public static class ImageDecoderExtensions
 {
@@ -18,7 +18,7 @@ public static class ImageDecoderExtensions
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="IImageInfo"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static IImageInfo Identify(this IImageDecoder decoder, DecoderOptions options, Stream stream)
+    public static IImageInfo Identify(this ImageDecoder decoder, DecoderOptions options, Stream stream)
         => Image.WithSeekableStream(
             options,
             stream,
@@ -33,7 +33,7 @@ public static class ImageDecoderExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="Task{IImageInfo}"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Task<IImageInfo> IdentifyAsync(this IImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    public static Task<IImageInfo> IdentifyAsync(this ImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         => Image.WithSeekableStreamAsync(
             options,
             stream,
@@ -49,7 +49,7 @@ public static class ImageDecoderExtensions
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="Image{TPixel}"/>.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Image<TPixel> Decode<TPixel>(this IImageDecoder decoder, DecoderOptions options, Stream stream)
+    public static Image<TPixel> Decode<TPixel>(this ImageDecoder decoder, DecoderOptions options, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
         => Image.WithSeekableStream(
             options,
@@ -64,7 +64,7 @@ public static class ImageDecoderExtensions
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="Image{TPixel}"/>.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Image Decode(this IImageDecoder decoder, DecoderOptions options, Stream stream)
+    public static Image Decode(this ImageDecoder decoder, DecoderOptions options, Stream stream)
         => Image.WithSeekableStream(
             options,
             stream,
@@ -80,7 +80,7 @@ public static class ImageDecoderExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Task<Image<TPixel>> DecodeAsync<TPixel>(this IImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    public static Task<Image<TPixel>> DecodeAsync<TPixel>(this ImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
         => Image.WithSeekableStreamAsync(
             options,
@@ -97,7 +97,7 @@ public static class ImageDecoderExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Task<Image> DecodeAsync(this IImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    public static Task<Image> DecodeAsync(this ImageDecoder decoder, DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         => Image.WithSeekableStreamAsync(
             options,
             stream,
@@ -114,7 +114,7 @@ public static class ImageDecoderExtensions
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="Image{TPixel}"/>.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Image<TPixel> Decode<T, TPixel>(this IImageDecoderSpecialized<T> decoder, T options, Stream stream)
+    public static Image<TPixel> Decode<T, TPixel>(this SpecializedImageDecoder<T> decoder, T options, Stream stream)
         where T : ISpecializedDecoderOptions
         where TPixel : unmanaged, IPixel<TPixel>
         => Image.WithSeekableStream(
@@ -131,7 +131,7 @@ public static class ImageDecoderExtensions
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <returns>The <see cref="Image{TPixel}"/>.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Image Decode<T>(this IImageDecoderSpecialized<T> decoder, T options, Stream stream)
+    public static Image Decode<T>(this SpecializedImageDecoder<T> decoder, T options, Stream stream)
         where T : ISpecializedDecoderOptions
         => Image.WithSeekableStream(
             options.GeneralOptions,
@@ -149,7 +149,7 @@ public static class ImageDecoderExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Task<Image<TPixel>> DecodeAsync<T, TPixel>(this IImageDecoderSpecialized<T> decoder, T options, Stream stream, CancellationToken cancellationToken = default)
+    public static Task<Image<TPixel>> DecodeAsync<T, TPixel>(this SpecializedImageDecoder<T> decoder, T options, Stream stream, CancellationToken cancellationToken = default)
         where T : ISpecializedDecoderOptions
         where TPixel : unmanaged, IPixel<TPixel>
         => Image.WithSeekableStreamAsync(
@@ -168,7 +168,7 @@ public static class ImageDecoderExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public static Task<Image> DecodeAsync<T>(this IImageDecoderSpecialized<T> decoder, T options, Stream stream, CancellationToken cancellationToken = default)
+    public static Task<Image> DecodeAsync<T>(this SpecializedImageDecoder<T> decoder, T options, Stream stream, CancellationToken cancellationToken = default)
         where T : ISpecializedDecoderOptions
         => Image.WithSeekableStreamAsync(
             options.GeneralOptions,

@@ -27,7 +27,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             public Key(
                 PixelTypes pixelType,
                 string filePath,
-                IImageDecoder customDecoder,
+                ImageDecoder customDecoder,
                 DecoderOptions options,
                 ISpecializedDecoderOptions specialized)
             {
@@ -175,11 +175,11 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         public override Image<TPixel> GetImage()
         {
-            IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(this.FilePath);
+            ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(this.FilePath);
             return this.GetImage(decoder);
         }
 
-        public override Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
+        public override Image<TPixel> GetImage(ImageDecoder decoder, DecoderOptions options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -202,7 +202,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
+        public override Task<Image<TPixel>> GetImageAsync(ImageDecoder decoder, DecoderOptions options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -216,7 +216,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
         }
 
-        public override Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+        public override Image<TPixel> GetImage<T>(SpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -239,7 +239,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
+        public override Task<Image<TPixel>> GetImageAsync<T>(SpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -266,7 +266,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             info.AddValue("path", this.FilePath);
         }
 
-        private Image<TPixel> DecodeImage(IImageDecoder decoder, DecoderOptions options)
+        private Image<TPixel> DecodeImage(ImageDecoder decoder, DecoderOptions options)
         {
             options.Configuration = this.Configuration;
 
@@ -275,7 +275,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return decoder.Decode<TPixel>(options, stream, default);
         }
 
-        private Image<TPixel> DecodeImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+        private Image<TPixel> DecodeImage<T>(SpecializedImageDecoder<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
         {
             options.GeneralOptions.Configuration = this.Configuration;

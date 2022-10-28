@@ -8,10 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Decoder for generating an image out of a jpeg encoded stream.
 /// </summary>
-public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
+public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
 {
     /// <inheritdoc/>
-    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -21,15 +21,7 @@ public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
     }
 
     /// <inheritdoc/>
-    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-         => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
-
-    /// <inheritdoc/>
-    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
-
-    /// <inheritdoc/>
-    Image<TPixel> IImageDecoderSpecialized<JpegDecoderOptions>.Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected internal override Image<TPixel> Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -39,13 +31,17 @@ public sealed class JpegDecoder : IImageDecoderSpecialized<JpegDecoderOptions>
 
         if (options.ResizeMode != JpegDecoderResizeMode.IdctOnly)
         {
-            ImageDecoderUtilities.Resize(options.GeneralOptions, image);
+            Resize(options.GeneralOptions, image);
         }
 
         return image;
     }
 
     /// <inheritdoc/>
-    Image IImageDecoderSpecialized<JpegDecoderOptions>.Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoderSpecialized<JpegDecoderOptions>)this).Decode<Rgb24>(options, stream, cancellationToken);
+    protected internal override Image Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<Rgb24>(options, stream, cancellationToken);
+
+    /// <inheritdoc/>
+    protected internal override JpegDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+        => new() { GeneralOptions = options };
 }

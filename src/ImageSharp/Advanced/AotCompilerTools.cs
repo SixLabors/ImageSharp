@@ -248,7 +248,7 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageDecoder"/> in the AoT compiler.
+    /// This method pre-seeds the all <see cref="ImageDecoder"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
@@ -280,14 +280,14 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// This method pre-seeds the <see cref="IImageDecoder"/> in the AoT compiler.
+    /// This method pre-seeds the <see cref="ImageDecoder"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <typeparam name="TDecoder">The decoder.</typeparam>
     [Preserve]
     private static void AotCompileImageDecoder<TPixel, TDecoder>()
        where TPixel : unmanaged, IPixel<TPixel>
-       where TDecoder : class, IImageDecoder
+       where TDecoder : ImageDecoder
         => default(TDecoder).Decode<TPixel>(default, default, default);
 
     /// <summary>

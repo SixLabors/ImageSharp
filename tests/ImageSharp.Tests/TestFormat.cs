@@ -187,7 +187,7 @@ public class TestFormat : IConfigurationModule, IImageFormat
         public TestHeader(TestFormat testFormat) => this.testFormat = testFormat;
     }
 
-    public class TestDecoder : IImageDecoderSpecialized<TestDecoderOptions>
+    public class TestDecoder : SpecializedImageDecoder<TestDecoderOptions>
     {
         private readonly TestFormat testFormat;
 
@@ -201,18 +201,13 @@ public class TestFormat : IConfigurationModule, IImageFormat
 
         public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-        public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => ((IImageDecoderSpecialized<TestDecoderOptions>)this).Decode<TestPixelForAgnosticDecode>(new() { GeneralOptions = options }, stream, cancellationToken);
+        protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+           => this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
 
-        public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-            => ((IImageDecoderSpecialized<TestDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+        protected internal override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+            => new() { GeneralOptions = options };
 
-        public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => ((IImageDecoderSpecialized<TestDecoderOptions>)this).Decode<TestPixelForAgnosticDecode>(new() { GeneralOptions = options }, stream, cancellationToken);
-
-        public Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        protected internal override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Configuration configuration = options.GeneralOptions.Configuration;
             var ms = new MemoryStream();
@@ -229,7 +224,7 @@ public class TestFormat : IConfigurationModule, IImageFormat
             return this.testFormat.Sample<TPixel>();
         }
 
-        public Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected internal override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
     }
 

@@ -20,7 +20,7 @@ public static partial class TestEnvironment
 
     internal static Configuration Configuration => ConfigurationLazy.Value;
 
-    internal static IImageDecoder GetReferenceDecoder(string filePath)
+    internal static ImageDecoder GetReferenceDecoder(string filePath)
     {
         IImageFormat format = GetImageFormat(filePath);
         return Configuration.ImageFormatsManager.FindDecoder(format);
@@ -42,7 +42,7 @@ public static partial class TestEnvironment
     private static void ConfigureCodecs(
         this Configuration cfg,
         IImageFormat imageFormat,
-        IImageDecoder decoder,
+        ImageDecoder decoder,
         IImageEncoder encoder,
         IImageFormatDetector detector)
     {
@@ -53,7 +53,7 @@ public static partial class TestEnvironment
 
     private static Configuration CreateDefaultConfiguration()
     {
-        var cfg = new Configuration(
+        Configuration cfg = new(
             new JpegConfigurationModule(),
             new GifConfigurationModule(),
             new PbmConfigurationModule(),

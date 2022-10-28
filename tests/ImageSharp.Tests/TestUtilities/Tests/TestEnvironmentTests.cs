@@ -79,7 +79,7 @@ public class TestEnvironmentTests
             return;
         }
 
-        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
+        ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
         Assert.IsType(expectedDecoderType, decoder);
     }
 
@@ -113,7 +113,7 @@ public class TestEnvironmentTests
             return;
         }
 
-        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
+        ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
         Assert.IsType(expectedDecoderType, decoder);
     }
 

@@ -213,7 +213,7 @@ public static class TestImageExtensions
         bool grayscale = false,
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        IImageDecoder decoder = null)
+        ImageDecoder decoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
@@ -306,7 +306,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        IImageDecoder decoder = null)
+        ImageDecoder decoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(
@@ -342,7 +342,7 @@ public static class TestImageExtensions
 
         var temporaryFrameImages = new List<Image<TPixel>>();
 
-        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
+        ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
 
         foreach (string path in frameFiles)
         {
@@ -510,7 +510,7 @@ public static class TestImageExtensions
     public static Image<TPixel> CompareToOriginal<TPixel>(
         this Image<TPixel> image,
         ITestImageProvider provider,
-        IImageDecoder referenceDecoder = null)
+        ImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
         => CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
 
@@ -518,7 +518,7 @@ public static class TestImageExtensions
         this Image<TPixel> image,
         ITestImageProvider provider,
         ImageComparer comparer,
-        IImageDecoder referenceDecoder = null,
+        ImageDecoder referenceDecoder = null,
         DecoderOptions referenceDecoderOptions = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -545,7 +545,7 @@ public static class TestImageExtensions
     this Image<TPixel> image,
     ITestImageProvider provider,
     ImageComparer comparer,
-    IImageDecoder referenceDecoder = null)
+    ImageDecoder referenceDecoder = null)
     where TPixel : unmanaged, IPixel<TPixel>
     {
         string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -667,7 +667,7 @@ public static class TestImageExtensions
         ImageComparer customComparer = null,
         bool appendPixelTypeToFileName = true,
         string referenceImageExtension = null,
-        IImageDecoder referenceDecoder = null)
+        ImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string actualOutputFile = provider.Utility.SaveTestOutputFile(

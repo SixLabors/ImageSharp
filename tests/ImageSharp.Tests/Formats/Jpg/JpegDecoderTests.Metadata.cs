@@ -178,7 +178,7 @@ public partial class JpegDecoderTests
         Assert.Equal(expectedColorType, meta.ColorType);
     }
 
-    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
+    private static void TestImageInfo(string imagePath, ImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
@@ -196,7 +196,7 @@ public partial class JpegDecoderTests
 
     private static void TestMetadataImpl(
         bool useIdentify,
-        IImageDecoder decoder,
+        ImageDecoder decoder,
         string imagePath,
         int expectedPixelSize,
         bool exifProfilePresent,

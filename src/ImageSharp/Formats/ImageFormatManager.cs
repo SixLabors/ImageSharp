@@ -22,9 +22,9 @@ public class ImageFormatManager
     private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new();
 
     /// <summary>
-    /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
+    /// The list of supported <see cref="ImageDecoder"/> keyed to mime types.
     /// </summary>
-    private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new();
+    private readonly ConcurrentDictionary<IImageFormat, ImageDecoder> mimeTypeDecoders = new();
 
     /// <summary>
     /// The list of supported <see cref="IImageFormat"/>s.
@@ -59,9 +59,9 @@ public class ImageFormatManager
     internal IEnumerable<IImageFormatDetector> FormatDetectors => this.imageFormatDetectors;
 
     /// <summary>
-    /// Gets the currently registered <see cref="IImageDecoder"/>s.
+    /// Gets the currently registered <see cref="ImageDecoder"/>s.
     /// </summary>
-    internal IEnumerable<KeyValuePair<IImageFormat, IImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
+    internal IEnumerable<KeyValuePair<IImageFormat, ImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
 
     /// <summary>
     /// Gets the currently registered <see cref="IImageEncoder"/>s.
@@ -122,7 +122,7 @@ public class ImageFormatManager
         Guard.NotNull(imageFormat, nameof(imageFormat));
         Guard.NotNull(encoder, nameof(encoder));
         this.AddImageFormat(imageFormat);
-        this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (s, e) => encoder);
+        this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (_, _) => encoder);
     }
 
     /// <summary>
@@ -130,12 +130,12 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="imageFormat">The image format to register the encoder for.</param>
     /// <param name="decoder">The decoder to use,</param>
-    public void SetDecoder(IImageFormat imageFormat, IImageDecoder decoder)
+    public void SetDecoder(IImageFormat imageFormat, ImageDecoder decoder)
     {
         Guard.NotNull(imageFormat, nameof(imageFormat));
         Guard.NotNull(decoder, nameof(decoder));
         this.AddImageFormat(imageFormat);
-        this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (s, e) => decoder);
+        this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (_, _) => decoder);
     }
 
     /// <summary>
@@ -158,12 +158,12 @@ public class ImageFormatManager
     /// For the specified mime type find the decoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-    public IImageDecoder FindDecoder(IImageFormat format)
+    /// <returns>The <see cref="ImageDecoder"/> if found otherwise null</returns>
+    public ImageDecoder FindDecoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder)
+        return this.mimeTypeDecoders.TryGetValue(format, out ImageDecoder decoder)
             ? decoder
             : null;
     }

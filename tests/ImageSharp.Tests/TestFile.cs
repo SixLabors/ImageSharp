@@ -143,19 +143,22 @@ public sealed class TestFile
     /// <summary>
     /// Creates a new <see cref="Rgba32"/> image.
     /// </summary>
+    /// <param name="decoder">The image decoder.</param>
     /// <returns>
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
-    public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
+    public Image<Rgba32> CreateRgba32Image(ImageDecoder decoder)
         => this.CreateRgba32Image(decoder, new());
 
     /// <summary>
     /// Creates a new <see cref="Rgba32"/> image.
     /// </summary>
+    /// <param name="decoder">The image decoder.</param>
+    /// <param name="options">The general decoder options.</param>
     /// <returns>
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
-    public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder, DecoderOptions options)
+    public Image<Rgba32> CreateRgba32Image(ImageDecoder decoder, DecoderOptions options)
     {
         options.Configuration = this.Image.GetConfiguration();
         using MemoryStream stream = new(this.Bytes);

@@ -588,7 +588,7 @@ public partial class PngEncoderTests
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
         // Compare to the Magick reference decoder.
-        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
         // We compare using both our decoder and the reference decoder as pixel transformation
         // occurs within the encoder itself leaving the input image unaffected.

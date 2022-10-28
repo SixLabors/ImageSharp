@@ -99,7 +99,7 @@ public abstract partial class Image
     /// <param name="stream">The image stream to read the header from.</param>
     /// <param name="format">The IImageFormat.</param>
     /// <returns>The image format or null if none found.</returns>
-    private static IImageDecoder DiscoverDecoder(DecoderOptions options, Stream stream, out IImageFormat format)
+    private static ImageDecoder DiscoverDecoder(DecoderOptions options, Stream stream, out IImageFormat format)
     {
         format = InternalDetectFormat(options.Configuration, stream);
 
@@ -121,7 +121,7 @@ public abstract partial class Image
     private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        ImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
         if (decoder is null)
         {
             return (null, null);
@@ -133,7 +133,7 @@ public abstract partial class Image
 
     private static (Image Image, IImageFormat Format) Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        ImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
         if (decoder is null)
         {
             return (null, null);
@@ -154,14 +154,8 @@ public abstract partial class Image
     /// </returns>
     private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
-
-        if (decoder is not IImageInfoDetector detector)
-        {
-            return (null, null);
-        }
-
-        IImageInfo info = detector?.Identify(options, stream, cancellationToken);
+        ImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        IImageInfo info = decoder?.Identify(options, stream, cancellationToken);
         return (info, format);
     }
 }

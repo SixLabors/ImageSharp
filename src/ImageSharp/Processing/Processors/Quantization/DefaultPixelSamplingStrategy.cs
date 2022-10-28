@@ -79,14 +79,15 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
 
             r = Math.Max(this.MinimumScanRatio, r); // always visit the minimum defined portion of the image.
 
-            var ratio = new Rational(r);
+            Rational ratio = new(r);
 
             int denom = (int)ratio.Denominator;
             int num = (int)ratio.Numerator;
+            DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
 
             for (int pos = 0; pos < totalNumberOfRows; pos++)
             {
-                int subPos = pos % denom;
+                int subPos = (int)((uint)pos % (uint)denom);
                 if (subPos < num)
                 {
                     yield return GetRow(pos);
@@ -98,6 +99,57 @@ public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
                 int frameIdx = pos / image.Height;
                 int y = pos % image.Height;
                 return image.Frames[frameIdx].PixelBuffer.GetRegion(0, y, image.Width, 1);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<Buffer2DRegion<TPixel>> EnumeratePixelRegions<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        long maximumPixels = Math.Min(this.MaximumPixels, (long)frame.Width * frame.Height);
+        long maxNumberOfRows = maximumPixels / frame.Width;
+        long totalNumberOfRows = frame.Height;
+
+        if (totalNumberOfRows <= maxNumberOfRows)
+        {
+            yield return frame.PixelBuffer.GetRegion();
+        }
+        else
+        {
+            double r = maxNumberOfRows / (double)totalNumberOfRows;
+
+            // Use a rough approximation to make sure we don't leave out large contiguous regions:
+            if (maxNumberOfRows > 200)
+            {
+                r = Math.Round(r, 2);
+            }
+            else
+            {
+                r = Math.Round(r, 1);
+            }
+
+            r = Math.Max(this.MinimumScanRatio, r); // always visit the minimum defined portion of the image.
+
+            Rational ratio = new(r);
+
+            int denom = (int)ratio.Denominator;
+            int num = (int)ratio.Numerator;
+            DebugGuard.MustBeGreaterThan(denom, 0, "Denominator must be greater than zero.");
+
+            for (int pos = 0; pos < totalNumberOfRows; pos++)
+            {
+                int subPos = (int)((uint)pos % (uint)denom);
+                if (subPos < num)
+                {
+                    yield return GetRow(pos);
+                }
+            }
+
+            Buffer2DRegion<TPixel> GetRow(int pos)
+            {
+                int y = pos % frame.Height;
+                return frame.PixelBuffer.GetRegion(0, y, frame.Width, 1);
             }
         }
     }

@@ -57,6 +57,11 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     private readonly WebpTransparentColorMode transparentColorMode;
 
     /// <summary>
+    /// Whether to skip metadata during encoding.
+    /// </summary>
+    private readonly bool skipMetadata;
+
+    /// <summary>
     /// Indicating whether near lossless mode should be used.
     /// </summary>
     private readonly bool nearLossless;
@@ -80,21 +85,22 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The encoder options.</param>
+    /// <param name="encoder">The encoder with options.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
-    public WebpEncoderCore(IWebpEncoderOptions options, MemoryAllocator memoryAllocator)
+    public WebpEncoderCore(WebpEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.memoryAllocator = memoryAllocator;
-        this.alphaCompression = options.UseAlphaCompression;
-        this.fileFormat = options.FileFormat;
-        this.quality = options.Quality;
-        this.method = options.Method;
-        this.entropyPasses = options.EntropyPasses;
-        this.spatialNoiseShaping = options.SpatialNoiseShaping;
-        this.filterStrength = options.FilterStrength;
-        this.transparentColorMode = options.TransparentColorMode;
-        this.nearLossless = options.NearLossless;
-        this.nearLosslessQuality = options.NearLosslessQuality;
+        this.alphaCompression = encoder.UseAlphaCompression;
+        this.fileFormat = encoder.FileFormat;
+        this.quality = encoder.Quality;
+        this.method = encoder.Method;
+        this.entropyPasses = encoder.EntropyPasses;
+        this.spatialNoiseShaping = encoder.SpatialNoiseShaping;
+        this.filterStrength = encoder.FilterStrength;
+        this.transparentColorMode = encoder.TransparentColorMode;
+        this.skipMetadata = encoder.SkipMetadata;
+        this.nearLossless = encoder.NearLossless;
+        this.nearLosslessQuality = encoder.NearLosslessQuality;
     }
 
     /// <summary>
@@ -124,12 +130,13 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using var enc = new Vp8LEncoder(
+            using Vp8LEncoder enc = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
                 image.Height,
                 this.quality,
+                this.skipMetadata,
                 this.method,
                 this.transparentColorMode,
                 this.nearLossless,
@@ -138,12 +145,13 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            using var enc = new Vp8Encoder(
+            using Vp8Encoder enc = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
                 image.Height,
                 this.quality,
+                this.skipMetadata,
                 this.method,
                 this.entropyPasses,
                 this.filterStrength,

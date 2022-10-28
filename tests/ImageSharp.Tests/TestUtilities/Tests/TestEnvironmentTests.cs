@@ -62,7 +62,7 @@ public class TestEnvironmentTests
             return;
         }
 
-        IImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
+        ImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
         Assert.IsType(expectedEncoderType, encoder);
     }
 
@@ -96,7 +96,7 @@ public class TestEnvironmentTests
             return;
         }
 
-        IImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
+        ImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
         Assert.IsType(expectedEncoderType, encoder);
     }
 

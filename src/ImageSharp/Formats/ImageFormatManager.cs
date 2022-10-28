@@ -17,9 +17,9 @@ public class ImageFormatManager
     private static readonly object HashLock = new();
 
     /// <summary>
-    /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
+    /// The list of supported <see cref="ImageEncoder"/> keyed to mime types.
     /// </summary>
-    private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new();
+    private readonly ConcurrentDictionary<IImageFormat, ImageEncoder> mimeTypeEncoders = new();
 
     /// <summary>
     /// The list of supported <see cref="ImageDecoder"/> keyed to mime types.
@@ -64,9 +64,9 @@ public class ImageFormatManager
     internal IEnumerable<KeyValuePair<IImageFormat, ImageDecoder>> ImageDecoders => this.mimeTypeDecoders;
 
     /// <summary>
-    /// Gets the currently registered <see cref="IImageEncoder"/>s.
+    /// Gets the currently registered <see cref="ImageEncoder"/>s.
     /// </summary>
-    internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
+    internal IEnumerable<KeyValuePair<IImageFormat, ImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
 
     /// <summary>
     /// Registers a new format provider.
@@ -117,7 +117,7 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="imageFormat">The image format to register the encoder for.</param>
     /// <param name="encoder">The encoder to use,</param>
-    public void SetEncoder(IImageFormat imageFormat, IImageEncoder encoder)
+    public void SetEncoder(IImageFormat imageFormat, ImageEncoder encoder)
     {
         Guard.NotNull(imageFormat, nameof(imageFormat));
         Guard.NotNull(encoder, nameof(encoder));
@@ -172,12 +172,12 @@ public class ImageFormatManager
     /// For the specified mime type find the encoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-    public IImageEncoder FindEncoder(IImageFormat format)
+    /// <returns>The <see cref="ImageEncoder"/> if found otherwise null</returns>
+    public ImageEncoder FindEncoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder)
+        return this.mimeTypeEncoders.TryGetValue(format, out ImageEncoder encoder)
             ? encoder
             : null;
     }

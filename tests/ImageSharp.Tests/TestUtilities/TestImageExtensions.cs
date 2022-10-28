@@ -19,6 +19,7 @@ public static class TestImageExtensions
     /// <summary>
     /// TODO: Consider adding this private processor to the library
     /// </summary>
+    /// <param name="ctx">The image processing context.</param>
     public static void MakeOpaque(this IImageProcessingContext ctx) =>
         ctx.ApplyProcessor(new MakeOpaqueProcessor());
 
@@ -29,7 +30,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        IImageEncoder encoder = null)
+        ImageEncoder encoder = null)
         => image.DebugSave(
             provider,
             (object)testOutputDetails,
@@ -56,7 +57,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        IImageEncoder encoder = null)
+        ImageEncoder encoder = null)
     {
         if (TestEnvironment.RunsWithCodeCoverage)
         {
@@ -76,7 +77,7 @@ public static class TestImageExtensions
     public static void DebugSave(
         this Image image,
         ITestImageProvider provider,
-        IImageEncoder encoder,
+        ImageEncoder encoder,
         FormattableString testOutputDetails,
         bool appendPixelTypeToFileName = true)
         => image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
@@ -92,7 +93,7 @@ public static class TestImageExtensions
     public static void DebugSave(
         this Image image,
         ITestImageProvider provider,
-        IImageEncoder encoder,
+        ImageEncoder encoder,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true)
         => provider.Utility.SaveTestOutputFile(
@@ -663,7 +664,7 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         string extension,
         object testOutputDetails,
-        IImageEncoder encoder,
+        ImageEncoder encoder,
         ImageComparer customComparer = null,
         bool appendPixelTypeToFileName = true,
         string referenceImageExtension = null,

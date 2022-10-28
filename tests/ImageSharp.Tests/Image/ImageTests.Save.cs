@@ -68,7 +68,7 @@ public partial class ImageTests
         {
             using var image = new Image<Rgba32>(5, 5);
             image.Dispose();
-            IImageEncoder encoder = Mock.Of<IImageEncoder>();
+            ImageEncoder encoder = Mock.Of<ImageEncoder>();
             using (var stream = new MemoryStream())
             {
                 Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));

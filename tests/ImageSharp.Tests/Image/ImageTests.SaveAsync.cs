@@ -102,7 +102,7 @@ public partial class ImageTests
         {
             var image = new Image<Rgba32>(5, 5);
             image.Dispose();
-            IImageEncoder encoder = Mock.Of<IImageEncoder>();
+            ImageEncoder encoder = Mock.Of<ImageEncoder>();
             using (var stream = new MemoryStream())
             {
                 await Assert.ThrowsAsync<ObjectDisposedException>(async () => await image.SaveAsync(stream, encoder));
@@ -120,7 +120,7 @@ public partial class ImageTests
         {
             using (var image = new Image<Rgba32>(5, 5))
             {
-                IImageEncoder encoder = image.DetectEncoder(filename);
+                ImageEncoder encoder = image.DetectEncoder(filename);
                 using (var stream = new MemoryStream())
                 {
                     var asyncStream = new AsyncStreamWrapper(stream, () => false);

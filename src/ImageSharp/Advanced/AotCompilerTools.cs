@@ -230,7 +230,7 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageEncoder"/> in the AoT compiler.
+    /// This method pre-seeds the all <see cref="ImageEncoder"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
@@ -266,14 +266,14 @@ internal static class AotCompilerTools
     }
 
     /// <summary>
-    /// This method pre-seeds the <see cref="IImageEncoder"/> in the AoT compiler.
+    /// This method pre-seeds the <see cref="ImageEncoder"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <typeparam name="TEncoder">The encoder.</typeparam>
     [Preserve]
     private static void AotCompileImageEncoder<TPixel, TEncoder>()
         where TPixel : unmanaged, IPixel<TPixel>
-        where TEncoder : class, IImageEncoder
+        where TEncoder : ImageEncoder
     {
         default(TEncoder).Encode<TPixel>(default, default);
         default(TEncoder).EncodeAsync<TPixel>(default, default, default);

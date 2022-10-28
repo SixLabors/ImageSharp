@@ -158,7 +158,7 @@ public class ImagingTestCaseUtility
     public string SaveTestOutputFile(
         Image image,
         string extension = null,
-        IImageEncoder encoder = null,
+        ImageEncoder encoder = null,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true)
@@ -203,7 +203,7 @@ public class ImagingTestCaseUtility
     public string[] SaveTestOutputFileMultiFrame<TPixel>(
         Image<TPixel> image,
         string extension = "png",
-        IImageEncoder encoder = null,
+        ImageEncoder encoder = null,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true)
         where TPixel : unmanaged, IPixel<TPixel>

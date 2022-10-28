@@ -43,7 +43,7 @@ public static partial class ImageExtensions
     /// <param name="encoder">The encoder to save the image with.</param>
     /// <exception cref="ArgumentNullException">The path is null.</exception>
     /// <exception cref="ArgumentNullException">The encoder is null.</exception>
-    public static void Save(this Image source, string path, IImageEncoder encoder)
+    public static void Save(this Image source, string path, ImageEncoder encoder)
     {
         Guard.NotNull(path, nameof(path));
         Guard.NotNull(encoder, nameof(encoder));
@@ -66,16 +66,14 @@ public static partial class ImageExtensions
     public static async Task SaveAsync(
         this Image source,
         string path,
-        IImageEncoder encoder,
+        ImageEncoder encoder,
         CancellationToken cancellationToken = default)
     {
         Guard.NotNull(path, nameof(path));
         Guard.NotNull(encoder, nameof(encoder));
 
-        using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
-        {
-            await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
-        }
+        using Stream fs = source.GetConfiguration().FileSystem.Create(path);
+        await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -98,14 +96,14 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        ImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {
             StringBuilder sb = new();
             sb.AppendLine("No encoder was found for the provided mime type. Registered encoders include:");
 
-            foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+            foreach (KeyValuePair<IImageFormat, ImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
             {
                 sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
             }
@@ -142,14 +140,14 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        ImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {
             StringBuilder sb = new();
             sb.AppendLine("No encoder was found for the provided mime type. Registered encoders include:");
 
-            foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+            foreach (KeyValuePair<IImageFormat, ImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
             {
                 sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
             }

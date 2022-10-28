@@ -242,7 +242,7 @@ public class XmpProfileTests
         return profile;
     }
 
-    private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, IImageEncoder encoder)
+    private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, ImageEncoder encoder)
     {
         using (var memStream = new MemoryStream())
         {

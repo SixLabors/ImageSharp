@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+#nullable disable
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;

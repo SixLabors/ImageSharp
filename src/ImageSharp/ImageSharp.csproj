@@ -15,6 +15,12 @@
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
+  <!--  This enables the nullable analysis and treats all nullable warnings as error-->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!--Bump to V3 prior to tagged release.-->
     <MinVerMinimumMajorMinor>3.0</MinVerMinimumMajorMinor>

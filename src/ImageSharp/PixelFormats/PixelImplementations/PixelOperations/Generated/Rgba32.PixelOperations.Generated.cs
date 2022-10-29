@@ -37,7 +37,7 @@ public partial struct Rgba32
 
             sourcePixels.CopyTo(destinationPixels.Slice(0, sourcePixels.Length));
         }
-    
+
         /// <inheritdoc />
         public override void ToArgb32(
             Configuration configuration,
@@ -51,7 +51,7 @@ public partial struct Rgba32
             Span<byte> dest = MemoryMarshal.Cast<Argb32, byte>(destinationPixels);
             PixelConverter.FromRgba32.ToArgb32(source, dest);
         }
-        
+
         /// <inheritdoc />
         public override void FromArgb32(
             Configuration configuration,
@@ -64,8 +64,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<Argb32, byte>(sourcePixels);
             Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
             PixelConverter.FromArgb32.ToRgba32(source, dest);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToAbgr32(
             Configuration configuration,
@@ -79,7 +79,7 @@ public partial struct Rgba32
             Span<byte> dest = MemoryMarshal.Cast<Abgr32, byte>(destinationPixels);
             PixelConverter.FromRgba32.ToAbgr32(source, dest);
         }
-        
+
         /// <inheritdoc />
         public override void FromAbgr32(
             Configuration configuration,
@@ -92,8 +92,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<Abgr32, byte>(sourcePixels);
             Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
             PixelConverter.FromAbgr32.ToRgba32(source, dest);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToBgra32(
             Configuration configuration,
@@ -107,7 +107,7 @@ public partial struct Rgba32
             Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
             PixelConverter.FromRgba32.ToBgra32(source, dest);
         }
-        
+
         /// <inheritdoc />
         public override void FromBgra32(
             Configuration configuration,
@@ -120,8 +120,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgra32, byte>(sourcePixels);
             Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
             PixelConverter.FromBgra32.ToRgba32(source, dest);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToRgb24(
             Configuration configuration,
@@ -135,7 +135,7 @@ public partial struct Rgba32
             Span<byte> dest = MemoryMarshal.Cast<Rgb24, byte>(destinationPixels);
             PixelConverter.FromRgba32.ToRgb24(source, dest);
         }
-        
+
         /// <inheritdoc />
         public override void FromRgb24(
             Configuration configuration,
@@ -148,8 +148,8 @@ public partial struct Rgba32
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<Rgb24, byte>(sourcePixels);
             Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
             PixelConverter.FromRgb24.ToRgba32(source, dest);
-        }        
-    
+        }
+
         /// <inheritdoc />
         public override void ToBgr24(
             Configuration configuration,
@@ -163,7 +163,7 @@ public partial struct Rgba32
             Span<byte> dest = MemoryMarshal.Cast<Bgr24, byte>(destinationPixels);
             PixelConverter.FromRgba32.ToBgr24(source, dest);
         }
-        
+
         /// <inheritdoc />
         public override void FromBgr24(
             Configuration configuration,
@@ -176,7 +176,7 @@ public partial struct Rgba32
             ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgr24, byte>(sourcePixels);
             Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(destinationPixels);
             PixelConverter.FromBgr24.ToRgba32(source, dest);
-        }        
+        }
 
         /// <inheritdoc />
         public override void ToL8(

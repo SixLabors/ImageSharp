@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 public sealed class BmpDecoderOptions : ISpecializedDecoderOptions
 {
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
+    public DecoderOptions GeneralOptions { get; init; } = new();
 
     /// <summary>
     /// Gets the value indicating how to deal with skipped pixels,

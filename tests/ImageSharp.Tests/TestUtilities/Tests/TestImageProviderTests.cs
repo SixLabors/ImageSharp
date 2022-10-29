@@ -429,7 +429,7 @@ public class TestImageProviderTests
 
     private class TestDecoderOptions : ISpecializedDecoderOptions
     {
-        public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
+        public DecoderOptions GeneralOptions { get; init; } = new();
     }
 
     private class TestDecoderWithParametersOptions : ISpecializedDecoderOptions
@@ -438,6 +438,6 @@ public class TestImageProviderTests
 
         public int Param2 { get; init; }
 
-        public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
+        public DecoderOptions GeneralOptions { get; init; } = new();
     }
 }

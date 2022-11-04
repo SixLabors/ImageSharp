@@ -22,11 +22,6 @@ public abstract partial class ExifTag
     public static ExifTag<uint[]> ColorResponseUnit { get; } = new ExifTag<uint[]>(ExifTagValue.ColorResponseUnit);
 
     /// <summary>
-    /// Gets the TileOffsets exif tag.
-    /// </summary>
-    public static ExifTag<uint[]> TileOffsets { get; } = new ExifTag<uint[]>(ExifTagValue.TileOffsets);
-
-    /// <summary>
     /// Gets the SMinSampleValue exif tag.
     /// </summary>
     public static ExifTag<uint[]> SMinSampleValue { get; } = new ExifTag<uint[]>(ExifTagValue.SMinSampleValue);

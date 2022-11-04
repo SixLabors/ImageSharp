@@ -214,11 +214,11 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.inputStream = stream;
-        var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
+        DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
         IEnumerable<ExifProfile> directories = reader.Read();
 
         ExifProfile rootFrameExifProfile = directories.First();
-        var rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
+        TiffFrameMetadata rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
 
         ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, reader.IsBigTiff, rootFrameExifProfile);
         int width = GetImageWidth(rootFrameExifProfile);
@@ -246,13 +246,37 @@ internal class TiffDecoderCore : IImageDecoderInternals
         TiffFrameMetadata tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
         TiffFrameMetadata.Parse(tiffFrameMetaData, tags);
 
-        this.VerifyAndParse(tags, tiffFrameMetaData);
+        bool isTiled = this.VerifyAndParse(tags, tiffFrameMetaData);
 
         int width = GetImageWidth(tags);
         int height = GetImageHeight(tags);
         ImageFrame<TPixel> frame = new(this.configuration, width, height, imageFrameMetaData);
 
-        int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value : TiffConstants.RowsPerStripInfinity;
+        if (isTiled)
+        {
+            this.DecodeImageWithTiles(tags, frame, cancellationToken);
+        }
+        else
+        {
+            this.DecodeImageWithStrips(tags, frame, cancellationToken);
+        }
+
+        return frame;
+    }
+
+    /// <summary>
+    /// Decodes the image data for Tiff's which arrange the pixel data in stripes.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="tags">The IFD tags.</param>
+    /// <param name="frame">The image frame to decode into.</param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    private void DecodeImageWithStrips<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null
+            ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value
+            : TiffConstants.RowsPerStripInfinity;
 
         Array stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
         Array stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
@@ -278,71 +302,35 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 stripByteCounts,
                 cancellationToken);
         }
-
-        return frame;
-    }
-
-    private IMemoryOwner<ulong> ConvertNumbers(Array array, out Span<ulong> span)
-    {
-        if (array is Number[] numbers)
-        {
-            IMemoryOwner<ulong> memory = this.memoryAllocator.Allocate<ulong>(numbers.Length);
-            span = memory.GetSpan();
-            for (int i = 0; i < numbers.Length; i++)
-            {
-                span[i] = (uint)numbers[i];
-            }
-
-            return memory;
-        }
-
-        DebugGuard.IsTrue(array is ulong[], $"Expected {nameof(UInt64)} array.");
-        span = (ulong[])array;
-        return null;
     }
 
     /// <summary>
-    /// Calculates the size (in bytes) for a pixel buffer using the determined color format.
+    /// Decodes the image data for Tiff's which arrange the pixel data in tiles.
     /// </summary>
-    /// <param name="width">The width for the desired pixel buffer.</param>
-    /// <param name="height">The height for the desired pixel buffer.</param>
-    /// <param name="plane">The index of the plane for planar image configuration (or zero for chunky).</param>
-    /// <returns>The size (in bytes) of the required pixel buffer.</returns>
-    private int CalculateStripBufferSize(int width, int height, int plane = -1)
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="tags">The IFD tags.</param>
+    /// <param name="frame">The image frame to decode into.</param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    private void DecodeImageWithTiles<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        DebugGuard.MustBeLessThanOrEqualTo(plane, 3, nameof(plane));
+        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+        int width = pixels.Width;
+        int height = pixels.Height;
 
-        int bitsPerPixel = 0;
+        int tileWidth = (int)tags.GetValue(ExifTag.TileWidth).Value;
+        int tileLength = (int)tags.GetValue(ExifTag.TileLength).Value;
+        int tilesAcross = (width + tileWidth - 1) / tileWidth;
+        int tilesDown = (height + tileLength - 1) / tileLength;
 
-        if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+        if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
         {
-            DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
-            bitsPerPixel = this.BitsPerPixel;
+            this.DecodeTilesPlanar(tags, frame, tileWidth, tileLength, tilesAcross, tilesDown, cancellationToken);
         }
         else
         {
-            switch (plane)
-            {
-                case 0:
-                    bitsPerPixel = this.BitsPerSample.Channel0;
-                    break;
-                case 1:
-                    bitsPerPixel = this.BitsPerSample.Channel1;
-                    break;
-                case 2:
-                    bitsPerPixel = this.BitsPerSample.Channel2;
-                    break;
-                case 3:
-                    bitsPerPixel = this.BitsPerSample.Channel2;
-                    break;
-                default:
-                    TiffThrowHelper.ThrowNotSupported("More then 4 color channels are not supported");
-                    break;
-            }
+            this.DecodeTilesChunky(tags, frame, tileWidth, tileLength, tilesAcross, tilesDown, cancellationToken);
         }
-
-        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
-        return bytesPerRow * height;
     }
 
     /// <summary>
@@ -373,20 +361,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>(uncompressedStripSize);
             }
 
-            using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-                this.Options,
-                this.CompressionType,
-                this.memoryAllocator,
-                this.PhotometricInterpretation,
-                frame.Width,
-                bitsPerPixel,
-                this.ColorType,
-                this.Predictor,
-                this.FaxCompressionOptions,
-                this.JpegTables,
-                this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
-                this.FillOrder,
-                this.byteOrder);
+            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
 
             TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
                 this.ColorType,
@@ -455,20 +430,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         Span<byte> stripBufferSpan = stripBuffer.GetSpan();
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-        using TiffBaseDecompressor decompressor = TiffDecompressorsFactory.Create(
-            this.Options,
-            this.CompressionType,
-            this.memoryAllocator,
-            this.PhotometricInterpretation,
-            frame.Width,
-            bitsPerPixel,
-            this.ColorType,
-            this.Predictor,
-            this.FaxCompressionOptions,
-            this.JpegTables,
-            this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
-            this.FillOrder,
-            this.byteOrder);
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
 
         TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
             this.configuration,
@@ -507,6 +469,269 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
             colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
         }
+    }
+
+    /// <summary>
+    /// Decodes the image data for Tiff's which arrange the pixel data in tiles and the planar configuration.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="tags">The IFD tags.</param>
+    /// <param name="frame">The image frame to decode into.</param>
+    /// <param name="tileWidth">The width in pixels of the tile.</param>
+    /// <param name="tileLength">The height in pixels of the tile.</param>
+    /// <param name="tilesAcross">The number of tiles horizontally.</param>
+    /// <param name="tilesDown">The number of tiles vertically.</param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    private void DecodeTilesPlanar<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int tileWidth, int tileLength, int tilesAcross, int tilesDown, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+        int width = pixels.Width;
+        int height = pixels.Height;
+        int bitsPerPixel = this.BitsPerPixel;
+
+        Array tilesOffsetsArray = (Array)tags.GetValueInternal(ExifTag.TileOffsets).GetValue();
+        Array tilesByteCountsArray = (Array)tags.GetValueInternal(ExifTag.TileByteCounts).GetValue();
+        using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
+        using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
+
+        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
+        int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
+        int uncompressedTilesSize = bytesPerTileRow * tileLength;
+        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
+        using IMemoryOwner<byte> uncompressedPixelBuffer = this.memoryAllocator.Allocate<byte>(tilesDown * tileLength * bytesPerRow, AllocationOptions.Clean);
+        Span<byte> tileBufferSpan = tileBuffer.GetSpan();
+        Span<byte> uncompressedPixelBufferSpan = uncompressedPixelBuffer.GetSpan();
+
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
+
+        TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
+            this.configuration,
+            this.memoryAllocator,
+            this.ColorType,
+            this.BitsPerSample,
+            this.ExtraSamplesType,
+            this.ColorMap,
+            this.ReferenceBlackAndWhite,
+            this.YcbcrCoefficients,
+            this.YcbcrSubSampling,
+            this.byteOrder);
+
+        int tileIndex = 0;
+        for (int tileY = 0; tileY < tilesDown; tileY++)
+        {
+            int uncompressedPixelBufferOffset = tileY * tileLength * bytesPerRow;
+            int remainingPixelsInRow = width;
+            for (int tileX = 0; tileX < tilesAcross; tileX++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                bool isLastHorizontalTile = tileX == tilesAcross - 1;
+
+                decompressor.Decompress(
+                    this.inputStream,
+                    tileOffsets[tileIndex],
+                    tileByteCounts[tileIndex],
+                    tileLength,
+                    tileBufferSpan,
+                    cancellationToken);
+
+                int tileBufferOffset = 0;
+                uncompressedPixelBufferOffset += bytesPerTileRow * tileX;
+                int bytesToCopy = isLastHorizontalTile ? ((bitsPerPixel * remainingPixelsInRow) + 7) / 8 : bytesPerTileRow;
+                for (int y = 0; y < tileLength; y++)
+                {
+                    Span<byte> uncompressedPixelRow = uncompressedPixelBufferSpan.Slice(uncompressedPixelBufferOffset, bytesToCopy);
+                    tileBufferSpan.Slice(tileBufferOffset, bytesToCopy).CopyTo(uncompressedPixelRow);
+                    tileBufferOffset += bytesPerTileRow;
+                    uncompressedPixelBufferOffset += bytesPerRow;
+                }
+
+                remainingPixelsInRow -= tileWidth;
+                tileIndex++;
+            }
+        }
+
+        colorDecoder.Decode(uncompressedPixelBufferSpan, pixels, 0, 0, width, height);
+    }
+
+    /// <summary>
+    /// Decodes the image data for Tiff's which arrange the pixel data in tiles and the chunky configuration.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="tags">The IFD tags.</param>
+    /// <param name="frame">The image frame to decode into.</param>
+    /// <param name="tileWidth">The width in pixels of the tile.</param>
+    /// <param name="tileLength">The height in pixels of the tile.</param>
+    /// <param name="tilesAcross">The number of tiles horizontally.</param>
+    /// <param name="tilesDown">The number of tiles vertically.</param>
+    /// <param name="cancellationToken">The token to monitor cancellation.</param>
+    private void DecodeTilesChunky<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int tileWidth, int tileLength, int tilesAcross, int tilesDown, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Buffer2D<TPixel> pixels = frame.PixelBuffer;
+        int width = pixels.Width;
+        int height = pixels.Height;
+        int bitsPerPixel = this.BitsPerPixel;
+
+        Array tilesOffsetsArray;
+        Array tilesByteCountsArray;
+        IExifValue tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.TileOffsets);
+        IExifValue tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.TileByteCounts);
+        if (tilesOffsetsExifValue is null)
+        {
+            tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.StripOffsets);
+            tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.StripByteCounts);
+            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
+            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
+        }
+        else
+        {
+            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
+            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
+        }
+
+        using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
+        using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
+
+        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
+        int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
+        int uncompressedTilesSize = bytesPerTileRow * tileLength;
+        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
+        using IMemoryOwner<byte> uncompressedPixelBuffer = this.memoryAllocator.Allocate<byte>(tilesDown * tileLength * bytesPerRow, AllocationOptions.Clean);
+        Span<byte> tileBufferSpan = tileBuffer.GetSpan();
+        Span<byte> uncompressedPixelBufferSpan = uncompressedPixelBuffer.GetSpan();
+
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
+
+        TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
+            this.configuration,
+            this.memoryAllocator,
+            this.ColorType,
+            this.BitsPerSample,
+            this.ExtraSamplesType,
+            this.ColorMap,
+            this.ReferenceBlackAndWhite,
+            this.YcbcrCoefficients,
+            this.YcbcrSubSampling,
+            this.byteOrder);
+
+        int tileIndex = 0;
+        for (int tileY = 0; tileY < tilesDown; tileY++)
+        {
+            int remainingPixelsInRow = width;
+            for (int tileX = 0; tileX < tilesAcross; tileX++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                int uncompressedPixelBufferOffset = tileY * tileLength * bytesPerRow;
+                bool isLastHorizontalTile = tileX == tilesAcross - 1;
+
+                decompressor.Decompress(
+                    this.inputStream,
+                    tileOffsets[tileIndex],
+                    tileByteCounts[tileIndex],
+                    tileLength,
+                    tileBufferSpan,
+                    cancellationToken);
+
+                int tileBufferOffset = 0;
+                uncompressedPixelBufferOffset += bytesPerTileRow * tileX;
+                int bytesToCopy = isLastHorizontalTile ? ((bitsPerPixel * remainingPixelsInRow) + 7) / 8 : bytesPerTileRow;
+                for (int y = 0; y < tileLength; y++)
+                {
+                    Span<byte> uncompressedPixelRow = uncompressedPixelBufferSpan.Slice(uncompressedPixelBufferOffset, bytesToCopy);
+                    tileBufferSpan.Slice(tileBufferOffset, bytesToCopy).CopyTo(uncompressedPixelRow);
+                    tileBufferOffset += bytesPerTileRow;
+                    uncompressedPixelBufferOffset += bytesPerRow;
+                }
+
+                remainingPixelsInRow -= tileWidth;
+                tileIndex++;
+            }
+        }
+
+        colorDecoder.Decode(uncompressedPixelBufferSpan, pixels, 0, 0, width, height);
+    }
+
+    private TiffBaseDecompressor CreateDecompressor<TPixel>(int frameWidth, int bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        TiffDecompressorsFactory.Create(
+            this.Options,
+            this.CompressionType,
+            this.memoryAllocator,
+            this.PhotometricInterpretation,
+            frameWidth,
+            bitsPerPixel,
+            this.ColorType,
+            this.Predictor,
+            this.FaxCompressionOptions,
+            this.JpegTables,
+            this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
+            this.FillOrder,
+            this.byteOrder);
+
+    private IMemoryOwner<ulong> ConvertNumbers(Array array, out Span<ulong> span)
+    {
+        if (array is Number[] numbers)
+        {
+            IMemoryOwner<ulong> memory = this.memoryAllocator.Allocate<ulong>(numbers.Length);
+            span = memory.GetSpan();
+            for (int i = 0; i < numbers.Length; i++)
+            {
+                span[i] = (uint)numbers[i];
+            }
+
+            return memory;
+        }
+
+        DebugGuard.IsTrue(array is ulong[], $"Expected {nameof(UInt64)} array.");
+        span = (ulong[])array;
+        return null;
+    }
+
+    /// <summary>
+    /// Calculates the size (in bytes) for a pixel buffer using the determined color format.
+    /// </summary>
+    /// <param name="width">The width for the desired pixel buffer.</param>
+    /// <param name="height">The height for the desired pixel buffer.</param>
+    /// <param name="plane">The index of the plane for planar image configuration (or zero for chunky).</param>
+    /// <returns>The size (in bytes) of the required pixel buffer.</returns>
+    private int CalculateStripBufferSize(int width, int height, int plane = -1)
+    {
+        DebugGuard.MustBeLessThanOrEqualTo(plane, 3, nameof(plane));
+
+        int bitsPerPixel = 0;
+
+        if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+        {
+            DebugGuard.IsTrue(plane == -1, "Expected Chunky planar.");
+            bitsPerPixel = this.BitsPerPixel;
+        }
+        else
+        {
+            switch (plane)
+            {
+                case 0:
+                    bitsPerPixel = this.BitsPerSample.Channel0;
+                    break;
+                case 1:
+                    bitsPerPixel = this.BitsPerSample.Channel1;
+                    break;
+                case 2:
+                    bitsPerPixel = this.BitsPerSample.Channel2;
+                    break;
+                case 3:
+                    bitsPerPixel = this.BitsPerSample.Channel2;
+                    break;
+                default:
+                    TiffThrowHelper.ThrowNotSupported("More then 4 color channels are not supported");
+                    break;
+            }
+        }
+
+        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
+        return bytesPerRow * height;
     }
 
     /// <summary>

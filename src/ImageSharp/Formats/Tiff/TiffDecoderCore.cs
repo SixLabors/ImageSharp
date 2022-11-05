@@ -323,13 +323,35 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int tilesAcross = (width + tileWidth - 1) / tileWidth;
         int tilesDown = (height + tileLength - 1) / tileLength;
 
-        if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
+        Array tilesOffsetsArray;
+        Array tilesByteCountsArray;
+        IExifValue tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.TileOffsets);
+        IExifValue tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.TileByteCounts);
+        if (tilesOffsetsExifValue is null)
         {
-            this.DecodeTilesPlanar(tags, frame, tileWidth, tileLength, tilesAcross, tilesDown, cancellationToken);
+            // Note: This is against the spec, but libTiff seems to handle it this way.
+            // TIFF 6.0 says: "Do not use both strip- oriented and tile-oriented fields in the same TIFF file".
+            tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.StripOffsets);
+            tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.StripByteCounts);
+            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
+            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
         }
         else
         {
-            this.DecodeTilesChunky(tags, frame, tileWidth, tileLength, tilesAcross, tilesDown, cancellationToken);
+            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
+            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
+        }
+
+        using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
+        using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
+
+        if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
+        {
+            this.DecodeTilesPlanar(frame, tileWidth, tileLength, tilesAcross, tilesDown, tileOffsets, tileByteCounts, cancellationToken);
+        }
+        else
+        {
+            this.DecodeTilesChunky(frame, tileWidth, tileLength, tilesAcross, tilesDown, tileOffsets, tileByteCounts, cancellationToken);
         }
     }
 
@@ -475,25 +497,29 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// Decodes the image data for Tiff's which arrange the pixel data in tiles and the planar configuration.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="tags">The IFD tags.</param>
     /// <param name="frame">The image frame to decode into.</param>
     /// <param name="tileWidth">The width in pixels of the tile.</param>
     /// <param name="tileLength">The height in pixels of the tile.</param>
     /// <param name="tilesAcross">The number of tiles horizontally.</param>
     /// <param name="tilesDown">The number of tiles vertically.</param>
+    /// <param name="tileOffsets">The tile offsets.</param>
+    /// <param name="tileByteCounts">The tile byte counts.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    private void DecodeTilesPlanar<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int tileWidth, int tileLength, int tilesAcross, int tilesDown, CancellationToken cancellationToken)
+    private void DecodeTilesPlanar<TPixel>(
+        ImageFrame<TPixel> frame,
+        int tileWidth,
+        int tileLength,
+        int tilesAcross,
+        int tilesDown,
+        Span<ulong> tileOffsets,
+        Span<ulong> tileByteCounts,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
         int width = pixels.Width;
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
-
-        Array tilesOffsetsArray = (Array)tags.GetValueInternal(ExifTag.TileOffsets).GetValue();
-        Array tilesByteCountsArray = (Array)tags.GetValueInternal(ExifTag.TileByteCounts).GetValue();
-        using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
-        using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
 
         int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
         int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
@@ -559,40 +585,29 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// Decodes the image data for Tiff's which arrange the pixel data in tiles and the chunky configuration.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="tags">The IFD tags.</param>
     /// <param name="frame">The image frame to decode into.</param>
     /// <param name="tileWidth">The width in pixels of the tile.</param>
     /// <param name="tileLength">The height in pixels of the tile.</param>
     /// <param name="tilesAcross">The number of tiles horizontally.</param>
     /// <param name="tilesDown">The number of tiles vertically.</param>
+    /// <param name="tileOffsets">The tile offsets.</param>
+    /// <param name="tileByteCounts">The tile byte counts.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    private void DecodeTilesChunky<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, int tileWidth, int tileLength, int tilesAcross, int tilesDown, CancellationToken cancellationToken)
+    private void DecodeTilesChunky<TPixel>(
+        ImageFrame<TPixel> frame,
+        int tileWidth,
+        int tileLength,
+        int tilesAcross,
+        int tilesDown,
+        Span<ulong> tileOffsets,
+        Span<ulong> tileByteCounts,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
         int width = pixels.Width;
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
-
-        Array tilesOffsetsArray;
-        Array tilesByteCountsArray;
-        IExifValue tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.TileOffsets);
-        IExifValue tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.TileByteCounts);
-        if (tilesOffsetsExifValue is null)
-        {
-            tilesOffsetsExifValue = tags.GetValueInternal(ExifTag.StripOffsets);
-            tilesByteCountsExifValue = tags.GetValueInternal(ExifTag.StripByteCounts);
-            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
-            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
-        }
-        else
-        {
-            tilesOffsetsArray = (Array)tilesOffsetsExifValue.GetValue();
-            tilesByteCountsArray = (Array)tilesByteCountsExifValue.GetValue();
-        }
-
-        using IMemoryOwner<ulong> tileOffsetsMemory = this.ConvertNumbers(tilesOffsetsArray, out Span<ulong> tileOffsets);
-        using IMemoryOwner<ulong> tileByteCountsMemory = this.ConvertNumbers(tilesByteCountsArray, out Span<ulong> tileByteCounts);
 
         int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
         int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;

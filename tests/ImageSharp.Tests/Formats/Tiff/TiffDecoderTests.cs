@@ -18,7 +18,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     [Theory]
-    [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)

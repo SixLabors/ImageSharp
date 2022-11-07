@@ -384,16 +384,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
-
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
-                this.ColorType,
-                this.BitsPerSample,
-                this.ExtraSamplesType,
-                this.ColorMap,
-                this.ReferenceBlackAndWhite,
-                this.YcbcrCoefficients,
-                this.YcbcrSubSampling,
-                this.byteOrder);
+            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
 
             for (int i = 0; i < stripsPerPlane; i++)
             {
@@ -453,18 +444,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
-
-        TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
-            this.configuration,
-            this.memoryAllocator,
-            this.ColorType,
-            this.BitsPerSample,
-            this.ExtraSamplesType,
-            this.ColorMap,
-            this.ReferenceBlackAndWhite,
-            this.YcbcrCoefficients,
-            this.YcbcrSubSampling,
-            this.byteOrder);
+        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
 
         for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
         {
@@ -535,16 +515,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
-
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
-                this.ColorType,
-                this.BitsPerSample,
-                this.ExtraSamplesType,
-                this.ColorMap,
-                this.ReferenceBlackAndWhite,
-                this.YcbcrCoefficients,
-                this.YcbcrSubSampling,
-                this.byteOrder);
+            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
 
             int tileIndex = 0;
             int remainingPixelsInColumn = height;
@@ -649,18 +620,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         Span<byte> uncompressedPixelBufferSpan = uncompressedPixelBuffer.GetSpan();
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
-
-        TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
-            this.configuration,
-            this.memoryAllocator,
-            this.ColorType,
-            this.BitsPerSample,
-            this.ExtraSamplesType,
-            this.ColorMap,
-            this.ReferenceBlackAndWhite,
-            this.YcbcrCoefficients,
-            this.YcbcrSubSampling,
-            this.byteOrder);
+        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
 
         int tileIndex = 0;
         for (int tileY = 0; tileY < tilesDown; tileY++)
@@ -699,6 +659,32 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         colorDecoder.Decode(uncompressedPixelBufferSpan, pixels, 0, 0, width, height);
     }
+
+    private TiffBaseColorDecoder<TPixel> CreateChunkyColorDecoder<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        TiffColorDecoderFactory<TPixel>.Create(
+            this.configuration,
+            this.memoryAllocator,
+            this.ColorType,
+            this.BitsPerSample,
+            this.ExtraSamplesType,
+            this.ColorMap,
+            this.ReferenceBlackAndWhite,
+            this.YcbcrCoefficients,
+            this.YcbcrSubSampling,
+            this.byteOrder);
+
+    private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        TiffColorDecoderFactory<TPixel>.CreatePlanar(
+            this.ColorType,
+            this.BitsPerSample,
+            this.ExtraSamplesType,
+            this.ColorMap,
+            this.ReferenceBlackAndWhite,
+            this.YcbcrCoefficients,
+            this.YcbcrSubSampling,
+            this.byteOrder);
 
     private TiffBaseDecompressor CreateDecompressor<TPixel>(int frameWidth, int bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> =>

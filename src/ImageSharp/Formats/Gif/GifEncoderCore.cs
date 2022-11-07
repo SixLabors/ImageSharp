@@ -160,8 +160,12 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         {
             ImageFrame<TPixel> frame = image.Frames[i];
             ImageFrameMetadata metadata = frame.Metadata;
-            GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
-            this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
+
+            if (metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata))
+            {
+                this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
+            }
+
             this.WriteImageDescriptor(frame, false, stream);
 
             if (i == 0)
@@ -193,12 +197,13 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         {
             ImageFrame<TPixel> frame = image.Frames[i];
             ImageFrameMetadata metadata = frame.Metadata;
-            GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
+            bool hasMetadata = metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata);
             if (quantized is null)
             {
                 // Allow each frame to be encoded at whatever color depth the frame designates if set.
-                if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
-                                          && frameMetadata.ColorTableLength > 0)
+                if (previousFrame != null && frameMetadata != null
+                    && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
+                    && frameMetadata.ColorTableLength > 0)
                 {
                     QuantizerOptions options = new()
                     {
@@ -218,7 +223,12 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             }
 
             this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-            this.WriteGraphicalControlExtension(frameMetadata, GetTransparentIndex(quantized), stream);
+
+            if (hasMetadata)
+            {
+                this.WriteGraphicalControlExtension(frameMetadata, GetTransparentIndex(quantized), stream);
+            }
+
             this.WriteImageDescriptor(frame, true, stream);
             this.WriteColorTable(quantized, stream);
             this.WriteImageData(quantized, stream);
@@ -407,7 +417,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
-    /// Writes the graphics control extension to the stream.
+    /// Writes the optional graphics control extension to the stream.
     /// </summary>
     /// <param name="metadata">The metadata of the image or frame.</param>
     /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>

@@ -125,6 +125,10 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     }
 
                     this.ReadFrame(ref image, ref previousFrame);
+
+                    // Reset per-frame state.
+                    this.imageDescriptor = default;
+                    this.graphicsControlExtension = default;
                 }
                 else if (nextFlag == GifConstants.ExtensionIntroducer)
                 {
@@ -464,7 +468,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
             }
 
-            this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
+            this.SetFrameMetadata(image.Frames.RootFrame.Metadata, true);
 
             imageFrame = image.Frames.RootFrame;
         }
@@ -477,7 +481,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
             currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
 
-            this.SetFrameMetadata(currentFrame.Metadata);
+            this.SetFrameMetadata(currentFrame.Metadata, false);
 
             imageFrame = currentFrame;
 
@@ -603,28 +607,32 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// Sets the frames metadata.
     /// </summary>
     /// <param name="meta">The metadata.</param>
+    /// <param name="isRoot">Whether the metadata represents the root frame.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetFrameMetadata(ImageFrameMetadata meta)
+    private void SetFrameMetadata(ImageFrameMetadata meta, bool isRoot)
     {
-        GifFrameMetadata gifMeta = meta.GetGifMetadata();
-        if (this.graphicsControlExtension.DelayTime > 0)
-        {
-            gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
-        }
-
         // Frames can either use the global table or their own local table.
-        if (this.logicalScreenDescriptor.GlobalColorTableFlag
+        if (isRoot && this.logicalScreenDescriptor.GlobalColorTableFlag
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
             gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
         }
-        else if (this.imageDescriptor.LocalColorTableFlag
+
+        if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
             gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
         }
 
-        gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+        // Graphics control extensions is optional.
+        if (this.graphicsControlExtension != default)
+        {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
+            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+        }
     }
 
     /// <summary>

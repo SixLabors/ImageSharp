@@ -520,65 +520,96 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int width = pixels.Width;
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
+        int channels = this.BitsPerSample.Channels;
+        int tilesPerChannel = tileOffsets.Length / channels;
 
-        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
-        int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
-        int uncompressedTilesSize = bytesPerTileRow * tileLength;
-        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
-        using IMemoryOwner<byte> uncompressedPixelBuffer = this.memoryAllocator.Allocate<byte>(tilesDown * tileLength * bytesPerRow, AllocationOptions.Clean);
-        Span<byte> tileBufferSpan = tileBuffer.GetSpan();
-        Span<byte> uncompressedPixelBufferSpan = uncompressedPixelBuffer.GetSpan();
+        IMemoryOwner<byte>[] tilesBuffers = new IMemoryOwner<byte>[channels];
 
-        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
-
-        TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(
-            this.configuration,
-            this.memoryAllocator,
-            this.ColorType,
-            this.BitsPerSample,
-            this.ExtraSamplesType,
-            this.ColorMap,
-            this.ReferenceBlackAndWhite,
-            this.YcbcrCoefficients,
-            this.YcbcrSubSampling,
-            this.byteOrder);
-
-        int tileIndex = 0;
-        for (int tileY = 0; tileY < tilesDown; tileY++)
+        try
         {
-            int uncompressedPixelBufferOffset = tileY * tileLength * bytesPerRow;
-            int remainingPixelsInRow = width;
-            for (int tileX = 0; tileX < tilesAcross; tileX++)
+            int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
+            int uncompressedTilesSize = bytesPerTileRow * tileLength;
+            for (int i = 0; i < tilesBuffers.Length; i++)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                tilesBuffers[i] = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
+            }
 
-                bool isLastHorizontalTile = tileX == tilesAcross - 1;
+            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
 
-                decompressor.Decompress(
-                    this.inputStream,
-                    tileOffsets[tileIndex],
-                    tileByteCounts[tileIndex],
-                    tileLength,
-                    tileBufferSpan,
-                    cancellationToken);
+            TiffBasePlanarColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(
+                this.ColorType,
+                this.BitsPerSample,
+                this.ExtraSamplesType,
+                this.ColorMap,
+                this.ReferenceBlackAndWhite,
+                this.YcbcrCoefficients,
+                this.YcbcrSubSampling,
+                this.byteOrder);
 
-                int tileBufferOffset = 0;
-                uncompressedPixelBufferOffset += bytesPerTileRow * tileX;
-                int bytesToCopy = isLastHorizontalTile ? ((bitsPerPixel * remainingPixelsInRow) + 7) / 8 : bytesPerTileRow;
-                for (int y = 0; y < tileLength; y++)
+            int tileIndex = 0;
+            int remainingPixelsInColumn = height;
+            for (int tileY = 0; tileY < tilesDown; tileY++)
+            {
+                int remainingPixelsInRow = width;
+                int pixelColumnOffset = tileY * tileLength;
+                bool isLastVerticalTile = tileY == tilesDown - 1;
+                for (int tileX = 0; tileX < tilesAcross; tileX++)
                 {
-                    Span<byte> uncompressedPixelRow = uncompressedPixelBufferSpan.Slice(uncompressedPixelBufferOffset, bytesToCopy);
-                    tileBufferSpan.Slice(tileBufferOffset, bytesToCopy).CopyTo(uncompressedPixelRow);
-                    tileBufferOffset += bytesPerTileRow;
-                    uncompressedPixelBufferOffset += bytesPerRow;
+                    int pixelRowOffset = tileX * tileWidth;
+                    bool isLastHorizontalTile = tileX == tilesAcross - 1;
+                    int tileIndexForChannel = tileIndex;
+                    for (int i = 0; i < channels; i++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        decompressor.Decompress(
+                            this.inputStream,
+                            tileOffsets[tileIndexForChannel],
+                            tileByteCounts[tileIndexForChannel],
+                            tileLength,
+                            tilesBuffers[i].GetSpan(),
+                            cancellationToken);
+
+                        tileIndexForChannel += tilesPerChannel;
+                    }
+
+                    if (isLastHorizontalTile && remainingPixelsInRow < tileWidth)
+                    {
+                        // Adjust pixel data in the tile buffer to fit the smaller then usual tile width.
+                        for (int i = 0; i < channels; i++)
+                        {
+                            Span<byte> tileBufferSpan = tilesBuffers[i].GetSpan();
+                            for (int y = 0; y < tileLength; y++)
+                            {
+                                int currentRowOffset = y * tileWidth;
+                                Span<byte> adjustedRow = tileBufferSpan.Slice(y * remainingPixelsInRow, remainingPixelsInRow);
+                                tileBufferSpan.Slice(currentRowOffset, remainingPixelsInRow).CopyTo(adjustedRow);
+                            }
+                        }
+                    }
+
+                    colorDecoder.Decode(
+                        tilesBuffers,
+                        pixels,
+                        pixelRowOffset,
+                        pixelColumnOffset,
+                        isLastHorizontalTile ? remainingPixelsInRow : tileWidth,
+                        isLastVerticalTile ? remainingPixelsInColumn : tileLength);
+
+                    remainingPixelsInRow -= tileWidth;
+                    tileIndex++;
                 }
 
-                remainingPixelsInRow -= tileWidth;
-                tileIndex++;
+                remainingPixelsInColumn -= tileLength;
             }
         }
-
-        colorDecoder.Decode(uncompressedPixelBufferSpan, pixels, 0, 0, width, height);
+        finally
+        {
+            foreach (IMemoryOwner<byte> buf in tilesBuffers)
+            {
+                buf?.Dispose();
+            }
+        }
     }
 
     /// <summary>

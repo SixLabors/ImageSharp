@@ -168,7 +168,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     {
         this.EnsureNotDisposed();
 
-        var frame = ImageFrame.LoadPixelData(
+        ImageFrame<TPixel> frame = ImageFrame.LoadPixelData(
             this.parent.GetConfiguration(),
             source,
             this.RootFrame.Width,
@@ -298,7 +298,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     {
         this.EnsureNotDisposed();
 
-        var frame = new ImageFrame<TPixel>(
+        ImageFrame<TPixel> frame = new(
             this.parent.GetConfiguration(),
             this.RootFrame.Width,
             this.RootFrame.Height);
@@ -364,7 +364,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     /// </returns>
     public ImageFrame<TPixel> CreateFrame(TPixel backgroundColor)
     {
-        var frame = new ImageFrame<TPixel>(
+        ImageFrame<TPixel> frame = new(
             this.parent.GetConfiguration(),
             this.RootFrame.Width,
             this.RootFrame.Height,
@@ -374,10 +374,15 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     }
 
     /// <inheritdoc/>
-    IEnumerator<ImageFrame<TPixel>> IEnumerable<ImageFrame<TPixel>>.GetEnumerator() => this.frames.GetEnumerator();
+    public IEnumerator<ImageFrame<TPixel>> GetEnumerator()
+    {
+        this.EnsureNotDisposed();
+
+        return this.frames.GetEnumerator();
+    }
 
     /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
     private void ValidateFrame(ImageFrame<TPixel> frame)
     {
@@ -408,7 +413,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
     private ImageFrame<TPixel> CopyNonCompatibleFrame(ImageFrame source)
     {
-        var result = new ImageFrame<TPixel>(
+        ImageFrame<TPixel> result = new(
             this.parent.GetConfiguration(),
             source.Size(),
             source.Metadata.DeepClone());

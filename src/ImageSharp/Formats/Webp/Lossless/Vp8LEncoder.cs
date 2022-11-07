@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -68,6 +70,11 @@ internal class Vp8LEncoder : IDisposable
     private readonly WebpTransparentColorMode transparentColorMode;
 
     /// <summary>
+    /// Whether to skip metadata during encoding.
+    /// </summary>
+    private readonly bool skipMetadata;
+
+    /// <summary>
     /// Indicating whether near lossless mode should be used.
     /// </summary>
     private readonly bool nearLossless;
@@ -91,6 +98,7 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="width">The width of the input image.</param>
     /// <param name="height">The height of the input image.</param>
     /// <param name="quality">The encoding quality.</param>
+    /// <param name="skipMetadata">Whether to skip metadata encoding.</param>
     /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
     /// <param name="transparentColorMode">Flag indicating whether to preserve the exact RGB values under transparent area.
     /// Otherwise, discard this invisible RGB information for better compression.</param>
@@ -102,6 +110,7 @@ internal class Vp8LEncoder : IDisposable
         int width,
         int height,
         int quality,
+        bool skipMetadata,
         WebpEncodingMethod method,
         WebpTransparentColorMode transparentColorMode,
         bool nearLossless,
@@ -113,6 +122,7 @@ internal class Vp8LEncoder : IDisposable
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
         this.quality = Numerics.Clamp(quality, 0, 100);
+        this.skipMetadata = skipMetadata;
         this.method = method;
         this.transparentColorMode = transparentColorMode;
         this.nearLossless = nearLossless;
@@ -239,6 +249,9 @@ internal class Vp8LEncoder : IDisposable
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
 
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
         // Convert image pixels to bgra array.
         bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
 
@@ -252,7 +265,7 @@ internal class Vp8LEncoder : IDisposable
         this.EncodeStream(image);
 
         // Write bytes from the bitwriter buffer to the stream.
-        this.bitWriter.WriteEncodedImageToStream(stream, metadata.ExifProfile, metadata.XmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
+        this.bitWriter.WriteEncodedImageToStream(stream, exifProfile, xmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
     }
 
     /// <summary>

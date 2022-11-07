@@ -24,10 +24,11 @@ internal class AlphaEncoder : IDisposable
     /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
+    /// <param name="skipMetadata">Whether to skip metadata encoding.</param>
     /// <param name="compress">Indicates, if the data should be compressed with the lossless webp compression.</param>
     /// <param name="size">The size in bytes of the alpha data.</param>
     /// <returns>The encoded alpha data.</returns>
-    public IMemoryOwner<byte> EncodeAlpha<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, bool compress, out int size)
+    public IMemoryOwner<byte> EncodeAlpha<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, bool skipMetadata, bool compress, out int size)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = image.Width;
@@ -36,14 +37,15 @@ internal class AlphaEncoder : IDisposable
 
         if (compress)
         {
-            WebpEncodingMethod effort = WebpEncodingMethod.Default;
-            int quality = 8 * (int)effort;
-            using var lossLessEncoder = new Vp8LEncoder(
+            const WebpEncodingMethod effort = WebpEncodingMethod.Default;
+            const int quality = 8 * (int)effort;
+            using Vp8LEncoder lossLessEncoder = new(
                 memoryAllocator,
                 configuration,
                 width,
                 height,
                 quality,
+                skipMetadata,
                 effort,
                 WebpTransparentColorMode.Preserve,
                 false,
@@ -75,7 +77,7 @@ internal class AlphaEncoder : IDisposable
     {
         int width = image.Width;
         int height = image.Height;
-        var alphaAsImage = new Image<Rgba32>(width, height);
+        Image<Rgba32> alphaAsImage = new(width, height);
 
         for (int y = 0; y < height; y++)
         {

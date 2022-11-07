@@ -34,6 +34,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private readonly byte[] buffer = new byte[20];
 
     /// <summary>
+    /// Whether to skip metadata during encode.
+    /// </summary>
+    private readonly bool skipMetadata;
+
+    /// <summary>
     /// The quantizer used to generate the color palette.
     /// </summary>
     private readonly IQuantizer quantizer;
@@ -57,14 +62,15 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="options">The options for the encoder.</param>
-    public GifEncoderCore(Configuration configuration, IGifEncoderOptions options)
+    /// <param name="encoder">The encoder with options.</param>
+    public GifEncoderCore(Configuration configuration, GifEncoder encoder)
     {
         this.configuration = configuration;
         this.memoryAllocator = configuration.MemoryAllocator;
-        this.quantizer = options.Quantizer;
-        this.colorTableMode = options.ColorTableMode;
-        this.pixelSamplingStrategy = options.GlobalPixelSamplingStrategy;
+        this.skipMetadata = encoder.SkipMetadata;
+        this.quantizer = encoder.Quantizer;
+        this.colorTableMode = encoder.ColorTableMode;
+        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
     }
 
     /// <summary>
@@ -97,7 +103,8 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             }
             else
             {
-                quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image.Frames.RootFrame);
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
             }
         }
 
@@ -116,12 +123,15 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             this.WriteColorTable(quantized, stream);
         }
 
-        // Write the comments.
-        this.WriteComments(gifMetadata, stream);
+        if (!this.skipMetadata)
+        {
+            // Write the comments.
+            this.WriteComments(gifMetadata, stream);
 
-        // Write application extensions.
-        XmpProfile xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
-        this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
+            // Write application extensions.
+            XmpProfile xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
+            this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
+        }
 
         if (useGlobalTable)
         {

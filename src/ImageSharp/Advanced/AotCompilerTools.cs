@@ -57,6 +57,9 @@ internal static class AotCompilerTools
     /// If you are getting the above error, you need to call this method, which will pre-seed the AoT compiler with the
     /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// This method is used for AOT code generation only. Do not call it at runtime.
+    /// </exception>
     [Preserve]
     private static void SeedPixelFormats()
     {
@@ -487,8 +490,10 @@ internal static class AotCompilerTools
     private static void AotCompilePixelSamplingStrategys<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(DefaultPixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
-        default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
+        default(DefaultPixelSamplingStrategy).EnumeratePixelRegions(default(Image<TPixel>));
+        default(DefaultPixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
+        default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(Image<TPixel>));
+        default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
     }
 
     /// <summary>
@@ -513,13 +518,13 @@ internal static class AotCompilerTools
         where TPixel : unmanaged, IPixel<TPixel>
         where TDither : struct, IDither
     {
-        var octree = default(OctreeQuantizer<TPixel>);
+        OctreeQuantizer<TPixel> octree = default;
         default(TDither).ApplyQuantizationDither<OctreeQuantizer<TPixel>, TPixel>(ref octree, default, default, default);
 
-        var palette = default(PaletteQuantizer<TPixel>);
+        PaletteQuantizer<TPixel> palette = default;
         default(TDither).ApplyQuantizationDither<PaletteQuantizer<TPixel>, TPixel>(ref palette, default, default, default);
 
-        var wu = default(WuQuantizer<TPixel>);
+        WuQuantizer<TPixel> wu = default;
         default(TDither).ApplyQuantizationDither<WuQuantizer<TPixel>, TPixel>(ref wu, default, default, default);
         default(TDither).ApplyPaletteDither<PaletteDitherProcessor<TPixel>.DitherProcessor, TPixel>(default, default, default);
     }

@@ -2,48 +2,38 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
+public sealed class BmpEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Gets or sets the number of bits per pixel.
+    /// Gets the number of bits per pixel.
     /// </summary>
-    public BmpBitsPerPixel? BitsPerPixel { get; set; }
+    public BmpBitsPerPixel? BitsPerPixel { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the encoder should support transparency.
+    /// Gets a value indicating whether the encoder should support transparency.
     /// Note: Transparency support only works together with 32 bits per pixel. This option will
     /// change the default behavior of the encoder of writing a bitmap version 3 info header with no compression.
     /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
     /// </summary>
-    public bool SupportTransparency { get; set; }
-
-    /// <summary>
-    /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
-    /// Defaults to Wu Quantizer.
-    /// </summary>
-    public IQuantizer Quantizer { get; set; }
+    public bool SupportTransparency { get; init; }
 
     /// <inheritdoc/>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
         encoder.Encode(image, stream);
     }
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

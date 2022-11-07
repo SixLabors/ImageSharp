@@ -1,25 +1,28 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
 /// <summary>
 /// Encoder for writing the data image to a stream in jpeg format.
 /// </summary>
-public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
+public sealed class JpegEncoder : ImageEncoder
 {
     /// <summary>
     /// Backing field for <see cref="Quality"/>.
     /// </summary>
     private int? quality;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the quality, that will be used to encode the image. Quality
+    /// index must be between 1 and 100 (compression from max to min).
+    /// Defaults to <value>75</value>.
+    /// </summary>
+    /// <exception cref="ArgumentException">Quality factor must be in [1..100] range.</exception>
     public int? Quality
     {
         get => this.quality;
-        set
+        init
         {
             if (value is < 1 or > 100)
             {
@@ -30,37 +33,31 @@ public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
         }
     }
 
-    /// <inheritdoc/>
-    public bool? Interleaved { get; set; }
-
-    /// <inheritdoc/>
-    public JpegEncodingColor? ColorType { get; set; }
+    /// <summary>
+    /// Gets the component encoding mode.
+    /// </summary>
+    /// <remarks>
+    /// Interleaved encoding mode encodes all color components in a single scan.
+    /// Non-interleaved encoding mode encodes each color component in a separate scan.
+    /// </remarks>
+    public bool? Interleaved { get; init; }
 
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// Gets the jpeg color for encoding.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-    where TPixel : unmanaged, IPixel<TPixel>
+    public JpegEncodingColor? ColorType { get; init; }
+
+    /// <inheritdoc/>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        var encoder = new JpegEncoderCore(this);
+        JpegEncoderCore encoder = new(this);
         encoder.Encode(image, stream);
     }
 
-    /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <inheritdoc/>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        var encoder = new JpegEncoderCore(this);
+        JpegEncoderCore encoder = new(this);
         return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

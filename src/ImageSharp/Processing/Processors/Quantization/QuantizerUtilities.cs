@@ -50,7 +50,7 @@ public static class QuantizerUtilities
         Guard.NotNull(quantizer, nameof(quantizer));
         Guard.NotNull(source, nameof(source));
 
-        var interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
         Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
         // Collect the palette. Required before the second pass runs.
@@ -77,9 +77,9 @@ public static class QuantizerUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(source, nameof(source));
-        var interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
 
-        var destination = new IndexedImageFrame<TPixel>(
+        IndexedImageFrame<TPixel> destination = new(
             quantizer.Configuration,
             interest.Width,
             interest.Height,
@@ -99,13 +99,39 @@ public static class QuantizerUtilities
         return destination;
     }
 
-    internal static void BuildPalette<TPixel>(
+    /// <summary>
+    /// Adds colors to the quantized palette from the given pixel regions.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="quantizer">The pixel specific quantizer.</param>
+    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
+    /// <param name="source">The source image to sample from.</param>
+    public static void BuildPalette<TPixel>(
         this IQuantizer<TPixel> quantizer,
         IPixelSamplingStrategy pixelSamplingStrategy,
-        Image<TPixel> image)
+        Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(image))
+        foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+        {
+            quantizer.AddPaletteColors(region);
+        }
+    }
+
+    /// <summary>
+    /// Adds colors to the quantized palette from the given pixel regions.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="quantizer">The pixel specific quantizer.</param>
+    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
+    /// <param name="source">The source image frame to sample from.</param>
+    public static void BuildPalette<TPixel>(
+        this IQuantizer<TPixel> quantizer,
+        IPixelSamplingStrategy pixelSamplingStrategy,
+        ImageFrame<TPixel> source)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
         {
             quantizer.AddPaletteColors(region);
         }

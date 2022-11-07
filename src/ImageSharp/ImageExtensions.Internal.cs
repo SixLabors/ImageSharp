@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Memory;
@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp;
 public static partial class ImageExtensions
 {
     /// <summary>
-    /// Locks the image providing access to the pixels.
+    /// Provides access to the image pixels.
     /// <remarks>
-    /// It is imperative that the accessor is correctly disposed off after use.
+    /// It is imperative that the accessor is correctly disposed of after use.
     /// </remarks>
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
@@ -24,7 +24,5 @@ public static partial class ImageExtensions
     /// </returns>
     internal static Buffer2D<TPixel> GetRootFramePixelBuffer<TPixel>(this Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        return image.Frames.RootFrame.PixelBuffer;
-    }
+        => image.Frames.RootFrame.PixelBuffer;
 }

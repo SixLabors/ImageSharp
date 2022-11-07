@@ -80,9 +80,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="metadata">The images metadata.</param>
     internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
-    {
-        this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
-    }
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -115,9 +113,7 @@ public sealed class Image<TPixel> : Image
         int height,
         ImageMetadata metadata)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
-    {
-        this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
-    }
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -135,9 +131,7 @@ public sealed class Image<TPixel> : Image
         TPixel backgroundColor,
         ImageMetadata metadata)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
-    {
-        this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
-    }
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
@@ -148,9 +142,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="frames">The frames that will be owned by this image instance.</param>
     internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
-    {
-        this.frames = new ImageFrameCollection<TPixel>(this, frames);
-    }
+        => this.frames = new ImageFrameCollection<TPixel>(this, frames);
 
     /// <inheritdoc />
     protected override ImageFrameCollection NonGenericFrameCollection => this.Frames;
@@ -181,7 +173,7 @@ public sealed class Image<TPixel> : Image
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the provided (x,y) coordinates are outside the image boundary.</exception>
     public TPixel this[int x, int y]
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             this.EnsureNotDisposed();
@@ -190,7 +182,7 @@ public sealed class Image<TPixel> : Image
             return this.PixelSourceUnsafe.PixelBuffer.GetElementUnsafe(x, y);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             this.EnsureNotDisposed();
@@ -212,7 +204,7 @@ public sealed class Image<TPixel> : Image
 
         try
         {
-            var accessor = new PixelAccessor<TPixel>(buffer);
+            PixelAccessor<TPixel> accessor = new(buffer);
             processPixels(accessor);
         }
         finally
@@ -243,8 +235,8 @@ public sealed class Image<TPixel> : Image
 
         try
         {
-            var accessor1 = new PixelAccessor<TPixel>(buffer1);
-            var accessor2 = new PixelAccessor<TPixel2>(buffer2);
+            PixelAccessor<TPixel> accessor1 = new(buffer1);
+            PixelAccessor<TPixel2> accessor2 = new(buffer2);
             processPixels(accessor1, accessor2);
         }
         finally
@@ -283,9 +275,9 @@ public sealed class Image<TPixel> : Image
 
         try
         {
-            var accessor1 = new PixelAccessor<TPixel>(buffer1);
-            var accessor2 = new PixelAccessor<TPixel2>(buffer2);
-            var accessor3 = new PixelAccessor<TPixel3>(buffer3);
+            PixelAccessor<TPixel> accessor1 = new(buffer1);
+            PixelAccessor<TPixel2> accessor2 = new(buffer2);
+            PixelAccessor<TPixel3> accessor3 = new(buffer3);
             processPixels(accessor1, accessor2, accessor3);
         }
         finally
@@ -348,7 +340,7 @@ public sealed class Image<TPixel> : Image
     {
         this.EnsureNotDisposed();
 
-        var clonedFrames = new ImageFrame<TPixel>[this.frames.Count];
+        ImageFrame<TPixel>[] clonedFrames = new ImageFrame<TPixel>[this.frames.Count];
         for (int i = 0; i < clonedFrames.Length; i++)
         {
             clonedFrames[i] = this.frames[i].Clone(configuration);
@@ -367,7 +359,7 @@ public sealed class Image<TPixel> : Image
     {
         this.EnsureNotDisposed();
 
-        var clonedFrames = new ImageFrame<TPixel2>[this.frames.Count];
+        ImageFrame<TPixel2>[] clonedFrames = new ImageFrame<TPixel2>[this.frames.Count];
         for (int i = 0; i < clonedFrames.Length; i++)
         {
             clonedFrames[i] = this.frames[i].CloneAs<TPixel2>(configuration);
@@ -444,7 +436,7 @@ public sealed class Image<TPixel> : Image
         return rootSize;
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void VerifyCoords(int x, int y)
     {
         if ((uint)x >= (uint)this.Width)
@@ -458,9 +450,6 @@ public sealed class Image<TPixel> : Image
         }
     }
 
-    [MethodImpl(InliningOptions.ColdPath)]
     private static void ThrowArgumentOutOfRangeException(string paramName)
-    {
-        throw new ArgumentOutOfRangeException(paramName);
-    }
+        => throw new ArgumentOutOfRangeException(paramName);
 }

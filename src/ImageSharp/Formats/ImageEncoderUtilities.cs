@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
@@ -22,11 +22,11 @@ internal static class ImageEncoderUtilities
         }
         else
         {
-            using var ms = new MemoryStream();
+            using MemoryStream ms = new();
             await DoEncodeAsync(ms);
             ms.Position = 0;
             await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)
-                .ConfigureAwait(false);
+                    .ConfigureAwait(false);
         }
 
         Task DoEncodeAsync(Stream innerStream)

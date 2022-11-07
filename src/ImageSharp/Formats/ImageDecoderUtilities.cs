@@ -58,7 +58,7 @@ internal static class ImageDecoderUtilities
         Stream stream,
         CancellationToken cancellationToken)
     {
-        using var bufferedReadStream = new BufferedReadStream(configuration, stream);
+        using BufferedReadStream bufferedReadStream = new(configuration, stream);
 
         try
         {
@@ -86,7 +86,7 @@ internal static class ImageDecoderUtilities
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using var bufferedReadStream = new BufferedReadStream(configuration, stream);
+        using BufferedReadStream bufferedReadStream = new(configuration, stream);
 
         try
         {

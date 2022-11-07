@@ -161,8 +161,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             ImageFrame<TPixel> frame = image.Frames[i];
             ImageFrameMetadata metadata = frame.Metadata;
 
-            if (metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata))
+            bool hasMeta = metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata);
+            if (hasMeta || transparencyIndex > -1)
             {
+                frameMetadata ??= metadata.GetGifMetadata();
                 this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
             }
 
@@ -223,10 +225,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             }
 
             this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-
-            if (hasMetadata)
+            int index = GetTransparentIndex(quantized);
+            if (hasMetadata || index > -1)
             {
-                this.WriteGraphicalControlExtension(frameMetadata, GetTransparentIndex(quantized), stream);
+                frameMetadata ??= metadata.GetGifMetadata();
+                this.WriteGraphicalControlExtension(frameMetadata, index, stream);
             }
 
             this.WriteImageDescriptor(frame, true, stream);

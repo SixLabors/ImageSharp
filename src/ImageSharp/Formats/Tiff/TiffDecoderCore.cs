@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -507,7 +508,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         try
         {
-            int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
+            int bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * bitsPerPixel);
             int uncompressedTilesSize = bytesPerTileRow * tileLength;
             for (int i = 0; i < tilesBuffers.Length; i++)
             {
@@ -611,8 +612,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
 
-        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
-        int bytesPerTileRow = ((tileWidth * bitsPerPixel) + 7) / 8;
+        int bytesPerRow = RoundUpToMultipleOfEight(width * bitsPerPixel);
+        int bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * bitsPerPixel);
         int uncompressedTilesSize = bytesPerTileRow * tileLength;
         using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
         using IMemoryOwner<byte> uncompressedPixelBuffer = this.memoryAllocator.Allocate<byte>(tilesDown * tileLength * bytesPerRow, AllocationOptions.Clean);
@@ -643,7 +644,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
                 int tileBufferOffset = 0;
                 uncompressedPixelBufferOffset += bytesPerTileRow * tileX;
-                int bytesToCopy = isLastHorizontalTile ? ((bitsPerPixel * remainingPixelsInRow) + 7) / 8 : bytesPerTileRow;
+                int bytesToCopy = isLastHorizontalTile ? RoundUpToMultipleOfEight(bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
                 for (int y = 0; y < tileLength; y++)
                 {
                     Span<byte> uncompressedPixelRow = uncompressedPixelBufferSpan.Slice(uncompressedPixelBufferOffset, bytesToCopy);
@@ -799,4 +800,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
 
         return (int)height.Value;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int RoundUpToMultipleOfEight(int value) => (int)(((uint)value + 7) / 8);
 }

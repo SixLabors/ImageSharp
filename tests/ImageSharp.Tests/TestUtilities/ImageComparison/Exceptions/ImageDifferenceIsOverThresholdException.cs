@@ -36,7 +36,7 @@ public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
         int i = 0;
         foreach (ImageSimilarityReport r in reports)
         {
-            sb.Append("Report ImageFrame {i}: ");
+            sb.Append($"Report ImageFrame {i}: ");
             sb.Append(r);
             sb.Append(Environment.NewLine);
             i++;

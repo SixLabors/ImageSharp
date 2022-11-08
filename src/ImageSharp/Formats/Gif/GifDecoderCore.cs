@@ -548,7 +548,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 // #403 The left + width value can be larger than the image width
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, Math.Max(transIndex, colorTableMaxIdx));
+                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
                     ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);

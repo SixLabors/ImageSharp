@@ -479,7 +479,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 prevFrame = previousFrame;
             }
 
-            currentFrame = image.Frames.AddFrame(new ImageFrame<TPixel>(this.configuration, previousFrame.Width, previousFrame.Height));
+            currentFrame = image.Frames.CreateFrame();
 
             this.SetFrameMetadata(currentFrame.Metadata, false);
 

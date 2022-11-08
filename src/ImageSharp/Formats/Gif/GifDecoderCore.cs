@@ -479,7 +479,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 prevFrame = previousFrame;
             }
 
-            currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
+            currentFrame = image.Frames.AddFrame(new ImageFrame<TPixel>(this.configuration, previousFrame.Width, previousFrame.Height));
 
             this.SetFrameMetadata(currentFrame.Metadata, false);
 
@@ -548,7 +548,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 // #403 The left + width value can be larger than the image width
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
+                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, Math.Max(transIndex, colorTableMaxIdx));
                     ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);
@@ -558,7 +558,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
+                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, Math.Max(transIndex, colorTableMaxIdx));
                     if (transIndex != index)
                     {
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
@@ -596,7 +596,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             return;
         }
 
-        var interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
+        Rectangle interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
         pixelRegion.Clear();
 
@@ -616,6 +616,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.ColorTableMode = GifColorTableMode.Global;
             gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
         }
 
@@ -623,6 +624,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.ColorTableMode = GifColorTableMode.Local;
             gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
         }
 

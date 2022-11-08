@@ -93,7 +93,6 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         // Quantize the image returning a palette.
         IndexedImageFrame<TPixel> quantized;
-
         using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
         {
             if (useGlobalTable)
@@ -133,114 +132,102 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
         }
 
-        if (useGlobalTable)
-        {
-            this.EncodeGlobal(image, quantized, index, stream);
-        }
-        else
-        {
-            this.EncodeLocal(image, quantized, stream);
-        }
-
-        // Clean up.
-        quantized.Dispose();
+        this.EncodeFrames(stream, image, quantized, quantized.Palette.ToArray());
 
         stream.WriteByte(GifConstants.EndIntroducer);
     }
 
-    private void EncodeGlobal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int transparencyIndex, Stream stream)
+    private void EncodeFrames<TPixel>(
+        Stream stream,
+        Image<TPixel> image,
+        IndexedImageFrame<TPixel> quantized,
+        ReadOnlyMemory<TPixel> palette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // The palette quantizer can reuse the same pixel map across multiple frames
-        // since the palette is unchanging. This allows a reduction of memory usage across
-        // multi frame gifs using a global palette.
-        PaletteQuantizer<TPixel> paletteFrameQuantizer = default;
-        bool quantizerInitialized = false;
+        PaletteQuantizer<TPixel> paletteQuantizer = default;
+        bool hasPaletteQuantizer = false;
         for (int i = 0; i < image.Frames.Count; i++)
         {
-            ImageFrame<TPixel> frame = image.Frames[i];
-            ImageFrameMetadata metadata = frame.Metadata;
-
-            bool hasMeta = metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata);
-            if (hasMeta || transparencyIndex > -1)
-            {
-                frameMetadata ??= metadata.GetGifMetadata();
-                this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
-            }
-
-            this.WriteImageDescriptor(frame, false, stream);
-
-            if (i == 0)
-            {
-                this.WriteImageData(quantized, stream);
-            }
-            else
-            {
-                if (!quantizerInitialized)
-                {
-                    quantizerInitialized = true;
-                    paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette);
-                }
-
-                using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
-                this.WriteImageData(paletteQuantized, stream);
-            }
-        }
-
-        paletteFrameQuantizer.Dispose();
-    }
-
-    private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        ImageFrame<TPixel> previousFrame = null;
-        GifFrameMetadata previousMeta = null;
-        for (int i = 0; i < image.Frames.Count; i++)
-        {
+            // Gather the metadata for this frame.
             ImageFrame<TPixel> frame = image.Frames[i];
             ImageFrameMetadata metadata = frame.Metadata;
             bool hasMetadata = metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata);
-            if (quantized is null)
+            bool useLocal = this.colorTableMode == GifColorTableMode.Local || (hasMetadata && frameMetadata.ColorTableMode == GifColorTableMode.Local);
+
+            if (!useLocal && !hasPaletteQuantizer && i > 0)
             {
-                // Allow each frame to be encoded at whatever color depth the frame designates if set.
-                if (previousFrame != null && frameMetadata != null
-                    && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
-                    && frameMetadata.ColorTableLength > 0)
+                // The palette quantizer can reuse the same pixel map across multiple frames
+                // since the palette is unchanging. This allows a reduction of memory usage across
+                // multi frame gifs using a global palette.
+                hasPaletteQuantizer = true;
+                paletteQuantizer = new(this.configuration, this.quantizer.Options, palette);
+            }
+
+            this.EncodeFrame(stream, frame, i, useLocal, frameMetadata, ref quantized, ref paletteQuantizer);
+
+            // Clean up for the next run.
+            quantized.Dispose();
+            quantized = null;
+        }
+
+        paletteQuantizer.Dispose();
+    }
+
+    private void EncodeFrame<TPixel>(
+        Stream stream,
+        ImageFrame<TPixel> frame,
+        int frameIndex,
+        bool useLocal,
+        GifFrameMetadata metadata,
+        ref IndexedImageFrame<TPixel> quantized,
+        ref PaletteQuantizer<TPixel> paletteQuantizer)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // The first frame has already been quantized so we do not need to do so again.
+        if (frameIndex > 0)
+        {
+            if (useLocal)
+            {
+                // Reassign using the current frame and details.
+                QuantizerOptions options = null;
+                int colorTableLength = metadata?.ColorTableLength ?? 0;
+                if (colorTableLength > 0)
                 {
-                    QuantizerOptions options = new()
+                    options = new()
                     {
                         Dither = this.quantizer.Options.Dither,
                         DitherScale = this.quantizer.Options.DitherScale,
-                        MaxColors = frameMetadata.ColorTableLength
+                        MaxColors = colorTableLength
                     };
+                }
 
-                    using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
-                    quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
-                }
-                else
-                {
-                    using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
-                    quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
-                }
+                using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options ?? this.quantizer.Options);
+                quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
+            }
+            else
+            {
+                // Quantize the image using the global palette.
+                quantized = paletteQuantizer.QuantizeFrame(frame, frame.Bounds());
             }
 
             this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-            int index = GetTransparentIndex(quantized);
-            if (hasMetadata || index > -1)
-            {
-                frameMetadata ??= metadata.GetGifMetadata();
-                this.WriteGraphicalControlExtension(frameMetadata, index, stream);
-            }
-
-            this.WriteImageDescriptor(frame, true, stream);
-            this.WriteColorTable(quantized, stream);
-            this.WriteImageData(quantized, stream);
-
-            quantized.Dispose();
-            quantized = null; // So next frame can regenerate it
-            previousFrame = frame;
-            previousMeta = frameMetadata;
         }
+
+        // Do we have extension information to write?
+        int index = GetTransparentIndex(quantized);
+        if (metadata != null || index > -1)
+        {
+            this.WriteGraphicalControlExtension(metadata ?? new(), index, stream);
+        }
+
+        this.WriteImageDescriptor(frame, useLocal, stream);
+
+        if (useLocal)
+        {
+            this.WriteColorTable(quantized, stream);
+        }
+
+        this.WriteImageData(quantized, stream);
     }
 
     /// <summary>

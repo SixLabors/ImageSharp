@@ -204,6 +204,7 @@ public class GifEncoderTests
 
     [Theory]
     [WithFile(TestImages.Gif.Issues.Issue2288OptionalExtension, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2288OptionalExtension2, PixelTypes.Rgba32)]
     public void OptionalExtensionsShouldBeHandledProperly<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

@@ -68,6 +68,10 @@ internal static class ImageDecoderUtilities
         {
             throw new InvalidImageContentException(decoder.Dimensions, ex);
         }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 
     internal static Image<TPixel> Decode<TPixel>(
@@ -95,6 +99,10 @@ internal static class ImageDecoderUtilities
         catch (InvalidMemoryOperationException ex)
         {
             throw largeImageExceptionFactory(ex, decoder.Dimensions);
+        }
+        catch (Exception)
+        {
+            throw;
         }
     }
 

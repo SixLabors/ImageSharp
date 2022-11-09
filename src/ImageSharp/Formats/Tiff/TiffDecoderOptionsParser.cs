@@ -21,13 +21,9 @@ internal static class TiffDecoderOptionsParser
     /// <param name="options">The options.</param>
     /// <param name="exifProfile">The exif profile of the frame to decode.</param>
     /// <param name="frameMetadata">The IFD entries container to read the image format information for current frame.</param>
-    public static void VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
+    /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
+    public static bool VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
     {
-        if (exifProfile.GetValueInternal(ExifTag.TileOffsets) is not null || exifProfile.GetValueInternal(ExifTag.TileByteCounts) is not null)
-        {
-            TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
-        }
-
         IExifValue extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
         if (extraSamplesExifValue is not null)
         {
@@ -86,8 +82,6 @@ internal static class TiffDecoderOptionsParser
             TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
         }
 
-        VerifyRequiredFieldsArePresent(exifProfile, frameMetadata);
-
         options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
         options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
         options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
@@ -103,24 +97,65 @@ internal static class TiffDecoderOptionsParser
 
         options.ParseColorType(exifProfile);
         options.ParseCompression(frameMetadata.Compression, exifProfile);
+
+        bool isTiled = VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
+
+        return isTiled;
     }
 
-    private static void VerifyRequiredFieldsArePresent(ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
+    /// <summary>
+    /// Verifies that all required fields for decoding are present.
+    /// </summary>
+    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="planarConfiguration">The planar configuration. Either planar or chunky.</param>
+    /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
+    private static bool VerifyRequiredFieldsArePresent(ExifProfile exifProfile, TiffFrameMetadata frameMetadata, TiffPlanarConfiguration planarConfiguration)
     {
-        if (exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
+        bool isTiled = false;
+        if (exifProfile.GetValueInternal(ExifTag.TileWidth) is not null || exifProfile.GetValueInternal(ExifTag.TileLength) is not null)
         {
-            TiffThrowHelper.ThrowImageFormatException("StripOffsets are missing and are required for decoding the TIFF image!");
-        }
+            if (planarConfiguration == TiffPlanarConfiguration.Planar && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
+            }
 
-        if (exifProfile.GetValueInternal(ExifTag.StripByteCounts) is null)
+            if (planarConfiguration == TiffPlanarConfiguration.Chunky && exifProfile.GetValueInternal(ExifTag.TileOffsets) is null && exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("TileOffsets are missing and are required for decoding the TIFF image!");
+            }
+
+            if (exifProfile.GetValueInternal(ExifTag.TileWidth) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("TileWidth are missing and are required for decoding the TIFF image!");
+            }
+
+            if (exifProfile.GetValueInternal(ExifTag.TileLength) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("TileLength are missing and are required for decoding the TIFF image!");
+            }
+
+            isTiled = true;
+        }
+        else
         {
-            TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing and are required for decoding the TIFF image!");
+            if (exifProfile.GetValueInternal(ExifTag.StripOffsets) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("StripOffsets are missing and are required for decoding the TIFF image!");
+            }
+
+            if (exifProfile.GetValueInternal(ExifTag.StripByteCounts) is null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing and are required for decoding the TIFF image!");
+            }
         }
 
         if (frameMetadata.BitsPerPixel == null)
         {
             TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image!");
         }
+
+        return isTiled;
     }
 
     private static void ParseColorType(this TiffDecoderCore options, ExifProfile exifProfile)

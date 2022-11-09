@@ -18,7 +18,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     [Theory]
-    [WithFile(RgbUncompressedTiled, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
@@ -51,7 +50,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [InlineData(RgbLzwNoPredictorMultistripMotorola, ImageSharp.ByteOrder.BigEndian)]
     public void ByteOrder(string imagePath, ByteOrder expectedByteOrder)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using (var stream = new MemoryStream(testFile.Bytes, false))
         {
             IImageInfo info = Image.Identify(stream);
@@ -61,7 +60,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
             stream.Seek(0, SeekOrigin.Begin);
 
-            using var img = Image.Load(stream);
+            using Image img = Image.Load(stream);
             Assert.Equal(expectedByteOrder, img.Metadata.GetTiffMetadata().ByteOrder);
         }
     }
@@ -78,6 +77,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(FlowerRgb888Planar6Strips, PixelTypes.Rgba32)]
     [WithFile(FlowerRgb888Planar15Strips, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Planar<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(Tiled, PixelTypes.Rgba32)]
+    [WithFile(QuadTile, PixelTypes.Rgba32)]
+    [WithFile(TiledChunky, PixelTypes.Rgba32)]
+    [WithFile(TiledPlanar, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Tiled<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
     [Theory]

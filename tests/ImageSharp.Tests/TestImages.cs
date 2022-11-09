@@ -893,6 +893,12 @@ public static class TestImages
         public const string Flower32BitGrayPredictorBigEndian = "Tiff/flower-minisblack-32_msb_deflate_predictor.tiff";
         public const string Flower32BitGrayPredictorLittleEndian = "Tiff/flower-minisblack-32_lsb_deflate_predictor.tiff";
 
+        // Tiled images.
+        public const string Tiled = "Tiff/tiled.tiff";
+        public const string QuadTile = "Tiff/quad-tile.tiff";
+        public const string TiledChunky = "Tiff/rgb_uncompressed_tiled_chunky.tiff";
+        public const string TiledPlanar = "Tiff/rgb_uncompressed_tiled_planar.tiff";
+
         // Images with alpha channel.
         public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";
         public const string Rgba3BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha3bit.tiff";

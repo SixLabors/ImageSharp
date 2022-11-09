@@ -27,13 +27,9 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Indexed8_LZW, PixelTypes.Rgba32)]
     [WithFile(MinIsBlack, PixelTypes.Rgba32)]
     [WithFile(MinIsWhite, PixelTypes.Rgba32)]
+    [WithFile(BigTIFFLong8Tiles, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
-
-    [Theory]
-    [WithFile(BigTIFFLong8Tiles, PixelTypes.Rgba32)]
-    public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
     [Theory]
     [WithFile(Damaged_MinIsWhite_RLE, PixelTypes.Rgba32)]

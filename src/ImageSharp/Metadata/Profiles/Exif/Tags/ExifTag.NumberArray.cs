@@ -22,6 +22,11 @@ public abstract partial class ExifTag
     public static ExifTag<Number[]> TileByteCounts { get; } = new ExifTag<Number[]>(ExifTagValue.TileByteCounts);
 
     /// <summary>
+    /// Gets the TileOffsets exif tag.
+    /// </summary>
+    public static ExifTag<Number[]> TileOffsets { get; } = new ExifTag<Number[]>(ExifTagValue.TileOffsets);
+
+    /// <summary>
     /// Gets the ImageLayer exif tag.
     /// </summary>
     public static ExifTag<Number[]> ImageLayer { get; } = new ExifTag<Number[]>(ExifTagValue.ImageLayer);

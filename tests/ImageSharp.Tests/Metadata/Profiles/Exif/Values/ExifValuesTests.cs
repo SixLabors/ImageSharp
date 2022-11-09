@@ -64,7 +64,6 @@ public class ExifValuesTests
         { ExifTag.FreeOffsets },
         { ExifTag.FreeByteCounts },
         { ExifTag.ColorResponseUnit },
-        { ExifTag.TileOffsets },
         { ExifTag.SMinSampleValue },
         { ExifTag.SMaxSampleValue },
         { ExifTag.JPEGQTables },
@@ -92,6 +91,7 @@ public class ExifValuesTests
         { ExifTag.StripOffsets },
         { ExifTag.StripByteCounts },
         { ExifTag.TileByteCounts },
+        { ExifTag.TileOffsets },
         { ExifTag.ImageLayer }
     };
 

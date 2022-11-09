@@ -130,8 +130,6 @@ internal static partial class ExifValues
                 return new ExifLongArray(ExifTag.FreeByteCounts);
             case ExifTagValue.ColorResponseUnit:
                 return new ExifLongArray(ExifTag.ColorResponseUnit);
-            case ExifTagValue.TileOffsets:
-                return new ExifLongArray(ExifTag.TileOffsets);
             case ExifTagValue.SMinSampleValue:
                 return new ExifLongArray(ExifTag.SMinSampleValue);
             case ExifTagValue.SMaxSampleValue:
@@ -176,6 +174,8 @@ internal static partial class ExifValues
                 return new ExifNumberArray(ExifTag.StripOffsets);
             case ExifTagValue.TileByteCounts:
                 return new ExifNumberArray(ExifTag.TileByteCounts);
+            case ExifTagValue.TileOffsets:
+                return new ExifNumberArray(ExifTag.TileOffsets);
             case ExifTagValue.ImageLayer:
                 return new ExifNumberArray(ExifTag.ImageLayer);
 

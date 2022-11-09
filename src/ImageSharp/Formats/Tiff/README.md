@@ -46,18 +46,20 @@
 
 ### Photometric Interpretation Formats
 
-|                           |Encoder|Decoder|Comments                                   |
-|---------------------------|:-----:|:-----:|-------------------------------------------|
+|                           |Encoder|Decoder|Comments                                        |
+|---------------------------|:-----:|:-----:|------------------------------------------------|
 |WhiteIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations. |
 |BlackIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations. |
-|Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation.|
-|Rgb (Planar)               |       |   Y   | General implementation only.              |
-|PaletteColor               |   Y   |   Y   | General implementation only.              |
-|TransparencyMask           |       |       |                                           |
-|Separated (TIFF Extension) |       |   Y   |                                           |
-|YCbCr (TIFF Extension)     |       |   Y   |                                           |
-|CieLab (TIFF Extension)    |       |   Y   |                                           |
-|IccLab (TechNote 1)        |       |       |                                           |
+|Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation.     |
+|Rgb (Planar)               |       |   Y   | General implementation only.                   |
+|PaletteColor               |   Y   |   Y   | General implementation only.                   |
+|TransparencyMask           |       |       |                                                |
+|Separated (TIFF Extension) |       |   Y   |                                                |
+|YCbCr (TIFF Extension)     |       |   Y   |                                                |
+|CieLab (TIFF Extension)    |       |   Y   |                                                |
+|IccLab (TechNote 1)        |       |       |                                                |
+|CMYK                       |       |   Y   |                                                |
+|Tiled Images               |       |   Y   |                                                |
 
 ### Baseline TIFF Tags
 

@@ -514,7 +514,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         int descriptorBottom = descriptorTop + descriptor.Height;
         int descriptorLeft = descriptor.Left;
         int descriptorRight = descriptorLeft + descriptor.Width;
-        byte transparentIndex = this.graphicsControlExtension.TransparencyIndex;
+        byte transIndex = this.graphicsControlExtension.TransparencyIndex;
         int colorTableMaxIdx = colorTable.Length - 1;
 
         for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
@@ -573,14 +573,17 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
                     int rawIndex = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
-                    int transIndex = Numerics.Clamp(rawIndex, 0, Math.Max(transparentIndex, colorTableMaxIdx));
-                    int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
-                    if (transparentIndex != transIndex)
+
+                    // Treat any out of bounds values as transparent.
+                    if (rawIndex > colorTableMaxIdx || rawIndex == transIndex)
                     {
-                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                        Rgb24 rgb = colorTable[index];
-                        pixel.FromRgb24(rgb);
+                        continue;
                     }
+
+                    int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
+                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                    Rgb24 rgb = colorTable[index];
+                    pixel.FromRgb24(rgb);
                 }
             }
         }

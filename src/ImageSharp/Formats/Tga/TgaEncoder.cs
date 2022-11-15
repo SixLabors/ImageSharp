@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Image encoder for writing an image to a stream as a targa truevision image.
 /// </summary>
-public sealed class TgaEncoder : SynchronousImageEncoder
+public sealed class TgaEncoder : ImageEncoder
 {
     /// <summary>
     /// Gets the number of bits per pixel.

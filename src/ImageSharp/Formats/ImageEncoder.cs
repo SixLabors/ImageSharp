@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// Acts as a base class for image encoders.
 /// Types that inherit this encoder are required to implement cancellable synchronous encoding operations only.
 /// </summary>
-public abstract class SynchronousImageEncoder : IImageEncoder
+public abstract class ImageEncoder : IImageEncoder
 {
     /// <inheritdoc/>
     public bool SkipMetadata { get; init; }

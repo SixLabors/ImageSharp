@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// </para>
 /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
 /// </summary>
-public sealed class PbmEncoder : SynchronousImageEncoder
+public sealed class PbmEncoder : ImageEncoder
 {
     /// <summary>
     /// Gets the encoding of the pixels.

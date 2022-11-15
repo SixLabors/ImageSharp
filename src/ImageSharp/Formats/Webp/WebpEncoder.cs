@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-public sealed class WebpEncoder : SynchronousImageEncoder
+public sealed class WebpEncoder : ImageEncoder
 {
     /// <summary>
     /// Gets the webp file format used. Either lossless or lossy.

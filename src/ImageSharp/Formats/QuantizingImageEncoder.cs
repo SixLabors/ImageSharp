@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// Acts as a base class for all image encoders that allow color palette generation via quantization.
 /// </summary>
-public abstract class QuantizingImageEncoder : SynchronousImageEncoder
+public abstract class QuantizingImageEncoder : ImageEncoder
 {
     /// <summary>
     /// Gets the quantizer used to generate the color palette.

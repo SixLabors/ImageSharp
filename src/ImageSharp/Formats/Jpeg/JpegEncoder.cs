@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Encoder for writing the data image to a stream in jpeg format.
 /// </summary>
-public sealed class JpegEncoder : SynchronousImageEncoder
+public sealed class JpegEncoder : ImageEncoder
 {
     /// <summary>
     /// Backing field for <see cref="Quality"/>.

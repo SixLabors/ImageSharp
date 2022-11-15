@@ -86,6 +86,26 @@ public partial class ImageTests
                     })
                 .Returns(this.localStreamReturnImageAgnostic);
 
+            this.localDecoder
+                .Setup(x => x.DecodeAsync<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
+                {
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    this.DecodedData = ms.ToArray();
+                })
+                .Returns(Task.FromResult(this.localStreamReturnImageRgba32));
+
+            this.localDecoder
+                .Setup(x => x.DecodeAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
+                {
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    this.DecodedData = ms.ToArray();
+                })
+                .Returns(Task.FromResult<Image>(this.localStreamReturnImageAgnostic));
+
             this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 
             this.LocalConfiguration = new Configuration();

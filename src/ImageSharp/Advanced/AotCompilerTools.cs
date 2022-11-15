@@ -273,7 +273,7 @@ internal static class AotCompilerTools
     [Preserve]
     private static void AotCompileImageEncoder<TPixel, TEncoder>()
         where TPixel : unmanaged, IPixel<TPixel>
-        where TEncoder : IImageEncoder
+        where TEncoder : class, IImageEncoder
     {
         default(TEncoder).Encode<TPixel>(default, default);
         default(TEncoder).EncodeAsync<TPixel>(default, default, default);
@@ -287,7 +287,7 @@ internal static class AotCompilerTools
     [Preserve]
     private static void AotCompileImageDecoder<TPixel, TDecoder>()
        where TPixel : unmanaged, IPixel<TPixel>
-       where TDecoder : IImageDecoder
+       where TDecoder : class, IImageDecoder
         => default(TDecoder).Decode<TPixel>(default, default);
 
     /// <summary>

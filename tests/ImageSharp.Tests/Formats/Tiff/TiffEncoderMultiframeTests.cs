@@ -30,7 +30,9 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
 
     [Theory]
     [WithFile(TestImages.Gif.Receipt, PixelTypes.Rgb24)]
-    [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32)]
+
+    // MAGICK decoder makes the same mistake we did and clones the proceeding frame overwriting the differences.
+    // [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeMultiframe_Convert<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit48, TiffPhotometricInterpretation.Rgb);
 

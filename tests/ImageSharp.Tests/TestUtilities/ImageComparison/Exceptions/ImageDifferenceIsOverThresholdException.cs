@@ -33,13 +33,11 @@ public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
         sb.AppendFormat("Test Environment is Mono : {0}", TestEnvironment.IsMono);
         sb.Append(Environment.NewLine);
 
-        int i = 0;
         foreach (ImageSimilarityReport r in reports)
         {
-            sb.Append("Report ImageFrame {i}: ");
+            sb.AppendFormat("Report ImageFrame {0}: ", r.Index);
             sb.Append(r);
             sb.Append(Environment.NewLine);
-            i++;
         }
 
         return sb.ToString();

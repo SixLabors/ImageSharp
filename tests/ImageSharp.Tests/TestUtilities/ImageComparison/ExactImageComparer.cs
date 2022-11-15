@@ -12,6 +12,7 @@ public class ExactImageComparer : ImageComparer
     public static ExactImageComparer Instance { get; } = new ExactImageComparer();
 
     public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+        int index,
         ImageFrame<TPixelA> expected,
         ImageFrame<TPixelB> actual)
     {
@@ -52,6 +53,6 @@ public class ExactImageComparer : ImageComparer
             }
         }
 
-        return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences);
+        return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences);
     }
 }

@@ -50,7 +50,7 @@ public class GifMetadata : IDeepCloneable
     public int GlobalColorTableLength { get; set; }
 
     /// <summary>
-    /// Gets or sets the the collection of comments about the graphics, credits, descriptions or any
+    /// Gets or sets the collection of comments about the graphics, credits, descriptions or any
     /// other type of non-control and non-graphic data.
     /// </summary>
     public IList<string> Comments { get; set; } = new List<string>();

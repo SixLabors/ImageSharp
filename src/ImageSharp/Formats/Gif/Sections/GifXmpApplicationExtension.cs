@@ -28,7 +28,6 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
     /// <param name="stream">The stream to read from.</param>
     /// <param name="allocator">The memory allocator.</param>
     /// <returns>The XMP metadata</returns>
-    /// <exception cref="ImageFormatException">Thrown if the XMP block is not properly terminated.</exception>
     public static GifXmpApplicationExtension Read(Stream stream, MemoryAllocator allocator)
     {
         byte[] xmpBytes = ReadXmpData(stream, allocator);

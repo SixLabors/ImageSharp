@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// processing a graphic rendering block.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal readonly struct GifGraphicControlExtension : IGifExtension
+internal readonly struct GifGraphicControlExtension : IGifExtension, IEquatable<GifGraphicControlExtension>
 {
     public GifGraphicControlExtension(
         byte packed,
@@ -64,6 +64,10 @@ internal readonly struct GifGraphicControlExtension : IGifExtension
 
     int IGifExtension.ContentLength => 5;
 
+    public static bool operator ==(GifGraphicControlExtension left, GifGraphicControlExtension right) => left.Equals(right);
+
+    public static bool operator !=(GifGraphicControlExtension left, GifGraphicControlExtension right) => !(left == right);
+
     public int WriteTo(Span<byte> buffer)
     {
         ref GifGraphicControlExtension dest = ref Unsafe.As<byte, GifGraphicControlExtension>(ref MemoryMarshal.GetReference(buffer));
@@ -101,4 +105,27 @@ internal readonly struct GifGraphicControlExtension : IGifExtension
 
         return value;
     }
+
+    public override bool Equals(object obj) => obj is GifGraphicControlExtension extension && this.Equals(extension);
+
+    public bool Equals(GifGraphicControlExtension other)
+        => this.BlockSize == other.BlockSize
+        && this.Packed == other.Packed
+        && this.DelayTime == other.DelayTime
+        && this.TransparencyIndex == other.TransparencyIndex
+        && this.DisposalMethod == other.DisposalMethod
+        && this.TransparencyFlag == other.TransparencyFlag
+        && ((IGifExtension)this).Label == ((IGifExtension)other).Label
+        && ((IGifExtension)this).ContentLength == ((IGifExtension)other).ContentLength;
+
+    public override int GetHashCode()
+        => HashCode.Combine(
+            this.BlockSize,
+            this.Packed,
+            this.DelayTime,
+            this.TransparencyIndex,
+            this.DisposalMethod,
+            this.TransparencyFlag,
+            ((IGifExtension)this).Label,
+            ((IGifExtension)this).ContentLength);
 }

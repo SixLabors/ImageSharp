@@ -9,16 +9,20 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 public class ImageSimilarityReport
 {
     protected ImageSimilarityReport(
+        int index,
         object expectedImage,
         object actualImage,
         IEnumerable<PixelDifference> differences,
         float? totalNormalizedDifference = null)
     {
+        this.Index = index;
         this.ExpectedImage = expectedImage;
         this.ActualImage = actualImage;
         this.TotalNormalizedDifference = totalNormalizedDifference;
         this.Differences = differences.ToArray();
     }
+
+    public int Index { get; }
 
     public object ExpectedImage { get; }
 
@@ -89,16 +93,17 @@ public class ImageSimilarityReport<TPixelA, TPixelB> : ImageSimilarityReport
     where TPixelB : unmanaged, IPixel<TPixelB>
 {
     public ImageSimilarityReport(
+        int index,
         ImageFrame<TPixelA> expectedImage,
         ImageFrame<TPixelB> actualImage,
         IEnumerable<PixelDifference> differences,
         float? totalNormalizedDifference = null)
-        : base(expectedImage, actualImage, differences, totalNormalizedDifference)
+        : base(index, expectedImage, actualImage, differences, totalNormalizedDifference)
     {
     }
 
     public static ImageSimilarityReport<TPixelA, TPixelB> Empty =>
-        new ImageSimilarityReport<TPixelA, TPixelB>(null, null, Enumerable.Empty<PixelDifference>(), 0f);
+        new ImageSimilarityReport<TPixelA, TPixelB>(0, null, null, Enumerable.Empty<PixelDifference>(), 0f);
 
     public new ImageFrame<TPixelA> ExpectedImage => (ImageFrame<TPixelA>)base.ExpectedImage;
 

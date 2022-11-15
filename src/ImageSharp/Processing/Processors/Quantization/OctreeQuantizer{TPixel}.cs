@@ -107,7 +107,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         // for higher bit depths. Lower bit depths will correctly reduce the palette.
         // TODO: Investigate more evenly reduced palette reduction.
         int max = this.maxColors;
-        if (this.bitDepth == 8)
+        if (this.bitDepth >= 4)
         {
             max--;
         }

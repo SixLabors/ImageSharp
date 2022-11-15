@@ -27,6 +27,7 @@ public abstract class ImageComparer
         => Tolerant(imageThresholdInPercents / 100F, perPixelManhattanThreshold);
 
     public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+        int index,
         ImageFrame<TPixelA> expected,
         ImageFrame<TPixelB> actual)
         where TPixelA : unmanaged, IPixel<TPixelA>
@@ -40,7 +41,7 @@ public static class ImageComparerExtensions
         Image<TPixelA> expected,
         Image<TPixelB> actual)
         where TPixelA : unmanaged, IPixel<TPixelA>
-        where TPixelB : unmanaged, IPixel<TPixelB> => comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
+        where TPixelB : unmanaged, IPixel<TPixelB> => comparer.CompareImagesOrFrames(0, expected.Frames.RootFrame, actual.Frames.RootFrame);
 
     public static IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> CompareImages<TPixelA, TPixelB>(
         this ImageComparer comparer,
@@ -58,7 +59,7 @@ public static class ImageComparerExtensions
 
         for (int i = 0; i < expected.Frames.Count; i++)
         {
-            ImageSimilarityReport<TPixelA, TPixelB> report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
+            ImageSimilarityReport<TPixelA, TPixelB> report = comparer.CompareImagesOrFrames(i, expected.Frames[i], actual.Frames[i]);
             if (!report.IsEmpty)
             {
                 result.Add(report);
@@ -125,7 +126,7 @@ public static class ImageComparerExtensions
 
                 if (outsideChanges.Any())
                 {
-                    cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.ExpectedImage, r.ActualImage, outsideChanges, null));
+                    cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.Index, r.ExpectedImage, r.ActualImage, outsideChanges, null));
                 }
             }
 

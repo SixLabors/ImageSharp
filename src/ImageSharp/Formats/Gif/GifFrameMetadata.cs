@@ -21,13 +21,19 @@ public class GifFrameMetadata : IDeepCloneable
     /// <param name="other">The metadata to create an instance from.</param>
     private GifFrameMetadata(GifFrameMetadata other)
     {
+        this.ColorTableMode = other.ColorTableMode;
         this.ColorTableLength = other.ColorTableLength;
         this.FrameDelay = other.FrameDelay;
         this.DisposalMethod = other.DisposalMethod;
     }
 
     /// <summary>
-    /// Gets or sets the length of the color table for paletted images.
+    /// Gets or sets the color table mode.
+    /// </summary>
+    public GifColorTableMode ColorTableMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the length of the color table.
     /// If not 0, then this field indicates the maximum number of colors to use when quantizing the
     /// image frame.
     /// </summary>

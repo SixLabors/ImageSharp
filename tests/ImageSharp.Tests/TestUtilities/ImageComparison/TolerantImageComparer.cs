@@ -56,7 +56,7 @@ public class TolerantImageComparer : ImageComparer
     /// </summary>
     public int PerPixelManhattanThreshold { get; }
 
-    public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
+    public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(int index, ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
     {
         if (expected.Size() != actual.Size())
         {
@@ -103,7 +103,7 @@ public class TolerantImageComparer : ImageComparer
 
         if (normalizedDifference > this.ImageThreshold)
         {
-            return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences, normalizedDifference);
+            return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences, normalizedDifference);
         }
         else
         {

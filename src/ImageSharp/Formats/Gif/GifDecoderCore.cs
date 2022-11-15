@@ -125,6 +125,10 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     }
 
                     this.ReadFrame(ref image, ref previousFrame);
+
+                    // Reset per-frame state.
+                    this.imageDescriptor = default;
+                    this.graphicsControlExtension = default;
                 }
                 else if (nextFlag == GifConstants.ExtensionIntroducer)
                 {
@@ -159,6 +163,11 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         finally
         {
             this.globalColorTable?.Dispose();
+        }
+
+        if (image is null)
+        {
+            GifThrowHelper.ThrowNoData();
         }
 
         return image;
@@ -212,6 +221,11 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         finally
         {
             this.globalColorTable?.Dispose();
+        }
+
+        if (this.logicalScreenDescriptor.Width == 0 && this.logicalScreenDescriptor.Height == 0)
+        {
+            GifThrowHelper.ThrowNoHeader();
         }
 
         return new ImageInfo(
@@ -277,39 +291,43 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
         // If the length is 11 then it's a valid extension and most likely
         // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
+        long position = this.stream.Position;
         if (appLength == GifConstants.ApplicationBlockSize)
         {
             this.stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
             bool isXmp = this.buffer.AsSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
-
             if (isXmp && !this.skipMetadata)
             {
-                var extension = GifXmpApplicationExtension.Read(this.stream, this.memoryAllocator);
+                GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(this.stream, this.memoryAllocator);
                 if (extension.Data.Length > 0)
                 {
                     this.metadata.XmpProfile = new XmpProfile(extension.Data);
                 }
+                else
+                {
+                    // Reset the stream position and continue.
+                    this.stream.Position = position;
+                    this.SkipBlock(appLength);
+                }
 
                 return;
             }
-            else
+
+            int subBlockSize = this.stream.ReadByte();
+
+            // TODO: There's also a NETSCAPE buffer extension.
+            // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+            if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
             {
-                int subBlockSize = this.stream.ReadByte();
-
-                // TODO: There's also a NETSCAPE buffer extension.
-                // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
-                if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
-                {
-                    this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                    this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
-                    this.stream.Skip(1); // Skip the terminator.
-                    return;
-                }
-
-                // Could be something else not supported yet.
-                // Skip the subblock and terminator.
-                this.SkipBlock(subBlockSize);
+                this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
+                this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                this.stream.Skip(1); // Skip the terminator.
+                return;
             }
+
+            // Could be something else not supported yet.
+            // Skip the subblock and terminator.
+            this.SkipBlock(subBlockSize);
 
             return;
         }
@@ -464,7 +482,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
             }
 
-            this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
+            this.SetFrameMetadata(image.Frames.RootFrame.Metadata, true);
 
             imageFrame = image.Frames.RootFrame;
         }
@@ -475,9 +493,9 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 prevFrame = previousFrame;
             }
 
-            currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
+            currentFrame = image.Frames.CreateFrame();
 
-            this.SetFrameMetadata(currentFrame.Metadata);
+            this.SetFrameMetadata(currentFrame.Metadata, false);
 
             imageFrame = currentFrame;
 
@@ -554,13 +572,18 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
-                    if (transIndex != index)
+                    int rawIndex = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
+
+                    // Treat any out of bounds values as transparent.
+                    if (rawIndex > colorTableMaxIdx || rawIndex == transIndex)
                     {
-                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                        Rgb24 rgb = colorTable[index];
-                        pixel.FromRgb24(rgb);
+                        continue;
                     }
+
+                    int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
+                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                    Rgb24 rgb = colorTable[index];
+                    pixel.FromRgb24(rgb);
                 }
             }
         }
@@ -592,7 +615,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             return;
         }
 
-        var interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
+        Rectangle interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
         pixelRegion.Clear();
 
@@ -603,28 +626,34 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// Sets the frames metadata.
     /// </summary>
     /// <param name="meta">The metadata.</param>
+    /// <param name="isRoot">Whether the metadata represents the root frame.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetFrameMetadata(ImageFrameMetadata meta)
+    private void SetFrameMetadata(ImageFrameMetadata meta, bool isRoot)
     {
-        GifFrameMetadata gifMeta = meta.GetGifMetadata();
-        if (this.graphicsControlExtension.DelayTime > 0)
-        {
-            gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
-        }
-
         // Frames can either use the global table or their own local table.
-        if (this.logicalScreenDescriptor.GlobalColorTableFlag
+        if (isRoot && this.logicalScreenDescriptor.GlobalColorTableFlag
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.ColorTableMode = GifColorTableMode.Global;
             gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
         }
-        else if (this.imageDescriptor.LocalColorTableFlag
+
+        if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.ColorTableMode = GifColorTableMode.Local;
             gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
         }
 
-        gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+        // Graphics control extensions is optional.
+        if (this.graphicsControlExtension != default)
+        {
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
+            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+        }
     }
 
     /// <summary>
@@ -639,7 +668,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         this.stream.Skip(6);
         this.ReadLogicalScreenDescriptor();
 
-        var meta = new ImageMetadata();
+        ImageMetadata meta = new();
 
         // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
         // width over its height.  The value range in this field allows

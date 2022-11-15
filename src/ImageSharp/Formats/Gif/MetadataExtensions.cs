@@ -14,14 +14,28 @@ public static partial class MetadataExtensions
     /// <summary>
     /// Gets the gif format specific metadata for the image.
     /// </summary>
-    /// <param name="metadata">The metadata this method extends.</param>
+    /// <param name="source">The metadata this method extends.</param>
     /// <returns>The <see cref="GifMetadata"/>.</returns>
-    public static GifMetadata GetGifMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(GifFormat.Instance);
+    public static GifMetadata GetGifMetadata(this ImageMetadata source) => source.GetFormatMetadata(GifFormat.Instance);
 
     /// <summary>
     /// Gets the gif format specific metadata for the image frame.
     /// </summary>
-    /// <param name="metadata">The metadata this method extends.</param>
+    /// <param name="source">The metadata this method extends.</param>
     /// <returns>The <see cref="GifFrameMetadata"/>.</returns>
-    public static GifFrameMetadata GetGifMetadata(this ImageFrameMetadata metadata) => metadata.GetFormatMetadata(GifFormat.Instance);
+    public static GifFrameMetadata GetGifMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(GifFormat.Instance);
+
+    /// <summary>
+    /// Gets the gif format specific metadata for the image frame.
+    /// </summary>
+    /// <param name="source">The metadata this method extends.</param>
+    /// <param name="metadata">
+    /// When this method returns, contains the metadata associated with the specified frame,
+    /// if found; otherwise, the default value for the type of the metadata parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the gif frame metadata exists; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool TryGetGifMetadata(this ImageFrameMetadata source, out GifFrameMetadata metadata) => source.TryGetFormatMetadata(GifFormat.Instance, out metadata);
 }

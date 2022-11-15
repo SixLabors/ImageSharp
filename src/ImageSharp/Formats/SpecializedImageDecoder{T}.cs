@@ -14,6 +14,38 @@ namespace SixLabors.ImageSharp.Formats;
 public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedImageDecoder<T>
     where T : ISpecializedDecoderOptions
 {
+    /// <inheritdoc/>
+    public Image<TPixel> Decode<TPixel>(T options, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStream(
+            options.GeneralOptions,
+            stream,
+            s => this.Decode<TPixel>(options, s, default));
+
+    /// <inheritdoc/>
+    public Image Decode(T options, Stream stream)
+        => WithSeekableStream(
+            options.GeneralOptions,
+            stream,
+            s => this.Decode(options, s, default));
+
+    /// <inheritdoc/>
+    public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStreamAsync(
+            options.GeneralOptions,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken)
+        => WithSeekableStreamAsync(
+            options.GeneralOptions,
+            stream,
+            (s, ct) => this.Decode(options, s, ct),
+            cancellationToken);
+
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.
     /// </summary>
@@ -56,36 +88,4 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
     /// <param name="options">The general decoder options.</param>
     /// <returns>The new <typeparamref name="T" />.</returns>
     protected abstract T CreateDefaultSpecializedOptions(DecoderOptions options);
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(T options, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStream(
-            options.GeneralOptions,
-            stream,
-            s => this.Decode<TPixel>(options, s, default));
-
-    /// <inheritdoc/>
-    public Image Decode(T options, Stream stream)
-        => WithSeekableStream(
-            options.GeneralOptions,
-            stream,
-            s => this.Decode(options, s, default));
-
-    /// <inheritdoc/>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStreamAsync(
-            options.GeneralOptions,
-            stream,
-            (s, ct) => this.Decode<TPixel>(options, s, ct),
-            cancellationToken);
-
-    /// <inheritdoc/>
-    public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken)
-        => WithSeekableStreamAsync(
-            options.GeneralOptions,
-            stream,
-            (s, ct) => this.Decode(options, s, ct),
-            cancellationToken);
 }

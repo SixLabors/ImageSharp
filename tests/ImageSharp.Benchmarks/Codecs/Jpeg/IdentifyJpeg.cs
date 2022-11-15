@@ -26,6 +26,6 @@ public class IdentifyJpeg
     {
         using MemoryStream memoryStream = new(this.jpegBytes);
         JpegDecoder decoder = new();
-        return decoder.Identify(DecoderOptions.Default, memoryStream, default);
+        return decoder.Identify(DecoderOptions.Default, memoryStream);
     }
 }

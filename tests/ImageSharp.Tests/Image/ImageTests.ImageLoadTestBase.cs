@@ -19,7 +19,7 @@ public partial class ImageTests
 
         protected Image<Bgra4444> localStreamReturnImageAgnostic;
 
-        protected Mock<ImageDecoder> localDecoder;
+        protected Mock<IImageDecoder> localDecoder;
 
         protected IImageFormatDetector localMimeTypeDetector;
 
@@ -59,13 +59,16 @@ public partial class ImageTests
             this.localImageInfoMock = new Mock<IImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
-            this.localDecoder = new Mock<ImageDecoder>();
-            this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            this.localDecoder = new Mock<IImageDecoder>();
+            this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
                 .Returns(this.localImageInfoMock.Object);
 
+            this.localDecoder.Setup(x => x.IdentifyAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(this.localImageInfoMock.Object));
+
             this.localDecoder
-                .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
+                .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
+                .Callback<DecoderOptions, Stream>((c, s) =>
                     {
                         using var ms = new MemoryStream();
                         s.CopyTo(ms);
@@ -74,8 +77,8 @@ public partial class ImageTests
                 .Returns(this.localStreamReturnImageRgba32);
 
             this.localDecoder
-                .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
+                .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
+                .Callback<DecoderOptions, Stream>((c, s) =>
                     {
                         using var ms = new MemoryStream();
                         s.CopyTo(ms);

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public abstract class TiffEncoderBaseTester
 {
-    protected static readonly ImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
+    protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
     protected static void TestStripLength<TPixel>(
         TestImageProvider<TPixel> provider,
@@ -85,7 +85,7 @@ public abstract class TiffEncoderBaseTester
         TiffPredictor predictor = TiffPredictor.None,
         bool useExactComparer = true,
         float compareTolerance = 0.001f,
-        ImageDecoder imageDecoder = null)
+        IImageDecoder imageDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

@@ -64,7 +64,7 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterNullSetDecoder()
     {
-        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, new Mock<ImageDecoder>().Object));
+        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, new Mock<IImageDecoder>().Object));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, null));
     }
@@ -87,14 +87,14 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterMimeTypeDecoderReplacesLast()
     {
-        ImageDecoder decoder1 = new Mock<ImageDecoder>().Object;
+        IImageDecoder decoder1 = new Mock<IImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
-        ImageDecoder found = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        IImageDecoder found = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder1, found);
 
-        ImageDecoder decoder2 = new Mock<ImageDecoder>().Object;
+        IImageDecoder decoder2 = new Mock<IImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
-        ImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        IImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder2, found2);
         Assert.NotEqual(found, found2);
     }

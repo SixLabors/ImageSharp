@@ -147,7 +147,7 @@ public sealed class TestFile
     /// <returns>
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
-    public Image<Rgba32> CreateRgba32Image(ImageDecoder decoder)
+    public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
         => this.CreateRgba32Image(decoder, new());
 
     /// <summary>
@@ -158,10 +158,10 @@ public sealed class TestFile
     /// <returns>
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
-    public Image<Rgba32> CreateRgba32Image(ImageDecoder decoder, DecoderOptions options)
+    public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder, DecoderOptions options)
     {
         options.Configuration = this.Image.GetConfiguration();
         using MemoryStream stream = new(this.Bytes);
-        return decoder.Decode<Rgba32>(options, stream, default);
+        return decoder.Decode<Rgba32>(options, stream);
     }
 }

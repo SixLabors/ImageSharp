@@ -201,13 +201,13 @@ public class TestFormat : IConfigurationModule, IImageFormat
 
         public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-        protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
            => this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
 
-        protected internal override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+        protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
             => new() { GeneralOptions = options };
 
-        protected internal override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Configuration configuration = options.GeneralOptions.Configuration;
             var ms = new MemoryStream();
@@ -224,7 +224,7 @@ public class TestFormat : IConfigurationModule, IImageFormat
             return this.testFormat.Sample<TPixel>();
         }
 
-        protected internal override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
     }
 

@@ -44,6 +44,7 @@ internal sealed class ChunkedMemoryStream : Stream
     /// <summary>
     /// Initializes a new instance of the <see cref="ChunkedMemoryStream"/> class.
     /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
     {
         Guard.NotNull(allocator, nameof(allocator));

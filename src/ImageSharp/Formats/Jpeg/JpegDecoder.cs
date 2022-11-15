@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
 {
     /// <inheritdoc/>
-    protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -21,7 +21,7 @@ public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
     }
 
     /// <inheritdoc/>
-    protected internal override Image<TPixel> Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -38,10 +38,10 @@ public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
     }
 
     /// <inheritdoc/>
-    protected internal override Image Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(JpegDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgb24>(options, stream, cancellationToken);
 
     /// <inheritdoc/>
-    protected internal override JpegDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+    protected override JpegDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
         => new() { GeneralOptions = options };
 }

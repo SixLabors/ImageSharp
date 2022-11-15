@@ -363,19 +363,19 @@ public class TestImageProviderTests
             }
         }
 
-        protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
 
-        protected internal override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             InvocationCounts[this.callerName]++;
             return new Image<TPixel>(42, 42);
         }
 
-        protected internal override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-        protected internal override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+        protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
             => new() { GeneralOptions = options };
 
         internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];
@@ -403,19 +403,19 @@ public class TestImageProviderTests
             }
         }
 
-        protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
 
-        protected internal override Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
         {
             InvocationCounts[this.callerName]++;
             return new Image<TPixel>(42, 42);
         }
 
-        protected internal override Image Decode(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
+        protected override Image Decode(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
             => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-        protected internal override TestDecoderWithParametersOptions CreateDefaultSpecializedOptions(DecoderOptions options)
+        protected override TestDecoderWithParametersOptions CreateDefaultSpecializedOptions(DecoderOptions options)
             => new() { GeneralOptions = options };
 
         internal static int GetInvocationCount(string callerName) => InvocationCounts[callerName];

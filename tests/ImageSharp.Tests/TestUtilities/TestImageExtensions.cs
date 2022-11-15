@@ -214,7 +214,7 @@ public static class TestImageExtensions
         bool grayscale = false,
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        ImageDecoder decoder = null)
+        IImageDecoder decoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
@@ -307,7 +307,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        ImageDecoder decoder = null)
+        IImageDecoder decoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(
@@ -324,7 +324,7 @@ public static class TestImageExtensions
         decoder ??= TestEnvironment.GetReferenceDecoder(referenceOutputFile);
 
         using FileStream stream = File.OpenRead(referenceOutputFile);
-        return decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        return decoder.Decode<TPixel>(DecoderOptions.Default, stream);
     }
 
     public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(
@@ -343,17 +343,17 @@ public static class TestImageExtensions
 
         var temporaryFrameImages = new List<Image<TPixel>>();
 
-        ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
+        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
 
         foreach (string path in frameFiles)
         {
             if (!File.Exists(path))
             {
-                throw new Exception("Reference output file missing: " + path);
+                throw new FileNotFoundException("Reference output file missing: " + path);
             }
 
             using FileStream stream = File.OpenRead(path);
-            Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+            Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream);
             temporaryFrameImages.Add(tempImage);
         }
 
@@ -511,7 +511,7 @@ public static class TestImageExtensions
     public static Image<TPixel> CompareToOriginal<TPixel>(
         this Image<TPixel> image,
         ITestImageProvider provider,
-        ImageDecoder referenceDecoder = null)
+        IImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
         => CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
 
@@ -519,7 +519,7 @@ public static class TestImageExtensions
         this Image<TPixel> image,
         ITestImageProvider provider,
         ImageComparer comparer,
-        ImageDecoder referenceDecoder = null,
+        IImageDecoder referenceDecoder = null,
         DecoderOptions referenceDecoderOptions = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -534,7 +534,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream, default))
+        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream))
         {
             comparer.VerifySimilarity(original, image);
         }
@@ -546,7 +546,7 @@ public static class TestImageExtensions
     this Image<TPixel> image,
     ITestImageProvider provider,
     ImageComparer comparer,
-    ImageDecoder referenceDecoder = null)
+    IImageDecoder referenceDecoder = null)
     where TPixel : unmanaged, IPixel<TPixel>
     {
         string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -560,7 +560,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
+        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream))
         {
             comparer.VerifySimilarity(original, image);
         }
@@ -668,7 +668,7 @@ public static class TestImageExtensions
         ImageComparer customComparer = null,
         bool appendPixelTypeToFileName = true,
         string referenceImageExtension = null,
-        ImageDecoder referenceDecoder = null)
+        IImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string actualOutputFile = provider.Utility.SaveTestOutputFile(
@@ -681,7 +681,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
         using FileStream stream = File.OpenRead(actualOutputFile);
-        using Image<TPixel> encodedImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        using Image<TPixel> encodedImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
 
         ImageComparer comparer = customComparer ?? ImageComparer.Exact;
         comparer.VerifySimilarity(encodedImage, image);

@@ -93,7 +93,7 @@ public class SystemDrawingReferenceCodecTests
     {
         string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
         using FileStream stream = File.OpenRead(path);
-        using Image<TPixel> image = SystemDrawingReferenceDecoder.Instance.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        using Image<TPixel> image = SystemDrawingReferenceDecoder.Instance.Decode<TPixel>(DecoderOptions.Default, stream);
         image.DebugSave(dummyProvider);
     }
 

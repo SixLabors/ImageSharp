@@ -74,7 +74,7 @@ public class ReferenceDecoderBenchmarks
         this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Bmp");
     }
 
-    private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, ImageDecoder decoder, string info, int times = DefaultExecutionCount)
+    private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)
     {
         var measure = new MeasureFixture(this.Output);
         measure.Measure(

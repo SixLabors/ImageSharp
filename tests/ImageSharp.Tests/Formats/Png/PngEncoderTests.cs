@@ -588,7 +588,7 @@ public partial class PngEncoderTests
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
         // Compare to the Magick reference decoder.
-        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
         // We compare using both our decoder and the reference decoder as pixel transformation
         // occurs within the encoder itself leaving the input image unaffected.
@@ -598,7 +598,7 @@ public partial class PngEncoderTests
 
         fileStream.Position = 0;
 
-        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, fileStream, default);
+        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, fileStream);
         ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
     }
 }

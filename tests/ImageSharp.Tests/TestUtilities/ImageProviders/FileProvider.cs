@@ -27,7 +27,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             public Key(
                 PixelTypes pixelType,
                 string filePath,
-                ImageDecoder customDecoder,
+                IImageDecoder customDecoder,
                 DecoderOptions options,
                 ISpecializedDecoderOptions specialized)
             {
@@ -175,11 +175,11 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         public override Image<TPixel> GetImage()
         {
-            ImageDecoder decoder = TestEnvironment.GetReferenceDecoder(this.FilePath);
+            IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(this.FilePath);
             return this.GetImage(decoder);
         }
 
-        public override Image<TPixel> GetImage(ImageDecoder decoder, DecoderOptions options)
+        public override Image<TPixel> GetImage(IImageDecoder decoder, DecoderOptions options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -202,7 +202,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync(ImageDecoder decoder, DecoderOptions options)
+        public override async Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -213,10 +213,10 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
+            return await decoder.DecodeAsync<TPixel>(options, stream, default);
         }
 
-        public override Image<TPixel> GetImage<T>(SpecializedImageDecoder<T> decoder, T options)
+        public override Image<TPixel> GetImage<T>(ISpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -239,7 +239,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync<T>(SpecializedImageDecoder<T> decoder, T options)
+        public override async Task<Image<TPixel>> GetImageAsync<T>(ISpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -250,7 +250,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
+            return await decoder.DecodeAsync<TPixel>(options, stream, default);
         }
 
         public override void Deserialize(IXunitSerializationInfo info)
@@ -266,23 +266,23 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             info.AddValue("path", this.FilePath);
         }
 
-        private Image<TPixel> DecodeImage(ImageDecoder decoder, DecoderOptions options)
+        private Image<TPixel> DecodeImage(IImageDecoder decoder, DecoderOptions options)
         {
             options.Configuration = this.Configuration;
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);
-            return decoder.Decode<TPixel>(options, stream, default);
+            return decoder.Decode<TPixel>(options, stream);
         }
 
-        private Image<TPixel> DecodeImage<T>(SpecializedImageDecoder<T> decoder, T options)
+        private Image<TPixel> DecodeImage<T>(ISpecializedImageDecoder<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
         {
             options.GeneralOptions.Configuration = this.Configuration;
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);
-            return decoder.Decode<TPixel>(options, stream, default);
+            return decoder.Decode<TPixel>(options, stream);
         }
     }
 

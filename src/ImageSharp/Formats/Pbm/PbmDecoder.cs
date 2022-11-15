@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 public sealed class PbmDecoder : ImageDecoder
 {
     /// <inheritdoc/>
-    protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -36,7 +36,7 @@ public sealed class PbmDecoder : ImageDecoder
     }
 
     /// <inheritdoc />
-    protected internal override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -50,6 +50,6 @@ public sealed class PbmDecoder : ImageDecoder
     }
 
     /// <inheritdoc />
-    protected internal override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgb24>(options, stream, cancellationToken);
 }

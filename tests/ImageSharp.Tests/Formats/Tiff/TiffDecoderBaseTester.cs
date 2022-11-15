@@ -16,7 +16,7 @@ public abstract class TiffDecoderBaseTester
 
     protected static MagickReferenceDecoder ReferenceDecoder => new();
 
-    protected static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, ImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
+    protected static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider, IImageDecoder referenceDecoder = null, bool useExactComparer = true, float compareTolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder);

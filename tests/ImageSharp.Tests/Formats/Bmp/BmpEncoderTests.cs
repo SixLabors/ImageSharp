@@ -278,9 +278,9 @@ public class BmpEncoderTests
 
         // Use the default decoder to test our encoded image. This verifies the content.
         // We do not verify the reference image though as some are invalid.
-        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
         using FileStream stream = File.OpenRead(actualOutputFile);
-        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
         referenceImage.CompareToReferenceOutput(
             ImageComparer.TolerantPercentage(0.01f),
             provider,
@@ -309,9 +309,9 @@ public class BmpEncoderTests
 
         // Use the default decoder to test our encoded image. This verifies the content.
         // We do not verify the reference image though as some are invalid.
-        ImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+        IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
         using FileStream stream = File.OpenRead(actualOutputFile);
-        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
         referenceImage.CompareToReferenceOutput(
             ImageComparer.TolerantPercentage(0.01f),
             provider,
@@ -378,7 +378,7 @@ public class BmpEncoderTests
         bool supportTransparency = true, // if set to true, will write a V4 header, otherwise a V3 header.
         IQuantizer quantizer = null,
         ImageComparer customComparer = null,
-        ImageDecoder referenceDecoder = null)
+        IImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

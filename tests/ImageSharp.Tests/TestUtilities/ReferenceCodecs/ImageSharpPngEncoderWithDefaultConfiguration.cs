@@ -45,6 +45,6 @@ public sealed class ImageSharpPngEncoderWithDefaultConfiguration : PngEncoder
         // IDisposable means you must use async/await, where the compiler generates the
         // state machine and a continuation.
         using PngEncoderCore encoder = new(allocator, configuration, this);
-        await encoder.EncodeAsync(image, stream, cancellationToken).ConfigureAwait(false);
+        await encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

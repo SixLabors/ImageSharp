@@ -1,15 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// The base class for all image decoders.
+/// Acts as a base class for image decoders.
+/// Types that inherit this decoder are required to implement cancellable synchronous decoding operations only.
 /// </summary>
-public abstract class ImageDecoder
+public abstract class ImageDecoder : IImageDecoder
 {
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.
@@ -23,7 +25,7 @@ public abstract class ImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="Image{TPixel}" />.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected internal abstract Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected abstract Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
@@ -37,7 +39,7 @@ public abstract class ImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="Image" />.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected internal abstract Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    protected abstract Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream.
@@ -50,7 +52,7 @@ public abstract class ImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="IImageInfo"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected internal abstract IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    protected abstract IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
     /// Performs a resize operation against the decoded image. If the target size is not set, or the image size
@@ -90,56 +92,132 @@ public abstract class ImageDecoder
         Size currentSize = image.Size();
         return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
     }
-}
-
-/// <summary>
-/// The base class for all specialized image decoders.
-/// Specialized decoders allow for additional options to be passed to the decoder.
-/// </summary>
-/// <typeparam name="T">The type of specialized options.</typeparam>
-public abstract class SpecializedImageDecoder<T> : ImageDecoder
-    where T : ISpecializedDecoderOptions
-{
-    /// <summary>
-    /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.
-    /// </summary>
-    /// <remarks>
-    /// This method is designed to support the ImageSharp internal infrastructure and is not recommended for direct use.
-    /// </remarks>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="options">The specialized decoder options.</param>
-    /// <param name="stream">The <see cref="Stream" /> containing image data.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The <see cref="Image{TPixel}" />.</returns>
-    /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected internal abstract Image<TPixel> Decode<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>;
-
-    /// <summary>
-    /// Decodes the image from the specified stream to an <see cref="Image" /> of a specific pixel type.
-    /// </summary>
-    /// <remarks>
-    /// This method is designed to support the ImageSharp internal infrastructure and is not recommended for direct use.
-    /// </remarks>
-    /// <param name="options">The specialized decoder options.</param>
-    /// <param name="stream">The <see cref="Stream" /> containing image data.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The <see cref="Image{TPixel}" />.</returns>
-    /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected internal abstract Image Decode(T options, Stream stream, CancellationToken cancellationToken);
 
     /// <inheritdoc/>
-    protected internal override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode<TPixel>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+    public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStream(
+              options,
+              stream,
+              s => this.Decode<TPixel>(options, s, default));
 
     /// <inheritdoc/>
-    protected internal override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+    public Image Decode(DecoderOptions options, Stream stream)
+        => WithSeekableStream(
+              options,
+              stream,
+              s => this.Decode(options, s, default));
 
-    /// <summary>
-    /// A factory method for creating the default specialized options.
-    /// </summary>
-    /// <param name="options">The general decoder options.</param>
-    /// <returns>The new <typeparamref name="T" />.</returns>
-    protected internal abstract T CreateDefaultSpecializedOptions(DecoderOptions options);
+    /// <inheritdoc/>
+    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => WithSeekableStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Decode(options, s, ct),
+            cancellationToken);
+
+    /// <inheritdoc/>
+    public IImageInfo Identify(DecoderOptions options, Stream stream)
+          => WithSeekableStream(
+              options,
+              stream,
+              s => this.Identify(options, s, default));
+
+    /// <inheritdoc/>
+    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+         => WithSeekableStreamAsync(
+             options,
+             stream,
+             (s, ct) => this.Identify(options, s, ct),
+             cancellationToken);
+
+    internal static T WithSeekableStream<T>(
+        DecoderOptions options,
+        Stream stream,
+        Func<Stream, T> action)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        if (!stream.CanRead)
+        {
+            throw new NotSupportedException("Cannot read from the stream.");
+        }
+
+        T Action(Stream s, long position)
+        {
+            T result = action(s);
+
+            // Our buffered reads may have left the stream in an incorrect non-zero position.
+            // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
+            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+            {
+                stream.Position = position + s.Position;
+            }
+
+            return result;
+        }
+
+        if (stream.CanSeek)
+        {
+            return Action(stream, stream.Position);
+        }
+
+        Configuration configuration = options.Configuration;
+        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
+        stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
+        memoryStream.Position = 0;
+
+        return Action(memoryStream, 0);
+    }
+
+    internal static async Task<T> WithSeekableStreamAsync<T>(
+        DecoderOptions options,
+        Stream stream,
+        Func<Stream, CancellationToken, T> action,
+        CancellationToken cancellationToken)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        if (!stream.CanRead)
+        {
+            throw new NotSupportedException("Cannot read from the stream.");
+        }
+
+        T Action(Stream s, long position, CancellationToken ct)
+        {
+            T result = action(s, ct);
+
+            // Our buffered reads may have left the stream in an incorrect non-zero position.
+            // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
+            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+            {
+                stream.Position = position + s.Position;
+            }
+
+            return result;
+        }
+
+        // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
+        // would incur synchronous IO reads which must be avoided in this asynchronous method. Instead, we will *always* run the
+        // code below to copy the stream to an in-memory buffer before invoking the action.
+
+        // TODO: Avoid the existing double copy caused by calling IdentifyAsync followed by DecodeAsync.
+        // Perhaps we can make overloads accepting the chunked memorystream?
+        Configuration configuration = options.Configuration;
+        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
+        await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
+        memoryStream.Position = 0;
+        return Action(memoryStream, 0, cancellationToken);
+    }
 }

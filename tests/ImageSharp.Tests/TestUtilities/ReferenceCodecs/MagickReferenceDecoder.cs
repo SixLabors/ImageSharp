@@ -24,7 +24,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
     public static MagickReferenceDecoder Instance { get; } = new();
 
-    protected internal override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Configuration configuration = options.Configuration;
         BmpReadDefines bmpReadDefines = new()
@@ -32,8 +32,10 @@ public class MagickReferenceDecoder : ImageDecoder
             IgnoreFileSize = !this.validate
         };
 
-        MagickReadSettings settings = new();
-        settings.FrameCount = (int)options.MaxFrames;
+        MagickReadSettings settings = new()
+        {
+            FrameCount = (int)options.MaxFrames
+        };
         settings.SetDefines(bmpReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
@@ -67,10 +69,10 @@ public class MagickReferenceDecoder : ImageDecoder
         return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
     }
 
-    protected internal override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-    protected internal override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
     private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)

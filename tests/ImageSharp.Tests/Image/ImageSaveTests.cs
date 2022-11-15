@@ -16,8 +16,8 @@ public class ImageSaveTests : IDisposable
 {
     private readonly Image<Rgba32> image;
     private readonly Mock<IFileSystem> fileSystem;
-    private readonly Mock<ImageEncoder> encoder;
-    private readonly Mock<ImageEncoder> encoderNotInFormat;
+    private readonly Mock<IImageEncoder> encoder;
+    private readonly Mock<IImageEncoder> encoderNotInFormat;
     private IImageFormatDetector localMimeTypeDetector;
     private Mock<IImageFormat> localImageFormat;
 
@@ -27,9 +27,9 @@ public class ImageSaveTests : IDisposable
         this.localImageFormat.Setup(x => x.FileExtensions).Returns(new[] { "png" });
         this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormat.Object);
 
-        this.encoder = new Mock<ImageEncoder>();
+        this.encoder = new Mock<IImageEncoder>();
 
-        this.encoderNotInFormat = new Mock<ImageEncoder>();
+        this.encoderNotInFormat = new Mock<IImageEncoder>();
 
         this.fileSystem = new Mock<IFileSystem>();
         var config = new Configuration

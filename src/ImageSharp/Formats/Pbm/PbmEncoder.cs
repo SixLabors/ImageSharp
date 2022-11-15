@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// </para>
 /// The specification of these images is found at <seealso href="http://netpbm.sourceforge.net/doc/pnm.html"/>.
 /// </summary>
-public sealed class PbmEncoder : ImageEncoder
+public sealed class PbmEncoder : SynchronousImageEncoder
 {
     /// <summary>
     /// Gets the encoding of the pixels.
@@ -42,21 +42,14 @@ public sealed class PbmEncoder : ImageEncoder
     public PbmColorType? ColorType { get; init; }
 
     /// <summary>
-    /// Gets the Data Type of the pixel components.
+    /// Gets the data type of the pixel components.
     /// </summary>
     public PbmComponentType? ComponentType { get; init; }
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         PbmEncoderCore encoder = new(image.GetConfiguration(), this);
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        PbmEncoderCore encoder = new(image.GetConfiguration(), this);
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

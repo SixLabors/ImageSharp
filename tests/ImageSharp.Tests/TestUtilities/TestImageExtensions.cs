@@ -30,7 +30,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        ImageEncoder encoder = null)
+        IImageEncoder encoder = null)
         => image.DebugSave(
             provider,
             (object)testOutputDetails,
@@ -57,7 +57,7 @@ public static class TestImageExtensions
         string extension = "png",
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true,
-        ImageEncoder encoder = null)
+        IImageEncoder encoder = null)
     {
         if (TestEnvironment.RunsWithCodeCoverage)
         {
@@ -77,7 +77,7 @@ public static class TestImageExtensions
     public static void DebugSave(
         this Image image,
         ITestImageProvider provider,
-        ImageEncoder encoder,
+        IImageEncoder encoder,
         FormattableString testOutputDetails,
         bool appendPixelTypeToFileName = true)
         => image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
@@ -93,7 +93,7 @@ public static class TestImageExtensions
     public static void DebugSave(
         this Image image,
         ITestImageProvider provider,
-        ImageEncoder encoder,
+        IImageEncoder encoder,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true)
         => provider.Utility.SaveTestOutputFile(
@@ -664,7 +664,7 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         string extension,
         object testOutputDetails,
-        ImageEncoder encoder,
+        IImageEncoder encoder,
         ImageComparer customComparer = null,
         bool appendPixelTypeToFileName = true,
         string referenceImageExtension = null,

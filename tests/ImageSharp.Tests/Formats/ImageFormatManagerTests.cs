@@ -56,7 +56,7 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterNullMimeTypeEncoder()
     {
-        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(null, new Mock<ImageEncoder>().Object));
+        Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(null, new Mock<IImageEncoder>().Object));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(BmpFormat.Instance, null));
         Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(null, null));
     }
@@ -72,14 +72,14 @@ public class ImageFormatManagerTests
     [Fact]
     public void RegisterMimeTypeEncoderReplacesLast()
     {
-        ImageEncoder encoder1 = new Mock<ImageEncoder>().Object;
+        IImageEncoder encoder1 = new Mock<IImageEncoder>().Object;
         this.FormatsManagerEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
-        ImageEncoder found = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+        IImageEncoder found = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
         Assert.Equal(encoder1, found);
 
-        ImageEncoder encoder2 = new Mock<ImageEncoder>().Object;
+        IImageEncoder encoder2 = new Mock<IImageEncoder>().Object;
         this.FormatsManagerEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
-        ImageEncoder found2 = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+        IImageEncoder found2 = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
         Assert.Equal(encoder2, found2);
         Assert.NotEqual(found, found2);
     }

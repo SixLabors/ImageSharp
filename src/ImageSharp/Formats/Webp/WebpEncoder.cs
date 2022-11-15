@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-public sealed class WebpEncoder : ImageEncoder
+public sealed class WebpEncoder : SynchronousImageEncoder
 {
     /// <summary>
     /// Gets the webp file format used. Either lossless or lossy.
@@ -80,16 +80,9 @@ public sealed class WebpEncoder : ImageEncoder
     public int NearLosslessQuality { get; init; } = 100;
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         WebpEncoderCore encoder = new(this, image.GetMemoryAllocator());
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        WebpEncoderCore encoder = new(this, image.GetMemoryAllocator());
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

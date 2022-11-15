@@ -3,10 +3,11 @@
 
 using System.Drawing.Imaging;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-public class SystemDrawingReferenceEncoder : ImageEncoder
+public class SystemDrawingReferenceEncoder : IImageEncoder
 {
     private readonly ImageFormat imageFormat;
 
@@ -17,13 +18,17 @@ public class SystemDrawingReferenceEncoder : ImageEncoder
 
     public static SystemDrawingReferenceEncoder Bmp { get; } = new SystemDrawingReferenceEncoder(ImageFormat.Bmp);
 
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public bool SkipMetadata { get; init; }
+
+    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         using System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image);
         sdBitmap.Save(stream, this.imageFormat);
     }
 
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image))
         {

@@ -21,8 +21,8 @@ public static class AdvancedImageExtensions
     /// <param name="filePath">The target file path to save the image to.</param>
     /// <exception cref="ArgumentNullException">The file path is null.</exception>
     /// <exception cref="NotSupportedException">No encoder available for provided path.</exception>
-    /// <returns>The matching <see cref="ImageEncoder"/>.</returns>
-    public static ImageEncoder DetectEncoder(this Image source, string filePath)
+    /// <returns>The matching <see cref="IImageEncoder"/>.</returns>
+    public static IImageEncoder DetectEncoder(this Image source, string filePath)
     {
         Guard.NotNull(filePath, nameof(filePath));
 
@@ -40,13 +40,13 @@ public static class AdvancedImageExtensions
             throw new NotSupportedException(sb.ToString());
         }
 
-        ImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {
             StringBuilder sb = new();
             sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
-            foreach (KeyValuePair<IImageFormat, ImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+            foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
             {
                 sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
             }

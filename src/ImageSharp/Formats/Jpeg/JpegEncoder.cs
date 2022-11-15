@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Encoder for writing the data image to a stream in jpeg format.
 /// </summary>
-public sealed class JpegEncoder : ImageEncoder
+public sealed class JpegEncoder : SynchronousImageEncoder
 {
     /// <summary>
     /// Backing field for <see cref="Quality"/>.
@@ -48,16 +48,9 @@ public sealed class JpegEncoder : ImageEncoder
     public JpegEncodingColor? ColorType { get; init; }
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         JpegEncoderCore encoder = new(this);
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        JpegEncoderCore encoder = new(this);
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

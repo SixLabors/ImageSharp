@@ -26,7 +26,7 @@ public static partial class TestEnvironment
         return Configuration.ImageFormatsManager.FindDecoder(format);
     }
 
-    internal static ImageEncoder GetReferenceEncoder(string filePath)
+    internal static IImageEncoder GetReferenceEncoder(string filePath)
     {
         IImageFormat format = GetImageFormat(filePath);
         return Configuration.ImageFormatsManager.FindEncoder(format);
@@ -43,7 +43,7 @@ public static partial class TestEnvironment
         this Configuration cfg,
         IImageFormat imageFormat,
         IImageDecoder decoder,
-        ImageEncoder encoder,
+        IImageEncoder encoder,
         IImageFormatDetector detector)
     {
         cfg.ImageFormatsManager.SetDecoder(imageFormat, decoder);
@@ -61,8 +61,8 @@ public static partial class TestEnvironment
             new WebpConfigurationModule(),
             new TiffConfigurationModule());
 
-        ImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
-        ImageEncoder bmpEncoder = IsWindows ? SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
+        IImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
+        IImageEncoder bmpEncoder = IsWindows ? SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
         // Magick codecs should work on all platforms
         cfg.ConfigureCodecs(

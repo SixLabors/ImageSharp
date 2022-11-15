@@ -328,7 +328,7 @@ public partial class ImageTests
         public void KnownExtension_ReturnsEncoder()
         {
             using var image = new Image<L8>(1, 1);
-            ImageEncoder encoder = image.DetectEncoder("dummy.png");
+            IImageEncoder encoder = image.DetectEncoder("dummy.png");
             Assert.NotNull(encoder);
             Assert.IsType<PngEncoder>(encoder);
         }

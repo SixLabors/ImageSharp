@@ -233,7 +233,7 @@ public class TestFormat : IConfigurationModule, IImageFormat
         public DecoderOptions GeneralOptions { get; init; } = DecoderOptions.Default;
     }
 
-    public class TestEncoder : ImageEncoder
+    public class TestEncoder : IImageEncoder
     {
         private readonly TestFormat testFormat;
 
@@ -243,13 +243,17 @@ public class TestFormat : IConfigurationModule, IImageFormat
 
         public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
-        public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        public bool SkipMetadata { get; init; }
+
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO record this happened so we can verify it.
         }
 
-        public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-           => Task.CompletedTask;  // TODO record this happened so we can verify it.
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => Task.CompletedTask;  // TODO record this happened so we can verify it.
     }
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>

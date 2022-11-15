@@ -101,7 +101,7 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// <param name="stream">The stream to save the image to.</param>
     /// <param name="encoder">The encoder to save the image with.</param>
     /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-    public void Save(Stream stream, ImageEncoder encoder)
+    public void Save(Stream stream, IImageEncoder encoder)
     {
         Guard.NotNull(stream, nameof(stream));
         Guard.NotNull(encoder, nameof(encoder));
@@ -118,7 +118,7 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public Task SaveAsync(Stream stream, ImageEncoder encoder, CancellationToken cancellationToken = default)
+    public Task SaveAsync(Stream stream, IImageEncoder encoder, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(stream, nameof(stream));
         Guard.NotNull(encoder, nameof(encoder));
@@ -189,11 +189,11 @@ public abstract partial class Image : IImage, IConfigurationProvider
 
     private class EncodeVisitor : IImageVisitor, IImageVisitorAsync
     {
-        private readonly ImageEncoder encoder;
+        private readonly IImageEncoder encoder;
 
         private readonly Stream stream;
 
-        public EncodeVisitor(ImageEncoder encoder, Stream stream)
+        public EncodeVisitor(IImageEncoder encoder, Stream stream)
         {
             this.encoder = encoder;
             this.stream = stream;

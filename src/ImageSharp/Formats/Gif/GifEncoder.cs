@@ -16,16 +16,9 @@ public sealed class GifEncoder : QuantizingImageEncoder
     public GifColorTableMode? ColorTableMode { get; init; }
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         GifEncoderCore encoder = new(image.GetConfiguration(), this);
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        GifEncoderCore encoder = new(image.GetConfiguration(), this);
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

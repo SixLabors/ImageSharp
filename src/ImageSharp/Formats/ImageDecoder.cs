@@ -13,6 +13,53 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 public abstract class ImageDecoder : IImageDecoder
 {
+    /// <inheritdoc/>
+    public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStream(
+              options,
+              stream,
+              s => this.Decode<TPixel>(options, s, default));
+
+    /// <inheritdoc/>
+    public Image Decode(DecoderOptions options, Stream stream)
+        => WithSeekableStream(
+              options,
+              stream,
+              s => this.Decode(options, s, default));
+
+    /// <inheritdoc/>
+    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => WithSeekableStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => WithSeekableStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Decode(options, s, ct),
+            cancellationToken);
+
+    /// <inheritdoc/>
+    public IImageInfo Identify(DecoderOptions options, Stream stream)
+          => WithSeekableStream(
+              options,
+              stream,
+              s => this.Identify(options, s, default));
+
+    /// <inheritdoc/>
+    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+         => WithSeekableStreamAsync(
+             options,
+             stream,
+             (s, ct) => this.Identify(options, s, ct),
+             cancellationToken);
+
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.
     /// </summary>
@@ -93,53 +140,6 @@ public abstract class ImageDecoder : IImageDecoder
         return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
     }
 
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode<TPixel>(options, s, default));
-
-    /// <inheritdoc/>
-    public Image Decode(DecoderOptions options, Stream stream)
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode(options, s, default));
-
-    /// <inheritdoc/>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStreamAsync(
-            options,
-            stream,
-            (s, ct) => this.Decode<TPixel>(options, s, ct),
-            cancellationToken);
-
-    /// <inheritdoc/>
-    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => WithSeekableStreamAsync(
-            options,
-            stream,
-            (s, ct) => this.Decode(options, s, ct),
-            cancellationToken);
-
-    /// <inheritdoc/>
-    public IImageInfo Identify(DecoderOptions options, Stream stream)
-          => WithSeekableStream(
-              options,
-              stream,
-              s => this.Identify(options, s, default));
-
-    /// <inheritdoc/>
-    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-         => WithSeekableStreamAsync(
-             options,
-             stream,
-             (s, ct) => this.Identify(options, s, ct),
-             cancellationToken);
-
     internal static T WithSeekableStream<T>(
         DecoderOptions options,
         Stream stream,
@@ -213,7 +213,7 @@ public abstract class ImageDecoder : IImageDecoder
         // code below to copy the stream to an in-memory buffer before invoking the action.
 
         // TODO: Avoid the existing double copy caused by calling IdentifyAsync followed by DecodeAsync.
-        // Perhaps we can make overloads accepting the chunked memorystream?
+        // Perhaps we can make overloads accepting the chunked memorystream? Or maybe AOT is good with pattern matching against types?
         Configuration configuration = options.Configuration;
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);

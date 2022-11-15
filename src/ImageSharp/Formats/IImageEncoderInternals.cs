@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Abstraction for shared internals for ***DecoderCore implementations to be used with <see cref="ImageEncoderUtilities"/>.
+/// Abstraction for shared internals for ***DecoderCore implementations.
 /// </summary>
 internal interface IImageEncoderInternals
 {

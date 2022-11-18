@@ -278,7 +278,7 @@ internal class TiffEncoderEntriesCollector
                 Value = (ushort)TiffPlanarConfiguration.Chunky
             };
 
-            ExifLong samplesPerPixel = new(ExifTagValue.SamplesPerPixel)
+            ExifShort samplesPerPixel = new(ExifTagValue.SamplesPerPixel)
             {
                 Value = GetSamplesPerPixel(encoder)
             };
@@ -317,7 +317,7 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private static uint GetSamplesPerPixel(TiffEncoderCore encoder)
+        private static ushort GetSamplesPerPixel(TiffEncoderCore encoder)
             => encoder.PhotometricInterpretation switch
             {
                 TiffPhotometricInterpretation.PaletteColor or

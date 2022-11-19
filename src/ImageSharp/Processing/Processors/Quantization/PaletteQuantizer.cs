@@ -49,12 +49,8 @@ public class PaletteQuantizer : IQuantizer
     {
         Guard.NotNull(options, nameof(options));
 
-        // The palette quantizer can reuse the same pixel map across multiple frames
-        // since the palette is unchanging. This allows a reduction of memory usage across
-        // multi frame gifs using a global palette.
-        int length = Math.Min(this.colorPalette.Length, options.MaxColors);
-        TPixel[] palette = new TPixel[length];
-
+        // Always use the palette length over options since the palette cannot be reduced.
+        TPixel[] palette = new TPixel[this.colorPalette.Length];
         Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
         return new PaletteQuantizer<TPixel>(configuration, options, palette);
     }

@@ -201,4 +201,42 @@ public class GifEncoderTests
         image.Dispose();
         clone.Dispose();
     }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2288_A, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2288_B, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2288_C, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2288_D, PixelTypes.Rgba32)]
+    public void OptionalExtensionsShouldBeHandledProperly<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        int count = 0;
+        foreach (ImageFrame<TPixel> frame in image.Frames)
+        {
+            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
+            {
+                count++;
+            }
+        }
+
+        provider.Utility.SaveTestOutputFile(image, extension: "gif");
+
+        using FileStream fs = File.OpenRead(provider.Utility.GetTestOutputFileName("gif"));
+        using Image<TPixel> image2 = Image.Load<TPixel>(fs);
+
+        Assert.Equal(image.Frames.Count, image2.Frames.Count);
+
+        count = 0;
+        foreach (ImageFrame<TPixel> frame in image2.Frames)
+        {
+            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
+            {
+                count++;
+            }
+        }
+
+        Assert.Equal(image2.Frames.Count, count);
+    }
 }

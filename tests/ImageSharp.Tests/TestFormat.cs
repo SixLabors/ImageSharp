@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests;
 /// <summary>
 /// A test image file.
 /// </summary>
-public class TestFormat : IConfigurationModule, IImageFormat
+public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 {
     private readonly Dictionary<Type, object> sampleImages = new();
 

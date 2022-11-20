@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the Pbm format.
 /// </summary>
-public sealed class PbmConfigurationModule : IConfigurationModule
+public sealed class PbmConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)

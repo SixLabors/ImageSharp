@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the tga format.
 /// </summary>
-public sealed class TgaConfigurationModule : IConfigurationModule
+public sealed class TgaConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)

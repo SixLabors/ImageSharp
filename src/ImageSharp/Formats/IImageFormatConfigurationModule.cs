@@ -1,12 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp;
+namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
 /// Represents an interface that can register image encoders, decoders and image format detectors.
 /// </summary>
-public interface IConfigurationModule
+public interface IImageFormatConfigurationModule
 {
     /// <summary>
     /// Called when loaded into a configuration object so the module can register items into the configuration.

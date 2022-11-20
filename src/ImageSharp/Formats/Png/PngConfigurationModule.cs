@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the png format.
 /// </summary>
-public sealed class PngConfigurationModule : IConfigurationModule
+public sealed class PngConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)

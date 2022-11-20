@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the webp format.
 /// </summary>
-public sealed class WebpConfigurationModule : IConfigurationModule
+public sealed class WebpConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)

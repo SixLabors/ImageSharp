@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
 /// </summary>
-public sealed class JpegConfigurationModule : IConfigurationModule
+public sealed class JpegConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)

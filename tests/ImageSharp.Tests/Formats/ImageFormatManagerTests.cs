@@ -102,7 +102,7 @@ public class ImageFormatManagerTests
     [Fact]
     public void AddFormatCallsConfig()
     {
-        Mock<IConfigurationModule> provider = new();
+        Mock<IImageFormatConfigurationModule> provider = new();
         Configuration config = new();
         config.Configure(provider.Object);
 

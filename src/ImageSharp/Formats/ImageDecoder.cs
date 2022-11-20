@@ -205,33 +205,37 @@ public abstract class ImageDecoder : IImageDecoder
                 stream.Position = position + s.Position;
             }
 
+            if (ct.IsCancellationRequested)
+            {
+                throw new TaskCanceledException();
+            }
+
             return result;
         }
 
         // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
         // would incur synchronous IO reads which must be avoided in this asynchronous method. Instead, we will *always* run the
         // code below to copy the stream to an in-memory buffer before invoking the action.
+        if (stream is MemoryStream ms)
+        {
+            return Action(ms, ms.Position, cancellationToken);
+        }
 
-        // TODO: Enable these optimizations. Several Decode_Cancellation tests fail if enables as no exception is thrown.
-        // if (stream is MemoryStream ms)
-        // {
-        //    return Action(ms, ms.Position, cancellationToken);
-        // }
+        if (stream is ChunkedMemoryStream cms)
+        {
+            return Action(cms, cms.Position, cancellationToken);
+        }
 
-        // if (stream is ChunkedMemoryStream cms)
-        // {
-        //    return Action(cms, cms.Position, cancellationToken);
-        // }
+        if (stream is BufferedReadStream brs && brs.BaseStream is MemoryStream)
+        {
+            return Action(brs, brs.Position, cancellationToken);
+        }
 
-        // if (stream is BufferedReadStream brs && brs.BaseStream is MemoryStream)
-        // {
-        //    return Action(brs, brs.Position, cancellationToken);
-        // }
+        if (stream is BufferedReadStream brs2 && brs2.BaseStream is ChunkedMemoryStream)
+        {
+            return Action(brs2, brs2.Position, cancellationToken);
+        }
 
-        // if (stream is BufferedReadStream brs2 && brs2.BaseStream is ChunkedMemoryStream)
-        // {
-        //    return Action(brs2, brs2.Position, cancellationToken);
-        // }
         Configuration configuration = options.Configuration;
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);

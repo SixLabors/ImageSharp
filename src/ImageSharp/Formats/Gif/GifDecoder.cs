@@ -28,7 +28,7 @@ public sealed class GifDecoder : ImageDecoder
         GifDecoderCore decoder = new(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
-        Resize(options, image);
+        ScaleToTargetSize(options, image);
 
         return image;
     }

@@ -31,7 +31,7 @@ public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
 
         if (options.ResizeMode != JpegDecoderResizeMode.IdctOnly)
         {
-            Resize(options.GeneralOptions, image);
+            ScaleToTargetSize(options.GeneralOptions, image);
         }
 
         return image;

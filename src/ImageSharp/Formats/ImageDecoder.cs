@@ -102,12 +102,12 @@ public abstract class ImageDecoder : IImageDecoder
     protected abstract IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Performs a resize operation against the decoded image. If the target size is not set, or the image size
+    /// Performs a scaling operation against the decoded image. If the target size is not set, or the image size
     /// already matches the target size, the image is untouched.
     /// </summary>
     /// <param name="options">The decoder options.</param>
     /// <param name="image">The decoded image.</param>
-    protected static void Resize(DecoderOptions options, Image image)
+    protected static void ScaleToTargetSize(DecoderOptions options, Image image)
     {
         if (ShouldResize(options, image))
         {

@@ -27,7 +27,7 @@ public sealed class BmpDecoder : SpecializedImageDecoder<BmpDecoderOptions>
 
         Image<TPixel> image = new BmpDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
-        Resize(options.GeneralOptions, image);
+        ScaleToTargetSize(options.GeneralOptions, image);
 
         return image;
     }

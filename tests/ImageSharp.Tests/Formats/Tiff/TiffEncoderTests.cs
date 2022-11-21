@@ -246,6 +246,25 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         Assert.Equal(expectedPredictor, frameMetadata.Predictor);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2297
+    [Fact]
+    public void TiffEncoder_WritesIfdOffsetAtWordBoundary()
+    {
+        // arrange
+        var tiffEncoder = new TiffEncoder();
+        using var memStream = new MemoryStream();
+        using Image<Rgba32> image = new(1, 1);
+        byte[] expectedIfdOffsetBytes = { 12, 0 };
+
+        // act
+        image.Save(memStream, tiffEncoder);
+
+        // assert
+        byte[] imageBytes = memStream.ToArray();
+        Assert.Equal(imageBytes[4], expectedIfdOffsetBytes[0]);
+        Assert.Equal(imageBytes[5], expectedIfdOffsetBytes[1]);
+    }
+
     [Theory]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffCompression.CcittGroup3Fax, TiffCompression.CcittGroup3Fax)]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffCompression.CcittGroup4Fax, TiffCompression.CcittGroup4Fax)]

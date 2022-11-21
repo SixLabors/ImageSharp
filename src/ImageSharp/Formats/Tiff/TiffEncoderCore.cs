@@ -244,6 +244,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         entriesCollector.ProcessFrameInfo(frame, imageMetadata);
         entriesCollector.ProcessImageFormat(this);
 
+        if (writer.Position % 2 != 0)
+        {
+            // Write padding byte, because the tiff spec requires ifd offset to begin on a word boundary.
+            writer.Write(0);
+        }
+
         this.frameMarkers.Add((ifdOffset, (uint)writer.Position));
 
         return this.WriteIfd(writer, entriesCollector.Entries);

@@ -178,7 +178,7 @@ internal class TiffEncoderEntriesCollector
                     Value = imageMetadata.IptcProfile.Data
                 };
 
-                this.Collector.Add(iptc);
+                this.Collector.AddOrReplace(iptc);
             }
             else
             {
@@ -192,7 +192,7 @@ internal class TiffEncoderEntriesCollector
                     Value = imageMetadata.IccProfile.ToByteArray()
                 };
 
-                this.Collector.Add(icc);
+                this.Collector.AddOrReplace(icc);
             }
             else
             {
@@ -206,7 +206,7 @@ internal class TiffEncoderEntriesCollector
                     Value = xmpProfile.Data
                 };
 
-                this.Collector.Add(xmp);
+                this.Collector.AddOrReplace(xmp);
             }
             else
             {
@@ -278,7 +278,7 @@ internal class TiffEncoderEntriesCollector
                 Value = (ushort)TiffPlanarConfiguration.Chunky
             };
 
-            ExifLong samplesPerPixel = new(ExifTagValue.SamplesPerPixel)
+            ExifShort samplesPerPixel = new(ExifTagValue.SamplesPerPixel)
             {
                 Value = GetSamplesPerPixel(encoder)
             };
@@ -317,7 +317,7 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private static uint GetSamplesPerPixel(TiffEncoderCore encoder)
+        private static ushort GetSamplesPerPixel(TiffEncoderCore encoder)
             => encoder.PhotometricInterpretation switch
             {
                 TiffPhotometricInterpretation.PaletteColor or

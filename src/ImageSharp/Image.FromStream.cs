@@ -527,20 +527,6 @@ public abstract partial class Image
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T Action(Stream s, long position)
-        {
-            T result = action(s);
-
-            // Our buffered reads may have left the stream in an incorrect non-zero position.
-            // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
-            {
-                stream.Position = position + s.Position;
-            }
-
-            return result;
-        }
-
         Configuration configuration = options.Configuration;
         if (stream.CanSeek)
         {
@@ -549,14 +535,14 @@ public abstract partial class Image
                 stream.Position = 0;
             }
 
-            return Action(stream, stream.Position);
+            return action(stream);
         }
 
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
 
-        return Action(memoryStream, 0);
+        return action(memoryStream);
     }
 
     /// <summary>
@@ -583,20 +569,6 @@ public abstract partial class Image
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        async Task<T> Action(Stream s, long position, CancellationToken ct)
-        {
-            T result = await action(s, ct).ConfigureAwait(false);
-
-            // Our buffered reads may have left the stream in an incorrect non-zero position.
-            // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
-            {
-                stream.Position = position + s.Position;
-            }
-
-            return result;
-        }
-
         Configuration configuration = options.Configuration;
         if (stream.CanSeek)
         {
@@ -605,14 +577,14 @@ public abstract partial class Image
                 stream.Position = 0;
             }
 
-            return await Action(stream, stream.Position, cancellationToken).ConfigureAwait(false);
+            return await action(stream, cancellationToken).ConfigureAwait(false);
         }
 
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 
-        return await Action(memoryStream, 0, cancellationToken).ConfigureAwait(false);
+        return await action(memoryStream, cancellationToken).ConfigureAwait(false);
     }
 
     [DoesNotReturn]

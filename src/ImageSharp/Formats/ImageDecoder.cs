@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -157,7 +158,7 @@ public abstract class ImageDecoder : IImageDecoder
         {
             T result = action(s);
 
-            // Our buffered reads may have left the stream in an incorrect non-zero position.
+            // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
             if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
             {
@@ -198,7 +199,7 @@ public abstract class ImageDecoder : IImageDecoder
         {
             T result = action(s, ct);
 
-            // Our buffered reads may have left the stream in an incorrect non-zero position.
+            // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
             if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
             {

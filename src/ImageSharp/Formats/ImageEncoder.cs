@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Advanced;
@@ -22,7 +22,7 @@ public abstract class ImageEncoder : IImageEncoder
          => this.EncodeWithSeekableStream(image, stream, default);
 
     /// <inheritdoc/>
-    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.EncodeWithSeekableStreamAsync(image, stream, cancellationToken);
 

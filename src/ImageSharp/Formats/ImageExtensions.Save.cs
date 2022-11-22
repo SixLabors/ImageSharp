@@ -26,7 +26,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsBmp(this Image source, string path) => SaveAsBmp(source, path, null);
+    public static void SaveAsBmp(this Image source, string path) => SaveAsBmp(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -35,7 +35,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsBmpAsync(this Image source, string path) => SaveAsBmpAsync(source, path, null);
+    public static Task SaveAsBmpAsync(this Image source, string path) => SaveAsBmpAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -46,7 +46,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsBmpAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsBmpAsync(source, path, null, cancellationToken);
+        => SaveAsBmpAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -69,11 +69,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -82,7 +82,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsBmp(this Image source, Stream stream)
-        => SaveAsBmp(source, stream, null);
+        => SaveAsBmp(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -93,7 +93,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsBmpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsBmpAsync(source, stream, null, cancellationToken);
+        => SaveAsBmpAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -104,8 +104,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsBmp(this Image source, Stream stream, BmpEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -116,11 +116,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -128,7 +128,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsGif(this Image source, string path) => SaveAsGif(source, path, null);
+    public static void SaveAsGif(this Image source, string path) => SaveAsGif(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -137,7 +137,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsGifAsync(this Image source, string path) => SaveAsGifAsync(source, path, null);
+    public static Task SaveAsGifAsync(this Image source, string path) => SaveAsGifAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -148,7 +148,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsGifAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsGifAsync(source, path, null, cancellationToken);
+        => SaveAsGifAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -171,11 +171,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -184,7 +184,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsGif(this Image source, Stream stream)
-        => SaveAsGif(source, stream, null);
+        => SaveAsGif(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -195,7 +195,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsGifAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsGifAsync(source, stream, null, cancellationToken);
+        => SaveAsGifAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -206,8 +206,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsGif(this Image source, Stream stream, GifEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -218,11 +218,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -230,7 +230,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsJpeg(this Image source, string path) => SaveAsJpeg(source, path, null);
+    public static void SaveAsJpeg(this Image source, string path) => SaveAsJpeg(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -239,7 +239,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsJpegAsync(this Image source, string path) => SaveAsJpegAsync(source, path, null);
+    public static Task SaveAsJpegAsync(this Image source, string path) => SaveAsJpegAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -250,7 +250,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsJpegAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsJpegAsync(source, path, null, cancellationToken);
+        => SaveAsJpegAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -273,11 +273,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -286,7 +286,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsJpeg(this Image source, Stream stream)
-        => SaveAsJpeg(source, stream, null);
+        => SaveAsJpeg(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -297,7 +297,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsJpegAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsJpegAsync(source, stream, null, cancellationToken);
+        => SaveAsJpegAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -308,8 +308,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsJpeg(this Image source, Stream stream, JpegEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -320,11 +320,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -332,7 +332,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsPbm(this Image source, string path) => SaveAsPbm(source, path, null);
+    public static void SaveAsPbm(this Image source, string path) => SaveAsPbm(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -341,7 +341,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPbmAsync(this Image source, string path) => SaveAsPbmAsync(source, path, null);
+    public static Task SaveAsPbmAsync(this Image source, string path) => SaveAsPbmAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -352,7 +352,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsPbmAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsPbmAsync(source, path, null, cancellationToken);
+        => SaveAsPbmAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -375,11 +375,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPbmAsync(this Image source, string path, PbmEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsPbmAsync(this Image source, string path, PbmEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -388,7 +388,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsPbm(this Image source, Stream stream)
-        => SaveAsPbm(source, stream, null);
+        => SaveAsPbm(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -399,7 +399,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsPbmAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsPbmAsync(source, stream, null, cancellationToken);
+        => SaveAsPbmAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -410,8 +410,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsPbm(this Image source, Stream stream, PbmEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -422,11 +422,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPbmAsync(this Image source, Stream stream, PbmEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsPbmAsync(this Image source, Stream stream, PbmEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -434,7 +434,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsPng(this Image source, string path) => SaveAsPng(source, path, null);
+    public static void SaveAsPng(this Image source, string path) => SaveAsPng(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -443,7 +443,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPngAsync(this Image source, string path) => SaveAsPngAsync(source, path, null);
+    public static Task SaveAsPngAsync(this Image source, string path) => SaveAsPngAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -454,7 +454,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsPngAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsPngAsync(source, path, null, cancellationToken);
+        => SaveAsPngAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -477,11 +477,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -490,7 +490,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsPng(this Image source, Stream stream)
-        => SaveAsPng(source, stream, null);
+        => SaveAsPng(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -501,7 +501,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsPngAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsPngAsync(source, stream, null, cancellationToken);
+        => SaveAsPngAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -512,8 +512,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsPng(this Image source, Stream stream, PngEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -524,11 +524,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -536,7 +536,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsTga(this Image source, string path) => SaveAsTga(source, path, null);
+    public static void SaveAsTga(this Image source, string path) => SaveAsTga(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -545,7 +545,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTgaAsync(this Image source, string path) => SaveAsTgaAsync(source, path, null);
+    public static Task SaveAsTgaAsync(this Image source, string path) => SaveAsTgaAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -556,7 +556,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsTgaAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsTgaAsync(source, path, null, cancellationToken);
+        => SaveAsTgaAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -579,11 +579,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -592,7 +592,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsTga(this Image source, Stream stream)
-        => SaveAsTga(source, stream, null);
+        => SaveAsTga(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -603,7 +603,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsTgaAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsTgaAsync(source, stream, null, cancellationToken);
+        => SaveAsTgaAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -614,8 +614,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsTga(this Image source, Stream stream, TgaEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -626,11 +626,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -638,7 +638,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsWebp(this Image source, string path) => SaveAsWebp(source, path, null);
+    public static void SaveAsWebp(this Image source, string path) => SaveAsWebp(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -647,7 +647,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, string path) => SaveAsWebpAsync(source, path, null);
+    public static Task SaveAsWebpAsync(this Image source, string path) => SaveAsWebpAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -658,7 +658,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsWebpAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsWebpAsync(source, path, null, cancellationToken);
+        => SaveAsWebpAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -681,11 +681,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -694,7 +694,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsWebp(this Image source, Stream stream)
-        => SaveAsWebp(source, stream, null);
+        => SaveAsWebp(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -705,7 +705,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsWebpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsWebpAsync(source, stream, null, cancellationToken);
+        => SaveAsWebpAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -716,8 +716,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -728,11 +728,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -740,7 +740,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsTiff(this Image source, string path) => SaveAsTiff(source, path, null);
+    public static void SaveAsTiff(this Image source, string path) => SaveAsTiff(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -749,7 +749,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTiffAsync(this Image source, string path) => SaveAsTiffAsync(source, path, null);
+    public static Task SaveAsTiffAsync(this Image source, string path) => SaveAsTiffAsync(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -760,7 +760,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsTiffAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsTiffAsync(source, path, null, cancellationToken);
+        => SaveAsTiffAsync(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -783,11 +783,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTiffAsync(this Image source, string path, TiffEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsTiffAsync(this Image source, string path, TiffEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -796,7 +796,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsTiff(this Image source, Stream stream)
-        => SaveAsTiff(source, stream, null);
+        => SaveAsTiff(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -807,7 +807,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAsTiffAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsTiffAsync(source, stream, null, cancellationToken);
+        => SaveAsTiffAsync(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -818,8 +818,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAsTiff(this Image source, Stream stream, TiffEncoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -830,10 +830,10 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsTiffAsync(this Image source, Stream stream, TiffEncoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
-            cancellationToken);
+    public static Task SaveAsTiffAsync(this Image source, Stream stream, TiffEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
+              cancellationToken);
 
 }

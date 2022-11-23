@@ -1,53 +1,39 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Bmp
+namespace SixLabors.ImageSharp.Formats.Bmp;
+
+/// <summary>
+/// Image encoder for writing an image to a stream as a Windows bitmap.
+/// </summary>
+public sealed class BmpEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Image encoder for writing an image to a stream as a Windows bitmap.
+    /// Gets the number of bits per pixel.
     /// </summary>
-    public sealed class BmpEncoder : IImageEncoder, IBmpEncoderOptions
+    public BmpBitsPerPixel? BitsPerPixel { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the encoder should support transparency.
+    /// Note: Transparency support only works together with 32 bits per pixel. This option will
+    /// change the default behavior of the encoder of writing a bitmap version 3 info header with no compression.
+    /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
+    /// </summary>
+    public bool SupportTransparency { get; init; }
+
+    /// <inheritdoc/>
+    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
     {
-        /// <summary>
-        /// Gets or sets the number of bits per pixel.
-        /// </summary>
-        public BmpBitsPerPixel? BitsPerPixel { get; set; }
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
+        encoder.Encode(image, stream);
+    }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the encoder should support transparency.
-        /// Note: Transparency support only works together with 32 bits per pixel. This option will
-        /// change the default behavior of the encoder of writing a bitmap version 3 info header with no compression.
-        /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
-        /// </summary>
-        public bool SupportTransparency { get; set; }
-
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
-        /// Defaults to Wu Quantizer.
-        /// </summary>
-        public IQuantizer Quantizer { get; set; }
-
-        /// <inheritdoc/>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
-            encoder.Encode(image, stream);
-        }
-
-        /// <inheritdoc/>
-        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
-            return encoder.EncodeAsync(image, stream, cancellationToken);
-        }
+    /// <inheritdoc/>
+    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    {
+        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
+        return encoder.EncodeAsync(image, stream, cancellationToken);
     }
 }

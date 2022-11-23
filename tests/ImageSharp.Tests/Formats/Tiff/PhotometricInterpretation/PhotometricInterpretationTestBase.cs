@@ -1,67 +1,64 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
+
+[Trait("Format", "Tiff")]
+public abstract class PhotometricInterpretationTestBase
 {
-    [Trait("Format", "Tiff")]
-    public abstract class PhotometricInterpretationTestBase
+    public static Rgba32 DefaultColor = new Rgba32(42, 96, 18, 128);
+
+    public static Rgba32[][] Offset(Rgba32[][] input, int xOffset, int yOffset, int width, int height)
     {
-        public static Rgba32 DefaultColor = new Rgba32(42, 96, 18, 128);
+        int inputHeight = input.Length;
+        int inputWidth = input[0].Length;
 
-        public static Rgba32[][] Offset(Rgba32[][] input, int xOffset, int yOffset, int width, int height)
+        var output = new Rgba32[height][];
+
+        for (int y = 0; y < output.Length; y++)
         {
-            int inputHeight = input.Length;
-            int inputWidth = input[0].Length;
+            output[y] = new Rgba32[width];
 
-            var output = new Rgba32[height][];
-
-            for (int y = 0; y < output.Length; y++)
+            for (int x = 0; x < width; x++)
             {
-                output[y] = new Rgba32[width];
-
-                for (int x = 0; x < width; x++)
-                {
-                    output[y][x] = DefaultColor;
-                }
+                output[y][x] = DefaultColor;
             }
-
-            for (int y = 0; y < inputHeight; y++)
-            {
-                for (int x = 0; x < inputWidth; x++)
-                {
-                    output[y + yOffset][x + xOffset] = input[y][x];
-                }
-            }
-
-            return output;
         }
 
-        internal static void AssertDecode(Rgba32[][] expectedResult, Action<Buffer2D<Rgba32>> decodeAction)
+        for (int y = 0; y < inputHeight; y++)
         {
-            int resultWidth = expectedResult[0].Length;
-            int resultHeight = expectedResult.Length;
-
-            using (var image = new Image<Rgba32>(resultWidth, resultHeight))
+            for (int x = 0; x < inputWidth; x++)
             {
-                image.Mutate(x => x.BackgroundColor(DefaultColor));
-                Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+                output[y + yOffset][x + xOffset] = input[y][x];
+            }
+        }
 
-                decodeAction(pixels);
+        return output;
+    }
 
-                for (int y = 0; y < resultHeight; y++)
+    internal static void AssertDecode(Rgba32[][] expectedResult, Action<Buffer2D<Rgba32>> decodeAction)
+    {
+        int resultWidth = expectedResult[0].Length;
+        int resultHeight = expectedResult.Length;
+
+        using (var image = new Image<Rgba32>(resultWidth, resultHeight))
+        {
+            image.Mutate(x => x.BackgroundColor(DefaultColor));
+            Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+
+            decodeAction(pixels);
+
+            for (int y = 0; y < resultHeight; y++)
+            {
+                for (int x = 0; x < resultWidth; x++)
                 {
-                    for (int x = 0; x < resultWidth; x++)
-                    {
-                        Assert.True(
-                            expectedResult[y][x] == pixels[x, y],
-                            $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
-                    }
+                    Assert.True(
+                        expectedResult[y][x] == pixels[x, y],
+                        $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
                 }
             }
         }

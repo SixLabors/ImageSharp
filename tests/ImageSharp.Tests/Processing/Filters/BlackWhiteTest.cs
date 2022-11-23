@@ -1,27 +1,25 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Filters
+namespace SixLabors.ImageSharp.Tests.Processing.Filters;
+
+[Trait("Category", "Processors")]
+public class BlackWhiteTest : BaseImageOperationsExtensionTest
 {
-    [Trait("Category", "Processors")]
-    public class BlackWhiteTest : BaseImageOperationsExtensionTest
+    [Fact]
+    public void BlackWhite_CorrectProcessor()
     {
-        [Fact]
-        public void BlackWhite_CorrectProcessor()
-        {
-            this.operations.BlackWhite();
-            this.Verify<BlackWhiteProcessor>();
-        }
+        this.operations.BlackWhite();
+        this.Verify<BlackWhiteProcessor>();
+    }
 
-        [Fact]
-        public void BlackWhite_rect_CorrectProcessor()
-        {
-            this.operations.BlackWhite(this.rect);
-            this.Verify<BlackWhiteProcessor>(this.rect);
-        }
+    [Fact]
+    public void BlackWhite_rect_CorrectProcessor()
+    {
+        this.operations.BlackWhite(this.rect);
+        this.Verify<BlackWhiteProcessor>(this.rect);
     }
 }

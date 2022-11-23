@@ -1,23 +1,22 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Benchmarks.Processing
-{
-    [Config(typeof(Config.MultiFramework))]
-    public class Rotate
-    {
-        [Benchmark]
-        public Size DoRotate()
-        {
-            using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond);
-            image.Mutate(x => x.Rotate(37.5F));
+namespace SixLabors.ImageSharp.Benchmarks.Processing;
 
-            return image.Size();
-        }
+[Config(typeof(Config.MultiFramework))]
+public class Rotate
+{
+    [Benchmark]
+    public Size DoRotate()
+    {
+        using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond);
+        image.Mutate(x => x.Rotate(37.5F));
+
+        return image.Size();
     }
 }
 

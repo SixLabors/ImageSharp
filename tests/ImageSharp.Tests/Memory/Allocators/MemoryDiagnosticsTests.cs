@@ -1,121 +1,116 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Diagnostics;
 using SixLabors.ImageSharp.Memory;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Memory.Allocators
+namespace SixLabors.ImageSharp.Tests.Memory.Allocators;
+
+public class MemoryDiagnosticsTests
 {
-    public class MemoryDiagnosticsTests
+    private const int OneMb = 1 << 20;
+
+    private static MemoryAllocator Allocator => Configuration.Default.MemoryAllocator;
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PerfectCleanup_NoLeaksReported(bool isGroupOuter)
     {
-        private const int OneMb = 1 << 20;
+        RemoteExecutor.Invoke(RunTest, isGroupOuter.ToString()).Dispose();
 
-        private static MemoryAllocator Allocator => Configuration.Default.MemoryAllocator;
-
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void PerfectCleanup_NoLeaksReported(bool isGroupOuter)
+        static void RunTest(string isGroupInner)
         {
-            RemoteExecutor.Invoke(RunTest, isGroupOuter.ToString()).Dispose();
+            bool isGroup = bool.Parse(isGroupInner);
+            int leakCounter = 0;
+            MemoryDiagnostics.UndisposedAllocation += _ => Interlocked.Increment(ref leakCounter);
 
-            static void RunTest(string isGroupInner)
+            List<IDisposable> buffers = new();
+
+            Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
+            for (int length = 1024; length <= 64 * OneMb; length *= 2)
             {
-                bool isGroup = bool.Parse(isGroupInner);
-                int leakCounter = 0;
-                MemoryDiagnostics.UndisposedAllocation += _ => Interlocked.Increment(ref leakCounter);
-
-                List<IDisposable> buffers = new();
-
-                Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
-                for (int length = 1024; length <= 64 * OneMb; length *= 2)
-                {
-                    long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    IDisposable buffer = isGroup ?
-                        Allocator.AllocateGroup<byte>(length, 1024) :
-                        Allocator.Allocate<byte>(length);
-                    buffers.Add(buffer);
-                    long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    Assert.True(cntAfter > cntBefore);
-                }
-
-                foreach (IDisposable buffer in buffers)
-                {
-                    long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    buffer.Dispose();
-                    long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    Assert.True(cntAfter < cntBefore);
-                }
-
-                Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
-                Assert.Equal(0, leakCounter);
+                long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                IDisposable buffer = isGroup ?
+                    Allocator.AllocateGroup<byte>(length, 1024) :
+                    Allocator.Allocate<byte>(length);
+                buffers.Add(buffer);
+                long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                Assert.True(cntAfter > cntBefore);
             }
+
+            foreach (IDisposable buffer in buffers)
+            {
+                long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                buffer.Dispose();
+                long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                Assert.True(cntAfter < cntBefore);
+            }
+
+            Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
+            Assert.Equal(0, leakCounter);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void MissingCleanup_LeaksAreReported(bool isGroupOuter, bool subscribeLeakHandleOuter)
+    {
+        RemoteExecutor.Invoke(RunTest, isGroupOuter.ToString(), subscribeLeakHandleOuter.ToString()).Dispose();
+
+        static void RunTest(string isGroupInner, string subscribeLeakHandleInner)
+        {
+            bool isGroup = bool.Parse(isGroupInner);
+            bool subscribeLeakHandle = bool.Parse(subscribeLeakHandleInner);
+            int leakCounter = 0;
+            bool stackTraceOk = true;
+            if (subscribeLeakHandle)
+            {
+                MemoryDiagnostics.UndisposedAllocation += stackTrace =>
+                {
+                    Interlocked.Increment(ref leakCounter);
+                    stackTraceOk &= stackTrace.Contains(nameof(RunTest)) && stackTrace.Contains(nameof(AllocateAndForget));
+                    Assert.Contains(nameof(AllocateAndForget), stackTrace);
+                };
+            }
+
+            Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
+            for (int length = 1024; length <= 64 * OneMb; length *= 2)
+            {
+                long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                AllocateAndForget(length, isGroup);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
+                Assert.True(cntAfter > cntBefore);
+            }
+
+            if (subscribeLeakHandle)
+            {
+                // Make sure at least some of the leak callbacks have time to complete on the ThreadPool
+                Thread.Sleep(200);
+                Assert.True(leakCounter > 3, $"leakCounter did not count enough leaks ({leakCounter} only)");
+            }
+
+            Assert.True(stackTraceOk);
         }
 
-        [Theory]
-        [InlineData(false, false)]
-        [InlineData(false, true)]
-        [InlineData(true, false)]
-        [InlineData(true, true)]
-        public void MissingCleanup_LeaksAreReported(bool isGroupOuter, bool subscribeLeakHandleOuter)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void AllocateAndForget(int length, bool isGroup)
         {
-            RemoteExecutor.Invoke(RunTest, isGroupOuter.ToString(), subscribeLeakHandleOuter.ToString()).Dispose();
-
-            static void RunTest(string isGroupInner, string subscribeLeakHandleInner)
+            if (isGroup)
             {
-                bool isGroup = bool.Parse(isGroupInner);
-                bool subscribeLeakHandle = bool.Parse(subscribeLeakHandleInner);
-                int leakCounter = 0;
-                bool stackTraceOk = true;
-                if (subscribeLeakHandle)
-                {
-                    MemoryDiagnostics.UndisposedAllocation += stackTrace =>
-                    {
-                        Interlocked.Increment(ref leakCounter);
-                        stackTraceOk &= stackTrace.Contains(nameof(RunTest)) && stackTrace.Contains(nameof(AllocateAndForget));
-                        Assert.Contains(nameof(AllocateAndForget), stackTrace);
-                    };
-                }
-
-                Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
-                for (int length = 1024; length <= 64 * OneMb; length *= 2)
-                {
-                    long cntBefore = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    AllocateAndForget(length, isGroup);
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                    long cntAfter = MemoryDiagnostics.TotalUndisposedAllocationCount;
-                    Assert.True(cntAfter > cntBefore);
-                }
-
-                if (subscribeLeakHandle)
-                {
-                    // Make sure at least some of the leak callbacks have time to complete on the ThreadPool
-                    Thread.Sleep(200);
-                    Assert.True(leakCounter > 3, $"leakCounter did not count enough leaks ({leakCounter} only)");
-                }
-
-                Assert.True(stackTraceOk);
+                _ = Allocator.AllocateGroup<byte>(length, 1024);
             }
-
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static void AllocateAndForget(int length, bool isGroup)
+            else
             {
-                if (isGroup)
-                {
-                    _ = Allocator.AllocateGroup<byte>(length, 1024);
-                }
-                else
-                {
-                    _ = Allocator.Allocate<byte>(length);
-                }
+                _ = Allocator.Allocate<byte>(length);
             }
         }
     }

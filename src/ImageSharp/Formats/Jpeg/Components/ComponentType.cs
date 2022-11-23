@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
+
+internal enum ComponentType
 {
-    internal enum ComponentType
-    {
-        Huffman = 0,
+    Huffman = 0,
 
-        Arithmetic = 1
-    }
+    Arithmetic = 1
 }

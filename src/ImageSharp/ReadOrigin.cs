@@ -1,21 +1,20 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp;
+
+/// <summary>
+/// Specifies the position in a stream to use for reading.
+/// </summary>
+public enum ReadOrigin
 {
     /// <summary>
-    /// Specifies the position in a stream to use for reading.
+    /// Specifies the beginning of a stream.
     /// </summary>
-    public enum ReadOrigin
-    {
-        /// <summary>
-        /// Specifies the beginning of a stream.
-        /// </summary>
-        Begin,
+    Begin,
 
-        /// <summary>
-        /// Specifies the current position within a stream.
-        /// </summary>
-        Current
-    }
+    /// <summary>
+    /// Specifies the current position within a stream.
+    /// </summary>
+    Current
 }

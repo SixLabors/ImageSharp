@@ -1,46 +1,44 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers.Binary;
 
-namespace SixLabors.ImageSharp.Formats.Gif
+namespace SixLabors.ImageSharp.Formats.Gif;
+
+internal readonly struct GifNetscapeLoopingApplicationExtension : IGifExtension
 {
-    internal readonly struct GifNetscapeLoopingApplicationExtension : IGifExtension
+    public GifNetscapeLoopingApplicationExtension(ushort repeatCount) => this.RepeatCount = repeatCount;
+
+    public byte Label => GifConstants.ApplicationExtensionLabel;
+
+    public int ContentLength => 16;
+
+    /// <summary>
+    /// Gets the repeat count.
+    /// 0 means loop indefinitely. Count is set as play n + 1 times.
+    /// </summary>
+    public ushort RepeatCount { get; }
+
+    public static GifNetscapeLoopingApplicationExtension Parse(ReadOnlySpan<byte> buffer)
     {
-        public GifNetscapeLoopingApplicationExtension(ushort repeatCount) => this.RepeatCount = repeatCount;
+        ushort repeatCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer[..2]);
+        return new GifNetscapeLoopingApplicationExtension(repeatCount);
+    }
 
-        public byte Label => GifConstants.ApplicationExtensionLabel;
+    public int WriteTo(Span<byte> buffer)
+    {
+        buffer[0] = GifConstants.ApplicationBlockSize;
 
-        public int ContentLength => 16;
+        // Write NETSCAPE2.0
+        GifConstants.NetscapeApplicationIdentificationBytes.CopyTo(buffer.Slice(1, 11));
 
-        /// <summary>
-        /// Gets the repeat count.
-        /// 0 means loop indefinitely. Count is set as play n + 1 times.
-        /// </summary>
-        public ushort RepeatCount { get; }
+        // Application Data ----
+        buffer[12] = 3; // Application block length (always 3)
+        buffer[13] = 1; // Data sub-block identity (always 1)
 
-        public static GifNetscapeLoopingApplicationExtension Parse(ReadOnlySpan<byte> buffer)
-        {
-            ushort repeatCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(0, 2));
-            return new GifNetscapeLoopingApplicationExtension(repeatCount);
-        }
+        // 0 means loop indefinitely. Count is set as play n + 1 times.
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.RepeatCount);
 
-        public int WriteTo(Span<byte> buffer)
-        {
-            buffer[0] = GifConstants.ApplicationBlockSize;
-
-            // Write NETSCAPE2.0
-            GifConstants.NetscapeApplicationIdentificationBytes.CopyTo(buffer.Slice(1, 11));
-
-            // Application Data ----
-            buffer[12] = 3; // Application block length (always 3)
-            buffer[13] = 1; // Data sub-block identity (always 1)
-
-            // 0 means loop indefinitely. Count is set as play n + 1 times.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(14, 2), this.RepeatCount);
-
-            return this.ContentLength; // Length - Introducer + Label + Terminator.
-        }
+        return this.ContentLength; // Length - Introducer + Label + Terminator.
     }
 }

@@ -1,324 +1,247 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Transforms
+namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
+
+/// <summary>
+/// Provides the base methods to perform non-affine transforms on an image.
+/// </summary>
+/// <typeparam name="TPixel">The pixel format.</typeparam>
+internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
 {
+    private readonly Size destinationSize;
+    private readonly IResampler resampler;
+    private readonly Matrix4x4 transformMatrix;
+    private ImageFrame<TPixel> source;
+    private ImageFrame<TPixel> destination;
+
     /// <summary>
-    /// Provides the base methods to perform non-affine transforms on an image.
+    /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="definition">The <see cref="ProjectiveTransformProcessor"/> defining the processor parameters.</param>
+    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    public ProjectiveTransformProcessor(Configuration configuration, ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        : base(configuration, source, sourceRectangle)
     {
-        private readonly Size destinationSize;
-        private readonly IResampler resampler;
-        private readonly Matrix4x4 transformMatrix;
-        private ImageFrame<TPixel> source;
-        private ImageFrame<TPixel> destination;
+        this.destinationSize = definition.DestinationSize;
+        this.transformMatrix = definition.TransformMatrix;
+        this.resampler = definition.Sampler;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="definition">The <see cref="ProjectiveTransformProcessor"/> defining the processor parameters.</param>
-        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public ProjectiveTransformProcessor(Configuration configuration, ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle)
+    protected override Size GetDestinationSize() => this.destinationSize;
+
+    /// <inheritdoc/>
+    protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    {
+        this.source = source;
+        this.destination = destination;
+        this.resampler.ApplyTransform(this);
+    }
+
+    /// <inheritdoc/>
+    public void ApplyTransform<TResampler>(in TResampler sampler)
+        where TResampler : struct, IResampler
+    {
+        Configuration configuration = this.Configuration;
+        ImageFrame<TPixel> source = this.source;
+        ImageFrame<TPixel> destination = this.destination;
+        Matrix4x4 matrix = this.transformMatrix;
+
+        // Handle transforms that result in output identical to the original.
+        // Degenerate matrices are already handled in the upstream definition.
+        if (matrix.Equals(Matrix4x4.Identity))
         {
-            this.destinationSize = definition.DestinationSize;
-            this.transformMatrix = definition.TransformMatrix;
-            this.resampler = definition.Sampler;
-        }
-
-        protected override Size GetDestinationSize() => this.destinationSize;
-
-        /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
-        {
-            this.source = source;
-            this.destination = destination;
-            this.resampler.ApplyTransform(this);
-        }
-
-        /// <inheritdoc/>
-        public void ApplyTransform<TResampler>(in TResampler sampler)
-            where TResampler : struct, IResampler
-        {
-            Configuration configuration = this.Configuration;
-            ImageFrame<TPixel> source = this.source;
-            ImageFrame<TPixel> destination = this.destination;
-            Matrix4x4 matrix = this.transformMatrix;
-
-            // Handle transforms that result in output identical to the original.
-            // Degenerate matrices are already handled in the upstream definition.
-            if (matrix.Equals(Matrix4x4.Identity))
+            // The clone will be blank here copy all the pixel data over
+            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
+            for (int y = 0; y < sourceBuffer.Height; y++)
             {
-                // The clone will be blank here copy all the pixel data over
-                var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
-                Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
-                Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
-                for (int y = 0; y < sourceBuffer.Height; y++)
-                {
-                    sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
-                }
-
-                return;
+                sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
             }
 
-            // Convert from screen to world space.
-            Matrix4x4.Invert(matrix, out matrix);
+            return;
+        }
 
-            if (sampler is NearestNeighborResampler)
-            {
-                var nnOperation = new NNProjectiveOperation(
-                    source.PixelBuffer,
-                    Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-                    destination.PixelBuffer,
-                    matrix);
+        // Convert from screen to world space.
+        Matrix4x4.Invert(matrix, out matrix);
 
-                ParallelRowIterator.IterateRows(
-                    configuration,
-                    destination.Bounds(),
-                    in nnOperation);
-
-                return;
-            }
-
-            var operation = new ProjectiveOperation<TResampler>(
-                configuration,
+        if (sampler is NearestNeighborResampler)
+        {
+            var nnOperation = new NNProjectiveOperation(
                 source.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
-                in sampler,
                 matrix);
 
-            ParallelRowIterator.IterateRowIntervals<ProjectiveOperation<TResampler>, Vector4>(
+            ParallelRowIterator.IterateRows(
                 configuration,
                 destination.Bounds(),
-                in operation);
+                in nnOperation);
+
+            return;
         }
 
-        private readonly struct NNProjectiveOperation : IRowOperation
+        var operation = new ProjectiveOperation<TResampler>(
+            configuration,
+            source.PixelBuffer,
+            Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+            destination.PixelBuffer,
+            in sampler,
+            matrix);
+
+        ParallelRowIterator.IterateRowIntervals<ProjectiveOperation<TResampler>, Vector4>(
+            configuration,
+            destination.Bounds(),
+            in operation);
+    }
+
+    private readonly struct NNProjectiveOperation : IRowOperation
+    {
+        private readonly Buffer2D<TPixel> source;
+        private readonly Buffer2D<TPixel> destination;
+        private readonly Rectangle bounds;
+        private readonly Matrix4x4 matrix;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public NNProjectiveOperation(
+            Buffer2D<TPixel> source,
+            Rectangle bounds,
+            Buffer2D<TPixel> destination,
+            Matrix4x4 matrix)
         {
-            private readonly Buffer2D<TPixel> source;
-            private readonly Buffer2D<TPixel> destination;
-            private readonly Rectangle bounds;
-            private readonly Matrix4x4 matrix;
+            this.source = source;
+            this.bounds = bounds;
+            this.destination = destination;
+            this.matrix = matrix;
+        }
 
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public NNProjectiveOperation(
-                Buffer2D<TPixel> source,
-                Rectangle bounds,
-                Buffer2D<TPixel> destination,
-                Matrix4x4 matrix)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int y)
+        {
+            Span<TPixel> destRow = this.destination.DangerousGetRowSpan(y);
+
+            for (int x = 0; x < destRow.Length; x++)
             {
-                this.source = source;
-                this.bounds = bounds;
-                this.destination = destination;
-                this.matrix = matrix;
-            }
+                Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
+                int px = (int)MathF.Round(point.X);
+                int py = (int)MathF.Round(point.Y);
 
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
-            {
-                Span<TPixel> destRow = this.destination.DangerousGetRowSpan(y);
-
-                for (int x = 0; x < destRow.Length; x++)
+                if (this.bounds.Contains(px, py))
                 {
-                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
-                    int px = (int)MathF.Round(point.X);
-                    int py = (int)MathF.Round(point.Y);
-
-                    if (this.bounds.Contains(px, py))
-                    {
-                        destRow[x] = this.source.GetElementUnsafe(px, py);
-                    }
+                    destRow[x] = this.source.GetElementUnsafe(px, py);
                 }
             }
         }
+    }
 
-        private readonly struct ProjectiveOperation<TResampler> : IRowIntervalOperation<Vector4>
-            where TResampler : struct, IResampler
+    private readonly struct ProjectiveOperation<TResampler> : IRowIntervalOperation<Vector4>
+        where TResampler : struct, IResampler
+    {
+        private readonly Configuration configuration;
+        private readonly Buffer2D<TPixel> source;
+        private readonly Rectangle bounds;
+        private readonly Buffer2D<TPixel> destination;
+        private readonly TResampler sampler;
+        private readonly Matrix4x4 matrix;
+        private readonly float yRadius;
+        private readonly float xRadius;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public ProjectiveOperation(
+            Configuration configuration,
+            Buffer2D<TPixel> source,
+            Rectangle bounds,
+            Buffer2D<TPixel> destination,
+            in TResampler sampler,
+            Matrix4x4 matrix)
         {
-            private readonly Configuration configuration;
-            private readonly Buffer2D<TPixel> source;
-            private readonly Rectangle bounds;
-            private readonly Buffer2D<TPixel> destination;
-            private readonly TResampler sampler;
-            private readonly Matrix4x4 matrix;
-            private readonly float yRadius;
-            private readonly float xRadius;
+            this.configuration = configuration;
+            this.source = source;
+            this.bounds = bounds;
+            this.destination = destination;
+            this.sampler = sampler;
+            this.matrix = matrix;
 
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public ProjectiveOperation(
-                Configuration configuration,
-                Buffer2D<TPixel> source,
-                Rectangle bounds,
-                Buffer2D<TPixel> destination,
-                in TResampler sampler,
-                Matrix4x4 matrix)
+            this.yRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Height, destination.Height);
+            this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Width, destination.Width);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(in RowInterval rows, Span<Vector4> span)
+        {
+            Matrix4x4 matrix = this.matrix;
+            TResampler sampler = this.sampler;
+            float yRadius = this.yRadius;
+            float xRadius = this.xRadius;
+            int minY = this.bounds.Y;
+            int maxY = this.bounds.Bottom - 1;
+            int minX = this.bounds.X;
+            int maxX = this.bounds.Right - 1;
+
+            for (int y = rows.Min; y < rows.Max; y++)
             {
-                this.configuration = configuration;
-                this.source = source;
-                this.bounds = bounds;
-                this.destination = destination;
-                this.sampler = sampler;
-                this.matrix = matrix;
+                Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToVector4(
+                    this.configuration,
+                    rowSpan,
+                    span,
+                    PixelConversionModifiers.Scale);
 
-                this.yRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Height, destination.Height);
-                this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, bounds.Width, destination.Width);
-            }
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Span<Vector4> span)
-            {
-                if (RuntimeEnvironment.IsOSPlatform(OSPlatform.OSX)
-                    && RuntimeEnvironment.IsNetCore)
+                for (int x = 0; x < span.Length; x++)
                 {
-                    // There's something wrong with the JIT in .NET Core 3.1 on certain
-                    // macOS machines so we have to use different pipelines.
-                    // It's:
-                    // - Not reproducable locally
-                    // - Doesn't seem to be triggered by the bulk Numerics.UnPremultiply method but by caller.
-                    // https://github.com/SixLabors/ImageSharp/pull/1591
-                    this.InvokeMacOS(in rows, span);
-                    return;
-                }
+                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
+                    float pY = point.Y;
+                    float pX = point.X;
 
-                Matrix4x4 matrix = this.matrix;
-                TResampler sampler = this.sampler;
-                float yRadius = this.yRadius;
-                float xRadius = this.xRadius;
-                int minY = this.bounds.Y;
-                int maxY = this.bounds.Bottom - 1;
-                int minX = this.bounds.X;
-                int maxX = this.bounds.Right - 1;
+                    int top = LinearTransformUtility.GetRangeStart(yRadius, pY, minY, maxY);
+                    int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, minY, maxY);
+                    int left = LinearTransformUtility.GetRangeStart(xRadius, pX, minX, maxX);
+                    int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, minX, maxX);
 
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(
-                        this.configuration,
-                        rowSpan,
-                        span,
-                        PixelConversionModifiers.Scale);
-
-                    for (int x = 0; x < span.Length; x++)
+                    if (bottom <= top || right <= left)
                     {
-                        Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
-                        float pY = point.Y;
-                        float pX = point.X;
-
-                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, minY, maxY);
-                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, minY, maxY);
-                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, minX, maxX);
-                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, minX, maxX);
-
-                        if (bottom <= top || right <= left)
-                        {
-                            continue;
-                        }
-
-                        Vector4 sum = Vector4.Zero;
-                        for (int yK = top; yK <= bottom; yK++)
-                        {
-                            float yWeight = sampler.GetValue(yK - pY);
-
-                            for (int xK = left; xK <= right; xK++)
-                            {
-                                float xWeight = sampler.GetValue(xK - pX);
-
-                                Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
-                                Numerics.Premultiply(ref current);
-                                sum += current * xWeight * yWeight;
-                            }
-                        }
-
-                        span[x] = sum;
+                        continue;
                     }
 
-                    Numerics.UnPremultiply(span);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                        this.configuration,
-                        span,
-                        rowSpan,
-                        PixelConversionModifiers.Scale);
-                }
-            }
-
-            [ExcludeFromCodeCoverage]
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void InvokeMacOS(in RowInterval rows, Span<Vector4> span)
-            {
-                Matrix4x4 matrix = this.matrix;
-                TResampler sampler = this.sampler;
-                float yRadius = this.yRadius;
-                float xRadius = this.xRadius;
-                int minY = this.bounds.Y;
-                int maxY = this.bounds.Bottom - 1;
-                int minX = this.bounds.X;
-                int maxX = this.bounds.Right - 1;
-
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(
-                        this.configuration,
-                        rowSpan,
-                        span,
-                        PixelConversionModifiers.Scale);
-
-                    for (int x = 0; x < span.Length; x++)
+                    Vector4 sum = Vector4.Zero;
+                    for (int yK = top; yK <= bottom; yK++)
                     {
-                        Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
-                        float pY = point.Y;
-                        float pX = point.X;
+                        float yWeight = sampler.GetValue(yK - pY);
 
-                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, minY, maxY);
-                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, minY, maxY);
-                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, minX, maxX);
-                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, minX, maxX);
-
-                        if (bottom <= top || right <= left)
+                        for (int xK = left; xK <= right; xK++)
                         {
-                            continue;
+                            float xWeight = sampler.GetValue(xK - pX);
+
+                            Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
+                            Numerics.Premultiply(ref current);
+                            sum += current * xWeight * yWeight;
                         }
-
-                        Vector4 sum = Vector4.Zero;
-                        for (int yK = top; yK <= bottom; yK++)
-                        {
-                            float yWeight = sampler.GetValue(yK - pY);
-
-                            for (int xK = left; xK <= right; xK++)
-                            {
-                                float xWeight = sampler.GetValue(xK - pX);
-
-                                Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
-                                Numerics.Premultiply(ref current);
-                                sum += current * xWeight * yWeight;
-                            }
-                        }
-
-                        Numerics.UnPremultiply(ref sum);
-                        span[x] = sum;
                     }
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                        this.configuration,
-                        span,
-                        rowSpan,
-                        PixelConversionModifiers.Scale);
+                    span[x] = sum;
                 }
+
+                Numerics.UnPremultiply(span);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                    this.configuration,
+                    span,
+                    rowSpan,
+                    PixelConversionModifiers.Scale);
             }
         }
     }

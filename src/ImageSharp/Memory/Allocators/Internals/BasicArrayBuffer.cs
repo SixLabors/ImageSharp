@@ -1,61 +1,59 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 
-namespace SixLabors.ImageSharp.Memory.Internals
+namespace SixLabors.ImageSharp.Memory.Internals;
+
+/// <summary>
+/// Wraps an array as an <see cref="MemoryManager{T}"/> instance.
+/// </summary>
+/// <inheritdoc />
+internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
+    where T : struct
 {
     /// <summary>
-    /// Wraps an array as an <see cref="MemoryManager{T}"/> instance.
+    /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
     /// </summary>
-    /// <inheritdoc />
-    internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
-        where T : struct
+    /// <param name="array">The array.</param>
+    /// <param name="length">The length of the buffer.</param>
+    public BasicArrayBuffer(T[] array, int length)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array.</param>
-        /// <param name="length">The length of the buffer.</param>
-        public BasicArrayBuffer(T[] array, int length)
-        {
-            DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
-            this.Array = array;
-            this.Length = length;
-        }
+        DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
+        this.Array = array;
+        this.Length = length;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array.</param>
-        public BasicArrayBuffer(T[] array)
-            : this(array, array.Length)
-        {
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BasicArrayBuffer{T}"/> class.
+    /// </summary>
+    /// <param name="array">The array.</param>
+    public BasicArrayBuffer(T[] array)
+        : this(array, array.Length)
+    {
+    }
 
-        /// <summary>
-        /// Gets the array.
-        /// </summary>
-        public T[] Array { get; }
+    /// <summary>
+    /// Gets the array.
+    /// </summary>
+    public T[] Array { get; }
 
-        /// <summary>
-        /// Gets the length.
-        /// </summary>
-        public int Length { get; }
+    /// <summary>
+    /// Gets the length.
+    /// </summary>
+    public int Length { get; }
 
-        /// <inheritdoc />
-        public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
+    /// <inheritdoc />
+    public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
 
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-        }
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+    }
 
-        /// <inheritdoc />
-        protected override object GetPinnableObject()
-        {
-            return this.Array;
-        }
+    /// <inheritdoc />
+    protected override object GetPinnableObject()
+    {
+        return this.Array;
     }
 }

@@ -1,188 +1,187 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Dithering
+namespace SixLabors.ImageSharp.Processing.Processors.Dithering;
+
+/// <summary>
+/// An error diffusion dithering implementation.
+/// </summary>
+public readonly partial struct ErrorDither
 {
     /// <summary>
-    /// An error diffusion dithering implementation.
+    /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
     /// </summary>
-    public readonly partial struct ErrorDither
+    public static readonly ErrorDither Atkinson = CreateAtkinson();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Burks image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither Burkes = CreateBurks();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither FloydSteinberg = CreateFloydSteinberg();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Jarvis, Judice, Ninke image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither JarvisJudiceNinke = CreateJarvisJudiceNinke();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither Sierra2 = CreateSierra2();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Sierra3 image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither Sierra3 = CreateSierra3();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Sierra Lite image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither SierraLite = CreateSierraLite();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Stevenson-Arce image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither StevensonArce = CreateStevensonArce();
+
+    /// <summary>
+    /// Applies error diffusion based dithering using the Stucki image dithering algorithm.
+    /// </summary>
+    public static readonly ErrorDither Stucki = CreateStucki();
+
+    private static ErrorDither CreateAtkinson()
     {
-        /// <summary>
-        /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
-        /// </summary>
-        public static ErrorDither Atkinson = CreateAtkinson();
+        const float divisor = 8F;
+        const int offset = 1;
 
-        /// <summary>
-        /// Applies error diffusion based dithering using the Burks image dithering algorithm.
-        /// </summary>
-        public static ErrorDither Burkes = CreateBurks();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
-        /// </summary>
-        public static ErrorDither FloydSteinberg = CreateFloydSteinberg();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Jarvis, Judice, Ninke image dithering algorithm.
-        /// </summary>
-        public static ErrorDither JarvisJudiceNinke = CreateJarvisJudiceNinke();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
-        /// </summary>
-        public static ErrorDither Sierra2 = CreateSierra2();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Sierra3 image dithering algorithm.
-        /// </summary>
-        public static ErrorDither Sierra3 = CreateSierra3();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Sierra Lite image dithering algorithm.
-        /// </summary>
-        public static ErrorDither SierraLite = CreateSierraLite();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Stevenson-Arce image dithering algorithm.
-        /// </summary>
-        public static ErrorDither StevensonArce = CreateStevensonArce();
-
-        /// <summary>
-        /// Applies error diffusion based dithering using the Stucki image dithering algorithm.
-        /// </summary>
-        public static ErrorDither Stucki = CreateStucki();
-
-        private static ErrorDither CreateAtkinson()
+        float[,] matrix =
         {
-            const float Divisor = 8F;
-            const int Offset = 1;
+            { 0, 0, 1 / divisor, 1 / divisor },
+            { 1 / divisor, 1 / divisor, 1 / divisor, 0 },
+            { 0, 1 / divisor, 0, 0 }
+        };
 
-            var matrix = new float[,]
-            {
-                { 0, 0, 1 / Divisor, 1 / Divisor },
-                { 1 / Divisor, 1 / Divisor, 1 / Divisor, 0 },
-                { 0, 1 / Divisor, 0, 0 }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateBurks()
+    {
+        const float divisor = 32F;
+        const int offset = 2;
 
-        private static ErrorDither CreateBurks()
+        float[,] matrix =
         {
-            const float Divisor = 32F;
-            const int Offset = 2;
+            { 0, 0, 0, 8 / divisor, 4 / divisor },
+            { 2 / divisor, 4 / divisor, 8 / divisor, 4 / divisor, 2 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-                { 0, 0, 0, 8 / Divisor, 4 / Divisor },
-                { 2 / Divisor, 4 / Divisor, 8 / Divisor, 4 / Divisor, 2 / Divisor }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateFloydSteinberg()
+    {
+        const float divisor = 16F;
+        const int offset = 1;
 
-        private static ErrorDither CreateFloydSteinberg()
+        float[,] matrix =
         {
-            const float Divisor = 16F;
-            const int Offset = 1;
+            { 0, 0, 7 / divisor },
+            { 3 / divisor, 5 / divisor, 1 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-                { 0, 0, 7 / Divisor },
-                { 3 / Divisor, 5 / Divisor, 1 / Divisor }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateJarvisJudiceNinke()
+    {
+        const float divisor = 48F;
+        const int offset = 2;
 
-        private static ErrorDither CreateJarvisJudiceNinke()
+        float[,] matrix =
         {
-            const float Divisor = 48F;
-            const int Offset = 2;
+            { 0, 0, 0, 7 / divisor, 5 / divisor },
+            { 3 / divisor, 5 / divisor, 7 / divisor, 5 / divisor, 3 / divisor },
+            { 1 / divisor, 3 / divisor, 5 / divisor, 3 / divisor, 1 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-                { 0, 0, 0, 7 / Divisor, 5 / Divisor },
-                { 3 / Divisor, 5 / Divisor, 7 / Divisor, 5 / Divisor, 3 / Divisor },
-                { 1 / Divisor, 3 / Divisor, 5 / Divisor, 3 / Divisor, 1 / Divisor }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateSierra2()
+    {
+        const float divisor = 16F;
+        const int offset = 2;
 
-        private static ErrorDither CreateSierra2()
+        float[,] matrix =
         {
-            const float Divisor = 16F;
-            const int Offset = 2;
+           { 0, 0, 0, 4 / divisor, 3 / divisor },
+           { 1 / divisor, 2 / divisor, 3 / divisor, 2 / divisor, 1 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-               { 0, 0, 0, 4 / Divisor, 3 / Divisor },
-               { 1 / Divisor, 2 / Divisor, 3 / Divisor, 2 / Divisor, 1 / Divisor }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateSierra3()
+    {
+        const float divisor = 32F;
+        const int offset = 2;
 
-        private static ErrorDither CreateSierra3()
+        float[,] matrix =
         {
-            const float Divisor = 32F;
-            const int Offset = 2;
+           { 0, 0, 0, 5 / divisor, 3 / divisor },
+           { 2 / divisor, 4 / divisor, 5 / divisor, 4 / divisor, 2 / divisor },
+           { 0, 2 / divisor, 3 / divisor, 2 / divisor, 0 }
+        };
 
-            var matrix = new float[,]
-            {
-               { 0, 0, 0, 5 / Divisor, 3 / Divisor },
-               { 2 / Divisor, 4 / Divisor, 5 / Divisor, 4 / Divisor, 2 / Divisor },
-               { 0, 2 / Divisor, 3 / Divisor, 2 / Divisor, 0 }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateSierraLite()
+    {
+        const float divisor = 4F;
+        const int offset = 1;
 
-        private static ErrorDither CreateSierraLite()
+        float[,] matrix =
         {
-            const float Divisor = 4F;
-            const int Offset = 1;
+           { 0, 0, 2 / divisor },
+           { 1 / divisor, 1 / divisor, 0 }
+        };
 
-            var matrix = new float[,]
-            {
-               { 0, 0, 2 / Divisor },
-               { 1 / Divisor, 1 / Divisor, 0 }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateStevensonArce()
+    {
+        const float divisor = 200F;
+        const int offset = 3;
 
-        private static ErrorDither CreateStevensonArce()
+        float[,] matrix =
         {
-            const float Divisor = 200F;
-            const int Offset = 3;
+           { 0,  0,  0,  0,  0, 32 / divisor,  0 },
+           { 12 / divisor, 0, 26 / divisor,  0, 30 / divisor,  0, 16 / divisor },
+           { 0, 12 / divisor,  0, 26 / divisor,  0, 12 / divisor,  0 },
+           { 5 / divisor,  0, 12 / divisor,  0, 12 / divisor,  0,  5 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-               { 0,  0,  0,  0,  0, 32 / Divisor,  0 },
-               { 12 / Divisor, 0, 26 / Divisor,  0, 30 / Divisor,  0, 16 / Divisor },
-               { 0, 12 / Divisor,  0, 26 / Divisor,  0, 12 / Divisor,  0 },
-               { 5 / Divisor,  0, 12 / Divisor,  0, 12 / Divisor,  0,  5 / Divisor }
-            };
+        return new ErrorDither(matrix, offset);
+    }
 
-            return new ErrorDither(matrix, Offset);
-        }
+    private static ErrorDither CreateStucki()
+    {
+        const float divisor = 42F;
+        const int offset = 2;
 
-        private static ErrorDither CreateStucki()
+        float[,] matrix =
         {
-            const float Divisor = 42F;
-            const int Offset = 2;
+           { 0, 0, 0, 8 / divisor, 4 / divisor },
+           { 2 / divisor, 4 / divisor, 8 / divisor, 4 / divisor, 2 / divisor },
+           { 1 / divisor, 2 / divisor, 4 / divisor, 2 / divisor, 1 / divisor }
+        };
 
-            var matrix = new float[,]
-            {
-               { 0, 0, 0, 8 / Divisor, 4 / Divisor },
-               { 2 / Divisor, 4 / Divisor, 8 / Divisor, 4 / Divisor, 2 / Divisor },
-               { 1 / Divisor, 2 / Divisor, 4 / Divisor, 2 / Divisor, 1 / Divisor }
-            };
-
-            return new ErrorDither(matrix, Offset);
-        }
+        return new ErrorDither(matrix, offset);
     }
 }

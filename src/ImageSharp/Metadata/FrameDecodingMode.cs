@@ -1,21 +1,20 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata
+namespace SixLabors.ImageSharp.Metadata;
+
+/// <summary>
+/// Enumerated frame process modes to apply to multi-frame images.
+/// </summary>
+public enum FrameDecodingMode
 {
     /// <summary>
-    /// Enumerated frame process modes to apply to multi-frame images.
+    /// Decodes all the frames of a multi-frame image.
     /// </summary>
-    public enum FrameDecodingMode
-    {
-        /// <summary>
-        /// Decodes all the frames of a multi-frame image.
-        /// </summary>
-        All,
+    All,
 
-        /// <summary>
-        /// Decodes only the first frame of a multi-frame image.
-        /// </summary>
-        First
-    }
+    /// <summary>
+    /// Decodes only the first frame of a multi-frame image.
+    /// </summary>
+    First
 }

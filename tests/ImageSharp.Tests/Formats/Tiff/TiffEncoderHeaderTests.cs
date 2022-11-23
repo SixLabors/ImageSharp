@@ -1,47 +1,38 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Writers;
-using SixLabors.ImageSharp.Memory;
 
-using Xunit;
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+[Trait("Format", "Tiff")]
+public class TiffEncoderHeaderTests
 {
-    [Trait("Format", "Tiff")]
-    public class TiffEncoderHeaderTests
+    private static readonly TiffEncoder Encoder = new();
+
+    [Fact]
+    public void WriteHeader_WritesValidHeader()
     {
-        private static readonly MemoryAllocator MemoryAllocator = MemoryAllocator.Create();
-        private static readonly Configuration Configuration = Configuration.Default;
-        private static readonly ITiffEncoderOptions Options = new TiffEncoder();
+        using MemoryStream stream = new();
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
 
-        [Fact]
-        public void WriteHeader_WritesValidHeader()
+        using (TiffStreamWriter writer = new(stream))
         {
-            using var stream = new MemoryStream();
-            var encoder = new TiffEncoderCore(Options, MemoryAllocator);
-
-            using (var writer = new TiffStreamWriter(stream))
-            {
-                long firstIfdMarker = encoder.WriteHeader(writer);
-            }
-
-            Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0x00, 0x00, 0x00, 0x00 }, stream.ToArray());
+            long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
         }
 
-        [Fact]
-        public void WriteHeader_ReturnsFirstIfdMarker()
-        {
-            using var stream = new MemoryStream();
-            var encoder = new TiffEncoderCore(Options, MemoryAllocator);
+        Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0x00, 0x00, 0x00, 0x00 }, stream.ToArray());
+    }
 
-            using (var writer = new TiffStreamWriter(stream))
-            {
-                long firstIfdMarker = encoder.WriteHeader(writer);
-                Assert.Equal(4, firstIfdMarker);
-            }
-        }
+    [Fact]
+    public void WriteHeader_ReturnsFirstIfdMarker()
+    {
+        using MemoryStream stream = new();
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
+
+        using TiffStreamWriter writer = new(stream);
+        long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
+        Assert.Equal(4, firstIfdMarker);
     }
 }

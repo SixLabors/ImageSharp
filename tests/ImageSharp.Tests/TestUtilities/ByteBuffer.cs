@@ -1,39 +1,38 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Tests.TestUtilities
+namespace SixLabors.ImageSharp.Tests.TestUtilities;
+
+using System;
+using System.Collections.Generic;
+
+public class ByteBuffer
 {
-    using System;
-    using System.Collections.Generic;
+    private readonly List<byte> bytes = new List<byte>();
+    private readonly bool isLittleEndian;
 
-    public class ByteBuffer
+    public ByteBuffer(bool isLittleEndian)
     {
-        private readonly List<byte> bytes = new List<byte>();
-        private readonly bool isLittleEndian;
+        this.isLittleEndian = isLittleEndian;
+    }
 
-        public ByteBuffer(bool isLittleEndian)
-        {
-            this.isLittleEndian = isLittleEndian;
-        }
+    public void AddByte(byte value)
+    {
+        this.bytes.Add(value);
+    }
 
-        public void AddByte(byte value)
-        {
-            this.bytes.Add(value);
-        }
+    public void AddUInt16(ushort value)
+    {
+        this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
+    }
 
-        public void AddUInt16(ushort value)
-        {
-            this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
-        }
+    public void AddUInt32(uint value)
+    {
+        this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
+    }
 
-        public void AddUInt32(uint value)
-        {
-            this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
-        }
-
-        public byte[] ToArray()
-        {
-            return this.bytes.ToArray();
-        }
+    public byte[] ToArray()
+    {
+        return this.bytes.ToArray();
     }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -53,17 +53,17 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
 
         private void Init(IccLut[] inputCurve, IccLut[] outputCurve, IccClut clut, Matrix4x4 matrix)
         {
-            this.inputCurve = this.InitLut(inputCurve);
-            this.outputCurve = this.InitLut(outputCurve);
+            this.inputCurve = InitLut(inputCurve);
+            this.outputCurve = InitLut(outputCurve);
             this.clutCalculator = new ClutCalculator(clut);
             this.matrix = matrix;
 
             this.doTransform = !matrix.IsIdentity && inputCurve.Length == 3;
         }
 
-        private LutCalculator[] InitLut(IccLut[] curves)
+        private static LutCalculator[] InitLut(IccLut[] curves)
         {
-            var calculators = new LutCalculator[curves.Length];
+            LutCalculator[] calculators = new LutCalculator[curves.Length];
             for (int i = 0; i < curves.Length; i++)
             {
                 calculators[i] = new LutCalculator(curves[i].Values, false);

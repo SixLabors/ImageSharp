@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
@@ -22,57 +22,57 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
         /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available</param>
         protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
         {
-            ConversionMethod method = this.GetConversionMethod(profile, renderingIntent);
+            ConversionMethod method = GetConversionMethod(profile, renderingIntent);
             switch (method)
             {
                 case ConversionMethod.D0:
                     this.calculator = toPcs ?
-                        this.InitD(profile, IccProfileTag.DToB0) :
-                        this.InitD(profile, IccProfileTag.BToD0);
+                        InitD(profile, IccProfileTag.DToB0) :
+                        InitD(profile, IccProfileTag.BToD0);
                     break;
 
                 case ConversionMethod.D1:
                     this.calculator = toPcs ?
-                        this.InitD(profile, IccProfileTag.DToB1) :
-                        this.InitD(profile, IccProfileTag.BToD1);
+                        InitD(profile, IccProfileTag.DToB1) :
+                        InitD(profile, IccProfileTag.BToD1);
                     break;
 
                 case ConversionMethod.D2:
                     this.calculator = toPcs ?
-                        this.InitD(profile, IccProfileTag.DToB2) :
-                        this.InitD(profile, IccProfileTag.BToD2);
+                        InitD(profile, IccProfileTag.DToB2) :
+                        InitD(profile, IccProfileTag.BToD2);
                     break;
 
                 case ConversionMethod.D3:
                     this.calculator = toPcs ?
-                        this.InitD(profile, IccProfileTag.DToB3) :
-                        this.InitD(profile, IccProfileTag.BToD3);
+                        InitD(profile, IccProfileTag.DToB3) :
+                        InitD(profile, IccProfileTag.BToD3);
                     break;
 
                 case ConversionMethod.A0:
                     this.calculator = toPcs ?
-                        this.InitA(profile, IccProfileTag.AToB0) :
-                        this.InitA(profile, IccProfileTag.BToA0);
+                        InitA(profile, IccProfileTag.AToB0) :
+                        InitA(profile, IccProfileTag.BToA0);
                     break;
 
                 case ConversionMethod.A1:
                     this.calculator = toPcs ?
-                        this.InitA(profile, IccProfileTag.AToB1) :
-                        this.InitA(profile, IccProfileTag.BToA1);
+                        InitA(profile, IccProfileTag.AToB1) :
+                        InitA(profile, IccProfileTag.BToA1);
                     break;
 
                 case ConversionMethod.A2:
                     this.calculator = toPcs ?
-                        this.InitA(profile, IccProfileTag.AToB2) :
-                        this.InitA(profile, IccProfileTag.BToA2);
+                        InitA(profile, IccProfileTag.AToB2) :
+                        InitA(profile, IccProfileTag.BToA2);
                     break;
 
                 case ConversionMethod.ColorTrc:
-                    this.calculator = this.InitColorTrc(profile, toPcs);
+                    this.calculator = InitColorTrc(profile, toPcs);
                     break;
 
                 case ConversionMethod.GrayTrc:
-                    this.calculator = this.InitGrayTrc(profile, toPcs);
+                    this.calculator = InitGrayTrc(profile, toPcs);
                     break;
 
                 case ConversionMethod.Invalid:
@@ -81,9 +81,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
             }
         }
 
-        private IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
+        private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
         {
-            IccTagDataEntry entry = this.GetTag(profile, tag);
+            IccTagDataEntry entry = GetTag(profile, tag);
             switch (entry)
             {
                 case IccLut8TagDataEntry lut8:
@@ -100,9 +100,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
             }
         }
 
-        private IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
+        private static IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
         {
-            IccMultiProcessElementsTagDataEntry entry = this.GetTag<IccMultiProcessElementsTagDataEntry>(profile, tag);
+            IccMultiProcessElementsTagDataEntry entry = GetTag<IccMultiProcessElementsTagDataEntry>(profile, tag);
             if (entry == null)
             {
                 throw new InvalidIccProfileException("Entry is null.");
@@ -111,15 +111,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
             throw new NotImplementedException("Multi process elements are not supported");
         }
 
-        private IVector4Calculator InitColorTrc(IccProfile profile, bool toPcs)
+        private static IVector4Calculator InitColorTrc(IccProfile profile, bool toPcs)
         {
-            IccXyzTagDataEntry redMatrixColumn = this.GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
-            IccXyzTagDataEntry greenMatrixColumn = this.GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
-            IccXyzTagDataEntry blueMatrixColumn = this.GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.BlueMatrixColumn);
+            IccXyzTagDataEntry redMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
+            IccXyzTagDataEntry greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
+            IccXyzTagDataEntry blueMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.BlueMatrixColumn);
 
-            IccTagDataEntry redTrc = this.GetTag(profile, IccProfileTag.RedTrc);
-            IccTagDataEntry greenTrc = this.GetTag(profile, IccProfileTag.GreenTrc);
-            IccTagDataEntry blueTrc = this.GetTag(profile, IccProfileTag.BlueTrc);
+            IccTagDataEntry redTrc = GetTag(profile, IccProfileTag.RedTrc);
+            IccTagDataEntry greenTrc = GetTag(profile, IccProfileTag.GreenTrc);
+            IccTagDataEntry blueTrc = GetTag(profile, IccProfileTag.BlueTrc);
 
             if (redMatrixColumn == null ||
                 greenMatrixColumn == null ||
@@ -141,9 +141,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
                 toPcs);
         }
 
-        private IVector4Calculator InitGrayTrc(IccProfile profile, bool toPcs)
+        private static IVector4Calculator InitGrayTrc(IccProfile profile, bool toPcs)
         {
-            IccTagDataEntry entry = this.GetTag(profile, IccProfileTag.GrayTrc);
+            IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
             return new GrayTrcCalculator(entry, toPcs);
         }
     }

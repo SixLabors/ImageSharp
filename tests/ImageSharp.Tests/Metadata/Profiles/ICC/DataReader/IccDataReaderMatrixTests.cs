@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 public class IccDataReaderMatrixTests
 {
     [Theory]
-    [MemberData(nameof(IccTestDataMatrix.Matrix2D_FloatArrayTestData), MemberType = typeof(IccTestDataMatrix))]
+    [MemberData(nameof(IccTestDataMatrix.Matrix2DFloatArrayTestData), MemberType = typeof(IccTestDataMatrix))]
     public void ReadMatrix2D(byte[] data, int xCount, int yCount, bool isSingle, float[,] expected)
     {
         IccDataReader reader = CreateReader(data);
@@ -20,7 +20,7 @@ public class IccDataReaderMatrixTests
     }
 
     [Theory]
-    [MemberData(nameof(IccTestDataMatrix.Matrix1D_ArrayTestData), MemberType = typeof(IccTestDataMatrix))]
+    [MemberData(nameof(IccTestDataMatrix.Matrix1DArrayTestData), MemberType = typeof(IccTestDataMatrix))]
     public void ReadMatrix1D(byte[] data, int yCount, bool isSingle, float[] expected)
     {
         IccDataReader reader = CreateReader(data);

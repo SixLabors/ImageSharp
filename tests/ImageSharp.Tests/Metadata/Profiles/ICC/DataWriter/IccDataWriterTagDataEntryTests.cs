@@ -153,7 +153,7 @@ public class IccDataWriterTagDataEntryTests
     }
 
     [Theory]
-    [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Write), MemberType = typeof(IccTestDataTagDataEntry))]
+    [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestDataWrite), MemberType = typeof(IccTestDataTagDataEntry))]
     internal void WriteMultiLocalizedUnicodeTagDataEntry(byte[] expected, IccMultiLocalizedUnicodeTagDataEntry data)
     {
         using IccDataWriter writer = CreateWriter();

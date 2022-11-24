@@ -11,15 +11,13 @@ public class IccReaderTests
     [Fact]
     public void ReadProfile_NoEntries()
     {
-        IccReader reader = this.CreateReader();
-
-        IccProfile output = IccReader.Read(IccTestDataProfiles.Header_Random_Array);
+        IccProfile output = IccReader.Read(IccTestDataProfiles.HeaderRandomArray);
 
         Assert.Equal(0, output.Entries.Length);
         Assert.NotNull(output.Header);
 
         IccProfileHeader header = output.Header;
-        IccProfileHeader expected = IccTestDataProfiles.Header_Random_Read;
+        IccProfileHeader expected = IccTestDataProfiles.HeaderRandomRead;
         Assert.Equal(header.Class, expected.Class);
         Assert.Equal(header.CmmType, expected.CmmType);
         Assert.Equal(header.CreationDate, expected.CreationDate);
@@ -42,16 +40,9 @@ public class IccReaderTests
     [Fact]
     public void ReadProfile_DuplicateEntry()
     {
-        IccReader reader = this.CreateReader();
-
-        IccProfile output = IccReader.Read(IccTestDataProfiles.Profile_Random_Array);
+        IccProfile output = IccReader.Read(IccTestDataProfiles.ProfileRandomArray);
 
         Assert.Equal(2, output.Entries.Length);
         Assert.True(ReferenceEquals(output.Entries[0], output.Entries[1]));
-    }
-
-    private IccReader CreateReader()
-    {
-        return new IccReader();
     }
 }

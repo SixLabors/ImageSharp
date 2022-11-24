@@ -166,7 +166,7 @@ public class IccDataReaderTagDataEntryTests
 
     [Theory]
     [MemberData(
-        nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Read),
+        nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestDataRead),
         MemberType = typeof(IccTestDataTagDataEntry))]
     internal void ReadMultiLocalizedUnicodeTagDataEntry(byte[] data, IccMultiLocalizedUnicodeTagDataEntry expected)
     {

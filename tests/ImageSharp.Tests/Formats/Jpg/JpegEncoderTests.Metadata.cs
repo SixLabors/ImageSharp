@@ -77,7 +77,7 @@ public partial class JpegEncoderTests
     {
         // arrange
         using var input = new Image<Rgba32>(1, 1);
-        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
+        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
 
         // act
         using var memStream = new MemoryStream();

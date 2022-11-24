@@ -2,10 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Globalization;
-using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Tests;
+namespace SixLabors.ImageSharp.Tests.TestDataIcc;
 
 internal static class IccTestDataTagDataEntry
 {

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 
@@ -30,8 +31,5 @@ public class IccDataReaderMatrixTests
         Assert.Equal(expected, output);
     }
 
-    private static IccDataReader CreateReader(byte[] data)
-    {
-        return new IccDataReader(data);
-    }
+    private static IccDataReader CreateReader(byte[] data) => new(data);
 }

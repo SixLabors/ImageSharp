@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
@@ -31,9 +31,9 @@ public class CieLchTests
         var x = default(CieLch);
         var y = new CieLch(Vector3.One);
 
-        Assert.True(default(CieLch) == default(CieLch));
-        Assert.False(default(CieLch) != default(CieLch));
-        Assert.Equal(default(CieLch), default(CieLch));
+        Assert.True(default(CieLch) == default);
+        Assert.False(default(CieLch) != default);
+        Assert.Equal(default(CieLch), default);
         Assert.Equal(new CieLch(1, 0, 1), new CieLch(1, 0, 1));
         Assert.Equal(new CieLch(Vector3.One), new CieLch(Vector3.One));
         Assert.False(x.Equals(y));

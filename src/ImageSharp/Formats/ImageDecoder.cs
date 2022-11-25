@@ -208,13 +208,6 @@ public abstract class ImageDecoder : IImageDecoder
                 stream.Position = position + s.Position;
             }
 
-            // TODO: This is a hack. Our decoders do not check for cancellation requests.
-            // We need to fix this properly by implemented each decoder.
-            if (ct.IsCancellationRequested)
-            {
-                throw new TaskCanceledException();
-            }
-
             return result;
         }
 

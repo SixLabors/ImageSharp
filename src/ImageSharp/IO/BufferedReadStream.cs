@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp.IO;
 /// </summary>
 internal sealed class BufferedReadStream : Stream
 {
+    private readonly CancellationToken cancellationToken;
+
     private readonly int maxBufferIndex;
 
     private readonly byte[] readBuffer;
@@ -33,11 +35,14 @@ internal sealed class BufferedReadStream : Stream
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="stream">The input stream.</param>
-    public BufferedReadStream(Configuration configuration, Stream stream)
+    /// <param name="cancellationToken">The optional cancellation token.</param>
+    public BufferedReadStream(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.IsTrue(stream.CanRead, nameof(stream), "Stream must be readable.");
         Guard.IsTrue(stream.CanSeek, nameof(stream), "Stream must be seekable.");
+
+        this.cancellationToken = cancellationToken;
 
         // Ensure all underlying buffers have been flushed before we attempt to read the stream.
         // User streams may have opted to throw from Flush if CanWrite is false
@@ -163,6 +168,8 @@ internal sealed class BufferedReadStream : Stream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Read(Span<byte> buffer)
     {
+        this.cancellationToken.ThrowIfCancellationRequested();
+
         // Too big for our buffer. Read directly from the stream.
         int count = buffer.Length;
         if (count > this.BufferSize)

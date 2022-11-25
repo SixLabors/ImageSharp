@@ -153,12 +153,13 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T PeformActionAndResetPosittion(Stream s, long position)
+        T PeformActionAndResetPosition(Stream s, long position)
         {
             T result = action(s);
 
             // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
+            // The stream is always seekable in this scenario.
             if (stream.Position != s.Position && s.Position != s.Length)
             {
                 stream.Position = position + s.Position;
@@ -169,7 +170,7 @@ public abstract class ImageDecoder : IImageDecoder
 
         if (stream.CanSeek)
         {
-            return PeformActionAndResetPosittion(stream, stream.Position);
+            return PeformActionAndResetPosition(stream, stream.Position);
         }
 
         Configuration configuration = options.Configuration;
@@ -177,7 +178,7 @@ public abstract class ImageDecoder : IImageDecoder
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
 
-        return PeformActionAndResetPosittion(memoryStream, 0);
+        return action(memoryStream);
     }
 
     internal static async Task<T> WithSeekableStreamAsync<T>(
@@ -200,14 +201,15 @@ public abstract class ImageDecoder : IImageDecoder
 
             // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            if (stream.Position != s.Position && s.Position != s.Length)
+            // We check here that the input stream is seekable because it is not guaranteed to be so since
+            // we always copy input streams of unknown type.
+            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
             {
                 stream.Position = position + s.Position;
             }
 
             // TODO: This is a hack. Our decoders do not check for cancellation requests.
-            // We need to fix this properly by implemented each decoder or allowing passing a token to BufferedReadStream
-            // which can do the check.
+            // We need to fix this properly by implemented each decoder.
             if (ct.IsCancellationRequested)
             {
                 throw new TaskCanceledException();
@@ -229,10 +231,11 @@ public abstract class ImageDecoder : IImageDecoder
             return PeformActionAndResetPosition(cms, cms.Position, cancellationToken);
         }
 
+        long position = stream.CanSeek ? stream.Position : 0;
         Configuration configuration = options.Configuration;
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
-        return PeformActionAndResetPosition(memoryStream, 0, cancellationToken);
+        return PeformActionAndResetPosition(memoryStream, position, cancellationToken);
     }
 }

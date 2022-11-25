@@ -26,7 +26,7 @@ public sealed class DecoderOptions
     public Configuration Configuration { get; internal set; } = Configuration.Default;
 
     /// <summary>
-    /// Gets the target size to decode the image into.
+    /// Gets the target size to decode the image into. Scaling should use an operation equivalent to <see cref="ResizeMode.Max"/>.
     /// </summary>
     public Size? TargetSize { get; init; }
 

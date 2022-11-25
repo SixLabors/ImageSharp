@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -154,13 +153,13 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T Action(Stream s, long position)
+        T PeformActionAndResetPosittion(Stream s, long position)
         {
             T result = action(s);
 
             // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+            if (stream.Position != s.Position && s.Position != s.Length)
             {
                 stream.Position = position + s.Position;
             }
@@ -170,7 +169,7 @@ public abstract class ImageDecoder : IImageDecoder
 
         if (stream.CanSeek)
         {
-            return Action(stream, stream.Position);
+            return PeformActionAndResetPosittion(stream, stream.Position);
         }
 
         Configuration configuration = options.Configuration;
@@ -178,7 +177,7 @@ public abstract class ImageDecoder : IImageDecoder
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
 
-        return Action(memoryStream, 0);
+        return PeformActionAndResetPosittion(memoryStream, 0);
     }
 
     internal static async Task<T> WithSeekableStreamAsync<T>(
@@ -195,17 +194,20 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T Action(Stream s, long position, CancellationToken ct)
+        T PeformActionAndResetPosition(Stream s, long position, CancellationToken ct)
         {
             T result = action(s, ct);
 
             // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
             // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+            if (stream.Position != s.Position && s.Position != s.Length)
             {
                 stream.Position = position + s.Position;
             }
 
+            // TODO: This is a hack. Our decoders do not check for cancellation requests.
+            // We need to fix this properly by implemented each decoder or allowing passing a token to BufferedReadStream
+            // which can do the check.
             if (ct.IsCancellationRequested)
             {
                 throw new TaskCanceledException();
@@ -219,28 +221,18 @@ public abstract class ImageDecoder : IImageDecoder
         // code below to copy the stream to an in-memory buffer before invoking the action.
         if (stream is MemoryStream ms)
         {
-            return Action(ms, ms.Position, cancellationToken);
+            return PeformActionAndResetPosition(ms, ms.Position, cancellationToken);
         }
 
         if (stream is ChunkedMemoryStream cms)
         {
-            return Action(cms, cms.Position, cancellationToken);
-        }
-
-        if (stream is BufferedReadStream brs && brs.BaseStream is MemoryStream)
-        {
-            return Action(brs, brs.Position, cancellationToken);
-        }
-
-        if (stream is BufferedReadStream brs2 && brs2.BaseStream is ChunkedMemoryStream)
-        {
-            return Action(brs2, brs2.Position, cancellationToken);
+            return PeformActionAndResetPosition(cms, cms.Position, cancellationToken);
         }
 
         Configuration configuration = options.Configuration;
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
-        return Action(memoryStream, 0, cancellationToken);
+        return PeformActionAndResetPosition(memoryStream, 0, cancellationToken);
     }
 }

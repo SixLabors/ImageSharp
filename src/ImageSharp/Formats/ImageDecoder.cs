@@ -31,7 +31,7 @@ public abstract class ImageDecoder : IImageDecoder
     /// <inheritdoc/>
     public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStreamAsync(
+        => WithSeekableMemoryStreamAsync(
             options,
             stream,
             (s, ct) => this.Decode<TPixel>(options, s, ct),
@@ -39,7 +39,7 @@ public abstract class ImageDecoder : IImageDecoder
 
     /// <inheritdoc/>
     public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-        => WithSeekableStreamAsync(
+        => WithSeekableMemoryStreamAsync(
             options,
             stream,
             (s, ct) => this.Decode(options, s, ct),
@@ -54,7 +54,7 @@ public abstract class ImageDecoder : IImageDecoder
 
     /// <inheritdoc/>
     public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-         => WithSeekableStreamAsync(
+         => WithSeekableMemoryStreamAsync(
              options,
              stream,
              (s, ct) => this.Identify(options, s, ct),
@@ -181,7 +181,7 @@ public abstract class ImageDecoder : IImageDecoder
         return action(memoryStream);
     }
 
-    internal static async Task<T> WithSeekableStreamAsync<T>(
+    internal static async Task<T> WithSeekableMemoryStreamAsync<T>(
         DecoderOptions options,
         Stream stream,
         Func<Stream, CancellationToken, T> action,

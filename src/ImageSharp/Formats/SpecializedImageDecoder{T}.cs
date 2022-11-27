@@ -32,7 +32,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
     /// <inheritdoc/>
     public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStreamAsync(
+        => WithSeekableMemoryStreamAsync(
             options.GeneralOptions,
             stream,
             (s, ct) => this.Decode<TPixel>(options, s, ct),
@@ -40,7 +40,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
 
     /// <inheritdoc/>
     public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken)
-        => WithSeekableStreamAsync(
+        => WithSeekableMemoryStreamAsync(
             options.GeneralOptions,
             stream,
             (s, ct) => this.Decode(options, s, ct),

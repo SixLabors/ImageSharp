@@ -71,7 +71,6 @@ public class TiffMetadataTests
         Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
         Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
-        Assert.Equal(TiffPredictor.None, frameMetaData.Predictor);
     }
 
     [Theory]
@@ -129,7 +128,7 @@ public class TiffMetadataTests
             Assert.NotNull(rootFrameMetaData.XmpProfile);
             Assert.NotNull(rootFrameMetaData.ExifProfile);
             Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
-            Assert.Equal(26, rootFrameMetaData.ExifProfile.Values.Count);
+            Assert.Equal(25, rootFrameMetaData.ExifProfile.Values.Count);
         }
     }
 
@@ -163,38 +162,33 @@ public class TiffMetadataTests
         TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
         Assert.NotNull(exifProfile);
 
-        // The original exifProfile has 30 values, but 4 of those values will be stored in the TiffFrameMetaData
-        // and removed from the profile on decode.
-        Assert.Equal(26, exifProfile.Values.Count);
+        Assert.Equal(25, exifProfile.Values.Count);
         Assert.Equal(TiffBitsPerPixel.Bit4, tiffFrameMetadata.BitsPerPixel);
         Assert.Equal(TiffCompression.Lzw, tiffFrameMetadata.Compression);
-        Assert.Equal("This is Название", exifProfile.GetValue(ExifTag.ImageDescription).Value);
-        Assert.Equal("This is Изготовитель камеры", exifProfile.GetValue(ExifTag.Make).Value);
-        Assert.Equal("This is Модель камеры", exifProfile.GetValue(ExifTag.Model).Value);
-        Assert.Equal("IrfanView", exifProfile.GetValue(ExifTag.Software).Value);
+        Assert.Equal("ImageDescription", exifProfile.GetValue(ExifTag.ImageDescription).Value);
+        Assert.Equal("Make", exifProfile.GetValue(ExifTag.Make).Value);
+        Assert.Equal("Model", exifProfile.GetValue(ExifTag.Model).Value);
+        Assert.Equal("ImageSharp", exifProfile.GetValue(ExifTag.Software).Value);
         Assert.Null(exifProfile.GetValue(ExifTag.DateTime)?.Value);
-        Assert.Equal("This is author1;Author2", exifProfile.GetValue(ExifTag.Artist).Value);
+        Assert.Equal("Artist", exifProfile.GetValue(ExifTag.Artist).Value);
         Assert.Null(exifProfile.GetValue(ExifTag.HostComputer)?.Value);
-        Assert.Equal("This is Авторские права", exifProfile.GetValue(ExifTag.Copyright).Value);
+        Assert.Equal("Copyright", exifProfile.GetValue(ExifTag.Copyright).Value);
         Assert.Equal(4, exifProfile.GetValue(ExifTag.Rating).Value);
         Assert.Equal(75, exifProfile.GetValue(ExifTag.RatingPercent).Value);
-        var expectedResolution = new Rational(10000, 1000, simplify: false);
+        var expectedResolution = new Rational(10, 1, simplify: false);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
         Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
-        Assert.Equal(new Number[] { 297u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
+        Assert.Equal(new Number[] { 285u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
         Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples)?.Value);
         Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
         Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat));
-        Assert.Equal(TiffPredictor.None, tiffFrameMetadata.Predictor);
         Assert.Equal(PixelResolutionUnit.PixelsPerInch, UnitConverter.ExifProfileToResolutionUnit(exifProfile));
         ushort[] colorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
         Assert.NotNull(colorMap);
         Assert.Equal(48, colorMap.Length);
-        Assert.Equal(10537, colorMap[0]);
-        Assert.Equal(14392, colorMap[1]);
-        Assert.Equal(58596, colorMap[46]);
-        Assert.Equal(3855, colorMap[47]);
+        Assert.Equal(4369, colorMap[0]);
+        Assert.Equal(8738, colorMap[1]);
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffFrameMetadata.PhotometricInterpretation);
         Assert.Equal(1u, exifProfile.GetValue(ExifTag.SamplesPerPixel).Value);
 
@@ -238,7 +232,7 @@ public class TiffMetadataTests
     {
         // Load Tiff image
         DecoderOptions options = new() { SkipMetadata = false };
-        using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder, options);
 
         ImageMetadata inputMetaData = image.Metadata;
         ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;
@@ -284,17 +278,15 @@ public class TiffMetadataTests
         Assert.NotNull(encodedImageXmpProfile);
         Assert.Equal(xmpProfileInput.Data, encodedImageXmpProfile.Data);
 
-        Assert.Equal("IrfanView", exifProfileInput.GetValue(ExifTag.Software).Value);
-        Assert.Equal("This is Название", exifProfileInput.GetValue(ExifTag.ImageDescription).Value);
-        Assert.Equal("This is Изготовитель камеры", exifProfileInput.GetValue(ExifTag.Make).Value);
-        Assert.Equal("This is Авторские права", exifProfileInput.GetValue(ExifTag.Copyright).Value);
-
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Software).Value, encodedImageExifProfile.GetValue(ExifTag.Software).Value);
         Assert.Equal(exifProfileInput.GetValue(ExifTag.ImageDescription).Value, encodedImageExifProfile.GetValue(ExifTag.ImageDescription).Value);
         Assert.Equal(exifProfileInput.GetValue(ExifTag.Make).Value, encodedImageExifProfile.GetValue(ExifTag.Make).Value);
         Assert.Equal(exifProfileInput.GetValue(ExifTag.Copyright).Value, encodedImageExifProfile.GetValue(ExifTag.Copyright).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Artist).Value, encodedImageExifProfile.GetValue(ExifTag.Artist).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Orientation).Value, encodedImageExifProfile.GetValue(ExifTag.Orientation).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Model).Value, encodedImageExifProfile.GetValue(ExifTag.Model).Value);
 
-        // Note that the encoded profile has PlanarConfiguration explicitly set, which is missing in the original image profile.
         Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
-        Assert.Equal(exifProfileInput.Values.Count + 1, encodedImageExifProfile.Values.Count);
+        Assert.Equal(exifProfileInput.Values.Count, encodedImageExifProfile.Values.Count);
     }
 }

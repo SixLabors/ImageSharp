@@ -35,7 +35,7 @@ internal sealed class BufferedReadStream : Stream
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="stream">The input stream.</param>
-    /// <param name="cancellationToken">The optional cancellation token.</param>
+    /// <param name="cancellationToken">The optional stream-level cancellation token to detect cancellation in synchronous methods.</param>
     public BufferedReadStream(Configuration configuration, Stream stream, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(configuration, nameof(configuration));

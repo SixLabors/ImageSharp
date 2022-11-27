@@ -4,44 +4,43 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+
+internal class TrcCalculator : IVector4Calculator
 {
-    internal class TrcCalculator : IVector4Calculator
+    private ISingleCalculator[] calculators;
+
+    public TrcCalculator(IccTagDataEntry[] entries, bool inverted)
     {
-        private ISingleCalculator[] calculators;
+        Guard.NotNull(entries, nameof(entries));
 
-        public TrcCalculator(IccTagDataEntry[] entries, bool inverted)
+        this.calculators = new ISingleCalculator[entries.Length];
+        for (int i = 0; i < entries.Length; i++)
         {
-            Guard.NotNull(entries, nameof(entries));
-
-            this.calculators = new ISingleCalculator[entries.Length];
-            for (int i = 0; i < entries.Length; i++)
+            switch (entries[i])
             {
-                switch (entries[i])
-                {
-                    case IccCurveTagDataEntry curve:
-                        this.calculators[i] = new CurveCalculator(curve, inverted);
-                        break;
+                case IccCurveTagDataEntry curve:
+                    this.calculators[i] = new CurveCalculator(curve, inverted);
+                    break;
 
-                    case IccParametricCurveTagDataEntry parametricCurve:
-                        this.calculators[i] = new ParametricCurveCalculator(parametricCurve, inverted);
-                        break;
+                case IccParametricCurveTagDataEntry parametricCurve:
+                    this.calculators[i] = new ParametricCurveCalculator(parametricCurve, inverted);
+                    break;
 
-                    default:
-                        throw new InvalidIccProfileException("Invalid Entry.");
-                }
+                default:
+                    throw new InvalidIccProfileException("Invalid Entry.");
             }
         }
+    }
 
-        public unsafe Vector4 Calculate(Vector4 value)
+    public unsafe Vector4 Calculate(Vector4 value)
+    {
+        float* valuePointer = (float*)&value;
+        for (int i = 0; i < this.calculators.Length; i++)
         {
-            float* valuePointer = (float*)&value;
-            for (int i = 0; i < this.calculators.Length; i++)
-            {
-                valuePointer[i] = this.calculators[i].Calculate(valuePointer[i]);
-            }
-
-            return value;
+            valuePointer[i] = this.calculators[i].Calculate(valuePointer[i]);
         }
+
+        return value;
     }
 }

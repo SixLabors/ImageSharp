@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -20,7 +20,7 @@ internal class MatrixCalculator : IVector4Calculator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Calculate(Vector4 value)
     {
-        var transformed = Vector4.Transform(value, this.matrix2D);
+        Vector4 transformed = Vector4.Transform(value, this.matrix2D);
         return Vector4.Add(this.matrix1D, transformed);
     }
 }

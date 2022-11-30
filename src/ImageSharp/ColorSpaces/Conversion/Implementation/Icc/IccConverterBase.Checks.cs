@@ -31,9 +31,7 @@ internal abstract partial class IccConverterBase
 
     private static ConversionMethod CheckMethod1(IccProfile profile, IccRenderingIntent renderingIntent)
     {
-        ConversionMethod method = ConversionMethod.Invalid;
-
-        method = CheckMethodD(profile, renderingIntent);
+        ConversionMethod method = CheckMethodD(profile, renderingIntent);
         if (method != ConversionMethod.Invalid)
         {
             return method;

@@ -29,8 +29,5 @@ internal abstract partial class IccConverterBase
     /// <param name="value">The value to convert</param>
     /// <returns>The converted value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 Calculate(Vector4 value)
-    {
-        return this.calculator.Calculate(value);
-    }
+    public Vector4 Calculate(Vector4 value) => this.calculator.Calculate(value);
 }

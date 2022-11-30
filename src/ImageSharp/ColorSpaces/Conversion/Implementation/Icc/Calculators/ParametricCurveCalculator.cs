@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -9,8 +8,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 
 internal class ParametricCurveCalculator : ISingleCalculator
 {
-    private IccParametricCurve curve;
-    private IccParametricCurveType type;
+    private readonly IccParametricCurve curve;
+    private readonly IccParametricCurveType type;
     private const IccParametricCurveType InvertedFlag = (IccParametricCurveType)(1 << 3);
 
     public ParametricCurveCalculator(IccParametricCurveTagDataEntry entry, bool inverted)
@@ -26,41 +25,23 @@ internal class ParametricCurveCalculator : ISingleCalculator
     }
 
     public float Calculate(float value)
-    {
-        switch (this.type)
+        => this.type switch
         {
-            case IccParametricCurveType.Type1:
-                return this.CalculateGamma(value);
-            case IccParametricCurveType.Cie122_1996:
-                return this.CalculateCie122(value);
-            case IccParametricCurveType.Iec61966_3:
-                return this.CalculateIec61966(value);
-            case IccParametricCurveType.SRgb:
-                return this.CalculateSRgb(value);
-            case IccParametricCurveType.Type5:
-                return this.CalculateType5(value);
-
-            case IccParametricCurveType.Type1 | InvertedFlag:
-                return this.CalculateInvertedGamma(value);
-            case IccParametricCurveType.Cie122_1996 | InvertedFlag:
-                return this.CalculateInvertedCie122(value);
-            case IccParametricCurveType.Iec61966_3 | InvertedFlag:
-                return this.CalculateInvertedIec61966(value);
-            case IccParametricCurveType.SRgb | InvertedFlag:
-                return this.CalculateInvertedSRgb(value);
-            case IccParametricCurveType.Type5 | InvertedFlag:
-                return this.CalculateInvertedType5(value);
-
-            default:
-                throw new InvalidIccProfileException("ParametricCurve");
-        }
-    }
+            IccParametricCurveType.Type1 => this.CalculateGamma(value),
+            IccParametricCurveType.Cie122_1996 => this.CalculateCie122(value),
+            IccParametricCurveType.Iec61966_3 => this.CalculateIec61966(value),
+            IccParametricCurveType.SRgb => this.CalculateSRgb(value),
+            IccParametricCurveType.Type5 => this.CalculateType5(value),
+            IccParametricCurveType.Type1 | InvertedFlag => this.CalculateInvertedGamma(value),
+            IccParametricCurveType.Cie122_1996 | InvertedFlag => this.CalculateInvertedCie122(value),
+            IccParametricCurveType.Iec61966_3 | InvertedFlag => this.CalculateInvertedIec61966(value),
+            IccParametricCurveType.SRgb | InvertedFlag => this.CalculateInvertedSRgb(value),
+            IccParametricCurveType.Type5 | InvertedFlag => this.CalculateInvertedType5(value),
+            _ => throw new InvalidIccProfileException("ParametricCurve"),
+        };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private float CalculateGamma(float value)
-    {
-        return MathF.Pow(value, this.curve.G);
-    }
+    private float CalculateGamma(float value) => MathF.Pow(value, this.curve.G);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float CalculateCie122(float value)
@@ -116,15 +97,11 @@ internal class ParametricCurveCalculator : ISingleCalculator
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float CalculateInvertedGamma(float value)
-    {
-        return MathF.Pow(value, 1 / this.curve.G);
-    }
+        => MathF.Pow(value, 1 / this.curve.G);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float CalculateInvertedCie122(float value)
-    {
-        return (MathF.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
-    }
+        => (MathF.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float CalculateInvertedIec61966(float value)

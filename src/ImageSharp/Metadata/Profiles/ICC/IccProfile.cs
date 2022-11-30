@@ -174,7 +174,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return copy;
         }
 
-        IccWriter writer = new();
         return IccWriter.Write(this);
     }
 
@@ -191,7 +190,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return;
         }
 
-        IccReader reader = new();
         this.header = IccReader.ReadHeader(this.data);
     }
 

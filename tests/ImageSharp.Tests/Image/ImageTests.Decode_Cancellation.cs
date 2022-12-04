@@ -16,7 +16,7 @@ public partial class ImageTests
 
         public Decode_Cancellation() => this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
 
-        private static TheoryData<bool, string, double> GetTestData()
+        private static TheoryData<bool, string, double> GetTestData(bool identify)
         {
             string[] testFileForEachCodec = new[]
             {
@@ -39,17 +39,23 @@ public partial class ImageTests
                 foreach (double p in percentages)
                 {
                     data.Add(false, file, p);
-                    data.Add(true, file, p);
+
+                    // Do not test "direct" decoder cancellation for Identify for percentages other than 0% to avoid fine-tuning the percentages.
+                    // Cancellation should happen before we read enough data to consider the stream "identified". This can be very early for some formats/files.
+                    if (!identify && p > 0)
+                    {
+                        data.Add(true, file, p);
+                    }
                 }
             }
 
             return data;
         }
 
-        public static TheoryData<bool, string, double> TestData { get; } = GetTestData();
+        public static TheoryData<bool, string, double> IdentifyData { get; } = GetTestData(identify: true);
 
         [Theory]
-        [MemberData(nameof(TestData))]
+        [MemberData(nameof(IdentifyData))]
         public async Task IdentifyAsync_IsCancellable(bool useMemoryStream, string file, double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();
@@ -82,8 +88,10 @@ public partial class ImageTests
                 .WaitAsync(TimeSpan.FromSeconds(10));
         }
 
+        public static TheoryData<bool, string, double> LoadData { get; } = GetTestData(identify: false);
+
         [Theory]
-        [MemberData(nameof(TestData))]
+        [MemberData(nameof(LoadData))]
         public async Task LoadAsync_IsCancellable(bool useMemoryStream, string file, double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();

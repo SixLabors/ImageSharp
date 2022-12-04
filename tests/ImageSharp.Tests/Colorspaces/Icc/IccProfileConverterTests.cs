@@ -9,16 +9,15 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc;
 public class IccProfileConverterTests
 {
-    private static PngEncoder Encoder = new PngEncoder();
+    private static readonly PngEncoder Encoder = new();
 
     [Theory]
     [WithFile(TestImages.Jpeg.ICC.AdobeRgb, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.AppleRGB, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.ColorMatch, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.WideRGB, PixelTypes.Rgb24)]
-
-    // [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgb24)] ConverterBase says this is invalid.
-    // [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgb24)] ConverterBase says this is invalid.
+    [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgb24)]
     public void CanRoundTripProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -37,10 +36,9 @@ public class IccProfileConverterTests
         Assert.Equal(expected, actual);
     }
 
-    // TODO: This fails as the base calculator says sRGB is invalid.
     [Theory]
     [WithFile(TestImages.Jpeg.ICC.AdobeRgb, PixelTypes.Rgb24)]
-    public void CanConvertTosRGB<TPixel>(TestImageProvider<TPixel> provider)
+    public void CanConvertToWide<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

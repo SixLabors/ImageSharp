@@ -1,15 +1,14 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 
 internal class LutCalculator : ISingleCalculator
 {
-    private float[] lut;
-    private bool inverse;
+    private readonly float[] lut;
+    private readonly bool inverse;
 
     public LutCalculator(float[] lut, bool inverse)
     {
@@ -25,10 +24,8 @@ internal class LutCalculator : ISingleCalculator
         {
             return this.LookupInverse(value);
         }
-        else
-        {
-            return this.Lookup(value);
-        }
+
+        return this.Lookup(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,7 +34,13 @@ internal class LutCalculator : ISingleCalculator
         float factor = value * (this.lut.Length - 1);
         int index = (int)factor;
         float low = this.lut[index];
-        float high = this.lut[index + 1];
+
+        float high = 1F;
+        if (index < this.lut.Length - 1)
+        {
+            high = this.lut[index + 1];
+        }
+
         return low + ((high - low) * (factor - index));
     }
 

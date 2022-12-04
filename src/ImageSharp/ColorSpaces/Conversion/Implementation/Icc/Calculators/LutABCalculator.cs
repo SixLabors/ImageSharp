@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 

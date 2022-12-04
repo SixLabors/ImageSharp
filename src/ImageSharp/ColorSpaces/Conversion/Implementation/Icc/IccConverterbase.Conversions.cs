@@ -22,8 +22,7 @@ internal abstract partial class IccConverterBase
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available</param>
     protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
     {
-        ConversionMethod method = GetConversionMethod(profile, renderingIntent);
-        switch (method)
+        switch (GetConversionMethod(profile, renderingIntent))
         {
             case ConversionMethod.D0:
                 this.calculator = toPcs ?
@@ -83,8 +82,7 @@ internal abstract partial class IccConverterBase
 
     private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
     {
-        IccTagDataEntry entry = GetTag(profile, tag);
-        switch (entry)
+        switch (GetTag(profile, tag))
         {
             case IccLut8TagDataEntry lut8:
                 return new LutEntryCalculator(lut8);
@@ -96,6 +94,8 @@ internal abstract partial class IccConverterBase
                 return new LutABCalculator(lutBtoA);
 
             default:
+
+                // TODO: This is where we likely return a matrix calculator.
                 throw new InvalidIccProfileException("Invalid entry.");
         }
     }

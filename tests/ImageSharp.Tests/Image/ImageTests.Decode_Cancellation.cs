@@ -16,16 +16,47 @@ public partial class ImageTests
 
         public Decode_Cancellation() => this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
 
-        private static readonly string TestFile = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car);
+        private static TheoryData<bool, string, double> GetTestData()
+        {
+            string[] testFileForEachCodec = new[]
+            {
+                TestImages.Png.BikeSmall,
+                TestImages.Jpeg.Baseline.Jpeg420Small,
+                TestImages.Bmp.Car,
+                TestImages.Tiff.RgbUncompressed,
+                TestImages.Gif.Kumin,
+                TestImages.Tga.Bit32PalRleBottomLeft,
+                TestImages.Webp.TestPatternOpaqueSmall,
+                TestImages.Pbm.GrayscaleBinaryWide
+            };
 
-        public static readonly TheoryData<double> Percentages = new() { 0, 0.5, 0.9 };
+            double[] percentages = new[] { 0, 0.5, 0.9 };
+
+            TheoryData<bool, string, double> data = new();
+
+            foreach (string file in testFileForEachCodec)
+            {
+                foreach (double p in percentages)
+                {
+                    data.Add(false, file, p);
+                    data.Add(true, file, p);
+                }
+            }
+
+            return data;
+        }
+
+        public static TheoryData<bool, string, double> TestData { get; } = GetTestData();
 
         [Theory]
-        [MemberData(nameof(Percentages))]
-        public async Task IdentifyAsync_IsCancellable(double percentageOfStreamReadToCancel)
+        [MemberData(nameof(TestData))]
+        public async Task IdentifyAsync_IsCancellable(bool useMemoryStream, string file, double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();
-            using PausedStream pausedStream = new(TestFile);
+            using IPausedStream pausedStream = useMemoryStream ?
+                new PausedMemoryStream(TestFile.Create(file).Bytes) :
+                new PausedStream(TestFile.GetInputFileFullPath(file));
+
             pausedStream.OnWaiting(s =>
             {
                 if (s.Position >= s.Length * percentageOfStreamReadToCancel)
@@ -40,21 +71,26 @@ public partial class ImageTests
             });
 
             Configuration configuration = Configuration.CreateDefaultInstance();
-            configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+            configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
             DecoderOptions options = new()
             {
                 Configuration = configuration
             };
 
-            await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token))
+                .WaitAsync(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
-        [MemberData(nameof(Percentages))]
-        public async Task LoadAsync_IsCancellable(double percentageOfStreamReadToCancel)
+        [MemberData(nameof(TestData))]
+        public async Task LoadAsync_IsCancellable(bool useMemoryStream, string file, double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();
-            using PausedStream pausedStream = new(TestFile);
+            using IPausedStream pausedStream = useMemoryStream ?
+                new PausedMemoryStream(TestFile.Create(file).Bytes) :
+                new PausedStream(TestFile.GetInputFileFullPath(file));
+
             pausedStream.OnWaiting(s =>
             {
                 if (s.Position >= s.Length * percentageOfStreamReadToCancel)
@@ -69,16 +105,16 @@ public partial class ImageTests
             });
 
             Configuration configuration = Configuration.CreateDefaultInstance();
-            configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+            configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
             DecoderOptions options = new()
             {
                 Configuration = configuration
             };
 
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
-            });
+            }).WaitAsync(TimeSpan.FromSeconds(10));
         }
 
         protected override Stream CreateStream() => this.TestFormat.CreateAsyncSemaphoreStream(this.notifyWaitPositionReachedSemaphore, this.continueSemaphore, this.isTestStreamSeekable);

@@ -16,31 +16,16 @@ public partial class ImageTests
 
         public Decode_Cancellation() => this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
 
-        private static readonly string[] TestFiles = new[]
-        {
-            TestImages.Png.BikeSmall,
-            TestImages.Jpeg.Baseline.Jpeg420Small,
-            TestImages.Bmp.Car,
-            TestImages.Tiff.RgbUncompressed,
-            TestImages.Gif.Kumin,
-            TestImages.Tga.Bit32PalRleBottomLeft,
-            TestImages.Webp.TestPatternOpaqueSmall,
-            TestImages.Pbm.RgbPlainMagick
-        };
+        private static readonly string TestFile = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car);
 
-        private static readonly double[] CancellationPercentages = new[] { 0, 0.5, 0.9 };
-
-        public static readonly object[][] TestFilesWithPercentages = TestFiles
-            .SelectMany(f => CancellationPercentages.Select(p => new object[] { f, p }))
-            .ToArray();
+        public static readonly TheoryData<double> Percentages = new() { 0, 0.5, 0.9 };
 
         [Theory]
-        [MemberData(nameof(TestFilesWithPercentages))]
-        public async Task IdentifyAsync_IsCancellable(string file, double percentageOfStreamReadToCancel)
+        [MemberData(nameof(Percentages))]
+        public async Task IdentifyAsync_IsCancellable(double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();
-            string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file);
-            using PausedStream pausedStream = new(path);
+            using PausedStream pausedStream = new(TestFile);
             pausedStream.OnWaiting(s =>
             {
                 if (s.Position >= s.Length * percentageOfStreamReadToCancel)
@@ -65,12 +50,11 @@ public partial class ImageTests
         }
 
         [Theory]
-        [MemberData(nameof(TestFilesWithPercentages))]
-        public async Task LoadAsync_IsCancellable(string file, double percentageOfStreamReadToCancel)
+        [MemberData(nameof(Percentages))]
+        public async Task LoadAsync_IsCancellable(double percentageOfStreamReadToCancel)
         {
             CancellationTokenSource cts = new();
-            string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file);
-            using PausedStream pausedStream = new(path);
+            using PausedStream pausedStream = new(TestFile);
             pausedStream.OnWaiting(s =>
             {
                 if (s.Position >= s.Length * percentageOfStreamReadToCancel)

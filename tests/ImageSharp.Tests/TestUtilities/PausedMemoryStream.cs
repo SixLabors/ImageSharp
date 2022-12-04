@@ -5,13 +5,17 @@ using System.Buffers;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
-public class PausedStream : Stream, IPausedStream
+/// <summary>
+/// <see cref="PausedMemoryStream"/> is a variant of <see cref="PausedStream"/> that derives from <see cref="MemoryStream"/> instead of encapsulating it.
+/// It is used to test decoder cancellation without relying on of our standard prefetching of arbitrary streams to <see cref="ImageSharp.IO.ChunkedMemoryStream"/>
+/// on asynchronous path.
+/// </summary>
+public class PausedMemoryStream : MemoryStream, IPausedStream
 {
     private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0);
 
     private readonly CancellationTokenSource cancelationTokenSource = new CancellationTokenSource();
 
-    private readonly Stream innerStream;
     private Action<Stream> onWaitingCallback;
 
     public void OnWaiting(Action<Stream> onWaitingCallback) => this.onWaitingCallback = onWaitingCallback;
@@ -33,7 +37,7 @@ public class PausedStream : Stream, IPausedStream
             return;
         }
 
-        this.onWaitingCallback?.Invoke(this.innerStream);
+        this.onWaitingCallback?.Invoke(this);
 
         try
         {
@@ -71,21 +75,14 @@ public class PausedStream : Stream, IPausedStream
         action();
     }
 
-    public PausedStream(byte[] data)
-        : this(new MemoryStream(data))
+    public PausedMemoryStream(byte[] data)
+        : base(data)
     {
     }
 
-    public PausedStream(string filePath)
-        : this(File.OpenRead(filePath))
-    {
-    }
+    public override bool CanTimeout => base.CanTimeout;
 
-    public PausedStream(Stream innerStream) => this.innerStream = innerStream;
-
-    public override bool CanTimeout => this.innerStream.CanTimeout;
-
-    public override void Close() => this.Await(() => this.innerStream.Close());
+    public override void Close() => this.Await(() => base.Close());
 
     public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
@@ -107,43 +104,29 @@ public class PausedStream : Stream, IPausedStream
         }
     }
 
-    public override bool CanRead => this.innerStream.CanRead;
+    public override bool CanRead => base.CanRead;
 
-    public override bool CanSeek => this.innerStream.CanSeek;
+    public override bool CanSeek => base.CanSeek;
 
-    public override bool CanWrite => this.innerStream.CanWrite;
+    public override bool CanWrite => base.CanWrite;
 
-    public override long Length => this.innerStream.Length;
+    public override void Flush() => this.Await(() => base.Flush());
 
-    public override long Position { get => this.innerStream.Position; set => this.innerStream.Position = value; }
+    public override int Read(byte[] buffer, int offset, int count) => this.Await(() => base.Read(buffer, offset, count));
 
-    public override void Flush() => this.Await(() => this.innerStream.Flush());
+    public override long Seek(long offset, SeekOrigin origin) => this.Await(() => base.Seek(offset, origin));
 
-    public override int Read(byte[] buffer, int offset, int count) => this.Await(() => this.innerStream.Read(buffer, offset, count));
+    public override void SetLength(long value) => this.Await(() => base.SetLength(value));
 
-    public override long Seek(long offset, SeekOrigin origin) => this.Await(() => this.innerStream.Seek(offset, origin));
+    public override void Write(byte[] buffer, int offset, int count) => this.Await(() => base.Write(buffer, offset, count));
 
-    public override void SetLength(long value) => this.Await(() => this.innerStream.SetLength(value));
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => base.ReadAsync(buffer, offset, count, cancellationToken));
 
-    public override void Write(byte[] buffer, int offset, int count) => this.Await(() => this.innerStream.Write(buffer, offset, count));
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => base.WriteAsync(buffer, offset, count, cancellationToken));
 
-    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.ReadAsync(buffer, offset, count, cancellationToken));
+    public override void WriteByte(byte value) => this.Await(() => base.WriteByte(value));
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.Await(() => this.innerStream.WriteAsync(buffer, offset, count, cancellationToken));
-
-    public override void WriteByte(byte value) => this.Await(() => this.innerStream.WriteByte(value));
-
-    public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-
-        if (disposing)
-        {
-            this.innerStream.Dispose();
-        }
-    }
+    public override int ReadByte() => this.Await(() => base.ReadByte());
 
     public override void CopyTo(Stream destination, int bufferSize)
     {
@@ -166,16 +149,16 @@ public class PausedStream : Stream, IPausedStream
     public override int Read(Span<byte> buffer)
     {
         this.Wait();
-        return this.innerStream.Read(buffer);
+        return base.Read(buffer);
     }
 
-    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.ReadAsync(buffer, cancellationToken));
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => base.ReadAsync(buffer, cancellationToken));
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
         this.Wait();
-        this.innerStream.Write(buffer);
+        base.Write(buffer);
     }
 
-    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => this.innerStream.WriteAsync(buffer, cancellationToken));
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => this.Await(() => base.WriteAsync(buffer, cancellationToken));
 }

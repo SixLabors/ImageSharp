@@ -251,54 +251,6 @@ public partial class JpegDecoderTests
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
-    [Fact]
-    public async Task DecodeAsync_IsCancellable()
-    {
-        var cts = new CancellationTokenSource();
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
-        {
-            cts.Cancel();
-            pausedStream.Release();
-        });
-
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
-        DecoderOptions options = new()
-        {
-            Configuration = configuration
-        };
-
-        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-        {
-            using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
-        });
-    }
-
-    [Fact]
-    public async Task Identify_IsCancellable()
-    {
-        var cts = new CancellationTokenSource();
-
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
-        {
-            cts.Cancel();
-            pausedStream.Release();
-        });
-
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
-        DecoderOptions options = new()
-        {
-            Configuration = configuration
-        };
-
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
-    }
-
     [Theory]
     [WithFileCollection(nameof(UnsupportedTestJpegs), PixelTypes.Rgba32)]
     public void ThrowsNotSupported_WithUnsupportedJpegs<TPixel>(TestImageProvider<TPixel> provider)

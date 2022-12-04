@@ -85,8 +85,6 @@ public class PausedStream : Stream, IPausedStream
 
     public override bool CanTimeout => this.innerStream.CanTimeout;
 
-    public override void Close() => this.Await(() => this.innerStream.Close());
-
     public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
         // To make sure the copy operation is buffered and pausable, we should override MemoryStream's strategy

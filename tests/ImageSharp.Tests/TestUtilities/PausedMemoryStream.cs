@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
 /// <summary>
 /// <see cref="PausedMemoryStream"/> is a variant of <see cref="PausedStream"/> that derives from <see cref="MemoryStream"/> instead of encapsulating it.
-/// It is used to test decoder cancellation without relying on of our standard prefetching of arbitrary streams to <see cref="ImageSharp.IO.ChunkedMemoryStream"/>
+/// It is used to test decoder REacellation without relying on of our standard prefetching of arbitrary streams to <see cref="ImageSharp.IO.ChunkedMemoryStream"/>
 /// on asynchronous path.
 /// </summary>
 public class PausedMemoryStream : MemoryStream, IPausedStream
@@ -81,8 +81,6 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
     }
 
     public override bool CanTimeout => base.CanTimeout;
-
-    public override void Close() => this.Await(() => base.Close());
 
     public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {

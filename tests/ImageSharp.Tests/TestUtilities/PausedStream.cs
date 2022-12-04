@@ -89,8 +89,8 @@ public class PausedStream : Stream, IPausedStream
 
     public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
-        // To make sure the copy operation is buffered and pausable, we should override innerStream's strategy
-        // with the default Stream copy logic based from System.IO.Stream:
+        // To make sure the copy operation is buffered and pausable, we should override MemoryStream's strategy
+        // with the default Stream copy logic of System.IO.Stream:
         // https://github.com/dotnet/runtime/blob/4f53c2f7e62df44f07cf410df8a0d439f42a0a71/src/libraries/System.Private.CoreLib/src/System/IO/Stream.cs#L104-L116
         byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try

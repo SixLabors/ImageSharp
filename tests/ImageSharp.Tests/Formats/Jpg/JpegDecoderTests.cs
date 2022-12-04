@@ -251,15 +251,27 @@ public partial class JpegDecoderTests
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(0.5)]
-    [InlineData(0.9)]
-    public async Task DecodeAsync_IsCancellable(double percentageOfStreamReadToCancel)
+    private static readonly TestFile CancellationTestFile = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420Small);
+
+    public static readonly TheoryData<bool, double> CancellationData = new()
     {
-        var cts = new CancellationTokenSource();
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
+        { false, 0 },
+        { false, 0.5 },
+        { false, 0.9 },
+        { true, 0 },
+        { true, 0.5 },
+        { true, 0.9 },
+    };
+
+    [Theory]
+    [MemberData(nameof(CancellationData))]
+    public async Task DecodeAsync_IsCancellable(bool useMemoryStream, double percentageOfStreamReadToCancel)
+    {
+        CancellationTokenSource cts = new();
+        using IPausedStream pausedStream = useMemoryStream ?
+            new PausedMemoryStream(CancellationTestFile.Bytes) :
+            new PausedStream(CancellationTestFile.FullPath);
+
         pausedStream.OnWaiting(s =>
         {
             if (s.Position >= s.Length * percentageOfStreamReadToCancel)
@@ -273,40 +285,51 @@ public partial class JpegDecoderTests
             }
         });
 
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
         DecoderOptions options = new()
         {
             Configuration = configuration
         };
 
-        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+        TimeSpan testTimeout = TimeSpan.FromSeconds(10);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
             using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
-        });
+        }).WaitAsync(testTimeout);
     }
 
-    [Fact]
-    public async Task Identify_IsCancellable()
+    [Theory]
+    [MemberData(nameof(CancellationData))]
+    public async Task Identify_IsCancellable(bool useMemoryStream, double percentageOfStreamReadToCancel)
     {
-        var cts = new CancellationTokenSource();
+        CancellationTokenSource cts = new();
+        using IPausedStream pausedStream = useMemoryStream ?
+            new PausedMemoryStream(CancellationTestFile.Bytes) :
+            new PausedStream(CancellationTestFile.FullPath);
 
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
+        pausedStream.OnWaiting(s =>
         {
-            cts.Cancel();
-            pausedStream.Release();
+            if (s.Position >= s.Length * percentageOfStreamReadToCancel)
+            {
+                cts.Cancel();
+                pausedStream.Release();
+            }
+            else
+            {
+                pausedStream.Next();
+            }
         });
 
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
         DecoderOptions options = new()
         {
             Configuration = configuration
         };
 
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
     }
 
     [Theory]

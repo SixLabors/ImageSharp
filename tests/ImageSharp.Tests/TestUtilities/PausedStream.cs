@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
 public class PausedStream : Stream
@@ -85,7 +87,25 @@ public class PausedStream : Stream
 
     public override void Close() => this.Await(() => this.innerStream.Close());
 
-    public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) => this.Await(() => this.innerStream.CopyToAsync(destination, bufferSize, cancellationToken));
+    public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    {
+        // To make sure the copy operation is buffered and pausable, we should override innerStream's strategy
+        // with the default Stream copy logic based from System.IO.Stream:
+        // https://github.com/dotnet/runtime/blob/4f53c2f7e62df44f07cf410df8a0d439f42a0a71/src/libraries/System.Private.CoreLib/src/System/IO/Stream.cs#L104-L116
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = await this.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+            {
+                await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
 
     public override bool CanRead => this.innerStream.CanRead;
 
@@ -115,9 +135,33 @@ public class PausedStream : Stream
 
     public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
 
-    protected override void Dispose(bool disposing) => this.innerStream.Dispose();
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
 
-    public override void CopyTo(Stream destination, int bufferSize) => this.Await(() => this.innerStream.CopyTo(destination, bufferSize));
+        if (disposing)
+        {
+            this.innerStream.Dispose();
+        }
+    }
+
+    public override void CopyTo(Stream destination, int bufferSize)
+    {
+        // See comments on CopyToAsync.
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = this.Read(buffer, 0, buffer.Length)) != 0)
+            {
+                destination.Write(buffer, 0, bytesRead);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
 
     public override int Read(Span<byte> buffer)
     {

@@ -37,13 +37,4 @@ public class IccReaderTests
         Assert.Equal(header.Size, expected.Size);
         Assert.Equal(header.Version, expected.Version);
     }
-
-    [Fact]
-    public void ReadProfile_DuplicateEntry()
-    {
-        IccProfile output = IccReader.Read(IccTestDataProfiles.ProfileRandomArray);
-
-        Assert.Equal(2, output.Entries.Length);
-        Assert.True(ReferenceEquals(output.Entries[0], output.Entries[1]));
-    }
 }

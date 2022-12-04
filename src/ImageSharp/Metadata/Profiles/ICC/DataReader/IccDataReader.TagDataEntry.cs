@@ -19,9 +19,7 @@ internal sealed partial class IccDataReader
     public IccTagDataEntry ReadTagDataEntry(IccTagTableEntry info)
     {
         this.currentIndex = (int)info.Offset;
-        IccTypeSignature type = this.ReadTagDataEntryHeader();
-
-        switch (type)
+        switch (this.ReadTagDataEntryHeader())
         {
             case IccTypeSignature.Chromaticity:
                 return this.ReadChromaticityTagDataEntry();
@@ -105,7 +103,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read signature</returns>
     public IccTypeSignature ReadTagDataEntryHeader()
     {
-        var type = (IccTypeSignature)this.ReadUInt32();
+        IccTypeSignature type = (IccTypeSignature)this.ReadUInt32();
         this.AddIndex(4); // 4 bytes are not used
         return type;
     }

@@ -251,16 +251,26 @@ public partial class JpegDecoderTests
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
-    [Fact]
-    public async Task DecodeAsync_IsCancellable()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.5)]
+    [InlineData(0.9)]
+    public async Task DecodeAsync_IsCancellable(double percentageOfStreamReadToCancel)
     {
         var cts = new CancellationTokenSource();
         string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
         using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
+        pausedStream.OnWaiting(s =>
         {
-            cts.Cancel();
-            pausedStream.Release();
+            if (s.Position >= s.Length * percentageOfStreamReadToCancel)
+            {
+                cts.Cancel();
+                pausedStream.Release();
+            }
+            else
+            {
+                pausedStream.Next();
+            }
         });
 
         var configuration = Configuration.CreateDefaultInstance();

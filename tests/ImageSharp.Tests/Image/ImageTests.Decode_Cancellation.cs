@@ -42,7 +42,7 @@ public partial class ImageTests
 
                     // Do not test "direct" decoder cancellation for Identify for percentages other than 0% to avoid fine-tuning the percentages.
                     // Cancellation should happen before we read enough data to consider the stream "identified". This can be very early for some formats/files.
-                    if (!identify || p > 0)
+                    if (!identify || p == 0)
                     {
                         data.Add(true, file, p);
                     }

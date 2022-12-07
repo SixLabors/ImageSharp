@@ -20,17 +20,17 @@ public partial class ImageTests
         {
             string[] testFileForEachCodec = new[]
             {
-                TestImages.Png.BikeSmall,
-                TestImages.Jpeg.Baseline.Jpeg420Small,
+                TestImages.Png.Bike,
+                TestImages.Jpeg.Baseline.Snake,
                 TestImages.Bmp.Car,
                 TestImages.Tiff.RgbUncompressed,
                 TestImages.Gif.Kumin,
-                TestImages.Tga.Bit32PalRleBottomLeft,
-                TestImages.Webp.TestPatternOpaqueSmall,
+                TestImages.Tga.Bit32BottomRight,
+                TestImages.Webp.Lossless.WithExif,
                 TestImages.Pbm.GrayscaleBinaryWide
             };
 
-            double[] percentages = new[] { 0, 0.5, 0.9 };
+            double[] percentages = new[] { 0, 0.3, 0.7 };
 
             TheoryData<bool, string, double> data = new();
 

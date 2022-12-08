@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
 public class PausedStream : Stream, IPausedStream
 {
-    private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0);
+    private readonly SemaphoreSlim semaphore = new(0);
 
-    private readonly CancellationTokenSource cancelationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancelationTokenSource = new();
 
     private readonly Stream innerStream;
     private Action<Stream> onWaitingCallback;

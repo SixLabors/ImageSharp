@@ -90,6 +90,7 @@ internal sealed class BufferedReadStream : Stream
         set
         {
             Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.Position));
+            this.cancellationToken.ThrowIfCancellationRequested();
 
             // Only reset readBufferIndex if we are out of bounds of our working buffer
             // otherwise we should simply move the value by the diff.
@@ -262,6 +263,7 @@ internal sealed class BufferedReadStream : Stream
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void FillReadBuffer()
     {
+        this.cancellationToken.ThrowIfCancellationRequested();
         Stream baseStream = this.BaseStream;
         if (this.readerPosition != baseStream.Position)
         {

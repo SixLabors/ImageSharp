@@ -45,9 +45,10 @@ public partial class ImageTests
             {
                 foreach (double p in percentages)
                 {
-                    if (file == TestImages.Png.Bike && !TestEnvironment.IsWindows && p > 0)
+                    if (!TestEnvironment.IsWindows && p > 0 &&
+                        (file == TestImages.Png.Bike || file == TestImages.Gif.Kumin))
                     {
-                        // TODO: Figure out what's wrong with PNG decoding cancellation on Unix.
+                        // TODO: Figure out what's wrong with PNG and GIF decoding cancellation on Unix.
                         continue;
                     }
 

@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 /// </summary>
 public class PausedMemoryStream : MemoryStream, IPausedStream
 {
-    private readonly SemaphoreSlim semaphore = new SemaphoreSlim(0);
+    private readonly SemaphoreSlim semaphore = new(0);
 
-    private readonly CancellationTokenSource cancelationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource cancelationTokenSource = new();
 
     private Action<Stream> onWaitingCallback;
 

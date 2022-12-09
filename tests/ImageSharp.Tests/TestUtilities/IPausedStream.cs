@@ -12,4 +12,6 @@ public interface IPausedStream : IDisposable
     public void Next();
 
     public void Release();
+
+    public long Length { get; }
 }

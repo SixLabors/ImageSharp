@@ -86,7 +86,7 @@ public partial class ImageTests
 
             Configuration configuration = Configuration.CreateDefaultInstance();
             configuration.FileSystem = new SingleStreamFileSystem((Stream)pausedStream);
-            configuration.StreamProcessingBufferSize = 256;
+            configuration.StreamProcessingBufferSize = (int)Math.Min(128, pausedStream.Length / 4);
 
             DecoderOptions options = new()
             {

@@ -14,14 +14,16 @@ public partial class ImageTests
 
         public static readonly string[] TestFileForEachCodec = new[]
         {
-            TestImages.Png.Bike,
             TestImages.Jpeg.Baseline.Snake,
             TestImages.Bmp.Car,
-            TestImages.Tiff.RgbUncompressed,
-            TestImages.Gif.Kumin,
-            TestImages.Tga.Bit32BottomRight,
-            TestImages.Webp.Lossless.WithExif,
-            TestImages.Pbm.GrayscaleBinaryWide
+
+            // TODO: Validate cancellation for each decoder & figure out cancellation tests.
+            //TestImages.Png.Bike,
+            //TestImages.Tiff.RgbUncompressed,
+            //TestImages.Gif.Kumin,
+            //TestImages.Tga.Bit32BottomRight,
+            //TestImages.Webp.Lossless.WithExif,
+            //TestImages.Pbm.GrayscaleBinaryWide
         };
 
         public static object[][] IdentifyData { get; } = TestFileForEachCodec.Select(f => new object[] { f }).ToArray();
@@ -45,13 +47,6 @@ public partial class ImageTests
             {
                 foreach (double p in percentages)
                 {
-                    if (!TestEnvironment.IsWindows && p > 0 &&
-                        (file == TestImages.Png.Bike || file == TestImages.Gif.Kumin))
-                    {
-                        // TODO: Figure out what's wrong with PNG and GIF decoding cancellation on Unix.
-                        continue;
-                    }
-
                     data.Add(false, file, p);
                     data.Add(true, file, p);
                 }

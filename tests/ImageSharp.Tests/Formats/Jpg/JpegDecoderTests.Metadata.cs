@@ -253,7 +253,7 @@ public partial class JpegDecoderTests
         DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
 
         // Snake.jpg has both Exif and ICC profiles defined:
-        var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
+        TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
         using Image<Rgba32> image = testFile.CreateRgba32Image(JpegDecoder, options);
         if (ignoreMetadata)

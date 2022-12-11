@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -23,16 +22,6 @@ public sealed class TestFile
     /// </summary>
     // ReSharper disable once InconsistentNaming
     private static readonly Lazy<string> InputImagesDirectoryValue = new(() => TestEnvironment.InputImagesDirectoryFullPath);
-
-    /// <summary>
-    /// The image (lazy initialized value)
-    /// </summary>
-    private volatile Image<Rgba32> image;
-
-    /// <summary>
-    /// Used to ensure image loading is threadsafe.
-    /// </summary>
-    private readonly object syncLock = new();
 
     /// <summary>
     /// The image bytes
@@ -64,25 +53,6 @@ public sealed class TestFile
     /// Gets the file name without extension.
     /// </summary>
     public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.FullPath);
-
-    /// <summary>
-    /// Gets the image with lazy initialization.
-    /// </summary>
-    private Image<Rgba32> Image
-    {
-        get
-        {
-            if (this.image is null)
-            {
-                lock (this.syncLock)
-                {
-                    this.image ??= ImageSharp.Image.Load<Rgba32>(this.Bytes);
-                }
-            }
-
-            return this.image;
-        }
-    }
 
     /// <summary>
     /// Gets the input image directory.
@@ -137,8 +107,7 @@ public sealed class TestFile
     /// <returns>
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
-    public Image<Rgba32> CreateRgba32Image()
-        => this.Image.Clone();
+    public Image<Rgba32> CreateRgba32Image() => Image.Load<Rgba32>(this.Bytes);
 
     /// <summary>
     /// Creates a new <see cref="Rgba32"/> image.
@@ -160,7 +129,6 @@ public sealed class TestFile
     /// </returns>
     public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder, DecoderOptions options)
     {
-        options.Configuration = this.Image.GetConfiguration();
         using MemoryStream stream = new(this.Bytes);
         return decoder.Decode<Rgba32>(options, stream);
     }

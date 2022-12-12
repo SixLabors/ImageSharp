@@ -92,7 +92,7 @@ public partial class ImageTests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
-            }).WaitAsync(TimeSpan.FromSeconds(30));
+            });
         }
     }
 }

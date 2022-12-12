@@ -181,7 +181,7 @@ public abstract class ImageDecoder : IImageDecoder
         return action(memoryStream);
     }
 
-    internal static async Task<T> WithSeekableMemoryStreamAsync<T>(
+    internal static Task<T> WithSeekableMemoryStreamAsync<T>(
         DecoderOptions options,
         Stream stream,
         Func<Stream, CancellationToken, T> action,
@@ -195,20 +195,31 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T PeformActionAndResetPosition(Stream s, long position, CancellationToken ct)
+        Task<T> PeformActionAndResetPosition(Stream s, long position, CancellationToken ct)
         {
-            T result = action(s, ct);
-
-            // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
-            // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
-            // We check here that the input stream is seekable because it is not guaranteed to be so since
-            // we always copy input streams of unknown type.
-            if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+            try
             {
-                stream.Position = position + s.Position;
-            }
+                T result = action(s, ct);
 
-            return result;
+                // Issue #2259. Our buffered reads may have left the stream in an incorrect non-zero position.
+                // Reset the position of the seekable stream if we did not read to the end to allow additional reads.
+                // We check here that the input stream is seekable because it is not guaranteed to be so since
+                // we always copy input streams of unknown type.
+                if (stream.CanSeek && stream.Position != s.Position && s.Position != s.Length)
+                {
+                    stream.Position = position + s.Position;
+                }
+
+                return Task.FromResult(result);
+            }
+            catch (OperationCanceledException)
+            {
+                return Task.FromCanceled<T>(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                return Task.FromException<T>(ex);
+            }
         }
 
         // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
@@ -224,11 +235,20 @@ public abstract class ImageDecoder : IImageDecoder
             return PeformActionAndResetPosition(cms, cms.Position, cancellationToken);
         }
 
+        return CopyToMemoryStreamAndActionAsync(options, stream, PeformActionAndResetPosition, cancellationToken);
+    }
+
+    private static async Task<T> CopyToMemoryStreamAndActionAsync<T>(
+        DecoderOptions options,
+        Stream stream,
+        Func<Stream, long, CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken)
+    {
         long position = stream.CanSeek ? stream.Position : 0;
         Configuration configuration = options.Configuration;
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
-        return PeformActionAndResetPosition(memoryStream, position, cancellationToken);
+        return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
     }
 }

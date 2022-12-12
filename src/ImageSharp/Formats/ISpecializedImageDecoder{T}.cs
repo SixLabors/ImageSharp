@@ -41,7 +41,7 @@ public interface ISpecializedImageDecoder<T> : IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken)
+    public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
@@ -52,5 +52,5 @@ public interface ISpecializedImageDecoder<T> : IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken);
+    public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken = default);
 }

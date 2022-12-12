@@ -213,7 +213,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return await decoder.DecodeAsync<TPixel>(options, stream, default);
+            return await decoder.DecodeAsync<TPixel>(options, stream);
         }
 
         public override Image<TPixel> GetImage<T>(ISpecializedImageDecoder<T> decoder, T options)
@@ -250,7 +250,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return await decoder.DecodeAsync<TPixel>(options, stream, default);
+            return await decoder.DecodeAsync<TPixel>(options, stream);
         }
 
         public override void Deserialize(IXunitSerializationInfo info)

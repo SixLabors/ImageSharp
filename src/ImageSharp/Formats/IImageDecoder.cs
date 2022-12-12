@@ -27,7 +27,7 @@ public interface IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="Task{IImageInfo}"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.
@@ -58,7 +58,7 @@ public interface IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
@@ -69,5 +69,5 @@ public interface IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default);
 }

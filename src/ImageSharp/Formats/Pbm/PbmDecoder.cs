@@ -26,6 +26,15 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// </summary>
 public sealed class PbmDecoder : ImageDecoder
 {
+    private PbmDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static PbmDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

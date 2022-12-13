@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg;
@@ -13,7 +13,7 @@ public sealed class JpegFormat : IImageFormat<JpegMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static JpegFormat Instance { get; } = new JpegFormat();
 
@@ -30,5 +30,5 @@ public sealed class JpegFormat : IImageFormat<JpegMetadata>
     public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public JpegMetadata CreateDefaultFormatMetadata() => new JpegMetadata();
+    public JpegMetadata CreateDefaultFormatMetadata() => new();
 }

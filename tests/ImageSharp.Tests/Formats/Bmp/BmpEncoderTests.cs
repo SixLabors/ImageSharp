@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp;
 [Trait("Format", "Bmp")]
 public class BmpEncoderTests
 {
-    private static BmpDecoder BmpDecoder => new();
-
     private static BmpEncoder BmpEncoder => new();
 
     public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
@@ -200,7 +198,7 @@ public class BmpEncoderTests
         // arrange
         var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
         using var memoryStream = new MemoryStream();
-        using Image<TPixel> input = provider.GetImage(BmpDecoder);
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
         encoder.Encode(input, memoryStream);
@@ -222,7 +220,7 @@ public class BmpEncoderTests
         // arrange
         var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
         using var memoryStream = new MemoryStream();
-        using Image<TPixel> input = provider.GetImage(BmpDecoder);
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
         encoder.Encode(input, memoryStream);
@@ -331,7 +329,7 @@ public class BmpEncoderTests
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> input = provider.GetImage(new BmpDecoder(), new());
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new());
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 

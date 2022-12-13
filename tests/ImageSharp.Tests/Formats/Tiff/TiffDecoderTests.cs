@@ -21,7 +21,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
+        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
 
     [Theory]
     [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
@@ -201,7 +201,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -258,7 +258,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -285,7 +285,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -387,7 +387,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -427,7 +427,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -466,7 +466,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -496,7 +496,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         if (TestEnvironment.IsMacOS)
         {
             // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
             image.DebugSave(provider);
             return;
         }
@@ -667,7 +667,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { MaxFrames = 1 };
-        using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
 
@@ -696,7 +696,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         {
             MaxFrames = 1
         };
-        using Image<TPixel> image = provider.GetImage(TiffDecoder, decoderOptions);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, decoderOptions);
         image.DebugSave(provider);
         image.CompareToOriginal(
             provider,
@@ -723,7 +723,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageFormatException>(
             () =>
             {
-                using (provider.GetImage(TiffDecoder))
+                using (provider.GetImage(TiffDecoder.Instance))
                 {
                 }
             });
@@ -739,7 +739,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         Assert.True(image.Frames.Count > 1);
 
         image.DebugSave(provider);
@@ -759,7 +759,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             TargetSize = new() { Width = 150, Height = 150 }
         };
 
-        using Image<TPixel> image = provider.GetImage(TiffDecoder, options);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 

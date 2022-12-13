@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -12,7 +12,7 @@ public sealed class GifConfigurationModule : IImageFormatConfigurationModule
     public void Configure(Configuration configuration)
     {
         configuration.ImageFormatsManager.SetEncoder(GifFormat.Instance, new GifEncoder());
-        configuration.ImageFormatsManager.SetDecoder(GifFormat.Instance, new GifDecoder());
+        configuration.ImageFormatsManager.SetDecoder(GifFormat.Instance, GifDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new GifImageFormatDetector());
     }
 }

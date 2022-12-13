@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </summary>
 public sealed class BmpDecoder : SpecializedImageDecoder<BmpDecoderOptions>
 {
+    private BmpDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static BmpDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 public sealed class WebpDecoder : ImageDecoder
 {
+    private WebpDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static WebpDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

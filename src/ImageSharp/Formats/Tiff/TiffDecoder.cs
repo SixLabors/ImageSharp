@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// </summary>
 public class TiffDecoder : ImageDecoder
 {
+    private TiffDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static TiffDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

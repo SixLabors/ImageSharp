@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// </summary>
 public sealed class GifDecoder : ImageDecoder
 {
+    private GifDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static GifDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

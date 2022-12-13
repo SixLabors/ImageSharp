@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// </summary>
 public sealed class JpegDecoder : SpecializedImageDecoder<JpegDecoderOptions>
 {
+    private JpegDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static JpegDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

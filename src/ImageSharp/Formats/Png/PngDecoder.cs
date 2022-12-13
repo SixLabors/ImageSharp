@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// </summary>
 public sealed class PngDecoder : ImageDecoder
 {
+    private PngDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static PngDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

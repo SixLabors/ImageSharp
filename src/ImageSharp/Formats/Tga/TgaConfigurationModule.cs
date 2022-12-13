@@ -12,7 +12,7 @@ public sealed class TgaConfigurationModule : IImageFormatConfigurationModule
     public void Configure(Configuration configuration)
     {
         configuration.ImageFormatsManager.SetEncoder(TgaFormat.Instance, new TgaEncoder());
-        configuration.ImageFormatsManager.SetDecoder(TgaFormat.Instance, new TgaDecoder());
+        configuration.ImageFormatsManager.SetDecoder(TgaFormat.Instance, TgaDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new TgaImageFormatDetector());
     }
 }

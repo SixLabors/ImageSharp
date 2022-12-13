@@ -18,8 +18,6 @@ public class GifDecoderTests
 {
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
-    private static GifDecoder GifDecoder => new();
-
     public static readonly string[] MultiFrameTestFiles =
     {
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
@@ -46,7 +44,7 @@ public class GifDecoderTests
             MaxFrames = 1
         };
 
-        using Image<TPixel> image = provider.GetImage(GifDecoder, options);
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -68,7 +66,7 @@ public class GifDecoderTests
         fixed (byte* data = testFile.Bytes.AsSpan(0, length))
         {
             using var stream = new UnmanagedMemoryStream(data, length);
-            using Image<Rgba32> image = GifDecoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+            using Image<Rgba32> image = GifDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
             Assert.Equal((200, 200), (image.Width, image.Height));
         }
     }
@@ -102,7 +100,7 @@ public class GifDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { MaxFrames = 1 };
-        using Image<TPixel> image = provider.GetImage(new GifDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
     }
 
@@ -111,7 +109,7 @@ public class GifDecoderTests
     public void CanDecodeAllFrames<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(new GifDecoder());
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
         Assert.True(image.Frames.Count > 1);
     }
 
@@ -137,7 +135,7 @@ public class GifDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(GifDecoder);
+                using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
             });
         Assert.NotNull(ex);
         Assert.Contains("Width or height should not be 0", ex.Message);
@@ -149,7 +147,7 @@ public class GifDecoderTests
     public void Decode_WithMaxDimensions_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedWidth, int expectedHeight)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder);
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
         Assert.Equal(expectedWidth, image.Width);
         Assert.Equal(expectedHeight, image.Height);
     }
@@ -216,7 +214,7 @@ public class GifDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(GifDecoder));
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(GifDecoder.Instance));
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
@@ -233,7 +231,7 @@ public class GifDecoderTests
 
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-            using Image<Rgba32> image = provider.GetImage(GifDecoder);
+            using Image<Rgba32> image = provider.GetImage(GifDecoder.Instance);
             image.DebugSave(provider, nonContiguousBuffersStr);
             image.CompareToOriginal(provider);
         }

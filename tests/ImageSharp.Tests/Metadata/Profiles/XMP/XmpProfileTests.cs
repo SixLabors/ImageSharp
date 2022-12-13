@@ -16,22 +16,12 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Xmp;
 
 public class XmpProfileTests
 {
-    private static GifDecoder GifDecoder => new();
-
-    private static JpegDecoder JpegDecoder => new();
-
-    private static PngDecoder PngDecoder => new();
-
-    private static TiffDecoder TiffDecoder => new();
-
-    private static WebpDecoder WebpDecoder => new();
-
     [Theory]
     [WithFile(TestImages.Gif.Receipt, PixelTypes.Rgba32)]
     public async Task ReadXmpMetadata_FromGif_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(GifDecoder))
+        using (Image<TPixel> image = await provider.GetImageAsync(GifDecoder.Instance))
         {
             XmpProfile actual = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
@@ -45,7 +35,7 @@ public class XmpProfileTests
     public async Task ReadXmpMetadata_FromJpg_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(JpegDecoder))
+        using (Image<TPixel> image = await provider.GetImageAsync(JpegDecoder.Instance))
         {
             XmpProfile actual = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
@@ -57,7 +47,7 @@ public class XmpProfileTests
     public async Task ReadXmpMetadata_FromPng_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(PngDecoder))
+        using (Image<TPixel> image = await provider.GetImageAsync(PngDecoder.Instance))
         {
             XmpProfile actual = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
@@ -69,7 +59,7 @@ public class XmpProfileTests
     public async Task ReadXmpMetadata_FromTiff_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(TiffDecoder))
+        using (Image<TPixel> image = await provider.GetImageAsync(TiffDecoder.Instance))
         {
             XmpProfile actual = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
@@ -81,7 +71,7 @@ public class XmpProfileTests
     public async Task ReadXmpMetadata_FromWebp_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(WebpDecoder))
+        using (Image<TPixel> image = await provider.GetImageAsync(WebpDecoder.Instance))
         {
             XmpProfile actual = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             XmpProfileContainsExpectedValues(actual);
@@ -121,7 +111,7 @@ public class XmpProfileTests
     public void WritingGif_PreservesXmpProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using var image = new Image<Rgba32>(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
         var encoder = new GifEncoder();
@@ -139,7 +129,7 @@ public class XmpProfileTests
     public void WritingJpeg_PreservesXmpProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using var image = new Image<Rgba32>(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
         var encoder = new JpegEncoder();
@@ -158,7 +148,7 @@ public class XmpProfileTests
     {
         // arrange
         var provider = TestImageProvider<Rgba32>.File(TestImages.Jpeg.Baseline.ExtendedXmp);
-        using Image<Rgba32> image = await provider.GetImageAsync(JpegDecoder);
+        using Image<Rgba32> image = await provider.GetImageAsync(JpegDecoder.Instance);
         XmpProfile original = image.Metadata.XmpProfile;
         var encoder = new JpegEncoder();
 
@@ -175,7 +165,7 @@ public class XmpProfileTests
     public void WritingPng_PreservesXmpProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using var image = new Image<Rgba32>(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
         var encoder = new PngEncoder();
@@ -193,7 +183,7 @@ public class XmpProfileTests
     public void WritingTiff_PreservesXmpProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using var image = new Image<Rgba32>(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Frames.RootFrame.Metadata.XmpProfile = original;
         var encoder = new TiffEncoder();
@@ -211,7 +201,7 @@ public class XmpProfileTests
     public void WritingWebp_PreservesXmpProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using var image = new Image<Rgba32>(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
         var encoder = new WebpEncoder();

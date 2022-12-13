@@ -10,6 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// </summary>
 public sealed class TgaDecoder : ImageDecoder
 {
+    private TgaDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static TgaDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
     protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

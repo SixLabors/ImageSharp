@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -28,7 +29,7 @@ public partial class JpegDecoderTests
                 provider.LimitAllocatorBufferCapacity().InPixels(16_000);
             }
 
-            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
             image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
             provider.Utility.TestName = DecodeBaselineJpegOutputName;
@@ -57,7 +58,7 @@ public partial class JpegDecoderTests
     public void DecodeJpeg_WithArithmeticCoding<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Tolerant(0.002f), ReferenceDecoder);
     }

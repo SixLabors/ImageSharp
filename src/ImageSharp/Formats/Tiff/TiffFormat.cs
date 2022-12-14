@@ -15,7 +15,7 @@ public sealed class TiffFormat : IImageFormat<TiffMetadata, TiffFrameMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static TiffFormat Instance { get; } = new TiffFormat();
 

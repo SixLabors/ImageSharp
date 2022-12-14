@@ -16,7 +16,7 @@ public class DecodeJpeg
 
     private void GenericSetup(string imageSubpath)
     {
-        this.decoder = new JpegDecoder();
+        this.decoder = JpegDecoder.Instance;
         byte[] bytes = File.ReadAllBytes(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, imageSubpath));
         this.preloadedImageStream = new MemoryStream(bytes);
     }

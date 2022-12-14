@@ -19,8 +19,6 @@ public partial class PngDecoderTests
 {
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
-    private static PngDecoder PngDecoder => new();
-
     public static readonly string[] CommonTestImages =
     {
         TestImages.Png.Splash,
@@ -102,7 +100,7 @@ public partial class PngDecoderTests
     public void Decode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -117,7 +115,7 @@ public partial class PngDecoderTests
             TargetSize = new() { Width = 150, Height = 150 }
         };
 
-        using Image<TPixel> image = provider.GetImage(PngDecoder, options);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -135,7 +133,7 @@ public partial class PngDecoderTests
     public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -146,7 +144,7 @@ public partial class PngDecoderTests
     public void Decode_WithSubFilter<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -156,7 +154,7 @@ public partial class PngDecoderTests
     public void Decode_WithUpFilter<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -167,7 +165,7 @@ public partial class PngDecoderTests
     public void Decode_WithPaethFilter<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -178,7 +176,7 @@ public partial class PngDecoderTests
     public void Decode_GrayWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -190,7 +188,7 @@ public partial class PngDecoderTests
     public void Decode_Interlaced<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -205,7 +203,7 @@ public partial class PngDecoderTests
     public void Decode_Indexed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -216,7 +214,7 @@ public partial class PngDecoderTests
     public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -227,7 +225,7 @@ public partial class PngDecoderTests
     public void Decode_64Bpp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -240,7 +238,7 @@ public partial class PngDecoderTests
     public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -250,7 +248,7 @@ public partial class PngDecoderTests
     public void Decode_L16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -261,7 +259,7 @@ public partial class PngDecoderTests
     public void Decode_GrayAlpha16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -271,7 +269,7 @@ public partial class PngDecoderTests
     public void Decoder_CanDecode_Grey8bitInterlaced_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -281,7 +279,7 @@ public partial class PngDecoderTests
     public void Decoder_CanDecode_CorruptedImages<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -291,7 +289,7 @@ public partial class PngDecoderTests
     public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
     }
@@ -319,7 +317,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
             });
         Assert.NotNull(ex);
@@ -335,7 +333,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
             });
         Assert.NotNull(ex);
@@ -350,7 +348,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
             });
         Assert.Null(ex);
@@ -365,7 +363,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
             });
         Assert.NotNull(ex);
@@ -381,7 +379,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
             });
         Assert.NotNull(ex);
@@ -396,7 +394,7 @@ public partial class PngDecoderTests
         InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
             });
         Assert.NotNull(ex);
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
@@ -411,7 +409,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             });
@@ -427,7 +425,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             });
@@ -443,7 +441,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             });
@@ -459,7 +457,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
 
                 // We don't have another x-plat reference decoder that can be compared for this image.
@@ -480,7 +478,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             });
@@ -493,7 +491,7 @@ public partial class PngDecoderTests
     public void Issue2209_Decode_HasTransparencyIsTrue<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.True(metadata.HasTransparency);
@@ -520,7 +518,7 @@ public partial class PngDecoderTests
         Exception ex = Record.Exception(
             () =>
             {
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
                 image.DebugSave(provider);
 
                 // We don't have another x-plat reference decoder that can be compared for this image.
@@ -540,7 +538,7 @@ public partial class PngDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(PngDecoder));
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(PngDecoder.Instance));
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
@@ -555,7 +553,7 @@ public partial class PngDecoderTests
 
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-            using Image<Rgba32> image = provider.GetImage(PngDecoder);
+            using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance);
             image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
             image.CompareToOriginal(provider);
         }

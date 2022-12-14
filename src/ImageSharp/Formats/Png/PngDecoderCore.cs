@@ -176,7 +176,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.InitializeImage(metadata, out image);
                             }
 
-                            this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata);
+                            this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata, cancellationToken);
 
                             break;
                         case PngChunkType.Palette:
@@ -555,7 +555,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="chunk">The png chunk containing the compressed scanline data.</param>
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using ZlibInflateStream deframeStream = new(this.currentStream, this.ReadNextDataChunk);
@@ -564,11 +565,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
         {
-            this.DecodeInterlacedPixelData(dataStream, image, pngMetadata);
+            this.DecodeInterlacedPixelData(dataStream, image, pngMetadata, cancellationToken);
         }
         else
         {
-            this.DecodePixelData(dataStream, image, pngMetadata);
+            this.DecodePixelData(dataStream, image, pngMetadata, cancellationToken);
         }
     }
 
@@ -579,11 +580,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="image">The image to decode to.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    private void DecodePixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+    /// <param name="cancellationToken">The CancellationToken</param>
+    private void DecodePixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         while (this.currentRow < this.header.Height)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             Span<byte> scanlineSpan = this.scanline.GetSpan();
             while (this.currentRowBytesRead < this.bytesPerScanline)
             {
@@ -639,7 +642,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="image">The current image.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private void DecodeInterlacedPixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodeInterlacedPixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int pass = 0;
@@ -661,6 +665,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             while (this.currentRow < this.header.Height)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 while (this.currentRowBytesRead < bytesPerInterlaceScanline)
                 {
                     int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);

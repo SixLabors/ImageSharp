@@ -40,16 +40,9 @@ public class TiffEncoder : QuantizingImageEncoder
     public TiffPredictor? HorizontalPredictor { get; init; }
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         TiffEncoderCore encode = new(this, image.GetMemoryAllocator());
-        encode.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        TiffEncoderCore encoder = new(this, image.GetMemoryAllocator());
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encode.Encode(image, stream, cancellationToken);
     }
 }

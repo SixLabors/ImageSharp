@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
@@ -13,7 +13,7 @@ public sealed class BmpFormat : IImageFormat<BmpMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static BmpFormat Instance { get; } = new BmpFormat();
 
@@ -30,5 +30,5 @@ public sealed class BmpFormat : IImageFormat<BmpMetadata>
     public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public BmpMetadata CreateDefaultFormatMetadata() => new BmpMetadata();
+    public BmpMetadata CreateDefaultFormatMetadata() => new();
 }

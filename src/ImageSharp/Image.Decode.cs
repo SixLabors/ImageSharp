@@ -113,12 +113,11 @@ public abstract partial class Image
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The stream.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>
     /// A new <see cref="Image{TPixel}"/>.
     /// </returns>
-    private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(DecoderOptions options, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
@@ -127,11 +126,15 @@ public abstract partial class Image
             return (null, null);
         }
 
-        Image<TPixel> img = decoder.Decode<TPixel>(options, stream, cancellationToken);
+        Image<TPixel> img = decoder.Decode<TPixel>(options, stream);
         return (img, format);
     }
 
-    private static (Image Image, IImageFormat Format) Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(
+        DecoderOptions options,
+        Stream stream,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
         if (decoder is null)
@@ -139,8 +142,50 @@ public abstract partial class Image
             return (null, null);
         }
 
-        Image img = decoder.Decode(options, stream, cancellationToken);
+        Image<TPixel> img = await decoder.DecodeAsync<TPixel>(options, stream, cancellationToken).ConfigureAwait(false);
         return (img, format);
+    }
+
+    private static (Image Image, IImageFormat Format) Decode(DecoderOptions options, Stream stream)
+    {
+        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        if (decoder is null)
+        {
+            return (null, null);
+        }
+
+        Image img = decoder.Decode(options, stream);
+        return (img, format);
+    }
+
+    private static async Task<(Image Image, IImageFormat Format)> DecodeAsync(
+        DecoderOptions options,
+        Stream stream,
+        CancellationToken cancellationToken)
+    {
+        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        if (decoder is null)
+        {
+            return (null, null);
+        }
+
+        Image img = await decoder.DecodeAsync(options, stream, cancellationToken).ConfigureAwait(false);
+        return (img, format);
+    }
+
+    /// <summary>
+    /// Reads the raw image information from the specified stream.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <param name="stream">The stream.</param>
+    /// <returns>
+    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// </returns>
+    private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentify(DecoderOptions options, Stream stream)
+    {
+        IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
+        IImageInfo info = decoder?.Identify(options, stream);
+        return (info, format);
     }
 
     /// <summary>
@@ -152,16 +197,19 @@ public abstract partial class Image
     /// <returns>
     /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    private static async Task<(IImageInfo ImageInfo, IImageFormat Format)> InternalIdentifyAsync(
+        DecoderOptions options,
+        Stream stream,
+        CancellationToken cancellationToken)
     {
         IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
 
-        if (decoder is not IImageInfoDetector detector)
+        if (decoder is null)
         {
             return (null, null);
         }
 
-        IImageInfo info = detector?.Identify(options, stream, cancellationToken);
+        IImageInfo info = await decoder.IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
         return (info, format);
     }
 }

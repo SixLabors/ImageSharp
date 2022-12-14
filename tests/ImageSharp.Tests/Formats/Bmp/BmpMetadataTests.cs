@@ -51,7 +51,7 @@ public class BmpMetadataTests
     public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
+        using (Image<TPixel> image = provider.GetImage(BmpDecoder.Instance))
         {
             ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
             Assert.NotNull(metaData);

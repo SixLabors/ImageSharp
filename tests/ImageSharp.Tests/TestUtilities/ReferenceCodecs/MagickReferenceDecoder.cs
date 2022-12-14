@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-public class MagickReferenceDecoder : IImageDecoder
+public class MagickReferenceDecoder : ImageDecoder
 {
     private readonly bool validate;
 
@@ -24,24 +24,25 @@ public class MagickReferenceDecoder : IImageDecoder
 
     public static MagickReferenceDecoder Instance { get; } = new();
 
-    public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Configuration configuration = options.Configuration;
-        var bmpReadDefines = new BmpReadDefines
+        BmpReadDefines bmpReadDefines = new()
         {
             IgnoreFileSize = !this.validate
         };
 
-        var settings = new MagickReadSettings();
-        settings.FrameCount = (int)options.MaxFrames;
+        MagickReadSettings settings = new()
+        {
+            FrameCount = (int)options.MaxFrames
+        };
         settings.SetDefines(bmpReadDefines);
 
-        using var magickImageCollection = new MagickImageCollection(stream, settings);
-        var framesList = new List<ImageFrame<TPixel>>();
+        using MagickImageCollection magickImageCollection = new(stream, settings);
+        List<ImageFrame<TPixel>> framesList = new();
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
-            var frame = new ImageFrame<TPixel>(configuration, magicFrame.Width, magicFrame.Height);
+            ImageFrame<TPixel> frame = new(configuration, magicFrame.Width, magicFrame.Height);
             framesList.Add(frame);
 
             MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;
@@ -68,10 +69,10 @@ public class MagickReferenceDecoder : IImageDecoder
         return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
     }
 
-    public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
-    public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
     private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
@@ -83,9 +84,9 @@ public class MagickReferenceDecoder : IImageDecoder
             Span<TPixel> destBuffer = m.Span;
             PixelOperations<TPixel>.Instance.FromRgba32(
                 configuration,
-                sourcePixels.Slice(0, destBuffer.Length),
+                sourcePixels[..destBuffer.Length],
                 destBuffer);
-            sourcePixels = sourcePixels.Slice(destBuffer.Length);
+            sourcePixels = sourcePixels[destBuffer.Length..];
         }
     }
 
@@ -100,7 +101,7 @@ public class MagickReferenceDecoder : IImageDecoder
                 rgbaBytes,
                 destBuffer,
                 destBuffer.Length);
-            rgbaBytes = rgbaBytes.Slice(destBuffer.Length * 8);
+            rgbaBytes = rgbaBytes[(destBuffer.Length * 8)..];
         }
     }
 }

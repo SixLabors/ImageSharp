@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats;
 public interface ISpecializedDecoderOptions
 {
     /// <summary>
-    /// Gets or sets the general decoder options.
+    /// Gets the general decoder options.
     /// </summary>
-    DecoderOptions GeneralOptions { get; set; }
+    DecoderOptions GeneralOptions { get; init; }
 }

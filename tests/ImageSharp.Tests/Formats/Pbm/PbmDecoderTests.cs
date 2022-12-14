@@ -108,7 +108,7 @@ public class PbmDecoderTests
             TargetSize = new() { Width = 150, Height = 150 }
         };
 
-        using Image<TPixel> image = provider.GetImage(new PbmDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(PbmDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 

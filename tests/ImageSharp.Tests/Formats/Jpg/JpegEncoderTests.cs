@@ -13,8 +13,6 @@ public partial class JpegEncoderTests
 {
     private static JpegEncoder JpegEncoder => new();
 
-    private static JpegDecoder JpegDecoder => new();
-
     private static readonly TheoryData<int> TestQualities = new()
     {
         40,

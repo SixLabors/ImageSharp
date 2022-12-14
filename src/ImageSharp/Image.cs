@@ -41,6 +41,11 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
     /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
+    /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
+    /// <param name="width">The width in px units.</param>
+    /// <param name="height">The height in px units.</param>
     internal Image(
         Configuration configuration,
         PixelTypeInfo pixelType,

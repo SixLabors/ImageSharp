@@ -14,8 +14,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class YuvConversionTests
 {
-    private static WebpDecoder WebpDecoder => new();
-
     private static MagickReferenceDecoder ReferenceDecoder => new();
 
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Webp.Lossy.NoFilter06);
@@ -23,7 +21,7 @@ public class YuvConversionTests
     public static void RunUpSampleYuvToRgbTest()
     {
         var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
-        using Image<Rgba32> image = provider.GetImage(WebpDecoder);
+        using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
     }

@@ -59,14 +59,16 @@ public partial class ImageTests
             this.localImageInfoMock = new Mock<IImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
-            var detector = new Mock<IImageInfoDetector>();
-            detector.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            this.localDecoder = new Mock<IImageDecoder>();
+            this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
                 .Returns(this.localImageInfoMock.Object);
 
-            this.localDecoder = detector.As<IImageDecoder>();
+            this.localDecoder.Setup(x => x.IdentifyAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(this.localImageInfoMock.Object));
+
             this.localDecoder
-                .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
+                .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
+                .Callback<DecoderOptions, Stream>((c, s) =>
                     {
                         using var ms = new MemoryStream();
                         s.CopyTo(ms);
@@ -75,14 +77,34 @@ public partial class ImageTests
                 .Returns(this.localStreamReturnImageRgba32);
 
             this.localDecoder
-                .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Callback<DecoderOptions, Stream, CancellationToken>((c, s, ct) =>
+                .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
+                .Callback<DecoderOptions, Stream>((c, s) =>
                     {
                         using var ms = new MemoryStream();
                         s.CopyTo(ms);
                         this.DecodedData = ms.ToArray();
                     })
                 .Returns(this.localStreamReturnImageAgnostic);
+
+            this.localDecoder
+                .Setup(x => x.DecodeAsync<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
+                {
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    this.DecodedData = ms.ToArray();
+                })
+                .Returns(Task.FromResult(this.localStreamReturnImageRgba32));
+
+            this.localDecoder
+                .Setup(x => x.DecodeAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
+                {
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    this.DecodedData = ms.ToArray();
+                })
+                .Returns(Task.FromResult<Image>(this.localStreamReturnImageAgnostic));
 
             this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 

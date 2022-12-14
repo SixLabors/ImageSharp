@@ -40,8 +40,8 @@ public class MagickReferenceCodecTests
         using FileStream mStream = File.OpenRead(path);
         using FileStream sdStream = File.OpenRead(path);
 
-        using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream, default);
-        using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream, default);
+        using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream);
+        using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream);
 
         ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
 
@@ -71,8 +71,8 @@ public class MagickReferenceCodecTests
         var comparer = ImageComparer.TolerantPercentage(1, 1020);
         using FileStream mStream = File.OpenRead(path);
         using FileStream sdStream = File.OpenRead(path);
-        using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream, default);
-        using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream, default);
+        using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream);
+        using Image<TPixel> sdImage = sdDecoder.Decode<TPixel>(DecoderOptions.Default, sdStream);
         ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
 
         mImage.DebugSave(dummyProvider);

@@ -65,7 +65,7 @@ public partial class JpegDecoderTests
         bool exifProfilePresent,
         bool iccProfilePresent) => TestMetadataImpl(
             useIdentify,
-            JpegDecoder,
+            JpegDecoder.Instance,
             imagePath,
             expectedPixelSize,
             exifProfilePresent,
@@ -77,8 +77,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new JpegDecoder();
-        using Image image = decoder.Decode(DecoderOptions.Default, stream);
+        using Image image = JpegDecoder.Instance.Decode(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -91,8 +90,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new JpegDecoder();
-        IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -105,8 +103,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new JpegDecoder();
-        IImageInfo image = await decoder.IdentifyAsync(DecoderOptions.Default, stream);
+        IImageInfo image = await JpegDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -119,8 +116,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new JpegDecoder();
-        IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
     }
@@ -131,7 +127,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        using Image image = JpegDecoder.Decode(DecoderOptions.Default, stream);
+        using Image image = JpegDecoder.Instance.Decode(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
     }
@@ -142,7 +138,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        using Image image = await JpegDecoder.DecodeAsync(DecoderOptions.Default, stream);
+        using Image image = await JpegDecoder.Instance.DecodeAsync(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
     }
@@ -159,7 +155,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Identify(DecoderOptions.Default, stream);
+        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(expectedColorType, meta.ColorType);
     }
@@ -173,7 +169,7 @@ public partial class JpegDecoderTests
     public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor expectedColorType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(expectedColorType, meta.ColorType);
     }
@@ -184,12 +180,12 @@ public partial class JpegDecoderTests
         using var stream = new MemoryStream(testFile.Bytes, false);
         if (useIdentify)
         {
-            IImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream, default);
+            IImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
             test(imageInfo);
         }
         else
         {
-            using Image<Rgba32> img = decoder.Decode<Rgba32>(DecoderOptions.Default, stream, default);
+            using Image<Rgba32> img = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
             test(img);
         }
     }
@@ -253,9 +249,9 @@ public partial class JpegDecoderTests
         DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
 
         // Snake.jpg has both Exif and ICC profiles defined:
-        var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
+        TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Snake);
 
-        using Image<Rgba32> image = testFile.CreateRgba32Image(JpegDecoder, options);
+        using Image<Rgba32> image = testFile.CreateRgba32Image(JpegDecoder.Instance, options);
         if (ignoreMetadata)
         {
             Assert.Null(image.Metadata.ExifProfile);
@@ -273,7 +269,7 @@ public partial class JpegDecoderTests
     [InlineData(true)]
     public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify) => TestImageInfo(
             TestImages.Jpeg.Baseline.Floorplan,
-            JpegDecoder,
+            JpegDecoder.Instance,
             useIdentify,
             imageInfo =>
             {
@@ -286,7 +282,7 @@ public partial class JpegDecoderTests
     [InlineData(true)]
     public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify) => TestImageInfo(
             TestImages.Jpeg.Baseline.Jpeg420Exif,
-            JpegDecoder,
+            JpegDecoder.Instance,
             useIdentify,
             imageInfo =>
                 {
@@ -301,7 +297,7 @@ public partial class JpegDecoderTests
     {
         Exception ex = Record.Exception(() =>
         {
-            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         });
         Assert.Null(ex);
     }
@@ -313,7 +309,7 @@ public partial class JpegDecoderTests
     {
         Exception ex = Record.Exception(() =>
         {
-            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
             ExifProfile clone = image.Metadata.ExifProfile.DeepClone();
         });
         Assert.Null(ex);

@@ -62,7 +62,7 @@ public abstract partial class Image
         => WithSeekableStreamAsync(
             options,
             stream,
-            (s, _) => InternalDetectFormat(options.Configuration, s),
+            (s, _) => Task.FromResult(InternalDetectFormat(options.Configuration, s)),
             cancellationToken);
 
     /// <summary>
@@ -160,7 +160,7 @@ public abstract partial class Image
     /// </returns>
     public static IImageInfo Identify(DecoderOptions options, Stream stream, out IImageFormat format)
     {
-        (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(options, stream, s => InternalIdentity(options, s));
+        (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
 
         format = data.Format;
         return data.ImageInfo;
@@ -205,7 +205,7 @@ public abstract partial class Image
         => WithSeekableStreamAsync(
             options,
             stream,
-            (s, ct) => InternalIdentity(options, s, ct),
+            (s, ct) => InternalIdentifyAsync(options, s, ct),
             cancellationToken);
 
     /// <summary>
@@ -289,11 +289,7 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
     public static async Task<Image> LoadAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-    {
-        (Image Image, IImageFormat Format) fmt = await LoadWithFormatAsync(options, stream, cancellationToken)
-            .ConfigureAwait(false);
-        return fmt.Image;
-    }
+        => (await LoadWithFormatAsync(options, stream, cancellationToken).ConfigureAwait(false)).Image;
 
     /// <summary>
     /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -416,7 +412,7 @@ public abstract partial class Image
         CancellationToken cancellationToken = default)
     {
         (Image Image, IImageFormat Format) data =
-            await WithSeekableStreamAsync(options, stream, (s, ct) => Decode(options, s, ct), cancellationToken)
+            await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync(options, s, ct), cancellationToken)
                  .ConfigureAwait(false);
 
         if (data.Image is null)
@@ -447,7 +443,7 @@ public abstract partial class Image
         where TPixel : unmanaged, IPixel<TPixel>
     {
         (Image<TPixel> Image, IImageFormat Format) data =
-            await WithSeekableStreamAsync(options, stream, (s, ct) => Decode<TPixel>(options, s, ct), cancellationToken)
+            await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync<TPixel>(options, s, ct), cancellationToken)
                  .ConfigureAwait(false);
 
         if (data.Image is null)
@@ -542,7 +538,6 @@ public abstract partial class Image
             return action(stream);
         }
 
-        // We want to be able to load images from things like HttpContext.Request.Body
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
@@ -563,7 +558,7 @@ public abstract partial class Image
     internal static async Task<T> WithSeekableStreamAsync<T>(
         DecoderOptions options,
         Stream stream,
-        Func<Stream, CancellationToken, T> action,
+        Func<Stream, CancellationToken, Task<T>> action,
         CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
@@ -575,33 +570,21 @@ public abstract partial class Image
         }
 
         Configuration configuration = options.Configuration;
-        if (stream.CanSeek && configuration.ReadOrigin == ReadOrigin.Begin)
+        if (stream.CanSeek)
         {
-            stream.Position = 0;
+            if (configuration.ReadOrigin == ReadOrigin.Begin)
+            {
+                stream.Position = 0;
+            }
 
-            // NOTE: We are explicitly not executing the action against the stream here as we do in WithSeekableStream() because that
-            // would incur synchronous IO reads which must be avoided in this asynchronous method.  Instead, we will *always* run the
-            // code below to copy the stream to an in-memory buffer before invoking the action.
+            return await action(stream, cancellationToken).ConfigureAwait(false);
         }
 
         using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 
-        T Action(Stream ms, CancellationToken ct)
-        {
-            // Reset the position of the seekable stream if we did not read to the end
-            // to allow additional reads.
-            T result = action(ms, ct);
-            if (stream.CanSeek && ms.Position != ms.Length)
-            {
-                stream.Position = ms.Position;
-            }
-
-            return result;
-        }
-
-        return Action(memoryStream, cancellationToken);
+        return await action(memoryStream, cancellationToken).ConfigureAwait(false);
     }
 
     [DoesNotReturn]

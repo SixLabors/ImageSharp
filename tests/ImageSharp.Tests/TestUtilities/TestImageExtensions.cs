@@ -19,6 +19,7 @@ public static class TestImageExtensions
     /// <summary>
     /// TODO: Consider adding this private processor to the library
     /// </summary>
+    /// <param name="ctx">The image processing context.</param>
     public static void MakeOpaque(this IImageProcessingContext ctx) =>
         ctx.ApplyProcessor(new MakeOpaqueProcessor());
 
@@ -323,7 +324,7 @@ public static class TestImageExtensions
         decoder ??= TestEnvironment.GetReferenceDecoder(referenceOutputFile);
 
         using FileStream stream = File.OpenRead(referenceOutputFile);
-        return decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        return decoder.Decode<TPixel>(DecoderOptions.Default, stream);
     }
 
     public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(
@@ -348,11 +349,11 @@ public static class TestImageExtensions
         {
             if (!File.Exists(path))
             {
-                throw new Exception("Reference output file missing: " + path);
+                throw new FileNotFoundException("Reference output file missing: " + path);
             }
 
             using FileStream stream = File.OpenRead(path);
-            Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+            Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream);
             temporaryFrameImages.Add(tempImage);
         }
 
@@ -533,7 +534,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream, default))
+        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream))
         {
             comparer.VerifySimilarity(original, image);
         }
@@ -559,7 +560,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default))
+        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream))
         {
             comparer.VerifySimilarity(original, image);
         }
@@ -680,7 +681,7 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
         using FileStream stream = File.OpenRead(actualOutputFile);
-        using Image<TPixel> encodedImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream, default);
+        using Image<TPixel> encodedImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
 
         ImageComparer comparer = customComparer ?? ImageComparer.Exact;
         comparer.VerifySimilarity(encodedImage, image);

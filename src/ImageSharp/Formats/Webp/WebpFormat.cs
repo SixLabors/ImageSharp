@@ -13,7 +13,7 @@ public sealed class WebpFormat : IImageFormat<WebpMetadata, WebpFrameMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static WebpFormat Instance { get; } = new();
 

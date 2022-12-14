@@ -42,11 +42,11 @@ public sealed class Configuration
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
     /// <param name="configurationModules">A collection of configuration modules to register.</param>
-    public Configuration(params IConfigurationModule[] configurationModules)
+    public Configuration(params IImageFormatConfigurationModule[] configurationModules)
     {
         if (configurationModules != null)
         {
-            foreach (IConfigurationModule p in configurationModules)
+            foreach (IImageFormatConfigurationModule p in configurationModules)
             {
                 p.Configure(this);
             }
@@ -180,7 +180,7 @@ public sealed class Configuration
     /// Registers a new format provider.
     /// </summary>
     /// <param name="configuration">The configuration provider to call configure on.</param>
-    public void Configure(IConfigurationModule configuration)
+    public void Configure(IImageFormatConfigurationModule configuration)
     {
         Guard.NotNull(configuration, nameof(configuration));
         configuration.Configure(this);
@@ -203,7 +203,7 @@ public sealed class Configuration
     };
 
     /// <summary>
-    /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
+    /// Creates the default instance with the following <see cref="IImageFormatConfigurationModule"/>s preregistered:
     /// <see cref="PngConfigurationModule"/>
     /// <see cref="JpegConfigurationModule"/>
     /// <see cref="GifConfigurationModule"/>

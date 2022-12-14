@@ -202,7 +202,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
+        public override async Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -213,10 +213,10 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
+            return await decoder.DecodeAsync<TPixel>(options, stream);
         }
 
-        public override Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+        public override Image<TPixel> GetImage<T>(ISpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -239,7 +239,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return cachedImage.Clone(this.Configuration);
         }
 
-        public override Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
+        public override async Task<Image<TPixel>> GetImageAsync<T>(ISpecializedImageDecoder<T> decoder, T options)
         {
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
@@ -250,7 +250,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             // TODO: Check Path here. Why combined?
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
             using Stream stream = System.IO.File.OpenRead(path);
-            return Task.FromResult(decoder.Decode<TPixel>(options, stream, default));
+            return await decoder.DecodeAsync<TPixel>(options, stream);
         }
 
         public override void Deserialize(IXunitSerializationInfo info)
@@ -272,17 +272,17 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);
-            return decoder.Decode<TPixel>(options, stream, default);
+            return decoder.Decode<TPixel>(options, stream);
         }
 
-        private Image<TPixel> DecodeImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+        private Image<TPixel> DecodeImage<T>(ISpecializedImageDecoder<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
         {
             options.GeneralOptions.Configuration = this.Configuration;
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);
-            return decoder.Decode<TPixel>(options, stream, default);
+            return decoder.Decode<TPixel>(options, stream);
         }
     }
 

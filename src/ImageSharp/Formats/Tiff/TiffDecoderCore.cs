@@ -114,7 +114,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public FaxCompressionOptions FaxCompressionOptions { get; set; }
 
     /// <summary>
-    /// Gets or sets the the logical order of bits within a byte.
+    /// Gets or sets the logical order of bits within a byte.
     /// </summary>
     public TiffFillOrder FillOrder { get; set; }
 

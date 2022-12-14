@@ -52,7 +52,7 @@ public class PngMetadataTests
     public void Decoder_CanReadTextData<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(new PngDecoder());
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
         VerifyTextDataIsPresent(meta);
     }
@@ -62,13 +62,12 @@ public class PngMetadataTests
     public void Encoder_PreservesTextData<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var decoder = new PngDecoder();
-        using Image<TPixel> input = provider.GetImage(decoder);
+        using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
         using var memoryStream = new MemoryStream();
         input.Save(memoryStream, new PngEncoder());
 
         memoryStream.Position = 0;
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+        using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
         VerifyTextDataIsPresent(meta);
     }
@@ -78,7 +77,7 @@ public class PngMetadataTests
     public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(new PngDecoder());
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
         Assert.DoesNotContain(meta.TextData, m => m.Value is "leading space");
         Assert.DoesNotContain(meta.TextData, m => m.Value is "trailing space");
@@ -93,8 +92,7 @@ public class PngMetadataTests
     public void Encode_UseCompression_WhenTextIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var decoder = new PngDecoder();
-        using Image<TPixel> input = provider.GetImage(decoder);
+        using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
         using var memoryStream = new MemoryStream();
 
         // This will be a zTXt chunk.
@@ -111,7 +109,7 @@ public class PngMetadataTests
         });
 
         memoryStream.Position = 0;
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+        using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
         Assert.Contains(meta.TextData, m => m.Equals(expectedText));
         Assert.Contains(meta.TextData, m => m.Equals(expectedTextNoneLatin));
@@ -127,7 +125,7 @@ public class PngMetadataTests
             SkipMetadata = false
         };
 
-        using Image<TPixel> image = provider.GetImage(new PngDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.NotNull(image.Metadata.ExifProfile);
         ExifProfile exif = image.Metadata.ExifProfile;
         VerifyExifDataIsPresent(exif);
@@ -143,9 +141,7 @@ public class PngMetadataTests
             SkipMetadata = true
         };
 
-        PngDecoder decoder = new();
-
-        using Image<TPixel> image = provider.GetImage(decoder, options);
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.Null(image.Metadata.ExifProfile);
     }
 
@@ -159,7 +155,7 @@ public class PngMetadataTests
 
         var testFile = TestFile.Create(TestImages.Png.Blur);
 
-        using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder(), options);
+        using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance, options);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
 
         Assert.Equal(1, meta.TextData.Count);
@@ -178,7 +174,7 @@ public class PngMetadataTests
 
         var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
 
-        using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder(), options);
+        using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance, options);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
         Assert.Equal(0, meta.TextData.Count);
     }
@@ -189,8 +185,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new PngDecoder();
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+        using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -202,7 +197,7 @@ public class PngMetadataTests
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> input = provider.GetImage(new PngDecoder());
+        using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
@@ -224,8 +219,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new PngDecoder();
-        IImageInfo image = decoder.Identify(DecoderOptions.Default, stream);
+        IImageInfo image = PngDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);

@@ -53,7 +53,7 @@ public static partial class TestEnvironment
 
     private static Configuration CreateDefaultConfiguration()
     {
-        var cfg = new Configuration(
+        Configuration cfg = new(
             new JpegConfigurationModule(),
             new GifConfigurationModule(),
             new PbmConfigurationModule(),

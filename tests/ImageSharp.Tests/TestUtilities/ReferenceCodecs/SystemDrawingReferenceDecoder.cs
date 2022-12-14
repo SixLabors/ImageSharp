@@ -9,31 +9,30 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-public class SystemDrawingReferenceDecoder : IImageDecoder
+public class SystemDrawingReferenceDecoder : ImageDecoder
 {
     public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
-    public IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
-        using var sourceBitmap = new SDBitmap(stream);
+        using SDBitmap sourceBitmap = new(stream);
         PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));
         return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
     }
 
-    public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
-        using var sourceBitmap = new SDBitmap(stream);
+        using SDBitmap sourceBitmap = new(stream);
         if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
         {
             return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sourceBitmap);
         }
 
-        using var convertedBitmap = new SDBitmap(
+        using SDBitmap convertedBitmap = new(
             sourceBitmap.Width,
             sourceBitmap.Height,
             System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using (var g = System.Drawing.Graphics.FromImage(convertedBitmap))
+        using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(convertedBitmap))
         {
             g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
             g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
@@ -46,6 +45,6 @@ public class SystemDrawingReferenceDecoder : IImageDecoder
         return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap);
     }
 
-    public Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

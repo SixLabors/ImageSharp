@@ -208,8 +208,7 @@ public class LoadResizeSaveStressRunner
             TargetSize = new ImageSharpSize(this.ThumbnailSize, this.ThumbnailSize)
         };
 
-        var decoder = new JpegDecoder();
-        using ImageSharpImage image = decoder.Decode(options, inputStream);
+        using ImageSharpImage image = JpegDecoder.Instance.Decode(options, inputStream);
         this.LogImageProcessed(image.Width, image.Height);
 
         // Reduce the size of the file

@@ -10,10 +10,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC;
 
 public class IptcProfileTests
 {
-    private static JpegDecoder JpegDecoder => new();
-
-    private static TiffDecoder TiffDecoder => new();
-
     public static IEnumerable<object[]> AllIptcTags()
     {
         foreach (object tag in Enum.GetValues(typeof(IptcTag)))
@@ -117,7 +113,7 @@ public class IptcProfileTests
     public void ReadIptcMetadata_FromJpg_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+        using (Image<TPixel> image = provider.GetImage(JpegDecoder.Instance))
         {
             Assert.NotNull(image.Metadata.IptcProfile);
             var iptcValues = image.Metadata.IptcProfile.Values.ToList();
@@ -130,7 +126,7 @@ public class IptcProfileTests
     public void ReadIptcMetadata_FromTiff_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TiffDecoder))
+        using (Image<TPixel> image = provider.GetImage(TiffDecoder.Instance))
         {
             IptcProfile iptc = image.Frames.RootFrame.Metadata.IptcProfile;
             Assert.NotNull(iptc);
@@ -166,7 +162,7 @@ public class IptcProfileTests
     public void ReadApp13_WithEmptyIptc_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         Assert.Null(image.Metadata.IptcProfile);
     }
 
@@ -231,7 +227,7 @@ public class IptcProfileTests
     public void WritingImage_PreservesIptcProfile()
     {
         // arrange
-        var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         image.Metadata.IptcProfile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";

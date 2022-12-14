@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 public sealed class TgaFormat : IImageFormat<TgaMetadata>
 {
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static TgaFormat Instance { get; } = new TgaFormat();
 
@@ -26,5 +26,5 @@ public sealed class TgaFormat : IImageFormat<TgaMetadata>
     public IEnumerable<string> FileExtensions => TgaConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public TgaMetadata CreateDefaultFormatMetadata() => new TgaMetadata();
+    public TgaMetadata CreateDefaultFormatMetadata() => new();
 }

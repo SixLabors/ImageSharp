@@ -24,7 +24,7 @@ public class PngSmokeTests
         // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
         image.Save(ms, new PngEncoder());
         ms.Position = 0;
-        using Image<Rgba32> img2 = new PngDecoder().Decode<Rgba32>(DecoderOptions.Default, ms);
+        using Image<Rgba32> img2 = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, ms);
         ImageComparer.Tolerant().VerifySimilarity(image, img2);
 
         // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
@@ -45,7 +45,7 @@ public class PngSmokeTests
         // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
         image.Save(ms, new PngEncoder());
         ms.Position = 0;
-        using Image<Rgba32> img2 = new PngDecoder().Decode<Rgba32>(DecoderOptions.Default, ms);
+        using Image<Rgba32> img2 = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, ms);
         ImageComparer.Tolerant().VerifySimilarity(image, img2);
     }
 }

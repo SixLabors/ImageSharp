@@ -21,16 +21,9 @@ public sealed class TgaEncoder : ImageEncoder
     public TgaCompression Compression { get; init; } = TgaCompression.RunLength;
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         TgaEncoderCore encoder = new(this, image.GetMemoryAllocator());
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        TgaEncoderCore encoder = new(this, image.GetMemoryAllocator());
-        return encoder.EncodeAsync(image, stream, cancellationToken);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

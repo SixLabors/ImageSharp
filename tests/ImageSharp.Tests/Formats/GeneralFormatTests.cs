@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats;
 
@@ -47,7 +48,7 @@ public class GeneralFormatTests
     }
 
     [Fact]
-    public void ReadOriginIsRespectedOnLoad()
+    public void ChainedReadOriginIsRespectedForSeekableStreamsOnLoad()
     {
         using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
         using Image<Rgb24> i = Image.Load<Rgb24>(stream);
@@ -62,7 +63,18 @@ public class GeneralFormatTests
     }
 
     [Fact]
-    public async Task ReadOriginIsRespectedOnLoadAsync()
+    public void ChainedReadOnLoadNonSeekable_ThrowsUnknownImageFormatException()
+    {
+        using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
+        using NonSeekableStream wrapper = new(stream);
+        using Image<Rgb24> i = Image.Load<Rgb24>(wrapper);
+
+        Assert.Equal(stream.Length, stream.Position);
+        Assert.Throws<UnknownImageFormatException>(() => { using Image<Rgb24> j = Image.Load<Rgb24>(wrapper); });
+    }
+
+    [Fact]
+    public async Task ChainedReadOriginIsRespectedForSeekableStreamsOnLoadAsync()
     {
         using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
         using Image<Rgb24> i = await Image.LoadAsync<Rgb24>(stream);
@@ -74,6 +86,17 @@ public class GeneralFormatTests
         Assert.True(position2 > position1);
 
         Assert.NotEqual(i[5, 5], j[5, 5]);
+    }
+
+    [Fact]
+    public async Task ChainedReadOnLoadNonSeekable_ThrowsUnknownImageFormatException_Async()
+    {
+        using FileStream stream = File.OpenRead(TestFile.GetInputFileFullPath(TestImages.Png.Issue2259));
+        using NonSeekableStream wrapper = new(stream);
+        using Image<Rgb24> i = await Image.LoadAsync<Rgb24>(wrapper);
+
+        Assert.Equal(stream.Length, stream.Position);
+        await Assert.ThrowsAsync<UnknownImageFormatException>(async () => { using Image<Rgb24> j = await Image.LoadAsync<Rgb24>(wrapper); });
     }
 
     [Fact]

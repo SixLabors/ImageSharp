@@ -100,10 +100,11 @@ public partial class JpegEncoderTests
         Exception ex = Record.Exception(() =>
         {
             var encoder = new JpegEncoder();
-            var stream = new MemoryStream();
-
-            using Image<TPixel> image = provider.GetImage(JpegDecoder);
-            image.Save(stream, encoder);
+            using (var stream = new MemoryStream())
+            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+                image.Save(stream, encoder);
+            }
         });
 
         Assert.Null(ex);
@@ -162,7 +163,7 @@ public partial class JpegEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        using Image<TPixel> input = provider.GetImage(JpegDecoder);
+        using Image<TPixel> input = provider.GetImage(JpegDecoder.Instance);
         using var memoryStream = new MemoryStream();
 
         // act

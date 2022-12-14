@@ -25,8 +25,6 @@ public class BmpDecoderTests
 
     public static readonly string[] BitfieldsBmpFiles = BitFields;
 
-    private static BmpDecoder BmpDecoder => new();
-
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
     {
@@ -40,7 +38,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         if (TestEnvironment.IsWindows)
@@ -61,7 +59,7 @@ public class BmpDecoderTests
 
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-            using Image<Rgba32> image = provider.GetImage(BmpDecoder);
+            using Image<Rgba32> image = provider.GetImage(BmpDecoder.Instance);
             image.DebugSave(provider, nonContiguousBuffersStr);
 
             if (TestEnvironment.IsWindows)
@@ -81,7 +79,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(BmpDecoder));
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(BmpDecoder.Instance));
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
@@ -90,7 +88,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBitfields<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -101,7 +99,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -112,7 +110,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_1Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
     }
@@ -123,7 +121,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_2Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Reference decoder cant decode 2-bit, compare to reference output instead.
@@ -135,7 +133,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_4Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -145,7 +143,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -155,7 +153,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -165,7 +163,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -175,7 +173,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_32BitV4Header_Fast<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -190,7 +188,7 @@ public class BmpDecoderTests
         RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
 
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -203,7 +201,7 @@ public class BmpDecoderTests
         RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
 
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -217,7 +215,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         if (TestEnvironment.IsWindows)
         {
@@ -232,7 +230,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -251,7 +249,7 @@ public class BmpDecoderTests
         }
 
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -272,7 +270,7 @@ public class BmpDecoderTests
         }
 
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.Black };
-        using Image<TPixel> image = provider.GetImage(BmpDecoder, options);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
 
         // Neither System.Drawing nor MagickReferenceDecoder decode this file.
@@ -285,7 +283,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeAlphaBitfields<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Neither System.Drawing nor MagickReferenceDecoder decode this file.
@@ -298,7 +296,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBitmap_WithAlphaChannel<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -308,7 +306,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBitfields_WithUnusualBitmasks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Choosing large tolerance of 6.1 here, because for some reason with the MagickReferenceDecoder the alpha channel
@@ -325,7 +323,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBmpv2<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Do not validate. Reference files will fail validation.
@@ -337,7 +335,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -347,7 +345,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeLessThanFullPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -358,7 +356,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeOversizedPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         if (TestEnvironment.IsWindows)
         {
@@ -372,7 +370,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
         => Assert.Throws<InvalidImageContentException>(() =>
         {
-            using (provider.GetImage(BmpDecoder))
+            using (provider.GetImage(BmpDecoder.Instance))
             {
             }
         });
@@ -384,7 +382,7 @@ public class BmpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
         => Assert.Throws<NotSupportedException>(() =>
         {
-            using (provider.GetImage(BmpDecoder))
+            using (provider.GetImage(BmpDecoder.Instance))
             {
             }
         });
@@ -394,7 +392,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeAdobeBmpv3<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -404,7 +402,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeAdobeBmpv3_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder());
     }
@@ -414,7 +412,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBmpv4<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -425,7 +423,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecodeBmpv5<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -435,7 +433,7 @@ public class BmpDecoderTests
     public void BmpDecoder_RespectsFileHeaderOffset<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -445,7 +443,7 @@ public class BmpDecoderTests
     public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -455,7 +453,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode4BytePerEntryPalette<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -507,8 +505,7 @@ public class BmpDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        var decoder = new BmpDecoder();
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+        using Image<Rgba32> image = BmpDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -520,7 +517,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_Os2v2XShortHeader<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
@@ -533,7 +530,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_Os2v2Header<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // System.Drawing can not decode this image. MagickReferenceDecoder can decode it,
@@ -554,7 +551,7 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(BmpDecoder);
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
 
         // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.

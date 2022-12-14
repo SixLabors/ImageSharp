@@ -289,7 +289,7 @@ internal static class AotCompilerTools
     private static void AotCompileImageDecoder<TPixel, TDecoder>()
        where TPixel : unmanaged, IPixel<TPixel>
        where TDecoder : class, IImageDecoder
-        => default(TDecoder).Decode<TPixel>(default, default, default);
+        => default(TDecoder).Decode<TPixel>(default, default);
 
     /// <summary>
     /// This method pre-seeds the all <see cref="IImageProcessor" /> in the AoT compiler.

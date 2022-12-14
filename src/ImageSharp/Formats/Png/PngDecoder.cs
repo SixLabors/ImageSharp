@@ -8,10 +8,19 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Decoder for generating an image out of a png encoded stream.
 /// </summary>
-public sealed class PngDecoder : IImageDecoder
+public sealed class PngDecoder : ImageDecoder
 {
+    private PngDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static PngDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
-    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -20,7 +29,7 @@ public sealed class PngDecoder : IImageDecoder
     }
 
     /// <inheritdoc/>
-    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -28,13 +37,13 @@ public sealed class PngDecoder : IImageDecoder
         PngDecoderCore decoder = new(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
-        ImageDecoderUtilities.Resize(options, image);
+        ScaleToTargetSize(options, image);
 
         return image;
     }
 
     /// <inheritdoc/>
-    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -47,48 +56,47 @@ public sealed class PngDecoder : IImageDecoder
         PngColorType color = meta.ColorType.GetValueOrDefault();
         PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
 
-        var imageDecoder = (IImageDecoder)this;
         switch (color)
         {
             case PngColorType.Grayscale:
                 if (bits == PngBitDepth.Bit16)
                 {
                     return !meta.HasTransparency
-                        ? imageDecoder.Decode<L16>(options, stream, cancellationToken)
-                        : imageDecoder.Decode<La32>(options, stream, cancellationToken);
+                        ? this.Decode<L16>(options, stream, cancellationToken)
+                        : this.Decode<La32>(options, stream, cancellationToken);
                 }
 
                 return !meta.HasTransparency
-                    ? imageDecoder.Decode<L8>(options, stream, cancellationToken)
-                    : imageDecoder.Decode<La16>(options, stream, cancellationToken);
+                    ? this.Decode<L8>(options, stream, cancellationToken)
+                    : this.Decode<La16>(options, stream, cancellationToken);
 
             case PngColorType.Rgb:
                 if (bits == PngBitDepth.Bit16)
                 {
                     return !meta.HasTransparency
-                        ? imageDecoder.Decode<Rgb48>(options, stream, cancellationToken)
-                        : imageDecoder.Decode<Rgba64>(options, stream, cancellationToken);
+                        ? this.Decode<Rgb48>(options, stream, cancellationToken)
+                        : this.Decode<Rgba64>(options, stream, cancellationToken);
                 }
 
                 return !meta.HasTransparency
-                    ? imageDecoder.Decode<Rgb24>(options, stream, cancellationToken)
-                    : imageDecoder.Decode<Rgba32>(options, stream, cancellationToken);
+                    ? this.Decode<Rgb24>(options, stream, cancellationToken)
+                    : this.Decode<Rgba32>(options, stream, cancellationToken);
 
             case PngColorType.Palette:
-                return imageDecoder.Decode<Rgba32>(options, stream, cancellationToken);
+                return this.Decode<Rgba32>(options, stream, cancellationToken);
 
             case PngColorType.GrayscaleWithAlpha:
                 return (bits == PngBitDepth.Bit16)
-                ? imageDecoder.Decode<La32>(options, stream, cancellationToken)
-                : imageDecoder.Decode<La16>(options, stream, cancellationToken);
+                ? this.Decode<La32>(options, stream, cancellationToken)
+                : this.Decode<La16>(options, stream, cancellationToken);
 
             case PngColorType.RgbWithAlpha:
                 return (bits == PngBitDepth.Bit16)
-                ? imageDecoder.Decode<Rgba64>(options, stream, cancellationToken)
-                : imageDecoder.Decode<Rgba32>(options, stream, cancellationToken);
+                ? this.Decode<Rgba64>(options, stream, cancellationToken)
+                : this.Decode<Rgba32>(options, stream, cancellationToken);
 
             default:
-                return imageDecoder.Decode<Rgba32>(options, stream, cancellationToken);
+                return this.Decode<Rgba32>(options, stream, cancellationToken);
         }
     }
 }

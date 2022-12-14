@@ -13,7 +13,7 @@ public sealed class GifFormat : IImageFormat<GifMetadata, GifFrameMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static GifFormat Instance { get; } = new();
 

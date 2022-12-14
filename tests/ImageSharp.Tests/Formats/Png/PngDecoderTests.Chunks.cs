@@ -70,10 +70,8 @@ public partial class PngDecoderTests
             WriteChunk(memStream, chunkName);
             WriteDataChunk(memStream);
 
-            var decoder = new PngDecoder();
-
             ImageFormatException exception =
-                Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(DecoderOptions.Default, memStream));
+                Assert.Throws<InvalidImageContentException>(() => PngDecoder.Instance.Decode<Rgb24>(DecoderOptions.Default, memStream));
 
             Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
         }

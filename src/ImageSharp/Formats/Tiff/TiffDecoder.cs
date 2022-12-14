@@ -8,10 +8,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Image decoder for generating an image out of a TIFF stream.
 /// </summary>
-public class TiffDecoder : IImageDecoder
+public class TiffDecoder : ImageDecoder
 {
+    private TiffDecoder()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static TiffDecoder Instance { get; } = new();
+
     /// <inheritdoc/>
-    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -20,7 +29,7 @@ public class TiffDecoder : IImageDecoder
     }
 
     /// <inheritdoc/>
-    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -28,12 +37,12 @@ public class TiffDecoder : IImageDecoder
         TiffDecoderCore decoder = new(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
 
-        ImageDecoderUtilities.Resize(options, image);
+        ScaleToTargetSize(options, image);
 
         return image;
     }
 
     /// <inheritdoc/>
-    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoder)this).Decode<Rgba32>(options, stream, cancellationToken);
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

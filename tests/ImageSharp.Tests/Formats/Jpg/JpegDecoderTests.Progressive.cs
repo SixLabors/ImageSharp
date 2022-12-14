@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -19,7 +20,7 @@ public partial class JpegDecoderTests
     public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
 
         provider.Utility.TestName = DecodeProgressiveJpegOutputName;
@@ -35,7 +36,7 @@ public partial class JpegDecoderTests
     public void DecodeProgressiveJpeg_WithArithmeticCoding<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Tolerant(0.004f), ReferenceDecoder);
     }
@@ -51,7 +52,7 @@ public partial class JpegDecoderTests
 
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
 
-            using Image<Rgb24> image = provider.GetImage(JpegDecoder);
+            using Image<Rgb24> image = provider.GetImage(JpegDecoder.Instance);
             image.DebugSave(provider, nonContiguousBuffersStr);
 
             provider.Utility.TestName = DecodeProgressiveJpegOutputName;

@@ -75,19 +75,9 @@ public class PngEncoder : QuantizingImageEncoder
     public PngTransparentColorMode TransparentColorMode { get; init; }
 
     /// <inheritdoc/>
-    public override void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
         using PngEncoderCore encoder = new(image.GetMemoryAllocator(), image.GetConfiguration(), this);
-        encoder.Encode(image, stream);
-    }
-
-    /// <inheritdoc/>
-    public override async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        // The introduction of a local variable that refers to an object the implements
-        // IDisposable means you must use async/await, where the compiler generates the
-        // state machine and a continuation.
-        using PngEncoderCore encoder = new(image.GetMemoryAllocator(), image.GetConfiguration(), this);
-        await encoder.EncodeAsync(image, stream, cancellationToken).ConfigureAwait(false);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

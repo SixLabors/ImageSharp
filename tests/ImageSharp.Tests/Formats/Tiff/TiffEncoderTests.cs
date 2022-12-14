@@ -295,7 +295,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     [Theory]
     [WithFile(FlowerRgb444Planar, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodePlanar_AndReload_Works<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, imageDecoder: new TiffDecoder());
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, imageDecoder: TiffDecoder.Instance);
 
     [Theory]
     [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]

@@ -48,10 +48,8 @@ public static partial class ImageExtensions
     {
         Guard.NotNull(path, nameof(path));
         Guard.NotNull(encoder, nameof(encoder));
-        using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
-        {
-            source.Save(fs, encoder);
-        }
+        using Stream fs = source.GetConfiguration().FileSystem.Create(path);
+        source.Save(fs, encoder);
     }
 
     /// <summary>
@@ -73,10 +71,8 @@ public static partial class ImageExtensions
         Guard.NotNull(path, nameof(path));
         Guard.NotNull(encoder, nameof(encoder));
 
-        using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
-        {
-            await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
-        }
+        using Stream fs = source.GetConfiguration().FileSystem.Create(path);
+        await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

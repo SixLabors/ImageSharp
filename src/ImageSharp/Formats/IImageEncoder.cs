@@ -6,27 +6,32 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Encapsulates properties and methods required for encoding an image to a stream.
+/// Defines the contract for all image encoders.
 /// </summary>
 public interface IImageEncoder
 {
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// Gets a value indicating whether to ignore decoded metadata when encoding.
+    /// </summary>
+    public bool SkipMetadata { get; init; }
+
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}" />.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    /// <param name="image">The <see cref="Image{TPixel}" /> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream" /> to encode the image data to.</param>
+    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}" />.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="image">The <see cref="Image{TPixel}" /> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream" /> to encode the image data to.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    /// <returns>A <see cref="Task" /> representing the asynchronous operation.</returns>
+    public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>;
 }

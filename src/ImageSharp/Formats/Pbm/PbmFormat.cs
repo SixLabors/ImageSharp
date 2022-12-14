@@ -13,7 +13,7 @@ public sealed class PbmFormat : IImageFormat<PbmMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static PbmFormat Instance { get; } = new();
 

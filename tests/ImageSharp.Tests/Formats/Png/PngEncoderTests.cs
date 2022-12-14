@@ -284,9 +284,7 @@ public partial class PngEncoderTests
 
         stream.Seek(0, SeekOrigin.Begin);
 
-        var decoder = new PngDecoder();
-
-        Image image = decoder.Decode(DecoderOptions.Default, stream);
+        using Image image = PngDecoder.Instance.Decode(DecoderOptions.Default, stream);
 
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.Equal(pngColorType, metadata.ColorType);
@@ -542,7 +540,7 @@ public partial class PngEncoderTests
         // https://github.com/SixLabors/ImageSharp/issues/935
         using var ms = new MemoryStream();
         var testFile = TestFile.Create(TestImages.Png.Issue935);
-        using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder());
+        using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance);
 
         image.Save(ms, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
     }
@@ -594,11 +592,11 @@ public partial class PngEncoderTests
         // occurs within the encoder itself leaving the input image unaffected.
         // This means we are benefiting from testing our decoder also.
         using FileStream fileStream = File.OpenRead(actualOutputFile);
-        using Image<TPixel> imageSharpImage = new PngDecoder().Decode<TPixel>(DecoderOptions.Default, fileStream);
+        using Image<TPixel> imageSharpImage = PngDecoder.Instance.Decode<TPixel>(DecoderOptions.Default, fileStream);
 
         fileStream.Position = 0;
 
-        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, fileStream, default);
+        using Image<TPixel> referenceImage = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, fileStream);
         ImageComparer.Exact.VerifySimilarity(referenceImage, imageSharpImage);
     }
 }

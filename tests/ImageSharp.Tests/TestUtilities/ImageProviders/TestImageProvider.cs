@@ -99,17 +99,18 @@ public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IX
     public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder, DecoderOptions options)
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
-    public virtual Image<TPixel> GetImage<T>(IImageDecoderSpecialized<T> decoder, T options)
+    public virtual Image<TPixel> GetImage<T>(ISpecializedImageDecoder<T> decoder, T options)
         where T : class, ISpecializedDecoderOptions, new()
         => throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
 
-    public virtual Task<Image<TPixel>> GetImageAsync<T>(IImageDecoderSpecialized<T> decoder, T options)
+    public virtual Task<Image<TPixel>> GetImageAsync<T>(ISpecializedImageDecoder<T> decoder, T options)
         where T : class, ISpecializedDecoderOptions, new()
         => throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
 
     /// <summary>
     /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
     /// </summary>
+    /// <param name="operationsToApply">The operation to apply to the image before returning.</param>
     /// <returns>A test image.</returns>
     public Image<TPixel> GetImage(Action<IImageProcessingContext> operationsToApply)
     {

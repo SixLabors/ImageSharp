@@ -102,8 +102,8 @@ public class ImageFormatManagerTests
     [Fact]
     public void AddFormatCallsConfig()
     {
-        var provider = new Mock<IConfigurationModule>();
-        var config = new Configuration();
+        Mock<IImageFormatConfigurationModule> provider = new();
+        Configuration config = new();
         config.Configure(provider.Object);
 
         provider.Verify(x => x.Configure(config));
@@ -113,9 +113,9 @@ public class ImageFormatManagerTests
     public void DetectFormatAllocatesCleanBuffer()
     {
         byte[] jpegImage;
-        using (var buffer = new MemoryStream())
+        using (MemoryStream buffer = new())
         {
-            using var image = new Image<Rgba32>(100, 100);
+            using Image<Rgba32> image = new(100, 100);
             image.SaveAsJpeg(buffer);
             jpegImage = buffer.ToArray();
         }

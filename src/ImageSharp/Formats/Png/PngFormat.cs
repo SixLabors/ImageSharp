@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Png;
@@ -13,7 +13,7 @@ public sealed class PngFormat : IImageFormat<PngMetadata>
     }
 
     /// <summary>
-    /// Gets the current instance.
+    /// Gets the shared instance.
     /// </summary>
     public static PngFormat Instance { get; } = new PngFormat();
 
@@ -30,5 +30,5 @@ public sealed class PngFormat : IImageFormat<PngMetadata>
     public IEnumerable<string> FileExtensions => PngConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public PngMetadata CreateDefaultFormatMetadata() => new PngMetadata();
+    public PngMetadata CreateDefaultFormatMetadata() => new();
 }

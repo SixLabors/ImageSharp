@@ -39,7 +39,7 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     {
         Assert.Throws<ImageDifferenceIsOverThresholdException>(() => TestTiffDecoder(provider));
 
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         ExifProfile exif = image.Frames.RootFrame.Metadata.ExifProfile;
 
         // PhotometricInterpretation is required tag: https://www.awaresystems.be/imaging/tiff/tifftags/photometricinterpretation.html
@@ -104,7 +104,7 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_SubIfd8<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
 
         ExifProfile meta = image.Frames.RootFrame.Metadata.ExifProfile;
 

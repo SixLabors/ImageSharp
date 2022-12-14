@@ -22,7 +22,7 @@ public class ImageFormatManager
     private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new();
 
     /// <summary>
-    /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
+    /// The list of supported <see cref="IImageDecoder"/> keyed to mime types.
     /// </summary>
     private readonly ConcurrentDictionary<IImageFormat, IImageDecoder> mimeTypeDecoders = new();
 
@@ -122,7 +122,7 @@ public class ImageFormatManager
         Guard.NotNull(imageFormat, nameof(imageFormat));
         Guard.NotNull(encoder, nameof(encoder));
         this.AddImageFormat(imageFormat);
-        this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (s, e) => encoder);
+        this.mimeTypeEncoders.AddOrUpdate(imageFormat, encoder, (_, _) => encoder);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public class ImageFormatManager
         Guard.NotNull(imageFormat, nameof(imageFormat));
         Guard.NotNull(decoder, nameof(decoder));
         this.AddImageFormat(imageFormat);
-        this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (s, e) => decoder);
+        this.mimeTypeDecoders.AddOrUpdate(imageFormat, decoder, (_, _) => decoder);
     }
 
     /// <summary>

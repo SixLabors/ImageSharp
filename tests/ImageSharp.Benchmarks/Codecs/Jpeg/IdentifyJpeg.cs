@@ -19,19 +19,12 @@ public class IdentifyJpeg
     public string TestImage { get; set; }
 
     [GlobalSetup]
-    public void ReadImages()
-    {
-        if (this.jpegBytes == null)
-        {
-            this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+    public void ReadImages() => this.jpegBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     [Benchmark]
     public IImageInfo Identify()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        IImageDecoder decoder = new JpegDecoder();
-        return decoder.Identify(DecoderOptions.Default, memoryStream, default);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        return JpegDecoder.Instance.Identify(DecoderOptions.Default, memoryStream);
     }
 }

@@ -45,7 +45,7 @@ public static partial class ImageExtensions
     /// <param name="source">The image this method extends.</param>
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAs<#= fmt #>(this Image source, string path) => SaveAs<#= fmt #>(source, path, null);
+    public static void SaveAs<#= fmt #>(this Image source, string path) => SaveAs<#= fmt #>(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -54,7 +54,7 @@ public static partial class ImageExtensions
     /// <param name="path">The file path to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAs<#= fmt #>Async(this Image source, string path) => SaveAs<#= fmt #>Async(source, path, null);
+    public static Task SaveAs<#= fmt #>Async(this Image source, string path) => SaveAs<#= fmt #>Async(source, path, default);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -65,7 +65,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAs<#= fmt #>Async(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAs<#= fmt #>Async(source, path, null, cancellationToken);
+        => SaveAs<#= fmt #>Async(source, path, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -88,11 +88,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAs<#= fmt #>Async(this Image source, string path, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance),
-            cancellationToken);
+    public static Task SaveAs<#= fmt #>Async(this Image source, string path, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance),
+              cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -101,7 +101,7 @@ public static partial class ImageExtensions
     /// <param name="stream">The stream to save the image to.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAs<#= fmt #>(this Image source, Stream stream)
-        => SaveAs<#= fmt #>(source, stream, null);
+        => SaveAs<#= fmt #>(source, stream, default);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -112,7 +112,7 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task SaveAs<#= fmt #>Async(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAs<#= fmt #>Async(source, stream, null, cancellationToken);
+        => SaveAs<#= fmt #>Async(source, stream, default, cancellationToken);
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -123,8 +123,8 @@ public static partial class ImageExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     public static void SaveAs<#= fmt #>(this Image source, Stream stream, <#= fmt #>Encoder encoder)
         => source.Save(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance));
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -135,11 +135,11 @@ public static partial class ImageExtensions
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAs<#= fmt #>Async(this Image source, Stream stream, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default) =>
-        source.SaveAsync(
-            stream,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance),
-            cancellationToken);
+    public static Task SaveAs<#= fmt #>Async(this Image source, Stream stream, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance),
+              cancellationToken);
 
 <#
 }

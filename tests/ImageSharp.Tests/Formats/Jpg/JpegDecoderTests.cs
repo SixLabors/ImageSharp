@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit.Abstractions;
@@ -64,8 +63,6 @@ public partial class JpegDecoderTests
 
     private ITestOutputHelper Output { get; }
 
-    private static JpegDecoder JpegDecoder => new();
-
     [Fact]
     public void ParseStream_BasicPropertiesAreCorrect()
     {
@@ -105,7 +102,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
 
         provider.Utility.TestName = DecodeBaselineJpegOutputName;
@@ -121,7 +118,7 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
-        using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -143,7 +140,7 @@ public partial class JpegDecoderTests
             TargetSize = new() { Width = 150, Height = 150 },
             Sampler = KnownResamplers.Bicubic
         };
-        using Image<TPixel> image = provider.GetImage(JpegDecoder, options);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -167,7 +164,7 @@ public partial class JpegDecoderTests
             ResizeMode = JpegDecoderResizeMode.IdctOnly
         };
 
-        using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, specializedOptions);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -191,7 +188,7 @@ public partial class JpegDecoderTests
             ResizeMode = JpegDecoderResizeMode.ScaleOnly
         };
 
-        using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, specializedOptions);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -215,7 +212,7 @@ public partial class JpegDecoderTests
             ResizeMode = JpegDecoderResizeMode.Combined
         };
 
-        using Image<TPixel> image = provider.GetImage(JpegDecoder, specializedOptions);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, specializedOptions);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -234,7 +231,7 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(JpegDecoder));
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(JpegDecoder.Instance));
         this.Output.WriteLine(ex.Message);
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
@@ -246,57 +243,9 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
-        InvalidImageContentException ex = await Assert.ThrowsAsync<InvalidImageContentException>(() => provider.GetImageAsync(JpegDecoder));
+        InvalidImageContentException ex = await Assert.ThrowsAsync<InvalidImageContentException>(() => provider.GetImageAsync(JpegDecoder.Instance));
         this.Output.WriteLine(ex.Message);
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
-    }
-
-    [Fact]
-    public async Task DecodeAsync_IsCancellable()
-    {
-        var cts = new CancellationTokenSource();
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
-        {
-            cts.Cancel();
-            pausedStream.Release();
-        });
-
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
-        DecoderOptions options = new()
-        {
-            Configuration = configuration
-        };
-
-        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-        {
-            using Image image = await Image.LoadAsync(options, "someFakeFile", cts.Token);
-        });
-    }
-
-    [Fact]
-    public async Task Identify_IsCancellable()
-    {
-        var cts = new CancellationTokenSource();
-
-        string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var pausedStream = new PausedStream(file);
-        pausedStream.OnWaiting(_ =>
-        {
-            cts.Cancel();
-            pausedStream.Release();
-        });
-
-        var configuration = Configuration.CreateDefaultInstance();
-        configuration.FileSystem = new SingleStreamFileSystem(pausedStream);
-        DecoderOptions options = new()
-        {
-            Configuration = configuration
-        };
-
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await Image.IdentifyAsync(options, "someFakeFile", cts.Token));
     }
 
     [Theory]
@@ -305,7 +254,7 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
         => Assert.Throws<NotSupportedException>(() =>
         {
-            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         });
 
     // https://github.com/SixLabors/ImageSharp/pull/1732
@@ -314,7 +263,7 @@ public partial class JpegDecoderTests
     public void Issue1732_DecodesWithRgbColorSpace<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -325,7 +274,7 @@ public partial class JpegDecoderTests
     public void Issue2057_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -336,7 +285,7 @@ public partial class JpegDecoderTests
     public void Issue2133_DeduceColorSpace<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -347,7 +296,7 @@ public partial class JpegDecoderTests
     public void Issue2136_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(JpegDecoder);
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }

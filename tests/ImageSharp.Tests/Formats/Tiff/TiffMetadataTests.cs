@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public class TiffMetadataTests
 {
-    private static TiffDecoder TiffDecoder => new();
-
     private class NumberComparer : IEqualityComparer<Number>
     {
         public bool Equals(Number x, Number y) => x.Equals(y);
@@ -46,7 +44,7 @@ public class TiffMetadataTests
     public void TiffFrameMetadata_CloneIsDeep<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         TiffFrameMetadata meta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
         var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
         VerifyExpectedTiffFrameMetaDataIsPresent(cloneSameAsSampleMetaData);
@@ -113,7 +111,7 @@ public class TiffMetadataTests
       where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { SkipMetadata = ignoreMetadata };
-        using Image<TPixel> image = provider.GetImage(new TiffDecoder(), options);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         TiffMetadata meta = image.Metadata.GetTiffMetadata();
         ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
 
@@ -137,7 +135,7 @@ public class TiffMetadataTests
     public void CanDecodeImage_WithIptcDataAsLong<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
 
         IptcProfile iptcProfile = image.Frames.RootFrame.Metadata.IptcProfile;
         Assert.NotNull(iptcProfile);
@@ -151,7 +149,7 @@ public class TiffMetadataTests
     public void BaselineTags<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
         Assert.Equal(32, rootFrame.Width);
         Assert.Equal(32, rootFrame.Height);
@@ -208,7 +206,7 @@ public class TiffMetadataTests
     public void SubfileType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(TiffDecoder);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         TiffMetadata meta = image.Metadata.GetTiffMetadata();
         Assert.NotNull(meta);
 
@@ -232,7 +230,7 @@ public class TiffMetadataTests
     {
         // Load Tiff image
         DecoderOptions options = new() { SkipMetadata = false };
-        using Image<TPixel> image = provider.GetImage(TiffDecoder, options);
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
 
         ImageMetadata inputMetaData = image.Metadata;
         ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;

@@ -17,14 +17,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga;
 [ValidateDisposedMemoryAllocations]
 public class TgaDecoderTests
 {
-    private static TgaDecoder TgaDecoder => new();
-
     [Theory]
     [WithFile(Gray8BitTopLeft, PixelTypes.Rgba32)]
     public void TgaDecoder_CanDecode_Gray_WithTopLeftOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -36,7 +34,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithBottomLeftOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -48,7 +46,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithTopRightOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -60,7 +58,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithBottomRightOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -72,7 +70,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithTopLeftOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -84,7 +82,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithTopRightOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -96,7 +94,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithBottomLeftOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -108,7 +106,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithBottomRightOrigin_8Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -120,7 +118,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -135,7 +133,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -150,7 +148,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithBottomRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -165,7 +163,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Gray_WithTopRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -180,7 +178,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -195,7 +193,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -210,7 +208,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithBottomRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -225,7 +223,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_Gray_WithTopRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
 
@@ -240,7 +238,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_15Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -252,7 +250,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_15Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -264,7 +262,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -276,7 +274,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -288,7 +286,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -300,7 +298,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithBottomLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -312,7 +310,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithTopRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -324,7 +322,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -336,7 +334,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -348,7 +346,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -360,7 +358,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -372,7 +370,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_Palette_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -384,7 +382,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithTopLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -396,7 +394,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithTopRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -408,7 +406,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithBottomLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -420,7 +418,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithBottomRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -432,7 +430,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -444,7 +442,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithBottomLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -456,7 +454,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -468,7 +466,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithBottomLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -480,7 +478,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -492,7 +490,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RunLengthEncoded_WithBottomRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -504,7 +502,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_Paletted_WithTopLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -516,7 +514,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_Paletted_WithBottomLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -528,7 +526,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_WithTopRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -540,7 +538,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_Paletted_WithBottomRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -552,7 +550,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPaletteBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -564,7 +562,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPaletteTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -576,7 +574,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPaletteTopRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -588,7 +586,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPaletteBottomLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -600,7 +598,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPaletteBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -612,7 +610,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_WithPaletteTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -624,7 +622,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_WithPaletteTopRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -636,7 +634,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_WithPaletteBottomLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -648,7 +646,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_RLE_WithPaletteBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -660,7 +658,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPalette_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -672,7 +670,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPalette_WithBottomLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -684,7 +682,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPalette_WithBottomRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -696,7 +694,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WithPalette_WithTopRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -709,7 +707,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet_16Bit<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -722,7 +720,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             // Using here the reference output instead of the the reference decoder,
             // because the reference decoder does not ignore the alpha data here.
@@ -738,7 +736,7 @@ public class TgaDecoderTests
     public void TgaDecoder_CanDecode_LegacyFormat<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
             image.DebugSave(provider);
             ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
@@ -755,7 +753,7 @@ public class TgaDecoderTests
             TargetSize = new() { Width = 150, Height = 150 }
         };
 
-        using Image<TPixel> image = provider.GetImage(TgaDecoder, options);
+        using Image<TPixel> image = provider.GetImage(TgaDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
@@ -775,7 +773,7 @@ public class TgaDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(TgaDecoder));
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(TgaDecoder.Instance));
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 
@@ -790,7 +788,7 @@ public class TgaDecoderTests
 
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-            using Image<Rgba32> image = provider.GetImage(TgaDecoder);
+            using Image<Rgba32> image = provider.GetImage(TgaDecoder.Instance);
             image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
             if (TestEnvironment.IsWindows)

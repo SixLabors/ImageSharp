@@ -50,10 +50,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
         }
-        else
-        {
-            return 0;
-        }
+
+        return 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,10 +61,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.C;
         }
-        else
-        {
-            return this.curve.C;
-        }
+
+        return this.curve.C;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,10 +72,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
         }
-        else
-        {
-            return this.curve.C * value;
-        }
+
+        return this.curve.C * value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,10 +83,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.E;
         }
-        else
-        {
-            return (this.curve.C * value) + this.curve.F;
-        }
+
+        return (this.curve.C * value) + this.curve.F;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,10 +102,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return (MathF.Pow(value - this.curve.C, 1 / this.curve.G) - this.curve.B) / this.curve.A;
         }
-        else
-        {
-            return -this.curve.B / this.curve.A;
-        }
+
+        return -this.curve.B / this.curve.A;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,10 +113,8 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return (MathF.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
         }
-        else
-        {
-            return value / this.curve.C;
-        }
+
+        return value / this.curve.C;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -136,9 +124,7 @@ internal class ParametricCurveCalculator : ISingleCalculator
         {
             return (MathF.Pow(value - this.curve.E, 1 / this.curve.G) - this.curve.B) / this.curve.A;
         }
-        else
-        {
-            return (value - this.curve.F) / this.curve.C;
-        }
+
+        return (value - this.curve.F) / this.curve.C;
     }
 }

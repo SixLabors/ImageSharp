@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 
 internal class ColorTrcCalculator : IVector4Calculator
 {
-    private TrcCalculator curveCalculator;
+    private readonly TrcCalculator curveCalculator;
     private Matrix4x4 matrix;
-    private bool toPcs;
+    private readonly bool toPcs;
 
     public ColorTrcCalculator(
         IccXyzTagDataEntry redMatrixColumn,
@@ -44,10 +44,8 @@ internal class ColorTrcCalculator : IVector4Calculator
             value = this.curveCalculator.Calculate(value);
             return Vector4.Transform(value, this.matrix);
         }
-        else
-        {
-            value = Vector4.Transform(value, this.matrix);
-            return this.curveCalculator.Calculate(value);
-        }
+
+        value = Vector4.Transform(value, this.matrix);
+        return this.curveCalculator.Calculate(value);
     }
 }

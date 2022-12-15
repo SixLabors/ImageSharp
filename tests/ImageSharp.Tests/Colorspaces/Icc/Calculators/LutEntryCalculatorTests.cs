@@ -5,7 +5,6 @@ using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 {
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataLutEntry.Lut8ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
         internal void LutEntryCalculator_WithLut8_ReturnsResult(IccLut8TagDataEntry lut, Vector4 input, Vector4 expected)
         {
-            var calculator = new LutEntryCalculator(lut);
+            LutEntryCalculator calculator = new(lut);
 
             Vector4 result = calculator.Calculate(input);
 
@@ -30,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataLutEntry.Lut16ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
         internal void LutEntryCalculator_WithLut16_ReturnsResult(IccLut16TagDataEntry lut, Vector4 input, Vector4 expected)
         {
-            var calculator = new LutEntryCalculator(lut);
+            LutEntryCalculator calculator = new(lut);
 
             Vector4 result = calculator.Calculate(input);
 

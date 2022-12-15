@@ -10,11 +10,28 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
+
+/// <summary>
+/// Allows the copnversion between ICC profiles.
+/// </summary>
 internal static class IccProfileConverter
 {
+    /// <summary>
+    /// Performs a conversion of the image pixels based on the input and output ICC profiles.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel.</typeparam>
+    /// <param name="image">The image to convert.</param>
+    /// <param name="inputIccProfile">The input ICC profile.</param>
+    /// <param name="outputIccProfile">The output ICC profile. </param>
     public static void Convert<TPixel>(Image<TPixel> image, IccProfile inputIccProfile, IccProfile outputIccProfile)
                 where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TODO: Is this the correct property?
+        if (inputIccProfile.Header.Id.Equals(outputIccProfile.Header.Id))
+        {
+            return;
+        }
+
         IccDataToPcsConverter converterDataToPcs = new(inputIccProfile);
         IccPcsToDataConverter converterPcsToData = new(outputIccProfile);
         Configuration configuration = image.GetConfiguration();
@@ -38,6 +55,7 @@ internal static class IccProfileConverter
             }
         });
 
+        // TODO: Do not preserve the profile if we are converting to sRGB.
         image.Metadata.IccProfile = outputIccProfile;
     }
 }

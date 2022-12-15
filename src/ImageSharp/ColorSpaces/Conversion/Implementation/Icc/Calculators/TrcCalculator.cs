@@ -2,13 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 
 internal class TrcCalculator : IVector4Calculator
 {
-    private ISingleCalculator[] calculators;
+    private readonly ISingleCalculator[] calculators;
 
     public TrcCalculator(IccTagDataEntry[] entries, bool inverted)
     {
@@ -17,28 +18,21 @@ internal class TrcCalculator : IVector4Calculator
         this.calculators = new ISingleCalculator[entries.Length];
         for (int i = 0; i < entries.Length; i++)
         {
-            switch (entries[i])
+            this.calculators[i] = entries[i] switch
             {
-                case IccCurveTagDataEntry curve:
-                    this.calculators[i] = new CurveCalculator(curve, inverted);
-                    break;
-
-                case IccParametricCurveTagDataEntry parametricCurve:
-                    this.calculators[i] = new ParametricCurveCalculator(parametricCurve, inverted);
-                    break;
-
-                default:
-                    throw new InvalidIccProfileException("Invalid Entry.");
-            }
+                IccCurveTagDataEntry curve => new CurveCalculator(curve, inverted),
+                IccParametricCurveTagDataEntry parametricCurve => new ParametricCurveCalculator(parametricCurve, inverted),
+                _ => throw new InvalidIccProfileException("Invalid Entry."),
+            };
         }
     }
 
     public unsafe Vector4 Calculate(Vector4 value)
     {
-        float* valuePointer = (float*)&value;
+        ref float f = ref Unsafe.As<Vector4, float>(ref value);
         for (int i = 0; i < this.calculators.Length; i++)
         {
-            valuePointer[i] = this.calculators[i].Calculate(valuePointer[i]);
+            Unsafe.Add(ref f, i) = this.calculators[i].Calculate(Unsafe.Add(ref f, i));
         }
 
         return value;

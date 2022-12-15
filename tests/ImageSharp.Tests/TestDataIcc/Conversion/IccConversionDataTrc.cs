@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 
-public class IccConversionDataTrc
+public static class IccConversionDataTrc
 {
     internal static IccCurveTagDataEntry IdentityCurve = new();
     internal static IccCurveTagDataEntry Gamma2Curve = new(2);
@@ -18,7 +18,7 @@ public class IccConversionDataTrc
     internal static IccParametricCurveTagDataEntry ParamCurve4 = new(new IccParametricCurve(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
     internal static IccParametricCurveTagDataEntry ParamCurve5 = new(new IccParametricCurve(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
 
-    public static object[][] TrcArrayConversionTestData =
+    public static object[][] TrcArrayConversionTestData { get; } =
     {
         new object[]
         {
@@ -36,7 +36,7 @@ public class IccConversionDataTrc
         },
     };
 
-    public static object[][] CurveConversionTestData =
+    public static object[][] CurveConversionTestData { get; } =
     {
         new object[] { IdentityCurve, false, 2, 2 },
         new object[] { Gamma2Curve, false, 2, 4 },
@@ -51,7 +51,7 @@ public class IccConversionDataTrc
         new object[] { LutCurve, true, 0.85, 0.75 },
     };
 
-    public static object[][] ParametricCurveConversionTestData =
+    public static object[][] ParametricCurveConversionTestData { get; } =
     {
         new object[] { ParamCurve1, false, 0.5f, 0.217637628f },
         new object[] { ParamCurve2, false, 0.6f, 0.133208528f },

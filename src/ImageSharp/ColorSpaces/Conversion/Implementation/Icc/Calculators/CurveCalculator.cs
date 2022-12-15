@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 
 internal partial class CurveCalculator : ISingleCalculator
 {
-    private LutCalculator lutCalculator;
-    private float gamma;
-    private CalculationType type;
+    private readonly LutCalculator lutCalculator;
+    private readonly float gamma;
+    private readonly CalculationType type;
 
     public CurveCalculator(IccCurveTagDataEntry entry, bool inverted)
     {
@@ -35,20 +35,11 @@ internal partial class CurveCalculator : ISingleCalculator
     }
 
     public float Calculate(float value)
-    {
-        switch (this.type)
+        => this.type switch
         {
-            case CalculationType.Identity:
-                return value;
-
-            case CalculationType.Gamma:
-                return MathF.Pow(value, this.gamma);
-
-            case CalculationType.Lut:
-                return this.lutCalculator.Calculate(value);
-
-            default:
-                throw new InvalidOperationException("Invalid calculation type");
-        }
-    }
+            CalculationType.Identity => value,
+            CalculationType.Gamma => MathF.Pow(value, this.gamma), // TODO: This could be optimized using a LUT. See SrgbCompanding
+            CalculationType.Lut => this.lutCalculator.Calculate(value),
+            _ => throw new InvalidOperationException("Invalid calculation type"),
+        };
 }

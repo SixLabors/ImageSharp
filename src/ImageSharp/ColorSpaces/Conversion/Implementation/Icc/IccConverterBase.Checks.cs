@@ -10,24 +10,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 /// </summary>
 internal abstract partial class IccConverterBase
 {
-    private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent)
+    private static ConversionMethod GetConversionMethod(IccProfile profile, IccRenderingIntent renderingIntent) => profile.Header.Class switch
     {
-        switch (profile.Header.Class)
-        {
-            case IccProfileClass.InputDevice:
-            case IccProfileClass.DisplayDevice:
-            case IccProfileClass.OutputDevice:
-            case IccProfileClass.ColorSpace:
-                return CheckMethod1(profile, renderingIntent);
-
-            case IccProfileClass.DeviceLink:
-            case IccProfileClass.Abstract:
-                return CheckMethod2(profile);
-
-            default:
-                return ConversionMethod.Invalid;
-        }
-    }
+        IccProfileClass.InputDevice or
+        IccProfileClass.DisplayDevice or
+        IccProfileClass.OutputDevice or
+        IccProfileClass.ColorSpace => CheckMethod1(profile, renderingIntent),
+        IccProfileClass.DeviceLink or IccProfileClass.Abstract => CheckMethod2(profile),
+        _ => ConversionMethod.Invalid,
+    };
 
     private static ConversionMethod CheckMethod1(IccProfile profile, IccRenderingIntent renderingIntent)
     {
@@ -155,7 +146,7 @@ internal abstract partial class IccConverterBase
         => profile.Entries.Any(t => t.TagSignature == tag);
 
     private static IccTagDataEntry GetTag(IccProfile profile, IccProfileTag tag)
-        => profile.Entries.FirstOrDefault(t => t.TagSignature == tag);
+        => Array.Find(profile.Entries, t => t.TagSignature == tag);
 
     private static T GetTag<T>(IccProfile profile, IccProfileTag tag)
         where T : IccTagDataEntry

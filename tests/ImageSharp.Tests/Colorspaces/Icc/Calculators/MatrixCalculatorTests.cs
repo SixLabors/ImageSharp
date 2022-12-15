@@ -4,7 +4,6 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 {
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataMatrix.MatrixConversionTestData), MemberType = typeof(IccConversionDataMatrix))]
         internal void MatrixCalculator_WithMatrix_ReturnsResult(Matrix4x4 matrix2D, Vector3 matrix1D, Vector4 input, Vector4 expected)
         {
-            var calculator = new MatrixCalculator(matrix2D, matrix1D);
+            MatrixCalculator calculator = new(matrix2D, matrix1D);
 
             Vector4 result = calculator.Calculate(input);
 

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
@@ -26,6 +27,7 @@ internal class LutEntryCalculator : IVector4Calculator
         this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Calculate(Vector4 value)
     {
         if (this.doTransform)
@@ -33,19 +35,19 @@ internal class LutEntryCalculator : IVector4Calculator
             value = Vector4.Transform(value, this.matrix);
         }
 
-        value = this.CalculateLut(this.inputCurve, value);
+        value = CalculateLut(this.inputCurve, value);
         value = this.clutCalculator.Calculate(value);
-        return this.CalculateLut(this.outputCurve, value);
+        return CalculateLut(this.outputCurve, value);
     }
 
-    private unsafe Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
     {
         value = Vector4.Clamp(value, Vector4.Zero, Vector4.One);
-
-        float* valuePointer = (float*)&value;
+        ref float f = ref Unsafe.As<Vector4, float>(ref value);
         for (int i = 0; i < lut.Length; i++)
         {
-            valuePointer[i] = lut[i].Calculate(valuePointer[i]);
+            Unsafe.Add(ref f, i) = lut[i].Calculate(Unsafe.Add(ref f, i));
         }
 
         return value;

@@ -5,7 +5,6 @@ using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 {
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataTrc.TrcArrayConversionTestData), MemberType = typeof(IccConversionDataTrc))]
         internal void TrcCalculator_WithCurvesArray_ReturnsResult(IccTagDataEntry[] entries, bool inverted, Vector4 input, Vector4 expected)
         {
-            var calculator = new TrcCalculator(entries, inverted);
+            TrcCalculator calculator = new(entries, inverted);
 
             Vector4 result = calculator.Calculate(input);
 

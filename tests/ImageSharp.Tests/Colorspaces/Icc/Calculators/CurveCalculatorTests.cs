@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 {
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataTrc.CurveConversionTestData), MemberType = typeof(IccConversionDataTrc))]
         internal void CurveCalculator_WithCurveEntry_ReturnsResult(IccCurveTagDataEntry curve, bool inverted, float input, float expected)
         {
-            var calculator = new CurveCalculator(curve, inverted);
+            CurveCalculator calculator = new(curve, inverted);
 
             float result = calculator.Calculate(input);
 

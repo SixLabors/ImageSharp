@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
@@ -20,85 +18,45 @@ internal abstract partial class IccConverterBase
     /// <param name="profile">The profile to use for the conversion</param>
     /// <param name="toPcs">True if the conversion is to the Profile Connection Space</param>
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available</param>
+    /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
     protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
-    {
-        switch (GetConversionMethod(profile, renderingIntent))
+        => this.calculator = GetConversionMethod(profile, renderingIntent) switch
         {
-            case ConversionMethod.D0:
-                this.calculator = toPcs ?
-                    InitD(profile, IccProfileTag.DToB0) :
-                    InitD(profile, IccProfileTag.BToD0);
-                break;
-
-            case ConversionMethod.D1:
-                this.calculator = toPcs ?
-                    InitD(profile, IccProfileTag.DToB1) :
-                    InitD(profile, IccProfileTag.BToD1);
-                break;
-
-            case ConversionMethod.D2:
-                this.calculator = toPcs ?
-                    InitD(profile, IccProfileTag.DToB2) :
-                    InitD(profile, IccProfileTag.BToD2);
-                break;
-
-            case ConversionMethod.D3:
-                this.calculator = toPcs ?
-                    InitD(profile, IccProfileTag.DToB3) :
-                    InitD(profile, IccProfileTag.BToD3);
-                break;
-
-            case ConversionMethod.A0:
-                this.calculator = toPcs ?
-                    InitA(profile, IccProfileTag.AToB0) :
-                    InitA(profile, IccProfileTag.BToA0);
-                break;
-
-            case ConversionMethod.A1:
-                this.calculator = toPcs ?
-                    InitA(profile, IccProfileTag.AToB1) :
-                    InitA(profile, IccProfileTag.BToA1);
-                break;
-
-            case ConversionMethod.A2:
-                this.calculator = toPcs ?
-                    InitA(profile, IccProfileTag.AToB2) :
-                    InitA(profile, IccProfileTag.BToA2);
-                break;
-
-            case ConversionMethod.ColorTrc:
-                this.calculator = InitColorTrc(profile, toPcs);
-                break;
-
-            case ConversionMethod.GrayTrc:
-                this.calculator = InitGrayTrc(profile, toPcs);
-                break;
-
-            case ConversionMethod.Invalid:
-            default:
-                throw new InvalidIccProfileException("Invalid conversion method.");
-        }
-    }
+            ConversionMethod.D0 => toPcs ?
+                                InitD(profile, IccProfileTag.DToB0) :
+                                InitD(profile, IccProfileTag.BToD0),
+            ConversionMethod.D1 => toPcs ?
+                                InitD(profile, IccProfileTag.DToB1) :
+                                InitD(profile, IccProfileTag.BToD1),
+            ConversionMethod.D2 => toPcs ?
+                                InitD(profile, IccProfileTag.DToB2) :
+                                InitD(profile, IccProfileTag.BToD2),
+            ConversionMethod.D3 => toPcs ?
+                                InitD(profile, IccProfileTag.DToB3) :
+                                InitD(profile, IccProfileTag.BToD3),
+            ConversionMethod.A0 => toPcs ?
+                                InitA(profile, IccProfileTag.AToB0) :
+                                InitA(profile, IccProfileTag.BToA0),
+            ConversionMethod.A1 => toPcs ?
+                                InitA(profile, IccProfileTag.AToB1) :
+                                InitA(profile, IccProfileTag.BToA1),
+            ConversionMethod.A2 => toPcs ?
+                                InitA(profile, IccProfileTag.AToB2) :
+                                InitA(profile, IccProfileTag.BToA2),
+            ConversionMethod.ColorTrc => InitColorTrc(profile, toPcs),
+            ConversionMethod.GrayTrc => InitGrayTrc(profile, toPcs),
+            _ => throw new InvalidIccProfileException("Invalid conversion method."),
+        };
 
     private static IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
-    {
-        switch (GetTag(profile, tag))
+        => GetTag(profile, tag) switch
         {
-            case IccLut8TagDataEntry lut8:
-                return new LutEntryCalculator(lut8);
-            case IccLut16TagDataEntry lut16:
-                return new LutEntryCalculator(lut16);
-            case IccLutAToBTagDataEntry lutAtoB:
-                return new LutABCalculator(lutAtoB);
-            case IccLutBToATagDataEntry lutBtoA:
-                return new LutABCalculator(lutBtoA);
-
-            default:
-
-                // TODO: This is where we likely return a matrix calculator.
-                throw new InvalidIccProfileException("Invalid entry.");
-        }
-    }
+            IccLut8TagDataEntry lut8 => new LutEntryCalculator(lut8),
+            IccLut16TagDataEntry lut16 => new LutEntryCalculator(lut16),
+            IccLutAToBTagDataEntry lutAtoB => new LutABCalculator(lutAtoB),
+            IccLutBToATagDataEntry lutBtoA => new LutABCalculator(lutBtoA),
+            _ => throw new InvalidIccProfileException("Invalid entry."),
+        };
 
     private static IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
     {

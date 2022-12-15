@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 {
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
         [MemberData(nameof(IccConversionDataLut.LutConversionTestData), MemberType = typeof(IccConversionDataLut))]
         internal void LutCalculator_WithLut_ReturnsResult(float[] lut, bool inverted, float input, float expected)
         {
-            var calculator = new LutCalculator(lut, inverted);
+            LutCalculator calculator = new(lut, inverted);
 
             float result = calculator.Calculate(input);
 

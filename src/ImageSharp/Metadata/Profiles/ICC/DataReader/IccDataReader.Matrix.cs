@@ -17,16 +17,23 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[,] ReadMatrix(int xCount, int yCount, bool isSingle)
     {
-        var matrix = new float[xCount, yCount];
-        for (int y = 0; y < yCount; y++)
+        float[,] matrix = new float[xCount, yCount];
+
+        if (isSingle)
         {
-            for (int x = 0; x < xCount; x++)
+            for (int y = 0; y < yCount; y++)
             {
-                if (isSingle)
+                for (int x = 0; x < xCount; x++)
                 {
                     matrix[x, y] = this.ReadSingle();
                 }
-                else
+            }
+        }
+        else
+        {
+            for (int y = 0; y < yCount; y++)
+            {
+                for (int x = 0; x < xCount; x++)
                 {
                     matrix[x, y] = this.ReadFix16();
                 }
@@ -44,14 +51,17 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[] ReadMatrix(int yCount, bool isSingle)
     {
-        var matrix = new float[yCount];
-        for (int i = 0; i < yCount; i++)
+        float[] matrix = new float[yCount];
+        if (isSingle)
         {
-            if (isSingle)
+            for (int i = 0; i < yCount; i++)
             {
                 matrix[i] = this.ReadSingle();
             }
-            else
+        }
+        else
+        {
+            for (int i = 0; i < yCount; i++)
             {
                 matrix[i] = this.ReadFix16();
             }

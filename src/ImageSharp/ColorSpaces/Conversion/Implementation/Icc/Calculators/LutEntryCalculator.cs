@@ -41,9 +41,8 @@ internal class LutEntryCalculator : IVector4Calculator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
+    private static Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
     {
-        value = Vector4.Clamp(value, Vector4.Zero, Vector4.One);
         ref float f = ref Unsafe.As<Vector4, float>(ref value);
         for (int i = 0; i < lut.Length; i++)
         {

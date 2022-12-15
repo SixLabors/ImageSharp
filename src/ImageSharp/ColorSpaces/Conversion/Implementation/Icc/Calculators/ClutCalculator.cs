@@ -29,8 +29,6 @@ internal class ClutCalculator : IVector4Calculator
 
     public unsafe Vector4 Calculate(Vector4 value)
     {
-        value = Vector4.Clamp(value, Vector4.Zero, Vector4.One);
-
         Vector4 result = default;
         this.Interpolate((float*)&value, this.inputCount, (float*)&result, this.outputCount);
 

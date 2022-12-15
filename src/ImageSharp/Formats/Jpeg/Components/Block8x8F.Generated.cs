@@ -44,31 +44,31 @@ internal partial struct Block8x8F
     {
         var off = new Vector<float>(MathF.Ceiling(maximum / 2));
         var max = new Vector<float>(maximum);
-        
+
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
         row0 = NormalizeAndRound(row0, off, max);
-            
+
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
         row1 = NormalizeAndRound(row1, off, max);
-            
+
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
         row2 = NormalizeAndRound(row2, off, max);
-            
+
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
         row3 = NormalizeAndRound(row3, off, max);
-            
+
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
         row4 = NormalizeAndRound(row4, off, max);
-            
+
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
         row5 = NormalizeAndRound(row5, off, max);
-            
+
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
         row6 = NormalizeAndRound(row6, off, max);
-            
+
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
         row7 = NormalizeAndRound(row7, off, max);
-            
+
     }
 
     /// <summary>

@@ -18,7 +18,7 @@ internal static class InliningOptions
     public const MethodImplOptions AlwaysInline = MethodImplOptions.AggressiveInlining;
 #if PROFILING
     public const MethodImplOptions HotPath = MethodImplOptions.NoInlining;
-    
+
     public const MethodImplOptions ShortMethod = MethodImplOptions.NoInlining;
 #else
     public const MethodImplOptions HotPath = MethodImplOptions.AggressiveOptimization;

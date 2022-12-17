@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+#nullable disable
 
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
 using System.Globalization;

@@ -57,7 +57,7 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     public XmpProfile XmpProfile { get; set; }
 
     /// <summary>
-    /// Gets or sets the list of ICC profiles.
+    /// Gets or sets the ICC profile.
     /// </summary>
     public IccProfile IccProfile { get; set; }
 

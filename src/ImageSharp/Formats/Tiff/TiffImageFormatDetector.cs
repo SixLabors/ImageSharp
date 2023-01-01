@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -13,7 +12,7 @@ public sealed class TiffImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 8;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         if (this.IsSupportedFileFormat(header))
         {

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,7 +16,7 @@ public abstract partial class Image
     /// </summary>
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
     /// <returns>The format or null if none found.</returns>
-    public static IImageFormat DetectFormat(ReadOnlySpan<byte> data)
+    public static IImageFormat? DetectFormat(ReadOnlySpan<byte> data)
         => DetectFormat(DecoderOptions.Default, data);
 
     /// <summary>
@@ -27,7 +26,7 @@ public abstract partial class Image
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(DecoderOptions options, ReadOnlySpan<byte> data)
+    public static IImageFormat? DetectFormat(DecoderOptions options, ReadOnlySpan<byte> data)
     {
         Guard.NotNull(options, nameof(options.Configuration));
 
@@ -40,7 +39,7 @@ public abstract partial class Image
 
         foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
         {
-            IImageFormat f = detector.DetectFormat(data);
+            IImageFormat? f = detector.DetectFormat(data);
 
             if (f != null)
             {

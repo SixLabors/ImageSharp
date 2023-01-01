@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -420,7 +418,7 @@ public sealed class Image<TPixel> : Image
     {
         Guard.NotNull(frames, nameof(frames));
 
-        ImageFrame<TPixel> rootFrame = frames.FirstOrDefault();
+        ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault();
 
         if (rootFrame == null)
         {

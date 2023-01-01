@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Formats.Tga;
 
@@ -13,7 +12,7 @@ public sealed class TgaImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 16;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
     {
         return this.IsSupportedFileFormat(header) ? TgaFormat.Instance : null;
     }

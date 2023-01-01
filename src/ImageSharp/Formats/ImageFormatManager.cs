@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Collections.Concurrent;
 
@@ -93,7 +92,7 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="extension">The extension to discover</param>
     /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-    public IImageFormat FindFormatByFileExtension(string extension)
+    public IImageFormat? FindFormatByFileExtension(string extension)
     {
         Guard.NotNullOrWhiteSpace(extension, nameof(extension));
 
@@ -110,7 +109,7 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="mimeType">The mime-type to discover</param>
     /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
-    public IImageFormat FindFormatByMimeType(string mimeType)
+    public IImageFormat? FindFormatByMimeType(string mimeType)
         => this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>
@@ -160,11 +159,11 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="format">The format to discover</param>
     /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-    public IImageDecoder FindDecoder(IImageFormat format)
+    public IImageDecoder? FindDecoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder)
+        return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder? decoder)
             ? decoder
             : null;
     }
@@ -174,11 +173,11 @@ public class ImageFormatManager
     /// </summary>
     /// <param name="format">The format to discover</param>
     /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-    public IImageEncoder FindEncoder(IImageFormat format)
+    public IImageEncoder? FindEncoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder)
+        return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder? encoder)
             ? encoder
             : null;
     }

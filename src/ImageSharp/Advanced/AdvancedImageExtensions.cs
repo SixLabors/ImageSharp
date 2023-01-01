@@ -27,7 +27,7 @@ public static class AdvancedImageExtensions
         Guard.NotNull(filePath, nameof(filePath));
 
         string ext = Path.GetExtension(filePath);
-        IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
+        IImageFormat? format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
         if (format is null)
         {
             StringBuilder sb = new();
@@ -40,7 +40,7 @@ public static class AdvancedImageExtensions
             throw new NotSupportedException(sb.ToString());
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
         if (encoder is null)
         {

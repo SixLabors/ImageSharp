@@ -77,7 +77,7 @@ public abstract partial class ImageFrameCollectionTests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => this.Collection.AddFrame(null));
 
-            Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
+            Assert.StartsWith("Value cannot be null. (Parameter 'source')", ex.Message);
         }
 
         [Fact]
@@ -95,7 +95,7 @@ public abstract partial class ImageFrameCollectionTests
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => this.Collection.InsertFrame(1, null));
 
-            Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
+            Assert.StartsWith("Value cannot be null. (Parameter 'source')", ex.Message);
         }
 
         [Fact]

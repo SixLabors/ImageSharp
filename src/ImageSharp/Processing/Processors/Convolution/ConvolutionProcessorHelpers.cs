@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution;
 
@@ -99,7 +98,7 @@ internal static class ConvolutionProcessorHelpers
     /// <param name="row">The resulting 1D row vector, if possible.</param>
     /// <param name="column">The resulting 1D column vector, if possible.</param>
     /// <returns>Whether or not <paramref name="matrix"/> was linearly separable.</returns>
-    public static bool TryGetLinearlySeparableComponents(this DenseMatrix<float> matrix, out float[] row, out float[] column)
+    public static bool TryGetLinearlySeparableComponents(this DenseMatrix<float> matrix, out float[]? row, out float[]? column)
     {
         int height = matrix.Rows;
         int width = matrix.Columns;

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution;
 
@@ -64,7 +63,7 @@ public readonly struct EdgeDetectorKernel : IEquatable<EdgeDetectorKernel>
         => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is EdgeDetectorKernel kernel && this.Equals(kernel);
 
     /// <inheritdoc/>

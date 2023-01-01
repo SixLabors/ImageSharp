@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
 
@@ -37,7 +36,7 @@ internal readonly struct BokehBlurParameters : IEquatable<BokehBlurParameters>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is BokehBlurParameters other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is BokehBlurParameters other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -422,6 +422,7 @@ internal static class ResizeHelper
         return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
+    [DoesNotReturn]
     private static void ThrowInvalid(string message) => throw new InvalidOperationException(message);
 
     private static int Sanitize(int input) => Math.Max(1, input);

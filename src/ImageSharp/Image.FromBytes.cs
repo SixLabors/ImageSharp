@@ -39,9 +39,7 @@ public abstract partial class Image
 
         foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
         {
-            IImageFormat? f = detector.DetectFormat(data);
-
-            if (f != null)
+            if (detector.TryDetectFormat(data, out IImageFormat? f))
             {
                 return f;
             }

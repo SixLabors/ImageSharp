@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
@@ -12,8 +14,11 @@ public sealed class WebpImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 12;
 
     /// <inheritdoc />
-    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header)
-        => this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
+        return format != null;
+    }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         => header.Length >= this.HeaderSize && IsRiffContainer(header) && IsWebpFile(header);

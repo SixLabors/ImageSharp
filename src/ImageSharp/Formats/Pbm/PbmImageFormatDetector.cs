@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Formats.Pbm;
 
 /// <summary>
@@ -16,7 +18,11 @@ public sealed class PbmImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 2;
 
     /// <inheritdoc/>
-    public IImageFormat? DetectFormat(ReadOnlySpan<byte> header) => IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = IsSupportedFileFormat(header) ? PbmFormat.Instance : null;
+        return format != null;
+    }
 
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {

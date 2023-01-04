@@ -82,8 +82,7 @@ public abstract partial class Image
         {
             if (formatDetector.HeaderSize <= headerSize)
             {
-                IImageFormat attemptFormat = formatDetector.DetectFormat(headersBuffer);
-                if (attemptFormat != null)
+                if (formatDetector.TryDetectFormat(headersBuffer, out IImageFormat attemptFormat))
                 {
                     format = attemptFormat;
                 }

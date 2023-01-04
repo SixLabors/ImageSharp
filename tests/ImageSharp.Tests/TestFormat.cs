@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -174,14 +175,11 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public int HeaderSize => this.testFormat.HeaderSize;
 
-        public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+        public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
         {
-            if (this.testFormat.IsSupportedFileFormat(header))
-            {
-                return this.testFormat;
-            }
+            format = this.testFormat.IsSupportedFileFormat(header) ? this.testFormat : null;
 
-            return null;
+            return format != null;
         }
 
         public TestHeader(TestFormat testFormat) => this.testFormat = testFormat;

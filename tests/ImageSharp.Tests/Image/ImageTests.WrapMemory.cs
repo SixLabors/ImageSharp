@@ -108,7 +108,8 @@ public partial class ImageTests
 
                 if (remainder != 0)
                 {
-                    ThrowHelper.ThrowArgumentException("The input index doesn't result in an aligned item access", nameof(elementIndex));
+                    ThrowHelper.ThrowArgumentException("The input index doesn't result in an aligned item access",
+                        nameof(elementIndex));
                 }
 
                 return this.memory.Slice(shiftedOffset).Pin();
@@ -269,7 +270,8 @@ public partial class ImageTests
                         // To check that the underlying data matches, we can just manually check their lenth, and the
                         // fact that a reference to the first pixel in both spans is actually the same memory location.
                         Assert.Equal(pixelSpan.Length, imageSpan.Length);
-                        Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
+                        Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(),
+                            ref imageSpan.GetPinnableReference()));
 
                         image.GetPixelMemoryGroup().Fill(bg);
                         image.ProcessPixelRows(accessor =>
@@ -292,6 +294,30 @@ public partial class ImageTests
             }
         }
 
+
+        [Fact]
+        public unsafe void WrapMemory_Throws_OnTooLessWrongSize()
+        {
+            var cfg = Configuration.CreateDefaultInstance();
+            var metaData = new ImageMetadata();
+
+            var array = new Rgba32[25];
+            Exception thrownException = null;
+            fixed (void* ptr = array)
+            {
+                try
+                {
+                    using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 24, 5, 5, metaData));
+                }
+                catch (Exception e)
+                {
+                    thrownException = e;
+                }
+            }
+
+            Assert.IsType<ArgumentOutOfRangeException>(thrownException);
+        }
+
         [Fact]
         public unsafe void WrapMemory_FromPointer_CreatedImageIsCorrect()
         {
@@ -302,7 +328,7 @@ public partial class ImageTests
 
             fixed (void* ptr = array)
             {
-                using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 5, 5, metaData))
+                using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 25, 5, 5, metaData))
                 {
                     Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
                     Span<Rgba32> imageSpan = imageMem.Span;
@@ -335,13 +361,14 @@ public partial class ImageTests
 
                     fixed (void* p = pixelMemory.Span)
                     {
-                        using (var image = Image.WrapMemory<Bgra32>(p, bmp.Width, bmp.Height))
+                        using (var image = Image.WrapMemory<Bgra32>(p, pixelMemory.Length, bmp.Width, bmp.Height))
                         {
                             Span<Bgra32> pixelSpan = pixelMemory.Span;
                             Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().DangerousGetSingleMemory().Span;
 
                             Assert.Equal(pixelSpan.Length, imageSpan.Length);
-                            Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
+                            Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(),
+                                ref imageSpan.GetPinnableReference()));
 
                             image.GetPixelMemoryGroup().Fill(bg);
                             image.ProcessPixelRows(accessor =>
@@ -527,10 +554,11 @@ public partial class ImageTests
         [InlineData(1023, 32, 32)]
         public unsafe void WrapMemory_Pointer_Null(int size, int height, int width)
         {
-            Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>((void*)null, height, width));
+            Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>((void*)null, size, height, width));
         }
 
         private static bool ShouldSkipBitmapTest =>
-            !TestEnvironment.Is64BitProcess || (TestHelpers.ImageSharpBuiltAgainst != "netcoreapp3.1" && TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1");
+            !TestEnvironment.Is64BitProcess || (TestHelpers.ImageSharpBuiltAgainst != "netcoreapp3.1" &&
+                                                TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1");
     }
 }

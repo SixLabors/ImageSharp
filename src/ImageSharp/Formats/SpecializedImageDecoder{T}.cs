@@ -17,34 +17,54 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(T options, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStream(
-            options.GeneralOptions,
-            stream,
-            s => this.Decode<TPixel>(options, s, default));
+    {
+        Image<TPixel> image = WithSeekableStream(
+                options.GeneralOptions,
+                stream,
+                s => this.Decode<TPixel>(options, s, default));
+
+        TransformColorProfile(options.GeneralOptions, image);
+        return image;
+    }
 
     /// <inheritdoc/>
     public Image Decode(T options, Stream stream)
-        => WithSeekableStream(
+    {
+        Image image = WithSeekableStream(
             options.GeneralOptions,
             stream,
             s => this.Decode(options, s, default));
 
+        TransformColorProfile(options.GeneralOptions, image);
+        return image;
+    }
+
     /// <inheritdoc/>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken = default)
+    public async Task<Image<TPixel>> DecodeAsync<TPixel>(T options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableMemoryStreamAsync(
+    {
+        Image<TPixel> image = await WithSeekableMemoryStreamAsync(
             options.GeneralOptions,
             stream,
             (s, ct) => this.Decode<TPixel>(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        TransformColorProfile(options.GeneralOptions, image);
+        return image;
+    }
 
     /// <inheritdoc/>
-    public Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken = default)
-        => WithSeekableMemoryStreamAsync(
+    public async Task<Image> DecodeAsync(T options, Stream stream, CancellationToken cancellationToken = default)
+    {
+        Image image = await WithSeekableMemoryStreamAsync(
             options.GeneralOptions,
             stream,
             (s, ct) => this.Decode(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        TransformColorProfile(options.GeneralOptions, image);
+        return image;
+    }
 
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.

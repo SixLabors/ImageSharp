@@ -12,10 +12,19 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
 
 /// <summary>
-/// Allows the copnversion between ICC profiles.
+/// Allows the conversion between ICC profiles.
 /// </summary>
 internal static class IccProfileConverter
 {
+    /// <summary>
+    /// Performs a conversion of the image pixels based on the input and output ICC profiles.
+    /// </summary>
+    /// <param name="image">The image to convert.</param>
+    /// <param name="inputIccProfile">The input ICC profile.</param>
+    /// <param name="outputIccProfile">The output ICC profile. </param>
+    public static void Convert(Image image, IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+        => image.AcceptVisitor(new IccProfileConverterVisitor(inputIccProfile, outputIccProfile));
+
     /// <summary>
     /// Performs a conversion of the image pixels based on the input and output ICC profiles.
     /// </summary>
@@ -23,11 +32,10 @@ internal static class IccProfileConverter
     /// <param name="image">The image to convert.</param>
     /// <param name="inputIccProfile">The input ICC profile.</param>
     /// <param name="outputIccProfile">The output ICC profile. </param>
-    public static void Convert<TPixel>(Image<TPixel> image, IccProfile inputIccProfile, IccProfile outputIccProfile)
-                where TPixel : unmanaged, IPixel<TPixel>
+    public static void Convert<TPixel>(Image<TPixel> image, IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TODO: Is this the correct property?
-        if (inputIccProfile.Header.Id.Equals(outputIccProfile.Header.Id))
+        if (inputIccProfile is null || outputIccProfile is null)
         {
             return;
         }
@@ -55,7 +63,21 @@ internal static class IccProfileConverter
             }
         });
 
-        // TODO: Do not preserve the profile if we are converting to sRGB.
         image.Metadata.IccProfile = outputIccProfile;
+    }
+
+    private readonly struct IccProfileConverterVisitor : IImageVisitor
+    {
+        private readonly IccProfile? inputIccProfile;
+        private readonly IccProfile? outputIccProfile;
+
+        public IccProfileConverterVisitor(IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+        {
+            this.inputIccProfile = inputIccProfile;
+            this.outputIccProfile = outputIccProfile;
+        }
+
+        public void Visit<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel> => Convert(image, this.inputIccProfile, this.outputIccProfile);
     }
 }

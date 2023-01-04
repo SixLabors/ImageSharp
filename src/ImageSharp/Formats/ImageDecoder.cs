@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -17,34 +19,54 @@ public abstract class ImageDecoder : IImageDecoder
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode<TPixel>(options, s, default));
+    {
+        Image<TPixel> image = WithSeekableStream(
+            options,
+            stream,
+            s => this.Decode<TPixel>(options, s, default));
+
+        TransformColorProfile(options, image);
+        return image;
+    }
 
     /// <inheritdoc/>
     public Image Decode(DecoderOptions options, Stream stream)
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode(options, s, default));
+    {
+        Image image = WithSeekableStream(
+            options,
+            stream,
+            s => this.Decode(options, s, default));
+
+        TransformColorProfile(options, image);
+        return image;
+    }
 
     /// <inheritdoc/>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    public async Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableMemoryStreamAsync(
+    {
+        Image<TPixel> image = await WithSeekableMemoryStreamAsync(
             options,
             stream,
             (s, ct) => this.Decode<TPixel>(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        TransformColorProfile(options, image);
+        return image;
+    }
 
     /// <inheritdoc/>
-    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-        => WithSeekableMemoryStreamAsync(
+    public async Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    {
+        Image image = await WithSeekableMemoryStreamAsync(
             options,
             stream,
             (s, ct) => this.Decode(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        TransformColorProfile(options, image);
+        return image;
+    }
 
     /// <inheritdoc/>
     public IImageInfo Identify(DecoderOptions options, Stream stream)
@@ -121,6 +143,21 @@ public abstract class ImageDecoder : IImageDecoder
 
             image.Mutate(x => x.Resize(resizeOptions));
         }
+    }
+
+    /// <summary>
+    /// Converts the decoded image color profile if present to a V4 sRGB profile.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The image.</param>
+    protected static void TransformColorProfile(DecoderOptions options, Image image)
+    {
+        if (options.ColorProfileHandling == ColorProfileHandling.Preserve)
+        {
+            return;
+        }
+
+        IccProfileConverter.Convert(image, image.Metadata?.IccProfile, SrgbV4Profile.GetProfile());
     }
 
     /// <summary>

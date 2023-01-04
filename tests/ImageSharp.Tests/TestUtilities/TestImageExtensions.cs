@@ -67,10 +67,10 @@ public static class TestImageExtensions
         provider.Utility.SaveTestOutputFile(
             image,
             extension,
+            encoder: encoder,
             testOutputDetails: testOutputDetails,
             appendPixelTypeToFileName: appendPixelTypeToFileName,
-            appendSourceFileOrDescription: appendSourceFileOrDescription,
-            encoder: encoder);
+            appendSourceFileOrDescription: appendSourceFileOrDescription);
         return image;
     }
 

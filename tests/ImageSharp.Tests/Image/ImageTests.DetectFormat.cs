@@ -22,8 +22,14 @@ public partial class ImageTests
 
         private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
-        private static readonly IImageFormat ExpectedGlobalFormat =
-            Configuration.Default.ImageFormatsManager.FindFormatByFileExtension("bmp");
+        private static IImageFormat ExpectedGlobalFormat
+        {
+            get
+            {
+                Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("bmp", out IImageFormat format);
+                return format!;
+            }
+        }
 
         [Fact]
         public void FromBytes_GlobalConfiguration()

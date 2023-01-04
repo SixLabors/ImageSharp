@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats;
 
@@ -91,8 +92,9 @@ public class ImageFormatManager
     /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
     /// </summary>
     /// <param name="extension">The extension to discover</param>
-    /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-    public IImageFormat? FindFormatByFileExtension(string extension)
+    /// <param name="format">The <see cref="IImageFormat"/> if found otherwise null</param>
+    /// <returns>False if no format was found</returns>
+    public bool TryFindFormatByFileExtension(string extension, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNullOrWhiteSpace(extension, nameof(extension));
 
@@ -101,7 +103,10 @@ public class ImageFormatManager
             extension = extension[1..];
         }
 
-        return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+        format = this.imageFormats.FirstOrDefault(x =>
+            x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+
+        return format != null;
     }
 
     /// <summary>

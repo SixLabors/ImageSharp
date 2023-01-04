@@ -27,8 +27,7 @@ public static class AdvancedImageExtensions
         Guard.NotNull(filePath, nameof(filePath));
 
         string ext = Path.GetExtension(filePath);
-        IImageFormat? format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
-        if (format is null)
+        if (!source.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat? format))
         {
             StringBuilder sb = new();
             sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}'. Registered encoders include:");

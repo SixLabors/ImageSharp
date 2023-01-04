@@ -403,6 +403,7 @@ public abstract partial class Image
     /// <typeparam name="TPixel">The pixel type</typeparam>
     /// <param name="configuration">The <see cref="Configuration"/></param>
     /// <param name="pointer">The pointer to the target memory buffer to wrap.</param>
+    /// <param name="bufferSizeInBytes">The byte length of the memory allocated.</param>
     /// <param name="width">The width of the memory image.</param>
     /// <param name="height">The height of the memory image.</param>
     /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
@@ -412,6 +413,7 @@ public abstract partial class Image
     public static unsafe Image<TPixel> WrapMemory<TPixel>(
         Configuration configuration,
         void* pointer,
+        int bufferSizeInBytes,
         int width,
         int height,
         ImageMetadata metadata)
@@ -422,6 +424,8 @@ public abstract partial class Image
         Guard.NotNull(metadata, nameof(metadata));
 
         UnmanagedMemoryManager<TPixel> memoryManager = new(pointer, width * height);
+
+        Guard.MustBeGreaterThanOrEqualTo(bufferSizeInBytes, memoryManager.Memory.Span.Length, nameof(bufferSizeInBytes));
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -453,6 +457,7 @@ public abstract partial class Image
     /// <typeparam name="TPixel">The pixel type</typeparam>
     /// <param name="configuration">The <see cref="Configuration"/></param>
     /// <param name="pointer">The pointer to the target memory buffer to wrap.</param>
+    /// <param name="bufferSizeInBytes">The byte length of the memory allocated.</param>
     /// <param name="width">The width of the memory image.</param>
     /// <param name="height">The height of the memory image.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
@@ -460,10 +465,11 @@ public abstract partial class Image
     public static unsafe Image<TPixel> WrapMemory<TPixel>(
         Configuration configuration,
         void* pointer,
+        int bufferSizeInBytes,
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory<TPixel>(configuration, pointer, width, height, new ImageMetadata());
+        => WrapMemory<TPixel>(configuration, pointer, bufferSizeInBytes, width, height, new ImageMetadata());
 
     /// <summary>
     /// <para>
@@ -490,13 +496,15 @@ public abstract partial class Image
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     /// <param name="pointer">The pointer to the target memory buffer to wrap.</param>
+    /// <param name="bufferSizeInBytes">The byte length of the memory allocated.</param>
     /// <param name="width">The width of the memory image.</param>
     /// <param name="height">The height of the memory image.</param>
     /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
     public static unsafe Image<TPixel> WrapMemory<TPixel>(
         void* pointer,
+        int bufferSizeInBytes,
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory<TPixel>(Configuration.Default, pointer, width, height);
+        => WrapMemory<TPixel>(Configuration.Default, pointer, bufferSizeInBytes, width, height);
 }

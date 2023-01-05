@@ -22,7 +22,7 @@ internal static class IccProfileConverter
     /// <param name="image">The image to convert.</param>
     /// <param name="inputIccProfile">The input ICC profile.</param>
     /// <param name="outputIccProfile">The output ICC profile. </param>
-    public static void Convert(Image image, IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+    public static void Convert(Image image, IccProfile inputIccProfile, IccProfile outputIccProfile)
         => image.AcceptVisitor(new IccProfileConverterVisitor(inputIccProfile, outputIccProfile));
 
     /// <summary>
@@ -32,14 +32,9 @@ internal static class IccProfileConverter
     /// <param name="image">The image to convert.</param>
     /// <param name="inputIccProfile">The input ICC profile.</param>
     /// <param name="outputIccProfile">The output ICC profile. </param>
-    public static void Convert<TPixel>(Image<TPixel> image, IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+    public static void Convert<TPixel>(Image<TPixel> image, IccProfile inputIccProfile, IccProfile outputIccProfile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (inputIccProfile is null || outputIccProfile is null)
-        {
-            return;
-        }
-
         IccDataToPcsConverter converterDataToPcs = new(inputIccProfile);
         IccPcsToDataConverter converterPcsToData = new(outputIccProfile);
         Configuration configuration = image.GetConfiguration();
@@ -68,10 +63,10 @@ internal static class IccProfileConverter
 
     private readonly struct IccProfileConverterVisitor : IImageVisitor
     {
-        private readonly IccProfile? inputIccProfile;
-        private readonly IccProfile? outputIccProfile;
+        private readonly IccProfile inputIccProfile;
+        private readonly IccProfile outputIccProfile;
 
-        public IccProfileConverterVisitor(IccProfile? inputIccProfile, IccProfile? outputIccProfile)
+        public IccProfileConverterVisitor(IccProfile inputIccProfile, IccProfile outputIccProfile)
         {
             this.inputIccProfile = inputIccProfile;
             this.outputIccProfile = outputIccProfile;

@@ -5,6 +5,7 @@
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -157,7 +158,11 @@ public abstract class ImageDecoder : IImageDecoder
             return;
         }
 
-        IccProfileConverter.Convert(image, image.Metadata?.IccProfile, SrgbV4Profile.GetProfile());
+        IccProfile profile = image.Metadata?.IccProfile;
+        if (profile is not null)
+        {
+            IccProfileConverter.Convert(image, profile, SrgbV4Profile.GetProfile());
+        }
     }
 
     /// <summary>

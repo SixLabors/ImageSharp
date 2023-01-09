@@ -58,6 +58,8 @@ public class IccProfileConverterTests
         Assert.Equal(image.Metadata.IccProfile, sRGBProfile);
 
         image.DebugSave(provider, extension: "png", appendPixelTypeToFileName: false, appendSourceFileOrDescription: true, encoder: Encoder);
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider, appendPixelTypeToFileName: false);
+
+        // Mac reports a difference of 0.0000%
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(0.0001F), provider, appendPixelTypeToFileName: false);
     }
 }

@@ -122,7 +122,13 @@ public class ImageFormatManagerTests
 
         byte[] invalidImage = { 1, 2, 3 };
 
-        Assert.Equal(Image.DetectFormat(jpegImage), JpegFormat.Instance);
-        Assert.True(Image.DetectFormat(invalidImage) is null);
+        bool resultValidImage = Image.TryDetectFormat(jpegImage, out IImageFormat format);
+
+        bool resultInvalidImage = Image.TryDetectFormat(invalidImage, out IImageFormat formatInvalid);
+
+        Assert.True(resultValidImage);
+        Assert.Equal(format, JpegFormat.Instance);
+        Assert.False(resultInvalidImage);
+        Assert.True(formatInvalid is null);
     }
 }

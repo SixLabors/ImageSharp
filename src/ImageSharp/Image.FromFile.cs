@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -15,23 +16,25 @@ public abstract partial class Image
     /// By reading the header on the provided file this calculates the images mime type.
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(string filePath)
-        => DetectFormat(DecoderOptions.Default, filePath);
+    /// <param name="format">The mime type or null if none found.</param>
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(string filePath, [NotNullWhen(true)] out IImageFormat? format)
+        => TryDetectFormat(DecoderOptions.Default, filePath, out format);
 
     /// <summary>
     /// By reading the header on the provided file this calculates the images mime type.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="filePath">The image file to open and to read the header from.</param>
+    /// <param name="format">The mime type or null if none found.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat DetectFormat(DecoderOptions options, string filePath)
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(DecoderOptions options, string filePath, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNull(options, nameof(options));
 
         using Stream file = options.Configuration.FileSystem.OpenRead(filePath);
-        return DetectFormat(options, file);
+        return TryDetectFormat(options, file, out format);
     }
 
     /// <summary>

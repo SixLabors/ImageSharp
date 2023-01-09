@@ -19,23 +19,28 @@ public abstract partial class Image
     /// By reading the header on the provided stream this calculates the images format type.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
+    /// <param name="format">The format type or null if none found.</param>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>The format type or null if none found.</returns>
-    public static IImageFormat DetectFormat(Stream stream)
-        => DetectFormat(DecoderOptions.Default, stream);
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(Stream stream, [NotNullWhen(true)] out IImageFormat? format)
+        => TryDetectFormat(DecoderOptions.Default, stream, out format);
 
     /// <summary>
     /// By reading the header on the provided stream this calculates the images format type.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
+    /// <param name="format">The format type or null if none found.</param>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>The format type or null if none found.</returns>
-    public static IImageFormat DetectFormat(DecoderOptions options, Stream stream)
-        => WithSeekableStream(options, stream, s => InternalDetectFormat(options.Configuration, s));
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(DecoderOptions options, Stream stream, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = WithSeekableStream(options, stream, s => InternalDetectFormat(options.Configuration, s));
+        return format != null;
+    }
 
     /// <summary>
     /// By reading the header on the provided stream this calculates the images format type.

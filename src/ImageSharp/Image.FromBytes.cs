@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -15,18 +16,20 @@ public abstract partial class Image
     /// By reading the header on the provided byte span this calculates the images format.
     /// </summary>
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
-    /// <returns>The format or null if none found.</returns>
-    public static IImageFormat? DetectFormat(ReadOnlySpan<byte> data)
-        => DetectFormat(DecoderOptions.Default, data);
+    /// <param name="format">The format or null if none found.</param>
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(ReadOnlySpan<byte> data, [NotNullWhen(true)] out IImageFormat? format)
+        => TryDetectFormat(DecoderOptions.Default, data, out format);
 
     /// <summary>
     /// By reading the header on the provided byte span this calculates the images format.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
+    /// <param name="format">The mime type or null if none found.</param>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
-    /// <returns>The mime type or null if none found.</returns>
-    public static IImageFormat? DetectFormat(DecoderOptions options, ReadOnlySpan<byte> data)
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    public static bool TryDetectFormat(DecoderOptions options, ReadOnlySpan<byte> data, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNull(options, nameof(options.Configuration));
 
@@ -34,18 +37,20 @@ public abstract partial class Image
         int maxHeaderSize = configuration.MaxHeaderSize;
         if (maxHeaderSize <= 0)
         {
-            return null;
+            format = null;
+            return false;
         }
 
         foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
         {
-            if (detector.TryDetectFormat(data, out IImageFormat? f))
+            if (detector.TryDetectFormat(data, out format))
             {
-                return f;
+                return true;
             }
         }
 
-        return default;
+        format = default;
+        return false;
     }
 
     /// <summary>

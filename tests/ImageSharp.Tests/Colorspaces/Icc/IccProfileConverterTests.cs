@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc;
 public class IccProfileConverterTests
@@ -54,7 +55,9 @@ public class IccProfileConverterTests
 
         IccProfileConverter.Convert(image, profile, sRGBProfile);
 
-        // TODO: Compare.
+        Assert.Equal(image.Metadata.IccProfile, sRGBProfile);
+
         image.DebugSave(provider, extension: "png", appendPixelTypeToFileName: false, appendSourceFileOrDescription: true, encoder: Encoder);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider, appendPixelTypeToFileName: false);
     }
 }

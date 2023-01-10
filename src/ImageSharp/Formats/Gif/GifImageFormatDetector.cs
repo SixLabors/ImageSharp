@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
+
+using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
 
@@ -13,9 +14,10 @@ public sealed class GifImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 6;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        return this.IsSupportedFileFormat(header) ? GifFormat.Instance : null;
+        format = this.IsSupportedFileFormat(header) ? GifFormat.Instance : null;
+        return format != null;
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

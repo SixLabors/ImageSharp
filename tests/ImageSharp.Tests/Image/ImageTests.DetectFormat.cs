@@ -22,14 +22,21 @@ public partial class ImageTests
 
         private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
-        private static readonly IImageFormat ExpectedGlobalFormat =
-            Configuration.Default.ImageFormatsManager.FindFormatByFileExtension("bmp");
+        private static IImageFormat ExpectedGlobalFormat
+        {
+            get
+            {
+                Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("bmp", out IImageFormat format);
+                return format!;
+            }
+        }
 
         [Fact]
         public void FromBytes_GlobalConfiguration()
         {
-            IImageFormat type = Image.DetectFormat(this.ActualImageSpan);
+            bool result = Image.TryDetectFormat(this.ActualImageSpan, out IImageFormat type);
 
+            Assert.True(result);
             Assert.Equal(ExpectedGlobalFormat, type);
         }
 
@@ -41,15 +48,18 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            IImageFormat type = Image.DetectFormat(options, this.ByteArray);
+            bool result = Image.TryDetectFormat(options, this.ByteArray, out IImageFormat type);
 
+            Assert.True(result);
             Assert.Equal(this.LocalImageFormat, type);
         }
 
         [Fact]
         public void FromFileSystemPath_GlobalConfiguration()
         {
-            IImageFormat type = Image.DetectFormat(ActualImagePath);
+            bool result = Image.TryDetectFormat(ActualImagePath, out IImageFormat type);
+
+            Assert.True(result);
             Assert.Equal(ExpectedGlobalFormat, type);
         }
 
@@ -61,7 +71,9 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            IImageFormat type = Image.DetectFormat(options, this.MockFilePath);
+            bool result = Image.TryDetectFormat(options, this.MockFilePath, out IImageFormat type);
+
+            Assert.True(result);
             Assert.Equal(this.LocalImageFormat, type);
         }
 
@@ -70,7 +82,9 @@ public partial class ImageTests
         {
             using (var stream = new MemoryStream(this.ActualImageBytes))
             {
-                IImageFormat type = Image.DetectFormat(stream);
+                bool result = Image.TryDetectFormat(stream, out IImageFormat type);
+
+                Assert.True(result);
                 Assert.Equal(ExpectedGlobalFormat, type);
             }
         }
@@ -83,7 +97,9 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            IImageFormat type = Image.DetectFormat(options, this.DataStream);
+            bool result = Image.TryDetectFormat(options, this.DataStream, out IImageFormat type);
+
+            Assert.True(result);
             Assert.Equal(this.LocalImageFormat, type);
         }
 
@@ -95,7 +111,9 @@ public partial class ImageTests
                 Configuration = new()
             };
 
-            IImageFormat type = Image.DetectFormat(options, this.DataStream);
+            bool result = Image.TryDetectFormat(options, this.DataStream, out IImageFormat type);
+
+            Assert.False(result);
             Assert.Null(type);
         }
 

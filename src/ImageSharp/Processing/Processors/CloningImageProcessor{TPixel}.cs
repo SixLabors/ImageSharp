@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -73,7 +72,7 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         // Create an interim clone of the source image to operate on.
         // Doing this allows for the application of transforms that will alter
         // the dimensions of the image.
-        Image<TPixel> clone = default;
+        Image<TPixel>? clone = default;
         try
         {
             clone = ((ICloningImageProcessor<TPixel>)this).CloneAndExecute();

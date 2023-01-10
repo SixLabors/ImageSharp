@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
+
+using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
@@ -13,8 +14,11 @@ public sealed class JpegImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 11;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
-        => this.IsSupportedFileFormat(header) ? JpegFormat.Instance : null;
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.IsSupportedFileFormat(header) ? JpegFormat.Instance : null;
+        return format != null;
+    }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         => header.Length >= this.HeaderSize

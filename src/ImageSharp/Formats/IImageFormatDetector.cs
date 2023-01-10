@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -18,6 +20,7 @@ public interface IImageFormatDetector
     /// Detect mimetype
     /// </summary>
     /// <param name="header">The <see cref="T:byte[]"/> containing the file header.</param>
-    /// <returns>returns the mime type of detected otherwise returns null</returns>
-    IImageFormat DetectFormat(ReadOnlySpan<byte> header);
+    /// <param name="format">The mime type of detected otherwise returns null</param>
+    /// <returns>returns true when format was detected otherwise false.</returns>
+    bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format);
 }

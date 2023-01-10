@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
@@ -19,7 +18,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
 {
     private readonly DitherProcessor ditherProcessor;
     private readonly IDither dither;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private IMemoryOwner<TPixel>? paletteOwner;
     private bool isDisposed;
 
     /// <summary>
@@ -62,7 +61,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
         this.isDisposed = true;
         if (disposing)
         {
-            this.paletteOwner.Dispose();
+            this.paletteOwner?.Dispose();
             this.ditherProcessor.Dispose();
         }
 

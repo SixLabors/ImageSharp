@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
@@ -15,9 +15,11 @@ public sealed class BmpImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 2;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        return this.IsSupportedFileFormat(header) ? BmpFormat.Instance : null;
+        format = this.IsSupportedFileFormat(header) ? BmpFormat.Instance : null;
+
+        return format != null;
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
@@ -25,7 +27,8 @@ public sealed class BmpImageFormatDetector : IImageFormatDetector
         if (header.Length >= this.HeaderSize)
         {
             short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(header);
-            return fileTypeMarker == BmpConstants.TypeMarkers.Bitmap || fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray;
+            return fileTypeMarker == BmpConstants.TypeMarkers.Bitmap ||
+                   fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray;
         }
 
         return false;

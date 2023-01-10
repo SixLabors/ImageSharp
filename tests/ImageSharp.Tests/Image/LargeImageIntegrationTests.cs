@@ -55,8 +55,8 @@ public class LargeImageIntegrationTests
 
             Configuration configuration = Configuration.Default.Clone();
             configuration.PreferContiguousImageBuffers = true;
-            IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(
-                configuration.ImageFormatsManager.FindFormatByFileExtension(formatInner));
+            configuration.ImageFormatsManager.TryFindFormatByFileExtension(formatInner, out IImageFormat format);
+            IImageEncoder encoder = configuration.ImageFormatsManager.FindEncoder(format!);
             string dir = TestEnvironment.CreateOutputDirectory(".Temp");
             string path = Path.Combine(dir, $"{Guid.NewGuid()}.{formatInner}");
             using (Image<Rgba32> temp = new(2048, 2048))

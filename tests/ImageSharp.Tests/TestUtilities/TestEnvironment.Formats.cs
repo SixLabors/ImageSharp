@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -36,7 +37,9 @@ public static partial class TestEnvironment
     {
         string extension = Path.GetExtension(filePath);
 
-        return Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
+        Configuration.ImageFormatsManager.TryFindFormatByFileExtension(extension, out IImageFormat format);
+
+        return format;
     }
 
     private static void ConfigureCodecs(

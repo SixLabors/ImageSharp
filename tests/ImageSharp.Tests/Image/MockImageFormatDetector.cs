@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -19,8 +20,10 @@ public class MockImageFormatDetector : IImageFormatDetector
 
     public int HeaderSize => 1;
 
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        return this.localImageFormatMock;
+        format = this.localImageFormatMock;
+
+        return true;
     }
 }

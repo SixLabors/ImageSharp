@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -15,9 +15,10 @@ public sealed class PngImageFormatDetector : IImageFormatDetector
     public int HeaderSize => 8;
 
     /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        return this.IsSupportedFileFormat(header) ? PngFormat.Instance : null;
+        format = this.IsSupportedFileFormat(header) ? PngFormat.Instance : null;
+        return format != null;
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)

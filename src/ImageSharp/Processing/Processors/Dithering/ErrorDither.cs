@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -212,7 +211,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is ErrorDither dither && this.Equals(dither);
 
     /// <inheritdoc/>
@@ -220,8 +219,8 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
         => this.offset == other.offset && this.matrix.Equals(other.matrix);
 
     /// <inheritdoc/>
-    public bool Equals(IDither other)
-        => this.Equals((object)other);
+    public bool Equals(IDither? other)
+        => this.Equals((object?)other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

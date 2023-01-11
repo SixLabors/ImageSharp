@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.Versioning;
 using PublicApiGenerator;
 using Shouldly;
 
@@ -17,13 +18,12 @@ public class ApiApprovalTests
 
         string publicApi = asmForTest.GeneratePublicApi(new ApiGeneratorOptions
         {
-            IncludeAssemblyAttributes = false,
-            WhitelistedNamespacePrefixes = new[] { "Microsoft.Extensions.DependencyInjection" },
+            IncludeAssemblyAttributes = false
         });
 
         publicApi.ShouldMatchApproved(options =>
-            options.WithFilenameGenerator(
-                (testMethodInfo, discriminator, fileType, fileExtension) =>
+            options.WithStringCompareOptions(StringCompareShould.IgnoreLineEndings)
+                .WithFilenameGenerator((testMethodInfo, discriminator, fileType, fileExtension) =>
                     $"{asmForTest.GetName().Name}.{fileType}.{fileExtension}"));
     }
 }

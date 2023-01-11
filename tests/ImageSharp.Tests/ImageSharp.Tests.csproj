@@ -40,8 +40,10 @@
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="PublicApiGenerator" Version="10.3.0" />
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
+    <PackageReference Include="Shouldly" Version="4.1.0" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

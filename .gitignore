@@ -227,3 +227,4 @@ artifacts/
 #lfs
 hooks/**
 lfs/**
+*.received.txt

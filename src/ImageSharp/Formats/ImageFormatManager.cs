@@ -91,9 +91,13 @@ public class ImageFormatManager
     /// <summary>
     /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
     /// </summary>
-    /// <param name="extension">The extension to discover</param>
-    /// <param name="format">The <see cref="IImageFormat"/> if found otherwise null</param>
-    /// <returns>False if no format was found</returns>
+    /// <param name="extension">The extension to return the format for.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given extension;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// .</param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public bool TryFindFormatByFileExtension(string extension, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNullOrWhiteSpace(extension, nameof(extension));
@@ -106,16 +110,24 @@ public class ImageFormatManager
         format = this.imageFormats.FirstOrDefault(x =>
             x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
 
-        return format != null;
+        return format is not null;
     }
 
     /// <summary>
     /// For the specified mime type find the <see cref="IImageFormat"/>.
     /// </summary>
-    /// <param name="mimeType">The mime-type to discover</param>
-    /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
-    public IImageFormat? FindFormatByMimeType(string mimeType)
-        => this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+    /// <param name="mimeType">The mime-type to return the format for.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given mime-type;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// .</param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    public bool TryFindFormatByMimeType(string mimeType, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+        return format is not null;
+    }
 
     internal IImageFormat? FindFormatByDecoder(IImageDecoder decoder)
         => this.mimeTypeDecoders.FirstOrDefault(x => x.Value.GetType() == decoder.GetType()).Key;

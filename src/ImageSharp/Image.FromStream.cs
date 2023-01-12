@@ -78,9 +78,9 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(Stream stream)
+    public static ImageInfo Identify(Stream stream)
         => Identify(stream, out IImageFormat _);
 
     /// <summary>
@@ -95,7 +95,7 @@ public abstract partial class Image
     /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
     /// a suitable detector is not found.
     /// </returns>
-    public static Task<IImageInfo> IdentifyAsync(Stream stream, CancellationToken cancellationToken = default)
+    public static Task<ImageInfo> IdentifyAsync(Stream stream, CancellationToken cancellationToken = default)
         => IdentifyAsync(DecoderOptions.Default, stream, cancellationToken);
 
     /// <summary>
@@ -107,9 +107,9 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(Stream stream, out IImageFormat format)
+    public static ImageInfo Identify(Stream stream, out IImageFormat format)
         => Identify(DecoderOptions.Default, stream, out format);
 
     /// <summary>
@@ -122,9 +122,9 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(DecoderOptions options, Stream stream)
+    public static ImageInfo Identify(DecoderOptions options, Stream stream)
         => Identify(options, stream, out _);
 
     /// <summary>
@@ -141,12 +141,12 @@ public abstract partial class Image
     /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
     /// a suitable detector is not found.
     /// </returns>
-    public static async Task<IImageInfo> IdentifyAsync(
+    public static async Task<ImageInfo> IdentifyAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken = default)
     {
-        (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
+        (ImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
         return res.ImageInfo;
     }
 
@@ -161,11 +161,11 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(DecoderOptions options, Stream stream, out IImageFormat format)
+    public static ImageInfo Identify(DecoderOptions options, Stream stream, out IImageFormat format)
     {
-        (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
+        (ImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
 
         format = data.Format;
         return data.ImageInfo;
@@ -182,9 +182,9 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
         Stream stream,
         CancellationToken cancellationToken = default)
         => IdentifyWithFormatAsync(DecoderOptions.Default, stream, cancellationToken);
@@ -201,9 +201,9 @@ public abstract partial class Image
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken = default)

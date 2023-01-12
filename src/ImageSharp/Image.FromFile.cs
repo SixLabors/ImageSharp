@@ -42,9 +42,9 @@ public abstract partial class Image
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(string filePath)
+    public static ImageInfo Identify(string filePath)
         => Identify(filePath, out IImageFormat _);
 
     /// <summary>
@@ -53,9 +53,9 @@ public abstract partial class Image
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <param name="format">The format type of the decoded image.</param>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(string filePath, out IImageFormat format)
+    public static ImageInfo Identify(string filePath, out IImageFormat format)
         => Identify(DecoderOptions.Default, filePath, out format);
 
     /// <summary>
@@ -66,9 +66,9 @@ public abstract partial class Image
     /// <param name="format">The format type of the decoded image.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector is not found.
     /// </returns>
-    public static IImageInfo Identify(DecoderOptions options, string filePath, out IImageFormat format)
+    public static ImageInfo Identify(DecoderOptions options, string filePath, out IImageFormat format)
     {
         Guard.NotNull(options, nameof(options));
         using Stream file = options.Configuration.FileSystem.OpenRead(filePath);
@@ -83,9 +83,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<IImageInfo> IdentifyAsync(string filePath, CancellationToken cancellationToken = default)
+    public static Task<ImageInfo> IdentifyAsync(string filePath, CancellationToken cancellationToken = default)
         => IdentifyAsync(DecoderOptions.Default, filePath, cancellationToken);
 
     /// <summary>
@@ -97,14 +97,14 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static async Task<IImageInfo> IdentifyAsync(
+    public static async Task<ImageInfo> IdentifyAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        (IImageInfo ImageInfo, IImageFormat Format) res =
+        (ImageInfo ImageInfo, IImageFormat Format) res =
             await IdentifyWithFormatAsync(options, filePath, cancellationToken).ConfigureAwait(false);
         return res.ImageInfo;
     }
@@ -117,9 +117,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
         string filePath,
         CancellationToken cancellationToken = default)
         => IdentifyWithFormatAsync(DecoderOptions.Default, filePath, cancellationToken);
@@ -133,9 +133,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
     /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
     /// </returns>
-    public static async Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static async Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)

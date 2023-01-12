@@ -41,7 +41,7 @@ public class WebpDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedWidth, imageInfo.Width);
         Assert.Equal(expectedHeight, imageInfo.Height);

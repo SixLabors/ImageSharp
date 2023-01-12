@@ -257,7 +257,7 @@ public class GeneralFormatTests
         image.Save(memoryStream, format);
         memoryStream.Position = 0;
 
-        IImageInfo imageInfo = Image.Identify(memoryStream);
+        ImageInfo imageInfo = Image.Identify(memoryStream);
 
         Assert.Equal(imageInfo.Width, width);
         Assert.Equal(imageInfo.Height, height);
@@ -274,7 +274,7 @@ public class GeneralFormatTests
         byte[] invalid = new byte[10];
 
         using MemoryStream memoryStream = new(invalid);
-        IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
+        ImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
 
         Assert.Null(imageInfo);
         Assert.Null(format);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp;
 /// <summary>
 /// Contains information about the image including dimensions, pixel type information and additional metadata
 /// </summary>
-internal sealed class ImageInfo : IImageInfo
+public sealed class ImageInfo : IImageInfo
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageInfo"/> class.

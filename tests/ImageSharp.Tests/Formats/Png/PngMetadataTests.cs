@@ -219,7 +219,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = PngDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = PngDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -232,7 +232,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
         VerifyTextDataIsPresent(meta);
@@ -244,7 +244,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
         ExifProfile exif = imageInfo.Metadata.ExifProfile;
@@ -281,7 +281,7 @@ public class PngMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
 

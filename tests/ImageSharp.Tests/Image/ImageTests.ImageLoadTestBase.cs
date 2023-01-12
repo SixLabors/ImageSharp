@@ -25,7 +25,7 @@ public partial class ImageTests
 
         protected Mock<IImageFormat> localImageFormatMock;
 
-        protected Mock<IImageInfo> localImageInfoMock;
+        protected Mock<ImageInfo> localImageInfoMock;
 
         protected readonly string MockFilePath = Guid.NewGuid().ToString();
 
@@ -56,7 +56,7 @@ public partial class ImageTests
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
             this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
 
-            this.localImageInfoMock = new Mock<IImageInfo>();
+            this.localImageInfoMock = new Mock<ImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
             this.localDecoder = new Mock<IImageDecoder>();

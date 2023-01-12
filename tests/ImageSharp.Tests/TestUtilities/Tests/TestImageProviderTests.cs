@@ -363,8 +363,11 @@ public class TestImageProviderTests
             }
         }
 
-        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+        protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+        }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
@@ -403,8 +406,11 @@ public class TestImageProviderTests
             }
         }
 
-        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+        protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+        }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
         {

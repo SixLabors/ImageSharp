@@ -90,7 +90,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -103,7 +103,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = await JpegDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
+        ImageInfo image = await JpegDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -116,7 +116,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
     }
@@ -155,7 +155,7 @@ public partial class JpegDecoderTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(expectedColorType, meta.ColorType);
     }
@@ -180,7 +180,7 @@ public partial class JpegDecoderTests
         using var stream = new MemoryStream(testFile.Bytes, false);
         if (useIdentify)
         {
-            IImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
+            ImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
             test(imageInfo);
         }
         else

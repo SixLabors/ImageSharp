@@ -60,9 +60,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The data is null.</exception>
     /// <exception cref="NotSupportedException">The data is not readable.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat _);
+    public static ImageInfo Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat _);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
@@ -72,9 +72,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The data is null.</exception>
     /// <exception cref="NotSupportedException">The data is not readable.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
     /// </returns>
-    public static IImageInfo Identify(ReadOnlySpan<byte> data, out IImageFormat format)
+    public static ImageInfo Identify(ReadOnlySpan<byte> data, out IImageFormat format)
         => Identify(DecoderOptions.Default, data, out format);
 
     /// <summary>
@@ -87,9 +87,9 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The data is null.</exception>
     /// <exception cref="NotSupportedException">The data is not readable.</exception>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if suitable info detector is not found.
     /// </returns>
-    public static unsafe IImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
+    public static unsafe ImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
     {
         fixed (byte* ptr = data)
         {

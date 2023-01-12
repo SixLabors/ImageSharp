@@ -22,7 +22,7 @@ public class IdentifyJpeg
     public void ReadImages() => this.jpegBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     [Benchmark]
-    public IImageInfo Identify()
+    public ImageInfo Identify()
     {
         using MemoryStream memoryStream = new(this.jpegBytes);
         return JpegDecoder.Instance.Identify(DecoderOptions.Default, memoryStream);

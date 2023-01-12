@@ -213,7 +213,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.inputStream = stream;
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);

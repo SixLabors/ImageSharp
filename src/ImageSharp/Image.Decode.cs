@@ -179,12 +179,12 @@ public abstract partial class Image
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The stream.</param>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentify(DecoderOptions options, Stream stream)
+    private static (ImageInfo ImageInfo, IImageFormat Format) InternalIdentify(DecoderOptions options, Stream stream)
     {
         IImageDecoder decoder = DiscoverDecoder(options, stream, out IImageFormat format);
-        IImageInfo info = decoder?.Identify(options, stream);
+        ImageInfo info = decoder?.Identify(options, stream);
         return (info, format);
     }
 
@@ -195,9 +195,9 @@ public abstract partial class Image
     /// <param name="stream">The stream.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
-    /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
+    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
     /// </returns>
-    private static async Task<(IImageInfo ImageInfo, IImageFormat Format)> InternalIdentifyAsync(
+    private static async Task<(ImageInfo ImageInfo, IImageFormat Format)> InternalIdentifyAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken)
@@ -209,7 +209,7 @@ public abstract partial class Image
             return (null, null);
         }
 
-        IImageInfo info = await decoder.IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
+        ImageInfo info = await decoder.IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
         return (info, format);
     }
 }

@@ -117,6 +117,9 @@ public class ImageFormatManager
     public IImageFormat? FindFormatByMimeType(string mimeType)
         => this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
 
+    internal IImageFormat? FindFormatByDecoder(IImageDecoder decoder)
+        => this.mimeTypeDecoders.FirstOrDefault(x => x.Value == decoder).Key;
+
     /// <summary>
     /// Sets a specific image encoder as the encoder for a specific image format.
     /// </summary>

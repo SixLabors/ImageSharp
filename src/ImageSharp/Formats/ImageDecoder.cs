@@ -17,44 +17,74 @@ public abstract class ImageDecoder : IImageDecoder
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode<TPixel>(options, s, default));
+    {
+        Image<TPixel> image = WithSeekableStream(
+            options,
+            stream,
+            s => this.Decode<TPixel>(options, s, default));
+
+        this.SetDecoderFormat(options.Configuration, image);
+
+        return image;
+    }
 
     /// <inheritdoc/>
     public Image Decode(DecoderOptions options, Stream stream)
-        => WithSeekableStream(
-              options,
-              stream,
-              s => this.Decode(options, s, default));
-
-    /// <inheritdoc/>
-    public Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => WithSeekableMemoryStreamAsync(
+    {
+        Image image = WithSeekableStream(
             options,
             stream,
-            (s, ct) => this.Decode<TPixel>(options, s, ct),
-            cancellationToken);
+            s => this.Decode(options, s, default));
+
+        this.SetDecoderFormat(options.Configuration, image);
+
+        return image;
+    }
 
     /// <inheritdoc/>
-    public Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-        => WithSeekableMemoryStreamAsync(
+    public async Task<Image<TPixel>> DecodeAsync<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Image<TPixel> image = await WithSeekableMemoryStreamAsync(
+                options,
+                stream,
+                (s, ct) => this.Decode<TPixel>(options, s, ct),
+                cancellationToken).ConfigureAwait(false);
+
+        this.SetDecoderFormat(options.Configuration, image);
+
+        return image;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Image> DecodeAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    {
+        Image image = await WithSeekableMemoryStreamAsync(
             options,
             stream,
             (s, ct) => this.Decode(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        this.SetDecoderFormat(options.Configuration, image);
+
+        return image;
+    }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(DecoderOptions options, Stream stream)
-          => WithSeekableStream(
-              options,
-              stream,
-              s => this.Identify(options, s, default));
+    public ImageInfo Identify(DecoderOptions options, Stream stream)
+    {
+        ImageInfo info = WithSeekableStream(
+            options,
+            stream,
+            s => this.Identify(options, s, default));
+
+        this.SetDecoderFormat(options.Configuration, info);
+
+        return info;
+    }
 
     /// <inheritdoc/>
-    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    public Task<ImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
          => WithSeekableMemoryStreamAsync(
              options,
              stream,
@@ -98,9 +128,9 @@ public abstract class ImageDecoder : IImageDecoder
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The <see cref="IImageInfo"/> object.</returns>
+    /// <returns>The <see cref="ImageInfo"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected abstract IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    protected abstract ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
     /// Performs a scaling operation against the decoded image. If the target size is not set, or the image size
@@ -252,4 +282,10 @@ public abstract class ImageDecoder : IImageDecoder
         memoryStream.Position = 0;
         return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
     }
+
+    internal void SetDecoderFormat(Configuration configuration, Image image)
+    => image.Metadata.DecodedImageFormat = configuration.ImageFormatsManager.FindFormatByDecoder(this);
+
+    internal void SetDecoderFormat(Configuration configuration, ImageInfo info)
+        => info.Metadata.DecodedImageFormat = configuration.ImageFormatsManager.FindFormatByDecoder(this);
 }

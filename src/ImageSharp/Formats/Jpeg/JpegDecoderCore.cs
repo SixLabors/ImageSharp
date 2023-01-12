@@ -225,7 +225,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ParseStream(stream, spectralConverter: null, cancellationToken);
         this.InitExifProfile();

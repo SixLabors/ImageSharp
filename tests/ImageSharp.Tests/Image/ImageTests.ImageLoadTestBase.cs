@@ -51,6 +51,12 @@ public partial class ImageTests
 
         protected byte[] ByteArray => ((MemoryStream)this.DataStream).ToArray();
 
+        protected ImageInfo LocalImageInfo => new(
+            this.localImageInfoMock.Object.PixelType,
+            this.localImageInfoMock.Object.Width,
+            this.localImageInfoMock.Object.Height,
+            this.localImageInfoMock.Object.Metadata);
+
         protected ImageLoadTestBase()
         {
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
@@ -61,18 +67,10 @@ public partial class ImageTests
 
             this.localDecoder = new Mock<IImageDecoder>();
             this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
-                .Returns(() =>
-                {
-                    IImageInfo info = this.localImageInfoMock.Object;
-                    return new ImageInfo(info.PixelType, info.Width, info.Height, info.Metadata);
-                });
+                .Returns(this.LocalImageInfo);
 
             this.localDecoder.Setup(x => x.IdentifyAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Returns(() =>
-                {
-                    IImageInfo info = this.localImageInfoMock.Object;
-                    return Task.FromResult(new ImageInfo(info.PixelType, info.Width, info.Height, info.Metadata));
-                });
+                .Returns(Task.FromResult(this.LocalImageInfo));
 
             this.localDecoder
                 .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))

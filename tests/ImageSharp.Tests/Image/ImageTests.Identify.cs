@@ -21,7 +21,11 @@ public partial class ImageTests
 
         private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-        private ImageInfo LocalImageInfo => this.localImageInfoMock.Object;
+        private ImageInfo LocalImageInfo => new(
+            this.localImageInfoMock.Object.PixelType,
+            this.localImageInfoMock.Object.Width,
+            this.localImageInfoMock.Object.Height,
+            this.localImageInfoMock.Object.Metadata);
 
         private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
@@ -33,7 +37,6 @@ public partial class ImageTests
                 return format!;
             }
         }
-
 
         [Fact]
         public void FromBytes_GlobalConfiguration()

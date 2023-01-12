@@ -96,7 +96,7 @@ public class ImageFormatManager
     /// When this method returns, contains the format that matches the given extension;
     /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
     /// This parameter is passed uninitialized.
-    /// .</param>
+    /// </param>
     /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public bool TryFindFormatByFileExtension(string extension, [NotNullWhen(true)] out IImageFormat? format)
     {
@@ -121,7 +121,7 @@ public class ImageFormatManager
     /// When this method returns, contains the format that matches the given mime-type;
     /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
     /// This parameter is passed uninitialized.
-    /// .</param>
+    /// </param>
     /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public bool TryFindFormatByMimeType(string mimeType, [NotNullWhen(true)] out IImageFormat? format)
     {

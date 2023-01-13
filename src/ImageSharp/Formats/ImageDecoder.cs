@@ -84,12 +84,18 @@ public abstract class ImageDecoder : IImageDecoder
     }
 
     /// <inheritdoc/>
-    public Task<ImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-         => WithSeekableMemoryStreamAsync(
-             options,
-             stream,
-             (s, ct) => this.Identify(options, s, ct),
-             cancellationToken);
+    public async Task<ImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    {
+        ImageInfo info = await WithSeekableMemoryStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Identify(options, s, ct),
+            cancellationToken).ConfigureAwait(false);
+
+        this.SetDecoderFormat(options.Configuration, info);
+
+        return info;
+    }
 
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.

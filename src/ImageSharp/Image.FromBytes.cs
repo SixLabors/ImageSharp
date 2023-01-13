@@ -55,46 +55,41 @@ public abstract partial class Image
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="data">The byte span containing encoded image data to read the header from.</param>
-    /// <exception cref="ArgumentNullException">The data is null.</exception>
-    /// <exception cref="NotSupportedException">The data is not readable.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
-    /// </returns>
-    public static ImageInfo Identify(ReadOnlySpan<byte> data) => Identify(data, out IImageFormat _);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="data">The byte array containing encoded image data to read the header from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The data is null.</exception>
     /// <exception cref="NotSupportedException">The data is not readable.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
-    /// </returns>
-    public static ImageInfo Identify(ReadOnlySpan<byte> data, out IImageFormat format)
-        => Identify(DecoderOptions.Default, data, out format);
+    public static bool TryIdentify(ReadOnlySpan<byte> data, [NotNullWhen(true)] out ImageInfo? info)
+        => TryIdentify(DecoderOptions.Default, data, out info);
 
     /// <summary>
     /// Reads the raw image information from the specified span of bytes without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="data">The byte span containing encoded image data to read the header from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <exception cref="ArgumentNullException">The data is null.</exception>
     /// <exception cref="NotSupportedException">The data is not readable.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector is not found.
-    /// </returns>
-    public static unsafe ImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> data, out IImageFormat format)
+    public static unsafe bool TryIdentify(DecoderOptions options, ReadOnlySpan<byte> data, [NotNullWhen(true)] out ImageInfo? info)
     {
         fixed (byte* ptr = data)
         {
-            using var stream = new UnmanagedMemoryStream(ptr, data.Length);
-            return Identify(options, stream, out format);
+            using UnmanagedMemoryStream stream = new(ptr, data.Length);
+            return TryIdentify(options, stream, out info);
         }
     }
 
@@ -141,7 +136,7 @@ public abstract partial class Image
     {
         fixed (byte* ptr = data)
         {
-            using var stream = new UnmanagedMemoryStream(ptr, data.Length);
+            using UnmanagedMemoryStream stream = new(ptr, data.Length);
             return Load<TPixel>(options, stream);
         }
     }
@@ -166,7 +161,7 @@ public abstract partial class Image
     {
         fixed (byte* ptr = data)
         {
-            using var stream = new UnmanagedMemoryStream(ptr, data.Length);
+            using UnmanagedMemoryStream stream = new(ptr, data.Length);
             return Load<TPixel>(options, stream, out format);
         }
     }
@@ -222,7 +217,7 @@ public abstract partial class Image
     {
         fixed (byte* ptr = data)
         {
-            using var stream = new UnmanagedMemoryStream(ptr, data.Length);
+            using UnmanagedMemoryStream stream = new(ptr, data.Length);
             return Load(options, stream, out format);
         }
     }

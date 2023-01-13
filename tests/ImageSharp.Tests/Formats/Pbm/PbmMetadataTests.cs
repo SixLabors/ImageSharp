@@ -13,8 +13,9 @@ public class PbmMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new PbmMetadata { ColorType = PbmColorType.Grayscale };
-        var clone = (PbmMetadata)meta.DeepClone();
+        PbmMetadata meta = new()
+        { ColorType = PbmColorType.Grayscale };
+        PbmMetadata clone = (PbmMetadata)meta.DeepClone();
 
         clone.ColorType = PbmColorType.Rgb;
         clone.ComponentType = PbmComponentType.Short;
@@ -33,9 +34,9 @@ public class PbmMetadataTests
     [InlineData(RgbPlain, PbmEncoding.Plain)]
     public void Identify_DetectsCorrectEncoding(string imagePath, PbmEncoding expectedEncoding)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);
@@ -52,9 +53,9 @@ public class PbmMetadataTests
     [InlineData(RgbPlain, PbmColorType.Rgb)]
     public void Identify_DetectsCorrectColorType(string imagePath, PbmColorType expectedColorType)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);
@@ -71,9 +72,9 @@ public class PbmMetadataTests
     [InlineData(RgbPlain, PbmComponentType.Byte)]
     public void Identify_DetectsCorrectComponentType(string imagePath, PbmComponentType expectedComponentType)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);

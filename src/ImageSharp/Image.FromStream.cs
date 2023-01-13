@@ -16,45 +16,59 @@ namespace SixLabors.ImageSharp;
 public abstract partial class Image
 {
     /// <summary>
-    /// By reading the header on the provided stream this calculates the images format type.
+    /// Detects the encoded image format type from the specified stream.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="format">The format type or null if none found.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given stream;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>returns true when format was detected otherwise false.</returns>
     public static bool TryDetectFormat(Stream stream, [NotNullWhen(true)] out IImageFormat? format)
         => TryDetectFormat(DecoderOptions.Default, stream, out format);
 
     /// <summary>
-    /// By reading the header on the provided stream this calculates the images format type.
+    /// Detects the encoded image format type from the specified stream.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="format">The format type or null if none found.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given stream;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>returns true when format was detected otherwise false.</returns>
     public static bool TryDetectFormat(DecoderOptions options, Stream stream, [NotNullWhen(true)] out IImageFormat? format)
     {
         format = WithSeekableStream(options, stream, s => InternalDetectFormat(options.Configuration, s));
-        return format != null;
+        return format is not null;
     }
 
     /// <summary>
-    /// By reading the header on the provided stream this calculates the images format type.
+    /// Detects the encoded image format type from the specified stream.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation or null if none is found.</returns>
-    public static Task<IImageFormat> DetectFormatAsync(Stream stream, CancellationToken cancellationToken = default)
-        => DetectFormatAsync(DecoderOptions.Default, stream, cancellationToken);
+    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
+    public static Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+        Stream stream,
+        CancellationToken cancellationToken = default)
+        => TryDetectFormatAsync(DecoderOptions.Default, stream, cancellationToken);
 
     /// <summary>
-    /// By reading the header on the provided stream this calculates the images format type.
+    /// Detects the encoded image format type from the specified stream.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
@@ -62,117 +76,63 @@ public abstract partial class Image
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
-    public static Task<IImageFormat> DetectFormatAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-        => WithSeekableStreamAsync(
+    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
+    public static async Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+        DecoderOptions options,
+        Stream stream,
+        CancellationToken cancellationToken = default)
+    {
+        IImageFormat? format = await WithSeekableStreamAsync(
             options,
             stream,
             (s, _) => Task.FromResult(InternalDetectFormat(options.Configuration, s)),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="stream">The image stream to read the header from.</param>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
-    /// </returns>
-    public static ImageInfo Identify(Stream stream)
-        => Identify(stream, out IImageFormat _);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
-    /// a suitable detector is not found.
-    /// </returns>
-    public static Task<ImageInfo> IdentifyAsync(Stream stream, CancellationToken cancellationToken = default)
-        => IdentifyAsync(DecoderOptions.Default, stream, cancellationToken);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
-    /// </returns>
-    public static ImageInfo Identify(Stream stream, out IImageFormat format)
-        => Identify(DecoderOptions.Default, stream, out format);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="options">The general decoder options.</param>
-    /// <param name="stream">The image stream to read the information from.</param>
-    /// <exception cref="ArgumentNullException">The options are null.</exception>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
-    /// </returns>
-    public static ImageInfo Identify(DecoderOptions options, Stream stream)
-        => Identify(options, stream, out _);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="options">The general decoder options.</param>
-    /// <param name="stream">The image stream to read the information from.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The options are null.</exception>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
-    /// a suitable detector is not found.
-    /// </returns>
-    public static async Task<ImageInfo> IdentifyAsync(
-        DecoderOptions options,
-        Stream stream,
-        CancellationToken cancellationToken = default)
-    {
-        (ImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
-        return res.ImageInfo;
+        return new() { Value = format };
     }
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
+    /// </summary>
+    /// <param name="stream">The image stream to read the header from.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <exception cref="ArgumentNullException">The stream is null.</exception>
+    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+    public static bool TryIdentify(Stream stream, [NotNullWhen(true)] out ImageInfo? info)
+        => TryIdentify(DecoderOptions.Default, stream, out info);
+
+    /// <summary>
+    /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the information from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if a suitable info detector is not found.
-    /// </returns>
-    public static ImageInfo Identify(DecoderOptions options, Stream stream, out IImageFormat format)
+    public static bool TryIdentify(DecoderOptions options, Stream stream, [NotNullWhen(true)] out ImageInfo? info)
     {
-        (ImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
-
-        format = data.Format;
-        return data.ImageInfo;
+        info = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
+        return info is not null;
     }
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the information from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -181,16 +141,16 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
+    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
     /// </returns>
-    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<Attempt<ImageInfo>> TryIdentifyAsync(
         Stream stream,
         CancellationToken cancellationToken = default)
-        => IdentifyWithFormatAsync(DecoderOptions.Default, stream, cancellationToken);
+        => TryIdentifyAsync(DecoderOptions.Default, stream, cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the information from.</param>
@@ -200,18 +160,21 @@ public abstract partial class Image
     /// <exception cref="NotSupportedException">The stream is not readable.</exception>
     /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
+    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
     /// </returns>
-    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static async Task<Attempt<ImageInfo>> TryIdentifyAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken = default)
-        => WithSeekableStreamAsync(
+    {
+        ImageInfo? info = await WithSeekableStreamAsync(
             options,
             stream,
             (s, ct) => InternalIdentifyAsync(options, s, ct),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        return new() { Value = info };
+    }
 
     /// <summary>
     /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -387,16 +350,15 @@ public abstract partial class Image
     public static Image<TPixel> Load<TPixel>(DecoderOptions options, Stream stream, out IImageFormat format)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(options, stream, s => Decode<TPixel>(options, s));
+        Image<TPixel>? image = WithSeekableStream(options, stream, s => Decode<TPixel>(options, s));
 
-        format = data.Format;
-
-        if (data.Image is null)
+        if (image is null)
         {
             ThrowNotLoaded(options);
         }
 
-        return data.Image;
+        format = image.Metadata.DecodedImageFormat!;
+        return image;
     }
 
     /// <summary>
@@ -416,16 +378,15 @@ public abstract partial class Image
         Stream stream,
         CancellationToken cancellationToken = default)
     {
-        (Image Image, IImageFormat Format) data =
-            await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync(options, s, ct), cancellationToken)
-                 .ConfigureAwait(false);
+        Image? image = await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync(options, s, ct), cancellationToken)
+            .ConfigureAwait(false);
 
-        if (data.Image is null)
+        if (image is null)
         {
             ThrowNotLoaded(options);
         }
 
-        return data;
+        return new(image, image.Metadata.DecodedImageFormat!);
     }
 
     /// <summary>
@@ -447,16 +408,15 @@ public abstract partial class Image
         CancellationToken cancellationToken = default)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        (Image<TPixel> Image, IImageFormat Format) data =
-            await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync<TPixel>(options, s, ct), cancellationToken)
-                 .ConfigureAwait(false);
+        Image<TPixel>? image = await WithSeekableStreamAsync(options, stream, (s, ct) => DecodeAsync<TPixel>(options, s, ct), cancellationToken)
+            .ConfigureAwait(false);
 
-        if (data.Image is null)
+        if (image is null)
         {
             ThrowNotLoaded(options);
         }
 
-        return data;
+        return new(image, image.Metadata.DecodedImageFormat!);
     }
 
     /// <summary>
@@ -498,16 +458,14 @@ public abstract partial class Image
     /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
     public static Image Load(DecoderOptions options, Stream stream, out IImageFormat format)
     {
-        (Image img, IImageFormat fmt) = WithSeekableStream(options, stream, s => Decode(options, s));
-
-        format = fmt;
-
-        if (img is null)
+        Image? image = WithSeekableStream(options, stream, s => Decode(options, s));
+        if (image is null)
         {
             ThrowNotLoaded(options);
         }
 
-        return img;
+        format = image.Metadata.DecodedImageFormat!;
+        return image;
     }
 
     /// <summary>

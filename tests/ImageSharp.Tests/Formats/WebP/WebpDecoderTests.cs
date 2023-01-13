@@ -39,9 +39,9 @@ public class WebpDecoderTests
         int expectedHeight,
         int expectedBitsPerPixel)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedWidth, imageInfo.Width);
         Assert.Equal(expectedHeight, imageInfo.Height);
@@ -419,7 +419,7 @@ public class WebpDecoderTests
 
     private static void RunDecodeLossyWithHorizontalFilter()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyHorizontalFilterPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyHorizontalFilterPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -427,7 +427,7 @@ public class WebpDecoderTests
 
     private static void RunDecodeLossyWithVerticalFilter()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyVerticalFilterPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyVerticalFilterPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -435,7 +435,7 @@ public class WebpDecoderTests
 
     private static void RunDecodeLossyWithSimpleFilterTest()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossySimpleFilterPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossySimpleFilterPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -443,7 +443,7 @@ public class WebpDecoderTests
 
     private static void RunDecodeLossyWithComplexFilterTest()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyComplexFilterPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyComplexFilterPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);

@@ -59,13 +59,13 @@ public class GifDecoderTests
     [Fact]
     public unsafe void Decode_NonTerminatedFinalFrame()
     {
-        var testFile = TestFile.Create(TestImages.Gif.Rings);
+        TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
         int length = testFile.Bytes.Length - 2;
 
         fixed (byte* data = testFile.Bytes.AsSpan(0, length))
         {
-            using var stream = new UnmanagedMemoryStream(data, length);
+            using UnmanagedMemoryStream stream = new(data, length);
             using Image<Rgba32> image = GifDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
             Assert.Equal((200, 200), (image.Width, image.Height));
         }
@@ -120,9 +120,13 @@ public class GifDecoderTests
     [InlineData(TestImages.Gif.Trans, 8)]
     public void DetectPixelSize(string imagePath, int expectedPixelSize)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
     [Theory]
@@ -155,9 +159,9 @@ public class GifDecoderTests
     [Fact]
     public void CanDecodeIntermingledImages()
     {
-        using (var kumin1 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+        using (Image<Rgba32> kumin1 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
         using (Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
-        using (var kumin2 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+        using (Image<Rgba32> kumin2 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
         {
             for (int i = 0; i < kumin1.Frames.Count; i++)
             {

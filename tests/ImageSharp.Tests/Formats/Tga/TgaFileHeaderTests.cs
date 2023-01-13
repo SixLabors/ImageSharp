@@ -22,7 +22,7 @@ public class TgaFileHeaderTests
     [InlineData(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 250, 0, 0, 0, 32, 8 })] // invalid height
     public void ImageLoad_WithNoValidTgaHeaderBytes_Throws_UnknownImageFormatException(byte[] data)
     {
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
 
         Assert.Throws<UnknownImageFormatException>(() =>
         {
@@ -39,9 +39,9 @@ public class TgaFileHeaderTests
     [InlineData(new byte[] { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 0, 124, 0, 24, 32 }, 124, 124, TgaBitsPerPixel.Pixel24)]
     public void Identify_WithValidData_Works(byte[] data, int width, int height, TgaBitsPerPixel bitsPerPixel)
     {
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
 
-        ImageInfo info = Image.Identify(stream);
+        Image.TryIdentify(stream, out ImageInfo info);
         TgaMetadata tgaData = info.Metadata.GetTgaMetadata();
         Assert.Equal(bitsPerPixel, tgaData.BitsPerPixel);
         Assert.Equal(width, info.Width);

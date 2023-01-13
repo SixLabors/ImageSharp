@@ -14,8 +14,9 @@ public class BmpMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
-        var clone = (BmpMetadata)meta.DeepClone();
+        BmpMetadata meta = new()
+        { BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        BmpMetadata clone = (BmpMetadata)meta.DeepClone();
 
         clone.BitsPerPixel = BmpBitsPerPixel.Pixel32;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
@@ -35,15 +36,13 @@ public class BmpMetadataTests
     [InlineData(Os2v2, BmpInfoHeaderType.Os2Version2)]
     public void Identify_DetectsCorrectBitmapInfoHeaderType(string imagePath, BmpInfoHeaderType expectedInfoHeaderType)
     {
-        var testFile = TestFile.Create(imagePath);
-        using (var stream = new MemoryStream(testFile.Bytes, false))
-        {
-            ImageInfo imageInfo = Image.Identify(stream);
-            Assert.NotNull(imageInfo);
-            BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
-            Assert.NotNull(bitmapMetadata);
-            Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
-        }
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        Assert.NotNull(imageInfo);
+        BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
+        Assert.NotNull(bitmapMetadata);
+        Assert.Equal(expectedInfoHeaderType, bitmapMetadata.InfoHeaderType);
     }
 
     [Theory]
@@ -51,12 +50,10 @@ public class BmpMetadataTests
     public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage(BmpDecoder.Instance))
-        {
-            ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
-            Assert.NotNull(metaData);
-            Assert.NotNull(metaData.IccProfile);
-            Assert.Equal(16, metaData.IccProfile.Entries.Length);
-        }
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        ImageSharp.Metadata.ImageMetadata metaData = image.Metadata;
+        Assert.NotNull(metaData);
+        Assert.NotNull(metaData.IccProfile);
+        Assert.Equal(16, metaData.IccProfile.Entries.Length);
     }
 }

@@ -82,7 +82,7 @@ public partial class PngDecoderTests
     public void Decode_NonGeneric_CreatesCorrectImageType(string path, Type type)
     {
         string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, path);
-        using var image = Image.Load(file);
+        using Image image = Image.Load(file);
         Assert.IsType(type, image);
     }
 
@@ -304,9 +304,13 @@ public partial class PngDecoderTests
     [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
     public void Identify(string imagePath, int expectedPixelSize)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
     [Theory]
@@ -502,9 +506,9 @@ public partial class PngDecoderTests
     [InlineData(TestImages.Png.Issue2209IndexedWithTransparency)]
     public void Issue2209_Identify_HasTransparencyIsTrue(string imagePath)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
         Assert.True(metadata.HasTransparency);
     }

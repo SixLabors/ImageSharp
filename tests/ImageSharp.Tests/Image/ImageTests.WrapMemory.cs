@@ -294,7 +294,6 @@ public partial class ImageTests
             }
         }
 
-
         [Fact]
         public unsafe void WrapMemory_Throws_OnTooLessWrongSize()
         {
@@ -307,7 +306,7 @@ public partial class ImageTests
             {
                 try
                 {
-                    using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 24, 5, 5, metaData));
+                    using var image = Image.WrapMemory<Rgba32>(cfg, ptr, 24, 5, 5, metaData);
                 }
                 catch (Exception e)
                 {

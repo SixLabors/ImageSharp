@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats;
 
@@ -257,15 +256,11 @@ public class GeneralFormatTests
         image.Save(memoryStream, format);
         memoryStream.Position = 0;
 
-        ImageInfo imageInfo = Image.Identify(memoryStream);
+        Image.TryIdentify(memoryStream, out ImageInfo imageInfo);
 
         Assert.Equal(imageInfo.Width, width);
         Assert.Equal(imageInfo.Height, height);
-        memoryStream.Position = 0;
-
-        imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
-
-        Assert.Equal(format, detectedFormat);
+        Assert.Equal(format, imageInfo.Metadata.DecodedImageFormat);
     }
 
     [Fact]
@@ -274,10 +269,9 @@ public class GeneralFormatTests
         byte[] invalid = new byte[10];
 
         using MemoryStream memoryStream = new(invalid);
-        ImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
+        Image.TryIdentify(memoryStream, out ImageInfo imageInfo);
 
         Assert.Null(imageInfo);
-        Assert.Null(format);
     }
 
     private static IImageFormat GetFormat(string format)

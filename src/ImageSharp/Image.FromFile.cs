@@ -13,22 +13,32 @@ namespace SixLabors.ImageSharp;
 public abstract partial class Image
 {
     /// <summary>
-    /// By reading the header on the provided file this calculates the images mime type.
+    /// Detects the encoded image format type from the specified file.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <param name="format">The mime type or null if none found.</param>
-    /// <returns>returns true when format was detected otherwise false.</returns>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given file;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public static bool TryDetectFormat(string filePath, [NotNullWhen(true)] out IImageFormat? format)
         => TryDetectFormat(DecoderOptions.Default, filePath, out format);
 
     /// <summary>
-    /// By reading the header on the provided file this calculates the images mime type.
+    /// Detects the encoded image format type from the specified file.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <param name="format">The mime type or null if none found.</param>
-    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <returns>returns true when format was detected otherwise false.</returns>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given file;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    /// <exception cref="ArgumentNullException">The options are null.</exception>
     public static bool TryDetectFormat(DecoderOptions options, string filePath, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNull(options, nameof(options));
@@ -38,112 +48,106 @@ public abstract partial class Image
     }
 
     /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
-    /// </returns>
-    public static ImageInfo Identify(string filePath)
-        => Identify(filePath, out IImageFormat _);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector not found.
-    /// </returns>
-    public static ImageInfo Identify(string filePath, out IImageFormat format)
-        => Identify(DecoderOptions.Default, filePath, out format);
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
-    /// </summary>
-    /// <param name="options">The general decoder options.</param>
-    /// <param name="filePath">The image file to open and to read the header from.</param>
-    /// <param name="format">The format type of the decoded image.</param>
-    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <returns>
-    /// The <see cref="ImageInfo"/> or null if suitable info detector is not found.
-    /// </returns>
-    public static ImageInfo Identify(DecoderOptions options, string filePath, out IImageFormat format)
-    {
-        Guard.NotNull(options, nameof(options));
-        using Stream file = options.Configuration.FileSystem.OpenRead(filePath);
-        return Identify(options, file, out format);
-    }
-
-    /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
+    /// Detects the encoded image format type from the specified file.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
-    /// </returns>
-    public static Task<ImageInfo> IdentifyAsync(string filePath, CancellationToken cancellationToken = default)
-        => IdentifyAsync(DecoderOptions.Default, filePath, cancellationToken);
+    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
+    public static Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+        string filePath,
+        CancellationToken cancellationToken = default)
+        => TryDetectFormatAsync(DecoderOptions.Default, filePath, cancellationToken);
 
     /// <summary>
-    /// Reads the raw image information from the specified stream without fully decoding it.
+    /// Detects the encoded image format type from the specified file.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
-    /// </returns>
-    public static async Task<ImageInfo> IdentifyAsync(
+    /// <exception cref="ArgumentNullException">The options are null.</exception>
+    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
+    public static async Task<Attempt<IImageFormat>> TryDetectFormatAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        (ImageInfo ImageInfo, IImageFormat Format) res =
-            await IdentifyWithFormatAsync(options, filePath, cancellationToken).ConfigureAwait(false);
-        return res.ImageInfo;
+        Guard.NotNull(options, nameof(options));
+
+        using Stream stream = options.Configuration.FileSystem.OpenRead(filePath);
+        return await TryDetectFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads the raw image information from the specified file path without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
+    /// </summary>
+    /// <param name="filePath">The image file to open and to read the header from.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    public static bool TryIdentify(string filePath, [NotNullWhen(true)] out ImageInfo? info)
+        => TryIdentify(DecoderOptions.Default, filePath, out info);
+
+    /// <summary>
+    /// Reads the raw image information from the specified file path without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <param name="filePath">The image file to open and to read the header from.</param>
+    /// <param name="info">
+    /// When this method returns, contains the raw image information;
+    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <exception cref="ArgumentNullException">The options are null.</exception>
+    public static bool TryIdentify(DecoderOptions options, string filePath, [NotNullWhen(true)] out ImageInfo? info)
+    {
+        Guard.NotNull(options, nameof(options));
+
+        using Stream stream = options.Configuration.FileSystem.OpenRead(filePath);
+        return TryIdentify(options, stream, out info);
     }
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
+    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
     /// </returns>
-    public static Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static Task<Attempt<ImageInfo>> TryIdentifyAsync(
         string filePath,
         CancellationToken cancellationToken = default)
-        => IdentifyWithFormatAsync(DecoderOptions.Default, filePath, cancellationToken);
+        => TryIdentifyAsync(DecoderOptions.Default, filePath, cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
+    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="filePath">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
     /// <returns>
-    /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
-    /// <see cref="ImageInfo"/> property set to null if suitable info detector is not found.
+    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
     /// </returns>
-    public static async Task<(ImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+    public static async Task<Attempt<ImageInfo>> TryIdentifyAsync(
         DecoderOptions options,
         string filePath,
         CancellationToken cancellationToken = default)
     {
         Guard.NotNull(options, nameof(options));
         using Stream stream = options.Configuration.FileSystem.OpenRead(filePath);
-        return await IdentifyWithFormatAsync(options, stream, cancellationToken)
-            .ConfigureAwait(false);
+        return await TryIdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

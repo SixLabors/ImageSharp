@@ -51,18 +51,22 @@ public partial class ImageTests
 
         protected byte[] ByteArray => ((MemoryStream)this.DataStream).ToArray();
 
-        protected ImageInfo LocalImageInfo => new(
+        protected ImageInfo LocalImageInfo { get; }
+
+        protected ImageLoadTestBase()
+        {
+            // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
+            this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
+            this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
+
+            this.localImageInfoMock = new Mock<IImageInfo>();
+
+            this.LocalImageInfo = new(
             this.localImageInfoMock.Object.PixelType,
             this.localImageInfoMock.Object.Width,
             this.localImageInfoMock.Object.Height,
             this.localImageInfoMock.Object.Metadata);
 
-        protected ImageLoadTestBase()
-        {
-            this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
-            this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
-
-            this.localImageInfoMock = new Mock<IImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
             this.localDecoder = new Mock<IImageDecoder>();

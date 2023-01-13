@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
@@ -11,12 +11,10 @@ namespace SixLabors.ImageSharp.Tests;
 /// </summary>
 public class MockImageFormatDetector : IImageFormatDetector
 {
-    private IImageFormat localImageFormatMock;
+    private readonly IImageFormat localImageFormatMock;
 
     public MockImageFormatDetector(IImageFormat imageFormat)
-    {
-        this.localImageFormatMock = imageFormat;
-    }
+        => this.localImageFormatMock = imageFormat;
 
     public int HeaderSize => 1;
 

@@ -27,7 +27,7 @@ public partial class ImageTests
         {
             get
             {
-                Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("bmp", out var format);
+                Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("bmp", out IImageFormat format);
                 return format!;
             }
         }
@@ -35,30 +35,27 @@ public partial class ImageTests
         [Fact]
         public void FromBytes_GlobalConfiguration()
         {
-            ImageInfo info = Image.Identify(ActualImageBytes, out IImageFormat type);
-
+            Image.TryIdentify(ActualImageBytes, out ImageInfo info);
             Assert.Equal(ExpectedImageSize, info.Size());
-            Assert.Equal(ExpectedGlobalFormat, type);
+            Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public void FromBytes_CustomConfiguration()
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
-
-            ImageInfo info = Image.Identify(options, this.ByteArray, out IImageFormat type);
+            Image.TryIdentify(options, this.ByteArray, out ImageInfo info);
 
             Assert.Equal(this.LocalImageInfo, info);
-            Assert.Equal(this.LocalImageFormat, type);
         }
 
         [Fact]
         public void FromFileSystemPath_GlobalConfiguration()
         {
-            ImageInfo info = Image.TryIdentify(ActualImagePath, out IImageFormat type);
+            Image.TryIdentify(ActualImagePath, out ImageInfo info);
 
             Assert.NotNull(info);
-            Assert.Equal(ExpectedGlobalFormat, type);
+            Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
         [Fact]
@@ -66,27 +63,26 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            ImageInfo info = Image.Identify(options, this.MockFilePath, out IImageFormat type);
+            Image.TryIdentify(options, this.MockFilePath, out ImageInfo info);
 
             Assert.Equal(this.LocalImageInfo, info);
-            Assert.Equal(this.LocalImageFormat, type);
         }
 
         [Fact]
         public void FromStream_GlobalConfiguration()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            ImageInfo info = Image.Identify(stream, out IImageFormat type);
+            using MemoryStream stream = new(ActualImageBytes);
+            Image.TryIdentify(stream, out ImageInfo info);
 
             Assert.NotNull(info);
-            Assert.Equal(ExpectedGlobalFormat, type);
+            Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public void FromStream_GlobalConfiguration_NoFormat()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            ImageInfo info = Image.Identify(stream);
+            using MemoryStream stream = new(ActualImageBytes);
+            Image.TryIdentify(stream, out ImageInfo info);
 
             Assert.NotNull(info);
         }
@@ -94,22 +90,22 @@ public partial class ImageTests
         [Fact]
         public void FromNonSeekableStream_GlobalConfiguration()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            using var nonSeekableStream = new NonSeekableStream(stream);
+            using MemoryStream stream = new(ActualImageBytes);
+            using NonSeekableStream nonSeekableStream = new(stream);
 
-            ImageInfo info = Image.Identify(nonSeekableStream, out IImageFormat type);
+            Image.TryIdentify(nonSeekableStream, out ImageInfo info);
 
             Assert.NotNull(info);
-            Assert.Equal(ExpectedGlobalFormat, type);
+            Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public void FromNonSeekableStream_GlobalConfiguration_NoFormat()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            using var nonSeekableStream = new NonSeekableStream(stream);
+            using MemoryStream stream = new(ActualImageBytes);
+            using NonSeekableStream nonSeekableStream = new(stream);
 
-            ImageInfo info = Image.Identify(nonSeekableStream);
+            Image.TryIdentify(nonSeekableStream, out ImageInfo info);
 
             Assert.NotNull(info);
         }
@@ -119,10 +115,9 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            ImageInfo info = Image.Identify(options, this.DataStream, out IImageFormat type);
+            Image.TryIdentify(options, this.DataStream, out ImageInfo info);
 
             Assert.Equal(this.LocalImageInfo, info);
-            Assert.Equal(this.LocalImageFormat, type);
         }
 
         [Fact]
@@ -130,7 +125,7 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            ImageInfo info = Image.TryIdentify(options, this.DataStream);
+            Image.TryIdentify(options, this.DataStream, out ImageInfo info);
 
             Assert.Equal(this.LocalImageInfo, info);
         }
@@ -140,17 +135,15 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = new() };
 
-            ImageInfo info = Image.Identify(options, this.DataStream, out IImageFormat type);
-
+            Assert.False(Image.TryIdentify(options, this.DataStream, out ImageInfo info));
             Assert.Null(info);
-            Assert.Null(type);
         }
 
         [Fact]
         public void FromStream_ZeroLength_ReturnsNull()
         {
             // https://github.com/SixLabors/ImageSharp/issues/1903
-            using var zipFile = new ZipArchive(new MemoryStream(
+            using ZipArchive zipFile = new(new MemoryStream(
                 new byte[]
                 {
                     0x50, 0x4B, 0x03, 0x04, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x77, 0xAF, 0x94, 0x53, 0x00, 0x00,
@@ -165,61 +158,67 @@ public partial class ImageTests
                     0x00, 0x00, 0x00, 0x00
                 }));
             using Stream stream = zipFile.Entries[0].Open();
-            ImageInfo info = Image.Identify(stream);
+
+            Assert.False(Image.TryIdentify(stream, out ImageInfo info));
             Assert.Null(info);
         }
 
         [Fact]
         public async Task FromStreamAsync_GlobalConfiguration_NoFormat()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            var asyncStream = new AsyncStreamWrapper(stream, () => false);
-            ImageInfo info = await Image.IdentifyAsync(asyncStream);
+            using MemoryStream stream = new(ActualImageBytes);
+            AsyncStreamWrapper asyncStream = new(stream, () => false);
 
-            Assert.NotNull(info);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(asyncStream);
+
+            Assert.True(attempt.Success);
+            Assert.NotNull(attempt.Value);
         }
 
         [Fact]
         public async Task FromStreamAsync_GlobalConfiguration()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            var asyncStream = new AsyncStreamWrapper(stream, () => false);
-            (ImageInfo ImageInfo, IImageFormat Format) res = await Image.TryIdentifyAsync(asyncStream);
+            using MemoryStream stream = new(ActualImageBytes);
+            AsyncStreamWrapper asyncStream = new(stream, () => false);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(asyncStream);
 
-            Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
-            Assert.Equal(ExpectedGlobalFormat, res.Format);
+            Assert.True(attempt.Success);
+            Assert.Equal(ExpectedImageSize, attempt.Value.Size());
+            Assert.Equal(ExpectedGlobalFormat, attempt.Value.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public async Task FromNonSeekableStreamAsync_GlobalConfiguration_NoFormat()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            using var nonSeekableStream = new NonSeekableStream(stream);
+            using MemoryStream stream = new(ActualImageBytes);
+            using NonSeekableStream nonSeekableStream = new(stream);
 
-            var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);
-            ImageInfo info = await Image.IdentifyAsync(asyncStream);
+            AsyncStreamWrapper asyncStream = new(nonSeekableStream, () => false);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(asyncStream);
 
-            Assert.NotNull(info);
+            Assert.True(attempt.Success);
+            Assert.NotNull(attempt.Value);
         }
 
         [Fact]
         public async Task FromNonSeekableStreamAsync_GlobalConfiguration()
         {
-            using var stream = new MemoryStream(ActualImageBytes);
-            using var nonSeekableStream = new NonSeekableStream(stream);
+            using MemoryStream stream = new(ActualImageBytes);
+            using NonSeekableStream nonSeekableStream = new(stream);
 
-            var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);
-            (ImageInfo ImageInfo, IImageFormat Format) res = await Image.TryIdentifyAsync(asyncStream);
+            AsyncStreamWrapper asyncStream = new(nonSeekableStream, () => false);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(asyncStream);
 
-            Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
-            Assert.Equal(ExpectedGlobalFormat, res.Format);
+            Assert.True(attempt.Success);
+            Assert.Equal(ExpectedImageSize, attempt.Value.Size());
+            Assert.Equal(ExpectedGlobalFormat, attempt.Value.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public async Task FromStreamAsync_ZeroLength_ReturnsNull()
         {
             // https://github.com/SixLabors/ImageSharp/issues/1903
-            using var zipFile = new ZipArchive(new MemoryStream(
+            using ZipArchive zipFile = new(new MemoryStream(
                 new byte[]
                 {
                     0x50, 0x4B, 0x03, 0x04, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x77, 0xAF, 0x94, 0x53, 0x00, 0x00,
@@ -234,8 +233,11 @@ public partial class ImageTests
                     0x00, 0x00, 0x00, 0x00
                 }));
             using Stream stream = zipFile.Entries[0].Open();
-            ImageInfo info = await Image.IdentifyAsync(stream);
-            Assert.Null(info);
+
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(stream);
+
+            Assert.False(attempt.Success);
+            Assert.Null(attempt.Value);
         }
 
         [Fact]
@@ -243,8 +245,10 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            ImageInfo info = await Image.IdentifyAsync(options, this.MockFilePath);
-            Assert.Equal(this.LocalImageInfo, info);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(options, this.MockFilePath);
+
+            Assert.True(attempt.Success);
+            Assert.Equal(this.LocalImageInfo, attempt.Value);
         }
 
         [Fact]
@@ -252,27 +256,28 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            (ImageInfo ImageInfo, IImageFormat Format) info =
-                await Image.TryIdentifyAsync(options, this.MockFilePath);
-            Assert.NotNull(info.ImageInfo);
-            Assert.Equal(this.LocalImageFormat, info.Format);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(options, this.MockFilePath);
+
+            Assert.True(attempt.Success);
+            Assert.NotNull(attempt.Value);
         }
 
         [Fact]
         public async Task IdentifyWithFormatAsync_FromPath_GlobalConfiguration()
         {
-            (ImageInfo ImageInfo, IImageFormat Format) res = await Image.TryIdentifyAsync(ActualImagePath);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(ActualImagePath);
 
-            Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
-            Assert.Equal(ExpectedGlobalFormat, res.Format);
+            Assert.Equal(ExpectedImageSize, attempt.Value.Size());
+            Assert.Equal(ExpectedGlobalFormat, attempt.Value.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public async Task FromPathAsync_GlobalConfiguration()
         {
-            ImageInfo info = await Image.IdentifyAsync(ActualImagePath);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(ActualImagePath);
 
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.True(attempt.Success);
+            Assert.Equal(ExpectedImageSize, attempt.Value.Size());
         }
 
         [Fact]
@@ -280,12 +285,11 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };
 
-            var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
-            (ImageInfo ImageInfo, IImageFormat Format)
-                info = await Image.TryIdentifyAsync(options, asyncStream);
+            AsyncStreamWrapper asyncStream = new(this.DataStream, () => false);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(options, asyncStream);
 
-            Assert.Equal(this.LocalImageInfo, info.ImageInfo);
-            Assert.Equal(this.LocalImageFormat, info.Format);
+            Assert.True(attempt.Success);
+            Assert.Equal(this.LocalImageInfo, attempt.Value);
         }
 
         [Fact]
@@ -293,11 +297,11 @@ public partial class ImageTests
         {
             DecoderOptions options = new() { Configuration = new() };
 
-            var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
-            (ImageInfo ImageInfo, IImageFormat Format)
-                info = await Image.TryIdentifyAsync(options, asyncStream);
+            AsyncStreamWrapper asyncStream = new(this.DataStream, () => false);
+            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(options, asyncStream);
 
-            Assert.Null(info.ImageInfo);
+            Assert.False(attempt.Success);
+            Assert.Null(attempt.Value);
         }
     }
 }

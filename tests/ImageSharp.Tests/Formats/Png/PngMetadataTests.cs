@@ -23,7 +23,7 @@ public class PngMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new PngMetadata
+        PngMetadata meta = new()
         {
             BitDepth = PngBitDepth.Bit16,
             ColorType = PngColorType.GrayscaleWithAlpha,
@@ -32,7 +32,7 @@ public class PngMetadataTests
             TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") }
         };
 
-        var clone = (PngMetadata)meta.DeepClone();
+        PngMetadata clone = (PngMetadata)meta.DeepClone();
 
         clone.BitDepth = PngBitDepth.Bit2;
         clone.ColorType = PngColorType.Palette;
@@ -63,7 +63,7 @@ public class PngMetadataTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         input.Save(memoryStream, new PngEncoder());
 
         memoryStream.Position = 0;
@@ -93,13 +93,13 @@ public class PngMetadataTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> input = provider.GetImage(PngDecoder.Instance);
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
         // This will be a zTXt chunk.
-        var expectedText = new PngTextData("large-text", new string('c', 100), string.Empty, string.Empty);
+        PngTextData expectedText = new("large-text", new string('c', 100), string.Empty, string.Empty);
 
         // This will be a iTXt chunk.
-        var expectedTextNoneLatin = new PngTextData("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
+        PngTextData expectedTextNoneLatin = new("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
         PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
         inputMetadata.TextData.Add(expectedText);
         inputMetadata.TextData.Add(expectedTextNoneLatin);
@@ -153,7 +153,7 @@ public class PngMetadataTests
             SkipMetadata = false
         };
 
-        var testFile = TestFile.Create(TestImages.Png.Blur);
+        TestFile testFile = TestFile.Create(TestImages.Png.Blur);
 
         using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance, options);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
@@ -172,7 +172,7 @@ public class PngMetadataTests
             SkipMetadata = true
         };
 
-        var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+        TestFile testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
 
         using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance, options);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
@@ -183,8 +183,8 @@ public class PngMetadataTests
     [MemberData(nameof(RatioFiles))]
     public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -201,11 +201,11 @@ public class PngMetadataTests
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, new PngEncoder());
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
         byte[] actualProfileBytes = actualProfile.ToByteArray();
 
@@ -217,8 +217,8 @@ public class PngMetadataTests
     [MemberData(nameof(RatioFiles))]
     public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo image = PngDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -230,9 +230,9 @@ public class PngMetadataTests
     [InlineData(TestImages.Png.PngWithMetadata)]
     public void Identify_ReadsTextData(string imagePath)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
         VerifyTextDataIsPresent(meta);
@@ -242,9 +242,9 @@ public class PngMetadataTests
     [InlineData(TestImages.Png.PngWithMetadata)]
     public void Identify_ReadsExifData(string imagePath)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
         ExifProfile exif = imageInfo.Metadata.ExifProfile;
@@ -279,9 +279,9 @@ public class PngMetadataTests
     [InlineData(TestImages.Png.Issue1875)]
     public void Identify_ReadsLegacyExifData(string imagePath)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo imageInfo);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
 

@@ -60,23 +60,21 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     [InlineData(MinIsBlack, 1, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using (var stream = new MemoryStream(testFile.Bytes, false))
-        {
-            ImageInfo info = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo info);
 
-            Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
-            Assert.Equal(expectedWidth, info.Width);
-            Assert.Equal(expectedHeight, info.Height);
-            Assert.NotNull(info.Metadata);
-            Assert.Equal(expectedHResolution, info.Metadata.HorizontalResolution);
-            Assert.Equal(expectedVResolution, info.Metadata.VerticalResolution);
-            Assert.Equal(expectedResolutionUnit, info.Metadata.ResolutionUnits);
+        Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
+        Assert.Equal(expectedWidth, info.Width);
+        Assert.Equal(expectedHeight, info.Height);
+        Assert.NotNull(info.Metadata);
+        Assert.Equal(expectedHResolution, info.Metadata.HorizontalResolution);
+        Assert.Equal(expectedVResolution, info.Metadata.VerticalResolution);
+        Assert.Equal(expectedResolutionUnit, info.Metadata.ResolutionUnits);
 
-            TiffMetadata tiffmeta = info.Metadata.GetTiffMetadata();
-            Assert.NotNull(tiffmeta);
-            Assert.Equal(TiffFormatType.BigTIFF, tiffmeta.FormatType);
-        }
+        TiffMetadata tiffmeta = info.Metadata.GetTiffMetadata();
+        Assert.NotNull(tiffmeta);
+        Assert.Equal(TiffFormatType.BigTIFF, tiffmeta.FormatType);
     }
 
     [Theory]
@@ -84,19 +82,17 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
     [InlineData(BigTIFFMotorola, ImageSharp.ByteOrder.BigEndian)]
     public void ByteOrder(string imagePath, ByteOrder expectedByteOrder)
     {
-        var testFile = TestFile.Create(imagePath);
-        using (var stream = new MemoryStream(testFile.Bytes, false))
-        {
-            ImageInfo info = Image.Identify(stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        Image.TryIdentify(stream, out ImageInfo info);
 
-            Assert.NotNull(info.Metadata);
-            Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);
+        Assert.NotNull(info.Metadata);
+        Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);
 
-            stream.Seek(0, SeekOrigin.Begin);
+        stream.Seek(0, SeekOrigin.Begin);
 
-            using var img = Image.Load(stream);
-            Assert.Equal(expectedByteOrder, img.Metadata.GetTiffMetadata().ByteOrder);
-        }
+        using Image img = Image.Load(stream);
+        Assert.Equal(expectedByteOrder, img.Metadata.GetTiffMetadata().ByteOrder);
     }
 
     [Theory]

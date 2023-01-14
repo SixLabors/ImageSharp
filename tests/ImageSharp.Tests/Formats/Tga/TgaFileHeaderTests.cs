@@ -26,7 +26,7 @@ public class TgaFileHeaderTests
 
         Assert.Throws<UnknownImageFormatException>(() =>
         {
-            using (Image.Load(DecoderOptions.Default, stream, out IImageFormat _))
+            using (Image.Load(DecoderOptions.Default, stream))
             {
             }
         });

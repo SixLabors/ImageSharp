@@ -19,30 +19,26 @@ public partial class ImageTests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "DetectedEncoding.png");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (Image<Rgba32> image = new(10, 10))
             {
                 image.Save(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            Image.TryDetectFormat(file, out IImageFormat format);
+            Assert.True(format is PngFormat);
         }
 
         [Fact]
-        public void WhenExtensionIsUnknown_Throws()
+        public void WhenExtensionIsUnknown_Throws_UnknownImageFormatException()
         {
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
-            Assert.Throws<NotSupportedException>(
+            Assert.Throws<UnknownImageFormatException>(
                 () =>
                     {
-                        using (var image = new Image<Rgba32>(10, 10))
-                        {
-                            image.Save(file);
-                        }
+                        using Image<Rgba32> image = new(10, 10);
+                        image.Save(file);
                     });
         }
 
@@ -52,27 +48,23 @@ public partial class ImageTests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "SetEncoding.dat");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (Image<Rgba32> image = new(10, 10))
             {
                 image.Save(file, new PngEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            Image.TryDetectFormat(file, out IImageFormat format);
+            Assert.True(format is PngFormat);
         }
 
         [Fact]
         public void ThrowsWhenDisposed()
         {
-            using var image = new Image<Rgba32>(5, 5);
+            using Image<Rgba32> image = new(5, 5);
             image.Dispose();
             IImageEncoder encoder = Mock.Of<IImageEncoder>();
-            using (var stream = new MemoryStream())
-            {
-                Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
-            }
+            using MemoryStream stream = new();
+            Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
         }
     }
 }

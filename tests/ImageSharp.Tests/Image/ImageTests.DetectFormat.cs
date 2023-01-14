@@ -125,17 +125,14 @@ public partial class ImageTests
         }
 
         [Fact]
-        public void WhenNoMatchingFormatFound_ReturnsNull()
+        public void WhenNoMatchingFormatFound_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new()
             {
                 Configuration = new()
             };
 
-            bool result = Image.TryDetectFormat(options, this.DataStream, out IImageFormat type);
-
-            Assert.False(result);
-            Assert.Null(type);
+            Assert.Throws<UnknownImageFormatException>(() => Image.TryDetectFormat(options, this.DataStream, out IImageFormat type));
         }
 
         [Fact]
@@ -159,15 +156,14 @@ public partial class ImageTests
         }
 
         [Fact]
-        public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
+        public Task WhenNoMatchingFormatFoundAsync_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new()
             {
                 Configuration = new()
             };
 
-            Attempt<IImageFormat> attempt = await Image.TryDetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
-            Assert.Null(attempt.Value);
+            return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.TryDetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
         }
     }
 }

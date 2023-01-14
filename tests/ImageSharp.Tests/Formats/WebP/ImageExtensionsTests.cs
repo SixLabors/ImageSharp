@@ -16,15 +16,13 @@ public class ImageExtensionsTests
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
         string file = Path.Combine(dir, "SaveAsWebp_Path.webp");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsWebp(file);
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(file, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
@@ -33,15 +31,13 @@ public class ImageExtensionsTests
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
         string file = Path.Combine(dir, "SaveAsWebpAsync_Path.webp");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsWebpAsync(file);
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(file, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
@@ -50,15 +46,13 @@ public class ImageExtensionsTests
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
         string file = Path.Combine(dir, "SaveAsWebp_Path_Encoder.webp");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsWebp(file, new WebpEncoder());
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(file, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
@@ -67,86 +61,76 @@ public class ImageExtensionsTests
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
         string file = Path.Combine(dir, "SaveAsWebpAsync_Path_Encoder.webp");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsWebpAsync(file, new WebpEncoder());
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(file, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
     public void SaveAsWebp_Stream()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsWebp(memoryStream);
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
     public async Task SaveAsWebpAsync_StreamAsync()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsWebpAsync(memoryStream);
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
     public void SaveAsWebp_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsWebp(memoryStream, new WebpEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 
     [Fact]
     public async Task SaveAsWebpAsync_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsWebpAsync(memoryStream, new WebpEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/webp", mime.DefaultMimeType);
-        }
+        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        Assert.True(format is WebpFormat);
     }
 }

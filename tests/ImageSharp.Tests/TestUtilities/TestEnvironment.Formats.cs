@@ -24,13 +24,13 @@ public static partial class TestEnvironment
     internal static IImageDecoder GetReferenceDecoder(string filePath)
     {
         IImageFormat format = GetImageFormat(filePath);
-        return Configuration.ImageFormatsManager.FindDecoder(format);
+        return Configuration.ImageFormatsManager.GetDecoder(format);
     }
 
     internal static IImageEncoder GetReferenceEncoder(string filePath)
     {
         IImageFormat format = GetImageFormat(filePath);
-        return Configuration.ImageFormatsManager.FindEncoder(format);
+        return Configuration.ImageFormatsManager.GetEncoder(format);
     }
 
     internal static IImageFormat GetImageFormat(string filePath)

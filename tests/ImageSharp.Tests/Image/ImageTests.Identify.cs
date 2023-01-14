@@ -21,8 +21,6 @@ public partial class ImageTests
 
         private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-        private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
-
         private static IImageFormat ExpectedGlobalFormat
         {
             get
@@ -131,16 +129,15 @@ public partial class ImageTests
         }
 
         [Fact]
-        public void WhenNoMatchingFormatFound_ReturnsNull()
+        public void WhenNoMatchingFormatFound_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new() { Configuration = new() };
 
-            Assert.False(Image.TryIdentify(options, this.DataStream, out ImageInfo info));
-            Assert.Null(info);
+            Assert.Throws<UnknownImageFormatException>(() => Image.TryIdentify(options, this.DataStream, out ImageInfo info));
         }
 
         [Fact]
-        public void FromStream_ZeroLength_ReturnsNull()
+        public void FromStream_ZeroLength_Throws_UnknownImageFormatException()
         {
             // https://github.com/SixLabors/ImageSharp/issues/1903
             using ZipArchive zipFile = new(new MemoryStream(
@@ -159,8 +156,7 @@ public partial class ImageTests
                 }));
             using Stream stream = zipFile.Entries[0].Open();
 
-            Assert.False(Image.TryIdentify(stream, out ImageInfo info));
-            Assert.Null(info);
+            Assert.Throws<UnknownImageFormatException>(() => Image.TryIdentify(stream, out ImageInfo info));
         }
 
         [Fact]
@@ -215,7 +211,7 @@ public partial class ImageTests
         }
 
         [Fact]
-        public async Task FromStreamAsync_ZeroLength_ReturnsNull()
+        public async Task FromStreamAsync_ZeroLength_Throws_UnknownImageFormatException()
         {
             // https://github.com/SixLabors/ImageSharp/issues/1903
             using ZipArchive zipFile = new(new MemoryStream(
@@ -234,10 +230,7 @@ public partial class ImageTests
                 }));
             using Stream stream = zipFile.Entries[0].Open();
 
-            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(stream);
-
-            Assert.False(attempt.Success);
-            Assert.Null(attempt.Value);
+            await Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.TryIdentifyAsync(stream));
         }
 
         [Fact]
@@ -293,15 +286,12 @@ public partial class ImageTests
         }
 
         [Fact]
-        public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
+        public Task WhenNoMatchingFormatFoundAsync_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new() { Configuration = new() };
 
             AsyncStreamWrapper asyncStream = new(this.DataStream, () => false);
-            Attempt<ImageInfo> attempt = await Image.TryIdentifyAsync(options, asyncStream);
-
-            Assert.False(attempt.Success);
-            Assert.Null(attempt.Value);
+            return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.TryIdentifyAsync(options, asyncStream));
         }
     }
 }

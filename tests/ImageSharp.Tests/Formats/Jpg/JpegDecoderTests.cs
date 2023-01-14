@@ -35,7 +35,7 @@ public partial class JpegDecoderTests
 
         if (!CustomToleranceValues.TryGetValue(file, out float tolerance))
         {
-            bool baseline = file.IndexOf("baseline", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool baseline = file.Contains("baseline", StringComparison.OrdinalIgnoreCase);
             tolerance = baseline ? BaselineTolerance : ProgressiveTolerance;
         }
 
@@ -68,9 +68,9 @@ public partial class JpegDecoderTests
     {
         JpegDecoderOptions options = new();
         byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-        using var ms = new MemoryStream(bytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-        using var decoder = new JpegDecoderCore(options);
+        using MemoryStream ms = new(bytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
+        using JpegDecoderCore decoder = new(options);
         using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
 
         // I don't know why these numbers are different. All I know is that the decoder works
@@ -85,7 +85,7 @@ public partial class JpegDecoderTests
     public void Decode_NonGeneric_CreatesRgb24Image()
     {
         string file = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Jpeg420Small);
-        using var image = Image.Load(file);
+        using Image image = Image.Load(file);
         Assert.IsType<Image<Rgb24>>(image);
     }
 

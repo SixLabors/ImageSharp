@@ -3,6 +3,8 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 
 namespace SixLabors.ImageSharp.Formats;
 
@@ -129,8 +131,11 @@ public class ImageFormatManager
         return format is not null;
     }
 
-    internal IImageFormat? FindFormatByDecoder(IImageDecoder decoder)
-        => this.mimeTypeDecoders.FirstOrDefault(x => x.Value.GetType() == decoder.GetType()).Key;
+    internal bool TryFindFormatByDecoder(IImageDecoder decoder, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.mimeTypeDecoders.FirstOrDefault(x => x.Value.GetType() == decoder.GetType()).Key;
+        return format is not null;
+    }
 
     /// <summary>
     /// Sets a specific image encoder as the encoder for a specific image format.
@@ -178,32 +183,54 @@ public class ImageFormatManager
     /// For the specified mime type find the decoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-    public IImageDecoder? FindDecoder(IImageFormat format)
+    /// <returns>The <see cref="IImageDecoder"/>.</returns>
+    /// <exception cref="UnknownImageFormatException">The format is not registered.</exception>
+    public IImageDecoder GetDecoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder? decoder)
-            ? decoder
-            : null;
+        if (!this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder? decoder))
+        {
+            ThrowInvalidDecoder(this);
+        }
+
+        return decoder;
     }
 
     /// <summary>
     /// For the specified mime type find the encoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-    public IImageEncoder? FindEncoder(IImageFormat format)
+    /// <returns>The <see cref="IImageEncoder"/>.</returns>
+    /// <exception cref="UnknownImageFormatException">The format is not registered.</exception>
+    public IImageEncoder GetEncoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder? encoder)
-            ? encoder
-            : null;
+        if (!this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder? encoder))
+        {
+            ThrowInvalidDecoder(this);
+        }
+
+        return encoder;
     }
 
     /// <summary>
     /// Sets the max header size.
     /// </summary>
     private void SetMaxHeaderSize() => this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
+
+    [DoesNotReturn]
+    internal static void ThrowInvalidDecoder(ImageFormatManager manager)
+    {
+        StringBuilder sb = new();
+        sb = sb.AppendLine("Image cannot be loaded. Available decoders:");
+
+        foreach (KeyValuePair<IImageFormat, IImageDecoder> val in manager.ImageDecoders)
+        {
+            sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+        }
+
+        throw new UnknownImageFormatException(sb.ToString());
+    }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
@@ -150,7 +149,7 @@ public abstract class ImageDecoder : IImageDecoder
         {
             ResizeOptions resizeOptions = new()
             {
-                Size = options.TargetSize.Value,
+                Size = options.TargetSize!.Value,
                 Sampler = options.Sampler,
                 Mode = ResizeMode.Max
             };
@@ -290,8 +289,18 @@ public abstract class ImageDecoder : IImageDecoder
     }
 
     internal void SetDecoderFormat(Configuration configuration, Image image)
-    => image.Metadata.DecodedImageFormat = configuration.ImageFormatsManager.FindFormatByDecoder(this);
+    {
+        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        {
+            image.Metadata.DecodedImageFormat = format;
+        }
+    }
 
     internal void SetDecoderFormat(Configuration configuration, ImageInfo info)
-        => info.Metadata.DecodedImageFormat = configuration.ImageFormatsManager.FindFormatByDecoder(this);
+    {
+        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        {
+            info.Metadata.DecodedImageFormat = format;
+        }
+    }
 }

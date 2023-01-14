@@ -18,10 +18,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Rgb24>(options, this.DataStream);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.DataStream))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
         }
@@ -34,10 +35,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.DataStream);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            using (Image img = Image.Load(options, this.DataStream))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }
@@ -50,10 +52,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var stream = new NonSeekableStream(this.DataStream);
-            var img = Image.Load<Rgba32>(options, stream);
-
-            Assert.NotNull(img);
+            NonSeekableStream stream = new(this.DataStream);
+            using (Image<Rgba32> img = Image.Load<Rgba32>(options, stream))
+            {
+                Assert.NotNull(img);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
         }
@@ -66,10 +69,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var stream = new NonSeekableStream(this.DataStream);
-            Image<Rgba32> img = await Image.LoadAsync<Rgba32>(options, stream);
-
-            Assert.NotNull(img);
+            NonSeekableStream stream = new(this.DataStream);
+            using (Image<Rgba32> img = await Image.LoadAsync<Rgba32>(options, stream))
+            {
+                Assert.NotNull(img);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
         }
@@ -82,10 +86,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Rgba32>(options, this.DataStream, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image<Rgba32> img = Image.Load<Rgba32>(options, this.DataStream))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
         }
@@ -98,10 +103,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.DataStream, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image img = Image.Load(options, this.DataStream))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }

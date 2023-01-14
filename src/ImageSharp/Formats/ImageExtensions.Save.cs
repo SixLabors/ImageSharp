@@ -58,7 +58,7 @@ public static partial class ImageExtensions
     public static void SaveAsBmp(this Image source, string path, BmpEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(BmpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -72,7 +72,7 @@ public static partial class ImageExtensions
     public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(BmpFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -105,7 +105,7 @@ public static partial class ImageExtensions
     public static void SaveAsBmp(this Image source, Stream stream, BmpEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(BmpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Bmp format.
@@ -119,7 +119,7 @@ public static partial class ImageExtensions
     public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(BmpFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -160,7 +160,7 @@ public static partial class ImageExtensions
     public static void SaveAsGif(this Image source, string path, GifEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(GifFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -174,7 +174,7 @@ public static partial class ImageExtensions
     public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(GifFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -207,7 +207,7 @@ public static partial class ImageExtensions
     public static void SaveAsGif(this Image source, Stream stream, GifEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(GifFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Gif format.
@@ -221,7 +221,7 @@ public static partial class ImageExtensions
     public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(GifFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -262,7 +262,7 @@ public static partial class ImageExtensions
     public static void SaveAsJpeg(this Image source, string path, JpegEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(JpegFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -276,7 +276,7 @@ public static partial class ImageExtensions
     public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(JpegFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -309,7 +309,7 @@ public static partial class ImageExtensions
     public static void SaveAsJpeg(this Image source, Stream stream, JpegEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(JpegFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Jpeg format.
@@ -323,7 +323,7 @@ public static partial class ImageExtensions
     public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(JpegFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -364,7 +364,7 @@ public static partial class ImageExtensions
     public static void SaveAsPbm(this Image source, string path, PbmEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PbmFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -378,7 +378,7 @@ public static partial class ImageExtensions
     public static Task SaveAsPbmAsync(this Image source, string path, PbmEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PbmFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -411,7 +411,7 @@ public static partial class ImageExtensions
     public static void SaveAsPbm(this Image source, Stream stream, PbmEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PbmFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Pbm format.
@@ -425,7 +425,7 @@ public static partial class ImageExtensions
     public static Task SaveAsPbmAsync(this Image source, Stream stream, PbmEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PbmFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PbmFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -466,7 +466,7 @@ public static partial class ImageExtensions
     public static void SaveAsPng(this Image source, string path, PngEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PngFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -480,7 +480,7 @@ public static partial class ImageExtensions
     public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PngFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -513,7 +513,7 @@ public static partial class ImageExtensions
     public static void SaveAsPng(this Image source, Stream stream, PngEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PngFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Png format.
@@ -527,7 +527,7 @@ public static partial class ImageExtensions
     public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(PngFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -568,7 +568,7 @@ public static partial class ImageExtensions
     public static void SaveAsTga(this Image source, string path, TgaEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TgaFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -582,7 +582,7 @@ public static partial class ImageExtensions
     public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TgaFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -615,7 +615,7 @@ public static partial class ImageExtensions
     public static void SaveAsTga(this Image source, Stream stream, TgaEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TgaFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tga format.
@@ -629,7 +629,7 @@ public static partial class ImageExtensions
     public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TgaFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -670,7 +670,7 @@ public static partial class ImageExtensions
     public static void SaveAsWebp(this Image source, string path, WebpEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -684,7 +684,7 @@ public static partial class ImageExtensions
     public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -717,7 +717,7 @@ public static partial class ImageExtensions
     public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Webp format.
@@ -731,7 +731,7 @@ public static partial class ImageExtensions
     public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -772,7 +772,7 @@ public static partial class ImageExtensions
     public static void SaveAsTiff(this Image source, string path, TiffEncoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -786,7 +786,7 @@ public static partial class ImageExtensions
     public static Task SaveAsTiffAsync(this Image source, string path, TiffEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance),
               cancellationToken);
 
     /// <summary>
@@ -819,7 +819,7 @@ public static partial class ImageExtensions
     public static void SaveAsTiff(this Image source, Stream stream, TiffEncoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the Tiff format.
@@ -833,7 +833,7 @@ public static partial class ImageExtensions
     public static Task SaveAsTiffAsync(this Image source, Stream stream, TiffEncoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance),
               cancellationToken);
 
 }

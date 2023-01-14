@@ -207,10 +207,10 @@ public class GeneralFormatTests
         foreach (TestFile file in Files)
         {
             byte[] serialized;
-            using (Image image = Image.Load(file.Bytes, out IImageFormat mimeType))
+            using (Image image = Image.Load(file.Bytes))
             using (MemoryStream memoryStream = new())
             {
-                image.Save(memoryStream, mimeType);
+                image.Save(memoryStream, image.Metadata.DecodedImageFormat);
                 memoryStream.Flush();
                 serialized = memoryStream.ToArray();
             }
@@ -264,14 +264,13 @@ public class GeneralFormatTests
     }
 
     [Fact]
-    public void IdentifyReturnsNullWithInvalidStream()
+    public void Identify_UnknownImageFormatException_WithInvalidStream()
     {
         byte[] invalid = new byte[10];
 
         using MemoryStream memoryStream = new(invalid);
-        Image.TryIdentify(memoryStream, out ImageInfo imageInfo);
 
-        Assert.Null(imageInfo);
+        Assert.Throws<UnknownImageFormatException>(() => Image.TryIdentify(invalid, out ImageInfo imageInfo));
     }
 
     private static IImageFormat GetFormat(string format)

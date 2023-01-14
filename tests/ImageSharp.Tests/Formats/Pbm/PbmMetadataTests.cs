@@ -36,7 +36,7 @@ public class PbmMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);
@@ -55,7 +55,7 @@ public class PbmMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);
@@ -74,7 +74,7 @@ public class PbmMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         PbmMetadata bitmapMetadata = imageInfo.Metadata.GetPbmMetadata();
         Assert.NotNull(bitmapMetadata);

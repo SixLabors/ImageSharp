@@ -475,7 +475,7 @@ public class BmpDecoderTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
     }
@@ -493,7 +493,7 @@ public class BmpDecoderTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedWidth, imageInfo.Width);
         Assert.Equal(expectedHeight, imageInfo.Height);

@@ -91,87 +91,70 @@ public abstract partial class Image
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
     /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    public static bool TryIdentify(Stream stream, [NotNullWhen(true)] out ImageInfo? info)
-        => TryIdentify(DecoderOptions.Default, stream, out info);
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static ImageInfo Identify(Stream stream)
+        => Identify(DecoderOptions.Default, stream);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the information from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    public static bool TryIdentify(DecoderOptions options, Stream stream, [NotNullWhen(true)] out ImageInfo? info)
-    {
-        info = WithSeekableStream(options, stream, s => InternalIdentify(options, s));
-        return info is not null;
-    }
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static ImageInfo Identify(DecoderOptions options, Stream stream)
+        => WithSeekableStream(options, stream, s => InternalIdentify(options, s));
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the information from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
     /// <returns>
-    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
+    /// The <see cref="Task{ImageInfo}"/> representing the asynchronous operation.
     /// </returns>
-    public static Task<Attempt<ImageInfo>> TryIdentifyAsync(
+    /// <exception cref="ArgumentNullException">The stream is null.</exception>
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static Task<ImageInfo> IdentifyAsync(
         Stream stream,
         CancellationToken cancellationToken = default)
-        => TryIdentifyAsync(DecoderOptions.Default, stream, cancellationToken);
+        => IdentifyAsync(DecoderOptions.Default, stream, cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the information from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The <see cref="Task{ImageInfo}"/> representing the asynchronous operation.
+    /// </returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-    /// <returns>
-    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
-    /// </returns>
-    public static async Task<Attempt<ImageInfo>> TryIdentifyAsync(
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static Task<ImageInfo> IdentifyAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken = default)
-    {
-        ImageInfo? info = await WithSeekableStreamAsync(
+        => WithSeekableStreamAsync(
             options,
             stream,
             (s, ct) => InternalIdentifyAsync(options, s, ct),
-            cancellationToken).ConfigureAwait(false);
-
-        return new() { Value = info };
-    }
+            cancellationToken);
 
     /// <summary>
     /// Creates a new instance of the <see cref="Image"/> class from the given stream.

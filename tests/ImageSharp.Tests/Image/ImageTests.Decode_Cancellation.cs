@@ -34,7 +34,7 @@ public partial class ImageTests
         {
             using FileStream fs = File.OpenRead(TestFile.GetInputFileFullPath(file));
             CancellationToken preCancelled = new(canceled: true);
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Image.TryIdentifyAsync(fs, preCancelled));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Image.IdentifyAsync(fs, preCancelled));
         }
 
         private static TheoryData<bool, string, double> CreateLoadData()

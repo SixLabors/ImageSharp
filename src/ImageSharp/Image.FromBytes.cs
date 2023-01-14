@@ -55,41 +55,31 @@ public abstract partial class Image
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="buffer">The byte array containing encoded image data to read the header from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
-    /// <exception cref="ArgumentNullException">The data is null.</exception>
-    /// <exception cref="NotSupportedException">The data is not readable.</exception>
-    public static bool TryIdentify(ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out ImageInfo? info)
-        => TryIdentify(DecoderOptions.Default, buffer, out info);
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
+    /// <exception cref="NotSupportedException">The image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static ImageInfo Identify(ReadOnlySpan<byte> buffer)
+        => Identify(DecoderOptions.Default, buffer);
 
     /// <summary>
     /// Reads the raw image information from the specified span of bytes without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="buffer">The byte span containing encoded image data to read the header from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
-    /// <exception cref="ArgumentNullException">The configuration is null.</exception>
-    /// <exception cref="ArgumentNullException">The data is null.</exception>
-    /// <exception cref="NotSupportedException">The data is not readable.</exception>
-    public static unsafe bool TryIdentify(DecoderOptions options, ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out ImageInfo? info)
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
+    /// <exception cref="ArgumentNullException">The options are null.</exception>
+    /// <exception cref="NotSupportedException">The image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static unsafe ImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> buffer)
     {
         fixed (byte* ptr = buffer)
         {
             using UnmanagedMemoryStream stream = new(ptr, buffer.Length);
-            return TryIdentify(options, stream, out info);
+            return Identify(options, stream);
         }
     }
 

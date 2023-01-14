@@ -38,7 +38,7 @@ public class BmpMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         BmpMetadata bitmapMetadata = imageInfo.Metadata.GetBmpMetadata();
         Assert.NotNull(bitmapMetadata);

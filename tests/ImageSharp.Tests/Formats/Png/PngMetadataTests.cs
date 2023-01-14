@@ -232,7 +232,7 @@ public class PngMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
         VerifyTextDataIsPresent(meta);
@@ -244,7 +244,7 @@ public class PngMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
         ExifProfile exif = imageInfo.Metadata.ExifProfile;
@@ -281,7 +281,7 @@ public class PngMetadataTests
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
         Assert.NotNull(imageInfo.Metadata.ExifProfile);
 

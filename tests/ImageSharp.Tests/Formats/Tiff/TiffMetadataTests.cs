@@ -80,7 +80,7 @@ public class TiffMetadataTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -96,7 +96,7 @@ public class TiffMetadataTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        Image.TryIdentify(stream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();

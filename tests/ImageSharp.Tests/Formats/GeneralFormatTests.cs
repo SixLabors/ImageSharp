@@ -256,7 +256,7 @@ public class GeneralFormatTests
         image.Save(memoryStream, format);
         memoryStream.Position = 0;
 
-        Image.TryIdentify(memoryStream, out ImageInfo imageInfo);
+        ImageInfo imageInfo = Image.Identify(memoryStream);
 
         Assert.Equal(imageInfo.Width, width);
         Assert.Equal(imageInfo.Height, height);
@@ -270,7 +270,7 @@ public class GeneralFormatTests
 
         using MemoryStream memoryStream = new(invalid);
 
-        Assert.Throws<UnknownImageFormatException>(() => Image.TryIdentify(invalid, out ImageInfo imageInfo));
+        Assert.Throws<UnknownImageFormatException>(() => Image.Identify(invalid));
     }
 
     private static IImageFormat GetFormat(string format)

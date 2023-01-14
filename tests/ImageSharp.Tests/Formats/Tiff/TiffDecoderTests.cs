@@ -32,7 +32,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo info);
+        ImageInfo info = Image.Identify(stream);
 
         Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
         Assert.Equal(expectedWidth, info.Width);
@@ -50,7 +50,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        Image.TryIdentify(stream, out ImageInfo info);
+        ImageInfo info = Image.Identify(stream);
 
         Assert.NotNull(info.Metadata);
         Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);

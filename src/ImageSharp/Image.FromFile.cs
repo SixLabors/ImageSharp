@@ -84,70 +84,71 @@ public abstract partial class Image
     /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="path">The image file to open and to read the header from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
     /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
-    public static bool TryIdentify(string path, [NotNullWhen(true)] out ImageInfo? info)
-        => TryIdentify(DecoderOptions.Default, path, out info);
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static ImageInfo Identify(string path)
+        => Identify(DecoderOptions.Default, path);
 
     /// <summary>
     /// Reads the raw image information from the specified file path without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="path">The image file to open and to read the header from.</param>
-    /// <param name="info">
-    /// When this method returns, contains the raw image information;
-    /// otherwise, the default value for the type of the <paramref name="info"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
-    public static bool TryIdentify(DecoderOptions options, string path, [NotNullWhen(true)] out ImageInfo? info)
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static ImageInfo Identify(DecoderOptions options, string path)
     {
         Guard.NotNull(options, nameof(options));
 
         using Stream stream = options.Configuration.FileSystem.OpenRead(path);
-        return TryIdentify(options, stream, out info);
+        return Identify(options, stream);
     }
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="path">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <returns>
-    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
+    /// The <see cref="Task{ImageInfo}"/> representing the asynchronous operation.
     /// </returns>
-    public static Task<Attempt<ImageInfo>> TryIdentifyAsync(
-        string path,
-        CancellationToken cancellationToken = default)
-        => TryIdentifyAsync(DecoderOptions.Default, path, cancellationToken);
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static Task<ImageInfo> IdentifyAsync(string path, CancellationToken cancellationToken = default)
+        => IdentifyAsync(DecoderOptions.Default, path, cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="path">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <returns>
-    /// The <see cref="Task{Attempt}"/> representing the asynchronous operation.
+    /// The <see cref="Task{ImageInfo}"/> representing the asynchronous operation.
     /// </returns>
-    public static async Task<Attempt<ImageInfo>> TryIdentifyAsync(
+    /// <exception cref="ArgumentNullException">The options are null.</exception>
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static async Task<ImageInfo> IdentifyAsync(
         DecoderOptions options,
         string path,
         CancellationToken cancellationToken = default)
     {
         Guard.NotNull(options, nameof(options));
         using Stream stream = options.Configuration.FileSystem.OpenRead(path);
-        return await TryIdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
+        return await IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

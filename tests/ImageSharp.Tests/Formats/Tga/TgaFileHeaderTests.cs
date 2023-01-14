@@ -41,7 +41,7 @@ public class TgaFileHeaderTests
     {
         using MemoryStream stream = new(data);
 
-        Image.TryIdentify(stream, out ImageInfo info);
+        ImageInfo info = Image.Identify(stream);
         TgaMetadata tgaData = info.Metadata.GetTgaMetadata();
         Assert.Equal(bitsPerPixel, tgaData.BitsPerPixel);
         Assert.Equal(width, info.Width);

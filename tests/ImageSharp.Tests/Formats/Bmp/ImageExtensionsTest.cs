@@ -20,7 +20,7 @@ public class ImageExtensionsTest
             image.SaveAsBmp(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is BmpFormat);
     }
 
@@ -35,7 +35,7 @@ public class ImageExtensionsTest
             await image.SaveAsBmpAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is BmpFormat);
     }
 
@@ -50,7 +50,7 @@ public class ImageExtensionsTest
             image.SaveAsBmp(file, new BmpEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is BmpFormat);
     }
 
@@ -65,7 +65,7 @@ public class ImageExtensionsTest
             await image.SaveAsBmpAsync(file, new BmpEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is BmpFormat);
     }
 
@@ -81,7 +81,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is BmpFormat);
     }
 
@@ -97,7 +97,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is BmpFormat);
     }
 
@@ -113,7 +113,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is BmpFormat);
     }
 
@@ -129,7 +129,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is BmpFormat);
     }
 }

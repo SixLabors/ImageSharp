@@ -20,7 +20,7 @@ public class ImageExtensionsTest
             image.SaveAsGif(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is GifFormat);
     }
 
@@ -35,7 +35,7 @@ public class ImageExtensionsTest
             await image.SaveAsGifAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is GifFormat);
     }
 
@@ -50,7 +50,7 @@ public class ImageExtensionsTest
             image.SaveAsGif(file, new GifEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is GifFormat);
     }
 
@@ -65,7 +65,7 @@ public class ImageExtensionsTest
             await image.SaveAsGifAsync(file, new GifEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is GifFormat);
     }
 
@@ -81,7 +81,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is GifFormat);
     }
 
@@ -97,7 +97,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is GifFormat);
     }
 
@@ -113,7 +113,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is GifFormat);
     }
 
@@ -129,7 +129,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is GifFormat);
     }
 }

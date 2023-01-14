@@ -20,7 +20,7 @@ public class ImageExtensionsTest
             image.SaveAsPbm(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is PbmFormat);
     }
 
@@ -35,7 +35,7 @@ public class ImageExtensionsTest
             await image.SaveAsPbmAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is PbmFormat);
     }
 
@@ -50,7 +50,7 @@ public class ImageExtensionsTest
             image.SaveAsPbm(file, new PbmEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is PbmFormat);
     }
 
@@ -65,7 +65,7 @@ public class ImageExtensionsTest
             await image.SaveAsPbmAsync(file, new PbmEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is PbmFormat);
     }
 
@@ -81,7 +81,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is PbmFormat);
     }
 
@@ -97,7 +97,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is PbmFormat);
     }
 
@@ -113,7 +113,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is PbmFormat);
     }
 
@@ -129,7 +129,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is PbmFormat);
     }
 }

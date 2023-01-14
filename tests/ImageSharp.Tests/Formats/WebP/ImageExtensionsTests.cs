@@ -21,7 +21,7 @@ public class ImageExtensionsTests
             image.SaveAsWebp(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is WebpFormat);
     }
 
@@ -36,7 +36,7 @@ public class ImageExtensionsTests
             await image.SaveAsWebpAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is WebpFormat);
     }
 
@@ -51,7 +51,7 @@ public class ImageExtensionsTests
             image.SaveAsWebp(file, new WebpEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is WebpFormat);
     }
 
@@ -66,7 +66,7 @@ public class ImageExtensionsTests
             await image.SaveAsWebpAsync(file, new WebpEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is WebpFormat);
     }
 
@@ -82,7 +82,7 @@ public class ImageExtensionsTests
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is WebpFormat);
     }
 
@@ -98,7 +98,7 @@ public class ImageExtensionsTests
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is WebpFormat);
     }
 
@@ -114,7 +114,7 @@ public class ImageExtensionsTests
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is WebpFormat);
     }
 
@@ -130,7 +130,7 @@ public class ImageExtensionsTests
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is WebpFormat);
     }
 }

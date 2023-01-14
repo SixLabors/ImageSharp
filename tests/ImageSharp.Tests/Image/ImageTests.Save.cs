@@ -24,7 +24,7 @@ public partial class ImageTests
                 image.Save(file);
             }
 
-            Image.TryDetectFormat(file, out IImageFormat format);
+            IImageFormat format = Image.DetectFormat(file);
             Assert.True(format is PngFormat);
         }
 
@@ -53,7 +53,7 @@ public partial class ImageTests
                 image.Save(file, new PngEncoder());
             }
 
-            Image.TryDetectFormat(file, out IImageFormat format);
+            IImageFormat format = Image.DetectFormat(file);
             Assert.True(format is PngFormat);
         }
 

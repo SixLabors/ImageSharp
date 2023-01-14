@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,79 +14,66 @@ public abstract partial class Image
 {
     /// <summary>
     /// Detects the encoded image format type from the specified stream.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="format">
-    /// When this method returns, contains the format that matches the given stream;
-    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    public static bool TryDetectFormat(Stream stream, [NotNullWhen(true)] out IImageFormat? format)
-        => TryDetectFormat(DecoderOptions.Default, stream, out format);
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static IImageFormat DetectFormat(Stream stream)
+        => DetectFormat(DecoderOptions.Default, stream);
 
     /// <summary>
     /// Detects the encoded image format type from the specified stream.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <param name="format">
-    /// When this method returns, contains the format that matches the given stream;
-    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
     /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    public static bool TryDetectFormat(DecoderOptions options, Stream stream, [NotNullWhen(true)] out IImageFormat? format)
-    {
-        format = WithSeekableStream(options, stream, s => InternalDetectFormat(options.Configuration, s));
-        return format is not null;
-    }
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static IImageFormat DetectFormat(DecoderOptions options, Stream stream)
+        => WithSeekableStream(options, stream, s => InternalDetectFormat(options.Configuration, s));
 
     /// <summary>
     /// Detects the encoded image format type from the specified stream.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
-    public static Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static Task<IImageFormat> DetectFormatAsync(
         Stream stream,
         CancellationToken cancellationToken = default)
-        => TryDetectFormatAsync(DecoderOptions.Default, stream, cancellationToken);
+        => DetectFormatAsync(DecoderOptions.Default, stream, cancellationToken);
 
     /// <summary>
     /// Detects the encoded image format type from the specified stream.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
-    /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
-    public static async Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+    /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static Task<IImageFormat> DetectFormatAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken = default)
-    {
-        IImageFormat? format = await WithSeekableStreamAsync(
+        => WithSeekableStreamAsync(
             options,
             stream,
             (s, _) => Task.FromResult(InternalDetectFormat(options.Configuration, s)),
-            cancellationToken).ConfigureAwait(false);
-
-        return new() { Value = format };
-    }
+            cancellationToken);
 
     /// <summary>
     /// Reads the raw image information from the specified stream without fully decoding it.

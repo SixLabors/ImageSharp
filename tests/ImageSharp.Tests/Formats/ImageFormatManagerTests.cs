@@ -120,15 +120,10 @@ public class ImageFormatManagerTests
             jpegImage = buffer.ToArray();
         }
 
+        IImageFormat format = Image.DetectFormat(jpegImage);
+        Assert.IsType<JpegFormat>(format);
+
         byte[] invalidImage = { 1, 2, 3 };
-
-        bool resultValidImage = Image.TryDetectFormat(jpegImage, out IImageFormat format);
-
-        bool resultInvalidImage = Image.TryDetectFormat(invalidImage, out IImageFormat formatInvalid);
-
-        Assert.True(resultValidImage);
-        Assert.Equal(format, JpegFormat.Instance);
-        Assert.False(resultInvalidImage);
-        Assert.True(formatInvalid is null);
+        Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(invalidImage));
     }
 }

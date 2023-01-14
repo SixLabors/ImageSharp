@@ -21,7 +21,7 @@ public class ImageExtensionsTest
             image.SaveAsTiff(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TiffFormat);
     }
 
@@ -36,7 +36,7 @@ public class ImageExtensionsTest
             await image.SaveAsTiffAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TiffFormat);
     }
 
@@ -51,7 +51,7 @@ public class ImageExtensionsTest
             image.SaveAsTiff(file, new TiffEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TiffFormat);
     }
 
@@ -66,7 +66,7 @@ public class ImageExtensionsTest
             await image.SaveAsTiffAsync(file, new TiffEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TiffFormat);
     }
 
@@ -82,7 +82,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TiffFormat);
     }
 
@@ -98,7 +98,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TiffFormat);
     }
 
@@ -114,7 +114,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TiffFormat);
     }
 
@@ -130,7 +130,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TiffFormat);
     }
 }

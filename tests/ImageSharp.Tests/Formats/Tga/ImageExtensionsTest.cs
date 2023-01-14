@@ -20,7 +20,7 @@ public class ImageExtensionsTest
             image.SaveAsTga(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TgaFormat);
     }
 
@@ -35,7 +35,7 @@ public class ImageExtensionsTest
             await image.SaveAsTgaAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TgaFormat);
     }
 
@@ -50,7 +50,7 @@ public class ImageExtensionsTest
             image.SaveAsTga(file, new TgaEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TgaFormat);
     }
 
@@ -65,7 +65,7 @@ public class ImageExtensionsTest
             await image.SaveAsTgaAsync(file, new TgaEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is TgaFormat);
     }
 
@@ -81,7 +81,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TgaFormat);
     }
 
@@ -97,7 +97,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TgaFormat);
     }
 
@@ -113,7 +113,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TgaFormat);
     }
 
@@ -129,7 +129,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is TgaFormat);
     }
 }

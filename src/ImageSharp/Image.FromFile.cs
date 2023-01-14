@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -14,61 +13,59 @@ public abstract partial class Image
 {
     /// <summary>
     /// Detects the encoded image format type from the specified file.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="path">The image file to open and to read the header from.</param>
-    /// <param name="format">
-    /// When this method returns, contains the format that matches the given file;
-    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
-    public static bool TryDetectFormat(string path, [NotNullWhen(true)] out IImageFormat? format)
-        => TryDetectFormat(DecoderOptions.Default, path, out format);
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static IImageFormat DetectFormat(string path)
+        => DetectFormat(DecoderOptions.Default, path);
 
     /// <summary>
     /// Detects the encoded image format type from the specified file.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="path">The image file to open and to read the header from.</param>
-    /// <param name="format">
-    /// When this method returns, contains the format that matches the given file;
-    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
-    public static bool TryDetectFormat(DecoderOptions options, string path, [NotNullWhen(true)] out IImageFormat? format)
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static IImageFormat DetectFormat(DecoderOptions options, string path)
     {
         Guard.NotNull(options, nameof(options));
 
         using Stream file = options.Configuration.FileSystem.OpenRead(path);
-        return TryDetectFormat(options, file, out format);
+        return DetectFormat(options, file);
     }
 
     /// <summary>
     /// Detects the encoded image format type from the specified file.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="path">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
-    public static Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
+    public static Task<IImageFormat> DetectFormatAsync(
         string path,
         CancellationToken cancellationToken = default)
-        => TryDetectFormatAsync(DecoderOptions.Default, path, cancellationToken);
+        => DetectFormatAsync(DecoderOptions.Default, path, cancellationToken);
 
     /// <summary>
     /// Detects the encoded image format type from the specified file.
-    /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="path">The image file to open and to read the header from.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
-    /// <returns>A <see cref="Task{Attempt}"/> representing the asynchronous operation.</returns>
-    public static async Task<Attempt<IImageFormat>> TryDetectFormatAsync(
+    /// <exception cref="ArgumentNullException">The path is null.</exception>
+    /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static async Task<IImageFormat> DetectFormatAsync(
         DecoderOptions options,
         string path,
         CancellationToken cancellationToken = default)
@@ -76,7 +73,7 @@ public abstract partial class Image
         Guard.NotNull(options, nameof(options));
 
         using Stream stream = options.Configuration.FileSystem.OpenRead(path);
-        return await TryDetectFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
+        return await DetectFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

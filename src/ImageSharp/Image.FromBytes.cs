@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,41 +15,32 @@ public abstract partial class Image
     /// By reading the header on the provided byte span this calculates the images format.
     /// </summary>
     /// <param name="buffer">The byte span containing encoded image data to read the header from.</param>
-    /// <param name="format">The format or null if none found.</param>
-    /// <returns>returns true when format was detected otherwise false.</returns>
-    public static bool TryDetectFormat(ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out IImageFormat? format)
-        => TryDetectFormat(DecoderOptions.Default, buffer, out format);
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
+    /// <exception cref="NotSupportedException">The image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static IImageFormat DetectFormat(ReadOnlySpan<byte> buffer)
+        => DetectFormat(DecoderOptions.Default, buffer);
 
     /// <summary>
     /// By reading the header on the provided byte span this calculates the images format.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="buffer">The byte span containing encoded image data to read the header from.</param>
-    /// <param name="format">The mime type or null if none found.</param>
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
-    /// <returns>returns true when format was detected otherwise false.</returns>
-    public static bool TryDetectFormat(DecoderOptions options, ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out IImageFormat? format)
+    /// <exception cref="NotSupportedException">The image format is not supported.</exception>
+    /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
+    /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
+    public static unsafe IImageFormat DetectFormat(DecoderOptions options, ReadOnlySpan<byte> buffer)
     {
         Guard.NotNull(options, nameof(options.Configuration));
 
-        Configuration configuration = options.Configuration;
-        int maxHeaderSize = configuration.MaxHeaderSize;
-        if (maxHeaderSize <= 0)
+        fixed (byte* ptr = buffer)
         {
-            format = null;
-            return false;
+            using UnmanagedMemoryStream stream = new(ptr, buffer.Length);
+            return DetectFormat(options, stream);
         }
-
-        foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
-        {
-            if (detector.TryDetectFormat(buffer, out format))
-            {
-                return true;
-            }
-        }
-
-        format = default;
-        return false;
     }
 
     /// <summary>

@@ -21,7 +21,7 @@ public class ImageExtensionsTest
             image.SaveAsJpeg(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is JpegFormat);
     }
 
@@ -36,7 +36,7 @@ public class ImageExtensionsTest
             await image.SaveAsJpegAsync(file);
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is JpegFormat);
     }
 
@@ -51,7 +51,7 @@ public class ImageExtensionsTest
             image.SaveAsJpeg(file, new JpegEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is JpegFormat);
     }
 
@@ -66,7 +66,7 @@ public class ImageExtensionsTest
             await image.SaveAsJpegAsync(file, new JpegEncoder());
         }
 
-        Image.TryDetectFormat(file, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(file);
         Assert.True(format is JpegFormat);
     }
 
@@ -82,7 +82,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is JpegFormat);
     }
 
@@ -98,7 +98,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is JpegFormat);
     }
 
@@ -114,7 +114,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is JpegFormat);
     }
 
@@ -130,7 +130,7 @@ public class ImageExtensionsTest
 
         memoryStream.Position = 0;
 
-        Image.TryDetectFormat(memoryStream, out IImageFormat format);
+        IImageFormat format = Image.DetectFormat(memoryStream);
         Assert.True(format is JpegFormat);
     }
 }

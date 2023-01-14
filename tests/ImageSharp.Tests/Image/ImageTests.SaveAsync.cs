@@ -26,7 +26,7 @@ public partial class ImageTests
                 await image.SaveAsync(file);
             }
 
-            Image.TryDetectFormat(file, out IImageFormat format);
+            IImageFormat format = Image.DetectFormat(file);
             Assert.True(format is PngFormat);
         }
 
@@ -55,7 +55,7 @@ public partial class ImageTests
                 await image.SaveAsync(file, new PngEncoder());
             }
 
-            Image.TryDetectFormat(file, out IImageFormat format);
+            IImageFormat format = Image.DetectFormat(file);
             Assert.True(format is PngFormat);
         }
 
@@ -79,7 +79,7 @@ public partial class ImageTests
 
             stream.Position = 0;
 
-            Image.TryDetectFormat(stream, out IImageFormat format2);
+            IImageFormat format2 = Image.DetectFormat(stream);
             Assert.Equal(format, format2);
         }
 

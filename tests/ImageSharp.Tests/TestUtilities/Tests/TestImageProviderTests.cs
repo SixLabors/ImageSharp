@@ -365,7 +365,7 @@ public class TestImageProviderTests
 
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             return new(image.PixelType, image.Width, image.Height, image.Metadata);
         }
 

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 internal static class ImageDecoderUtilities
 {
-    internal static IImageInfo Identify(
+    internal static ImageInfo Identify(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,

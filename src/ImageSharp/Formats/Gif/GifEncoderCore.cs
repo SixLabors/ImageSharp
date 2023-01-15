@@ -99,12 +99,12 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             if (useGlobalTable)
             {
                 frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
-                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
             }
             else
             {
                 frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image.Frames.RootFrame);
-                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
             }
         }
 

@@ -69,20 +69,16 @@ public class DecodeTiff
     [Benchmark(Baseline = true, Description = "System.Drawing Tiff")]
     public SDSize TiffSystemDrawing()
     {
-        using (var memoryStream = new MemoryStream(this.data))
-        using (var image = SDImage.FromStream(memoryStream))
-        {
-            return image.Size;
-        }
+        using MemoryStream memoryStream = new(this.data);
+        using SDImage image = SDImage.FromStream(memoryStream);
+        return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Tiff")]
     public Size TiffCore()
     {
-        using (var ms = new MemoryStream(this.data))
-        using (var image = Image.Load<Rgba32>(ms))
-        {
-            return image.Size();
-        }
+        using MemoryStream ms = new(this.data);
+        using Image<Rgba32> image = Image.Load<Rgba32>(ms);
+        return image.Size;
     }
 }

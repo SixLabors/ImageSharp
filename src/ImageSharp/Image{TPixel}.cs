@@ -411,7 +411,7 @@ public sealed class Image<TPixel> : Image
             this.frames[i].SwapOrCopyPixelsBufferFrom(sourceFrames[i]);
         }
 
-        this.UpdateSize(pixelSource.Size());
+        this.UpdateSize(pixelSource.Size);
     }
 
     private static Size ValidateFramesAndGetSize(IEnumerable<ImageFrame<TPixel>> frames)

@@ -647,7 +647,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadFileHeader(stream);
         return new ImageInfo(

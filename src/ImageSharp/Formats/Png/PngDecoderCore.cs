@@ -247,7 +247,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();

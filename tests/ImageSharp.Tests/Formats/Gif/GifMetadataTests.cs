@@ -113,7 +113,7 @@ public class GifMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = GifDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = GifDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -126,7 +126,7 @@ public class GifMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = await GifDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
+        ImageInfo image = await GifDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -165,7 +165,7 @@ public class GifMetadataTests
     {
         var testFile = TestFile.Create(imagePath);
         using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = GifDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageInfo image = GifDecoder.Instance.Identify(DecoderOptions.Default, stream);
         GifMetadata meta = image.Metadata.GetGifMetadata();
         Assert.Equal(repeatCount, meta.RepeatCount);
     }

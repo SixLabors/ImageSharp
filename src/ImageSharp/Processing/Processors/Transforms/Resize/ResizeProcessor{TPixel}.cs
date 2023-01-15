@@ -82,7 +82,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             return;
         }
 
-        var interest = Rectangle.Intersect(destinationRectangle, destination.Bounds());
+        var interest = Rectangle.Intersect(destinationRectangle, destination.Bounds);
 
         if (sampler is NearestNeighborResampler)
         {

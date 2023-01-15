@@ -35,7 +35,7 @@ public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
                 {
                     using (var image = Image.Load(options, imageBytes))
                     {
-                        image.Mutate(x => x.Resize(image.Size() / 4));
+                        image.Mutate(x => x.Resize(image.Size / 4));
                         image.SaveAsJpeg(ms);
                     }
 

@@ -4,6 +4,9 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
+// TODO: Review this class as it's used to represent 2 different things.
+// 1.The encoded image pixel format.
+// 2. The pixel format of the decoded image.
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -16,9 +19,7 @@ public class PixelTypeInfo
     /// </summary>
     /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
     public PixelTypeInfo(int bitsPerPixel)
-    {
-        this.BitsPerPixel = bitsPerPixel;
-    }
+        => this.BitsPerPixel = bitsPerPixel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PixelTypeInfo"/> class.
@@ -43,12 +44,10 @@ public class PixelTypeInfo
     public PixelAlphaRepresentation? AlphaRepresentation { get; }
 
     internal static PixelTypeInfo Create<TPixel>()
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
+        where TPixel : unmanaged, IPixel<TPixel>
+        => new(Unsafe.SizeOf<TPixel>() * 8);
 
     internal static PixelTypeInfo Create<TPixel>(PixelAlphaRepresentation alpha)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        return new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8, alpha);
-    }
+        => new(Unsafe.SizeOf<TPixel>() * 8, alpha);
 }

@@ -20,7 +20,7 @@ public sealed class PngDecoder : ImageDecoder
     public static PngDecoder Instance { get; } = new();
 
     /// <inheritdoc/>
-    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
@@ -49,7 +49,7 @@ public sealed class PngDecoder : ImageDecoder
         Guard.NotNull(stream, nameof(stream));
 
         PngDecoderCore decoder = new(options, true);
-        IImageInfo info = decoder.Identify(options.Configuration, stream, cancellationToken);
+        ImageInfo info = decoder.Identify(options.Configuration, stream, cancellationToken);
         stream.Position = 0;
 
         PngMetadata meta = info.Metadata.GetPngMetadata();

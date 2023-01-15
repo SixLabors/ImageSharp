@@ -27,12 +27,12 @@ public class TiffMetadataTests
     [Fact]
     public void TiffMetadata_CloneIsDeep()
     {
-        var meta = new TiffMetadata
+        TiffMetadata meta = new()
         {
             ByteOrder = ByteOrder.BigEndian,
         };
 
-        var clone = (TiffMetadata)meta.DeepClone();
+        TiffMetadata clone = (TiffMetadata)meta.DeepClone();
 
         clone.ByteOrder = ByteOrder.LittleEndian;
 
@@ -46,10 +46,10 @@ public class TiffMetadataTests
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         TiffFrameMetadata meta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-        var cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
+        TiffFrameMetadata cloneSameAsSampleMetaData = (TiffFrameMetadata)meta.DeepClone();
         VerifyExpectedTiffFrameMetaDataIsPresent(cloneSameAsSampleMetaData);
 
-        var clone = (TiffFrameMetadata)meta.DeepClone();
+        TiffFrameMetadata clone = (TiffFrameMetadata)meta.DeepClone();
 
         clone.BitsPerPixel = TiffBitsPerPixel.Bit8;
         clone.Compression = TiffCompression.None;
@@ -77,10 +77,10 @@ public class TiffMetadataTests
     [InlineData(RgbUncompressed, 24)]
     public void Identify_DetectsCorrectBitPerPixel(string imagePath, int expectedBitsPerPixel)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -93,10 +93,10 @@ public class TiffMetadataTests
     [InlineData(LittleEndianByteOrder, ByteOrder.LittleEndian)]
     public void Identify_DetectsCorrectByteOrder(string imagePath, ByteOrder expectedByteOrder)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
-        IImageInfo imageInfo = Image.Identify(stream);
+        ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -173,7 +173,7 @@ public class TiffMetadataTests
         Assert.Equal("Copyright", exifProfile.GetValue(ExifTag.Copyright).Value);
         Assert.Equal(4, exifProfile.GetValue(ExifTag.Rating).Value);
         Assert.Equal(75, exifProfile.GetValue(ExifTag.RatingPercent).Value);
-        var expectedResolution = new Rational(10, 1, simplify: false);
+        Rational expectedResolution = new(10, 1, simplify: false);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
         Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
@@ -242,13 +242,13 @@ public class TiffMetadataTests
         Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaInput.BitsPerPixel);
 
         // Save to Tiff
-        var tiffEncoder = new TiffEncoder() { PhotometricInterpretation = TiffPhotometricInterpretation.Rgb };
-        using var ms = new MemoryStream();
+        TiffEncoder tiffEncoder = new() { PhotometricInterpretation = TiffPhotometricInterpretation.Rgb };
+        using MemoryStream ms = new();
         image.Save(ms, tiffEncoder);
 
         // Assert
         ms.Position = 0;
-        using var encodedImage = Image.Load<Rgba32>(ms);
+        using Image<Rgba32> encodedImage = Image.Load<Rgba32>(ms);
 
         ImageMetadata encodedImageMetaData = encodedImage.Metadata;
         ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;

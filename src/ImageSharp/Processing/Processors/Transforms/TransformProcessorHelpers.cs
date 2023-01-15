@@ -19,7 +19,7 @@ internal static class TransformProcessorHelpers
     public static void UpdateDimensionalMetadata<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ExifProfile profile = image.Metadata.ExifProfile;
+        ExifProfile? profile = image.Metadata.ExifProfile;
         if (profile is null)
         {
             return;

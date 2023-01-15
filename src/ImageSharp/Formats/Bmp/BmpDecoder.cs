@@ -20,7 +20,7 @@ public sealed class BmpDecoder : SpecializedImageDecoder<BmpDecoderOptions>
     public static BmpDecoder Instance { get; } = new();
 
     /// <inheritdoc/>
-    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));

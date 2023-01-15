@@ -20,10 +20,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Rgb24>(options, this.ByteSpan);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.ByteSpan))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
         }
@@ -36,10 +37,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.ByteSpan);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            using (Image img = Image.Load(options, this.ByteSpan))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }
@@ -52,10 +54,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Bgr24>(options, this.ByteSpan, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image<Bgr24> img = Image.Load<Bgr24>(options, this.ByteSpan))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Bgr24>(this.Marker, this.TopLevelConfiguration);
         }
@@ -68,10 +71,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.ByteSpan, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image img = Image.Load(options, this.ByteSpan))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }

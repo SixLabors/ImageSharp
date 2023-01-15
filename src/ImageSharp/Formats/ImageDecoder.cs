@@ -172,7 +172,7 @@ public abstract class ImageDecoder : IImageDecoder
         }
 
         Size targetSize = options.TargetSize.Value;
-        Size currentSize = image.Size();
+        Size currentSize = image.Size;
         return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
     }
 

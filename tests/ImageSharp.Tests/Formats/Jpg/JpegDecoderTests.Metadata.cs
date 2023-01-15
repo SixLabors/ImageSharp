@@ -174,7 +174,7 @@ public partial class JpegDecoderTests
         Assert.Equal(expectedColorType, meta.ColorType);
     }
 
-    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
+    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<ImageInfo> test)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);

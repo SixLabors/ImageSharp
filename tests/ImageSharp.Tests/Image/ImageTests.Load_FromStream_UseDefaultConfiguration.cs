@@ -26,7 +26,7 @@ public partial class ImageTests
         }
 
         private static void VerifyDecodedImage(Image img)
-            => Assert.Equal(new Size(127, 64), img.Size());
+            => Assert.Equal(new Size(127, 64), img.Size);
 
         [Fact]
         public void Stream_Specific()

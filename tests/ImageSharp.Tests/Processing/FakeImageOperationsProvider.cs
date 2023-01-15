@@ -64,7 +64,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public Size GetCurrentSize()
         {
-            return this.Source.Size();
+            return this.Source.Size;
         }
 
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)

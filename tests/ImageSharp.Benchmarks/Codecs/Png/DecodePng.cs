@@ -22,26 +22,21 @@ public class DecodePng
 
     [GlobalSetup]
     public void ReadImages()
-    {
-        if (this.pngBytes == null)
-        {
-            this.pngBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+        => this.pngBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     [Benchmark(Baseline = true, Description = "System.Drawing Png")]
     public SDSize PngSystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.pngBytes);
-        using var image = SDImage.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.pngBytes);
+        using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Png")]
     public Size PngImageSharp()
     {
-        using var memoryStream = new MemoryStream(this.pngBytes);
-        using var image = Image.Load<Rgba32>(memoryStream);
-        return image.Size();
+        using MemoryStream memoryStream = new(this.pngBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
+        return image.Size;
     }
 }

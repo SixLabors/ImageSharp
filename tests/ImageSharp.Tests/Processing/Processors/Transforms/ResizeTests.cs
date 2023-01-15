@@ -39,7 +39,7 @@ public class ResizeTests
         string filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
 
         using Image image = Image.Load(filePath);
-        image.Mutate(x => x.Resize(image.Size() / 2));
+        image.Mutate(x => x.Resize(image.Size / 2));
         string path = Path.Combine(
             TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
             nameof(this.Resize_PixelAgnostic) + ".png");
@@ -101,7 +101,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image0 = provider.GetImage();
-        Size destSize = image0.Size() / 4;
+        Size destSize = image0.Size / 4;
 
         Configuration configuration = Configuration.CreateDefaultInstance();
 
@@ -155,7 +155,7 @@ public class ResizeTests
     {
         using Image<TPixel> expected = provider.GetImage();
         int width = expected.Width;
-        Size destSize = expected.Size() / 4;
+        Size destSize = expected.Size / 4;
         expected.Mutate(c => c.Resize(destSize, KnownResamplers.Bicubic, false));
 
         // Replace configuration:
@@ -179,7 +179,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        image.Mutate(x => x.Resize(image.Size() / 2, true));
+        image.Mutate(x => x.Resize(image.Size / 2, true));
 
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ValidatorComparer, provider);

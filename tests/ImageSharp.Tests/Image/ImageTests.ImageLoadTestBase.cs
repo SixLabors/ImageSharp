@@ -5,6 +5,7 @@ using Moq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -24,8 +25,6 @@ public partial class ImageTests
         protected IImageFormatDetector localMimeTypeDetector;
 
         protected Mock<IImageFormat> localImageFormatMock;
-
-        protected Mock<IImageInfo> localImageInfoMock;
 
         protected readonly string MockFilePath = Guid.NewGuid().ToString();
 
@@ -58,14 +57,7 @@ public partial class ImageTests
             // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
             this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
-
-            this.localImageInfoMock = new Mock<IImageInfo>();
-
-            this.LocalImageInfo = new(
-            this.localImageInfoMock.Object.PixelType,
-            this.localImageInfoMock.Object.Width,
-            this.localImageInfoMock.Object.Height,
-            this.localImageInfoMock.Object.Metadata);
+            this.LocalImageInfo = new(new PixelTypeInfo(8), new(1, 1), new ImageMetadata());
 
             this.localImageFormatMock = new Mock<IImageFormat>();
 

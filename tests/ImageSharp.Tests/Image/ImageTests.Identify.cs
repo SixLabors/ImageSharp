@@ -34,7 +34,7 @@ public partial class ImageTests
         public void FromBytes_GlobalConfiguration()
         {
             ImageInfo info = Image.Identify(ActualImageBytes);
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.Equal(ExpectedImageSize, info.Size);
             Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
@@ -176,7 +176,7 @@ public partial class ImageTests
             AsyncStreamWrapper asyncStream = new(stream, () => false);
             ImageInfo info = await Image.IdentifyAsync(asyncStream);
 
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.Equal(ExpectedImageSize, info.Size);
             Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
@@ -201,7 +201,7 @@ public partial class ImageTests
             AsyncStreamWrapper asyncStream = new(nonSeekableStream, () => false);
             ImageInfo info = await Image.IdentifyAsync(asyncStream);
 
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.Equal(ExpectedImageSize, info.Size);
             Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
@@ -253,7 +253,7 @@ public partial class ImageTests
         {
             ImageInfo info = await Image.IdentifyAsync(ActualImagePath);
 
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.Equal(ExpectedImageSize, info.Size);
             Assert.Equal(ExpectedGlobalFormat, info.Metadata.DecodedImageFormat);
         }
 
@@ -262,7 +262,7 @@ public partial class ImageTests
         {
             ImageInfo info = await Image.IdentifyAsync(ActualImagePath);
 
-            Assert.Equal(ExpectedImageSize, info.Size());
+            Assert.Equal(ExpectedImageSize, info.Size);
         }
 
         [Fact]

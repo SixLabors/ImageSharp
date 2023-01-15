@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
@@ -11,20 +11,20 @@ public class ImageInfoTests
     [Fact]
     public void ImageInfoInitializesCorrectly()
     {
-        const int Width = 50;
-        const int Height = 60;
-        var size = new Size(Width, Height);
-        var rectangle = new Rectangle(0, 0, Width, Height);
-        var pixelType = new PixelTypeInfo(8);
-        var meta = new ImageMetadata();
+        const int width = 50;
+        const int height = 60;
+        Size size = new(width, height);
+        Rectangle rectangle = new(0, 0, width, height);
+        PixelTypeInfo pixelType = new(8);
+        ImageMetadata meta = new();
 
-        var info = new ImageInfo(pixelType, Width, Height, meta);
+        ImageInfo info = new(pixelType, width, height, meta);
 
         Assert.Equal(pixelType, info.PixelType);
-        Assert.Equal(Width, info.Width);
-        Assert.Equal(Height, info.Height);
-        Assert.Equal(size, info.Size());
-        Assert.Equal(rectangle, info.Bounds());
+        Assert.Equal(width, info.Width);
+        Assert.Equal(height, info.Height);
+        Assert.Equal(size, info.Size);
+        Assert.Equal(rectangle, info.Bounds);
         Assert.Equal(meta, info.Metadata);
     }
 }

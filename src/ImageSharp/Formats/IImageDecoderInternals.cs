@@ -41,10 +41,10 @@ internal interface IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The <see cref="IImageInfo"/>.</returns>
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
     /// <remarks>
     /// Cancellable synchronous method. In case of cancellation,
     /// an <see cref="OperationCanceledException"/> shall be thrown which will be handled on the call site.
     /// </remarks>
-    IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken);
+    ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken);
 }

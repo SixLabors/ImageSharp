@@ -5,6 +5,7 @@ using Moq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -25,13 +26,11 @@ public partial class ImageTests
 
         protected Mock<IImageFormat> localImageFormatMock;
 
-        protected Mock<IImageInfo> localImageInfoMock;
-
         protected readonly string MockFilePath = Guid.NewGuid().ToString();
 
-        internal readonly Mock<IFileSystem> LocalFileSystemMock = new Mock<IFileSystem>();
+        internal readonly Mock<IFileSystem> LocalFileSystemMock = new();
 
-        protected readonly TestFileSystem topLevelFileSystem = new TestFileSystem();
+        protected readonly TestFileSystem topLevelFileSystem = new();
 
         public Configuration LocalConfiguration { get; }
 
@@ -51,26 +50,29 @@ public partial class ImageTests
 
         protected byte[] ByteArray => ((MemoryStream)this.DataStream).ToArray();
 
+        protected ImageInfo LocalImageInfo { get; }
+
         protected ImageLoadTestBase()
         {
+            // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
             this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
+            this.LocalImageInfo = new(new PixelTypeInfo(8), new(1, 1), new ImageMetadata());
 
-            this.localImageInfoMock = new Mock<IImageInfo>();
             this.localImageFormatMock = new Mock<IImageFormat>();
 
             this.localDecoder = new Mock<IImageDecoder>();
             this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
-                .Returns(this.localImageInfoMock.Object);
+                .Returns(this.LocalImageInfo);
 
             this.localDecoder.Setup(x => x.IdentifyAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(this.localImageInfoMock.Object));
+                .Returns(Task.FromResult(this.LocalImageInfo));
 
             this.localDecoder
                 .Setup(x => x.Decode<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
-                .Callback<DecoderOptions, Stream>((c, s) =>
+                .Callback<DecoderOptions, Stream>((_, s) =>
                     {
-                        using var ms = new MemoryStream();
+                        using MemoryStream ms = new();
                         s.CopyTo(ms);
                         this.DecodedData = ms.ToArray();
                     })
@@ -78,9 +80,9 @@ public partial class ImageTests
 
             this.localDecoder
                 .Setup(x => x.Decode(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
-                .Callback<DecoderOptions, Stream>((c, s) =>
+                .Callback<DecoderOptions, Stream>((_, s) =>
                     {
-                        using var ms = new MemoryStream();
+                        using MemoryStream ms = new();
                         s.CopyTo(ms);
                         this.DecodedData = ms.ToArray();
                     })
@@ -90,7 +92,7 @@ public partial class ImageTests
                 .Setup(x => x.DecodeAsync<Rgba32>(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
                 {
-                    using var ms = new MemoryStream();
+                    using MemoryStream ms = new();
                     s.CopyTo(ms);
                     this.DecodedData = ms.ToArray();
                 })
@@ -100,7 +102,7 @@ public partial class ImageTests
                 .Setup(x => x.DecodeAsync(It.IsAny<DecoderOptions>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .Callback<DecoderOptions, Stream, CancellationToken>((_, s, _) =>
                 {
-                    using var ms = new MemoryStream();
+                    using MemoryStream ms = new();
                     s.CopyTo(ms);
                     this.DecodedData = ms.ToArray();
                 })

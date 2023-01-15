@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -13,19 +12,19 @@ public partial class ImageTests
     {
         private string Path { get; } = TestFile.GetInputFileFullPath(TestImages.Bmp.Bit8);
 
-        private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size());
+        private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size);
 
         [Fact]
         public void Path_Specific()
         {
-            using var img = Image.Load<Rgba32>(this.Path);
+            using Image<Rgba32> img = Image.Load<Rgba32>(this.Path);
             VerifyDecodedImage(img);
         }
 
         [Fact]
         public void Path_Agnostic()
         {
-            using var img = Image.Load(this.Path);
+            using Image img = Image.Load(this.Path);
             VerifyDecodedImage(img);
         }
 
@@ -53,17 +52,17 @@ public partial class ImageTests
         [Fact]
         public void Path_OutFormat_Specific()
         {
-            using var img = Image.Load<Rgba32>(this.Path, out IImageFormat format);
+            using Image<Rgba32> img = Image.Load<Rgba32>(this.Path);
             VerifyDecodedImage(img);
-            Assert.IsType<BmpFormat>(format);
+            Assert.IsType<BmpFormat>(img.Metadata.DecodedImageFormat);
         }
 
         [Fact]
         public void Path_OutFormat_Agnostic()
         {
-            using var img = Image.Load(this.Path, out IImageFormat format);
+            using Image img = Image.Load(this.Path);
             VerifyDecodedImage(img);
-            Assert.IsType<BmpFormat>(format);
+            Assert.IsType<BmpFormat>(img.Metadata.DecodedImageFormat);
         }
 
         [Fact]

@@ -27,9 +27,7 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
     public EntropyCropProcessor(Configuration configuration, EntropyCropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
-    {
-        this.definition = definition;
-    }
+        => this.definition = definition;
 
     /// <inheritdoc/>
     protected override void BeforeImageApply()
@@ -38,7 +36,7 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
 
         // TODO: This is clunky. We should add behavior enum to ExtractFrame.
         // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
-        using (var temp = new Image<TPixel>(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
+        using (Image<TPixel> temp = new(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
         {
             Configuration configuration = this.Source.GetConfiguration();
 
@@ -52,7 +50,7 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
             rectangle = GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
         }
 
-        new CropProcessor(rectangle, this.Source.Size()).Execute(this.Configuration, this.Source, this.SourceRectangle);
+        new CropProcessor(rectangle, this.Source.Size).Execute(this.Configuration, this.Source, this.SourceRectangle);
 
         base.BeforeImageApply();
     }
@@ -77,7 +75,7 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
-        => new Rectangle(
+        => new(
             topLeft.X,
             topLeft.Y,
             bottomRight.X - topLeft.X,
@@ -99,29 +97,13 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
         int height = bitmap.Height;
         Point topLeft = default;
         Point bottomRight = default;
-
-        Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc;
-
-        // Determine which channel to check against
-        switch (channel)
+        Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc = channel switch
         {
-            case RgbaComponent.R:
-                delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
-                break;
-
-            case RgbaComponent.G:
-                delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
-                break;
-
-            case RgbaComponent.B:
-                delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
-                break;
-
-            default:
-                delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
-                break;
-        }
-
+            RgbaComponent.R => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon,
+            RgbaComponent.G => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon,
+            RgbaComponent.B => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon,
+            _ => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon,
+        };
         int GetMinY(ImageFrame<TPixel> pixels)
         {
             for (int y = 0; y < height; y++)

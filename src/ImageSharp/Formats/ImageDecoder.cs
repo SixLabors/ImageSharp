@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
@@ -27,6 +26,8 @@ public abstract class ImageDecoder : IImageDecoder
             s => this.Decode<TPixel>(options, s, default));
 
         TransformColorProfile(options, image);
+        this.SetDecoderFormat(options.Configuration, image);
+
         return image;
     }
 
@@ -39,6 +40,8 @@ public abstract class ImageDecoder : IImageDecoder
             s => this.Decode(options, s, default));
 
         TransformColorProfile(options, image);
+        this.SetDecoderFormat(options.Configuration, image);
+
         return image;
     }
 
@@ -53,6 +56,8 @@ public abstract class ImageDecoder : IImageDecoder
             cancellationToken).ConfigureAwait(false);
 
         TransformColorProfile(options, image);
+        this.SetDecoderFormat(options.Configuration, image);
+
         return image;
     }
 
@@ -66,23 +71,37 @@ public abstract class ImageDecoder : IImageDecoder
             cancellationToken).ConfigureAwait(false);
 
         TransformColorProfile(options, image);
+        this.SetDecoderFormat(options.Configuration, image);
+
         return image;
     }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(DecoderOptions options, Stream stream)
-          => WithSeekableStream(
-              options,
-              stream,
-              s => this.Identify(options, s, default));
+    public ImageInfo Identify(DecoderOptions options, Stream stream)
+    {
+        ImageInfo info = WithSeekableStream(
+            options,
+            stream,
+            s => this.Identify(options, s, default));
+
+        this.SetDecoderFormat(options.Configuration, info);
+
+        return info;
+    }
 
     /// <inheritdoc/>
-    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
-         => WithSeekableMemoryStreamAsync(
-             options,
-             stream,
-             (s, ct) => this.Identify(options, s, ct),
-             cancellationToken);
+    public async Task<ImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default)
+    {
+        ImageInfo info = await WithSeekableMemoryStreamAsync(
+            options,
+            stream,
+            (s, ct) => this.Identify(options, s, ct),
+            cancellationToken).ConfigureAwait(false);
+
+        this.SetDecoderFormat(options.Configuration, info);
+
+        return info;
+    }
 
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}" /> of a specific pixel type.
@@ -121,9 +140,9 @@ public abstract class ImageDecoder : IImageDecoder
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The <see cref="IImageInfo"/> object.</returns>
+    /// <returns>The <see cref="ImageInfo"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    protected abstract IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
+    protected abstract ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken);
 
     /// <summary>
     /// Performs a scaling operation against the decoded image. If the target size is not set, or the image size
@@ -137,7 +156,7 @@ public abstract class ImageDecoder : IImageDecoder
         {
             ResizeOptions resizeOptions = new()
             {
-                Size = options.TargetSize.Value,
+                Size = options.TargetSize!.Value,
                 Sampler = options.Sampler,
                 Mode = ResizeMode.Max
             };
@@ -179,7 +198,7 @@ public abstract class ImageDecoder : IImageDecoder
         }
 
         Size targetSize = options.TargetSize.Value;
-        Size currentSize = image.Size();
+        Size currentSize = image.Size;
         return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
     }
 
@@ -293,5 +312,21 @@ public abstract class ImageDecoder : IImageDecoder
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
         return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal void SetDecoderFormat(Configuration configuration, Image image)
+    {
+        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        {
+            image.Metadata.DecodedImageFormat = format;
+        }
+    }
+
+    internal void SetDecoderFormat(Configuration configuration, ImageInfo info)
+    {
+        if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
+        {
+            info.Metadata.DecodedImageFormat = format;
+        }
     }
 }

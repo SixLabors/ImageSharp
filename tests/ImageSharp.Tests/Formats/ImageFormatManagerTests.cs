@@ -74,12 +74,12 @@ public class ImageFormatManagerTests
     {
         IImageEncoder encoder1 = new Mock<IImageEncoder>().Object;
         this.FormatsManagerEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
-        IImageEncoder found = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+        IImageEncoder found = this.FormatsManagerEmpty.GetEncoder(TestFormat.GlobalTestFormat);
         Assert.Equal(encoder1, found);
 
         IImageEncoder encoder2 = new Mock<IImageEncoder>().Object;
         this.FormatsManagerEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
-        IImageEncoder found2 = this.FormatsManagerEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+        IImageEncoder found2 = this.FormatsManagerEmpty.GetEncoder(TestFormat.GlobalTestFormat);
         Assert.Equal(encoder2, found2);
         Assert.NotEqual(found, found2);
     }
@@ -89,12 +89,12 @@ public class ImageFormatManagerTests
     {
         IImageDecoder decoder1 = new Mock<IImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
-        IImageDecoder found = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        IImageDecoder found = this.FormatsManagerEmpty.GetDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder1, found);
 
         IImageDecoder decoder2 = new Mock<IImageDecoder>().Object;
         this.FormatsManagerEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
-        IImageDecoder found2 = this.FormatsManagerEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+        IImageDecoder found2 = this.FormatsManagerEmpty.GetDecoder(TestFormat.GlobalTestFormat);
         Assert.Equal(decoder2, found2);
         Assert.NotEqual(found, found2);
     }
@@ -120,15 +120,10 @@ public class ImageFormatManagerTests
             jpegImage = buffer.ToArray();
         }
 
+        IImageFormat format = Image.DetectFormat(jpegImage);
+        Assert.IsType<JpegFormat>(format);
+
         byte[] invalidImage = { 1, 2, 3 };
-
-        bool resultValidImage = Image.TryDetectFormat(jpegImage, out IImageFormat format);
-
-        bool resultInvalidImage = Image.TryDetectFormat(invalidImage, out IImageFormat formatInvalid);
-
-        Assert.True(resultValidImage);
-        Assert.Equal(format, JpegFormat.Instance);
-        Assert.False(resultInvalidImage);
-        Assert.True(formatInvalid is null);
+        Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(invalidImage));
     }
 }

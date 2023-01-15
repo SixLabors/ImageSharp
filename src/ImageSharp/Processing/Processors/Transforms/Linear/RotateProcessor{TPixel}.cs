@@ -43,7 +43,7 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
     /// <inheritdoc/>
     protected override void AfterImageApply(Image<TPixel> destination)
     {
-        ExifProfile profile = destination.Metadata.ExifProfile;
+        ExifProfile? profile = destination.Metadata.ExifProfile;
         if (profile is null)
         {
             return;

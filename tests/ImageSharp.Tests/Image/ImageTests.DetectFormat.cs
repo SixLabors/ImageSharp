@@ -16,9 +16,9 @@ public partial class ImageTests
     {
         private static readonly string ActualImagePath = TestFile.GetInputFileFullPath(TestImages.Bmp.F);
 
-        private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
+        private static byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-        private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
+        private static ReadOnlySpan<byte> ActualImageSpan => ActualImageBytes.AsSpan();
 
         private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
@@ -34,10 +34,8 @@ public partial class ImageTests
         [Fact]
         public void FromBytes_GlobalConfiguration()
         {
-            bool result = Image.TryDetectFormat(this.ActualImageSpan, out IImageFormat type);
-
-            Assert.True(result);
-            Assert.Equal(ExpectedGlobalFormat, type);
+            IImageFormat format = Image.DetectFormat(ActualImageSpan);
+            Assert.Equal(ExpectedGlobalFormat, format);
         }
 
         [Fact]
@@ -48,19 +46,22 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            bool result = Image.TryDetectFormat(options, this.ByteArray, out IImageFormat type);
-
-            Assert.True(result);
-            Assert.Equal(this.LocalImageFormat, type);
+            IImageFormat format = Image.DetectFormat(options, this.ByteArray);
+            Assert.Equal(this.LocalImageFormat, format);
         }
 
         [Fact]
         public void FromFileSystemPath_GlobalConfiguration()
         {
-            bool result = Image.TryDetectFormat(ActualImagePath, out IImageFormat type);
+            IImageFormat format = Image.DetectFormat(ActualImagePath);
+            Assert.Equal(ExpectedGlobalFormat, format);
+        }
 
-            Assert.True(result);
-            Assert.Equal(ExpectedGlobalFormat, type);
+        [Fact]
+        public async Task FromFileSystemPathAsync_GlobalConfiguration()
+        {
+            IImageFormat format = await Image.DetectFormatAsync(ActualImagePath);
+            Assert.Equal(ExpectedGlobalFormat, format);
         }
 
         [Fact]
@@ -71,22 +72,29 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            bool result = Image.TryDetectFormat(options, this.MockFilePath, out IImageFormat type);
+            IImageFormat format = Image.DetectFormat(options, this.MockFilePath);
+            Assert.Equal(this.LocalImageFormat, format);
+        }
 
-            Assert.True(result);
-            Assert.Equal(this.LocalImageFormat, type);
+        [Fact]
+        public async Task FromFileSystemPathAsync_CustomConfiguration()
+        {
+            DecoderOptions options = new()
+            {
+                Configuration = this.LocalConfiguration
+            };
+
+            IImageFormat format = await Image.DetectFormatAsync(options, this.MockFilePath);
+            Assert.Equal(this.LocalImageFormat, format);
         }
 
         [Fact]
         public void FromStream_GlobalConfiguration()
         {
-            using (var stream = new MemoryStream(this.ActualImageBytes))
-            {
-                bool result = Image.TryDetectFormat(stream, out IImageFormat type);
+            using MemoryStream stream = new(ActualImageBytes);
+            IImageFormat format = Image.DetectFormat(stream);
 
-                Assert.True(result);
-                Assert.Equal(ExpectedGlobalFormat, type);
-            }
+            Assert.Equal(ExpectedGlobalFormat, format);
         }
 
         [Fact]
@@ -97,34 +105,27 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            bool result = Image.TryDetectFormat(options, this.DataStream, out IImageFormat type);
-
-            Assert.True(result);
-            Assert.Equal(this.LocalImageFormat, type);
+            IImageFormat format = Image.DetectFormat(options, this.DataStream);
+            Assert.Equal(this.LocalImageFormat, format);
         }
 
         [Fact]
-        public void WhenNoMatchingFormatFound_ReturnsNull()
+        public void WhenNoMatchingFormatFound_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new()
             {
                 Configuration = new()
             };
 
-            bool result = Image.TryDetectFormat(options, this.DataStream, out IImageFormat type);
-
-            Assert.False(result);
-            Assert.Null(type);
+            Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(options, this.DataStream));
         }
 
         [Fact]
         public async Task FromStreamAsync_GlobalConfiguration()
         {
-            using (var stream = new MemoryStream(this.ActualImageBytes))
-            {
-                IImageFormat type = await Image.DetectFormatAsync(new AsyncStreamWrapper(stream, () => false));
-                Assert.Equal(ExpectedGlobalFormat, type);
-            }
+            using MemoryStream stream = new(ActualImageBytes);
+            IImageFormat format = await Image.DetectFormatAsync(new AsyncStreamWrapper(stream, () => false));
+            Assert.Equal(ExpectedGlobalFormat, format);
         }
 
         [Fact]
@@ -135,20 +136,19 @@ public partial class ImageTests
                 Configuration = this.LocalConfiguration
             };
 
-            IImageFormat type = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
-            Assert.Equal(this.LocalImageFormat, type);
+            IImageFormat format = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
+            Assert.Equal(this.LocalImageFormat, format);
         }
 
         [Fact]
-        public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
+        public Task WhenNoMatchingFormatFoundAsync_Throws_UnknownImageFormatException()
         {
             DecoderOptions options = new()
             {
                 Configuration = new()
             };
 
-            IImageFormat type = await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false));
-            Assert.Null(type);
+            return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));
         }
     }
 }

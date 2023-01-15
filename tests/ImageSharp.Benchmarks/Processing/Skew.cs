@@ -13,10 +13,10 @@ public class Skew
     [Benchmark]
     public Size DoSkew()
     {
-        using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.BlanchedAlmond);
         image.Mutate(x => x.Skew(20, 10));
 
-        return image.Size();
+        return image.Size;
     }
 }
 

@@ -13,7 +13,7 @@ public class SystemDrawingReferenceDecoder : ImageDecoder
 {
     public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
-    protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         using SDBitmap sourceBitmap = new(stream);
         PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));

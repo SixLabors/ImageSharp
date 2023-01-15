@@ -209,7 +209,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadImageHeaders(stream, out _, out _);
         return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);

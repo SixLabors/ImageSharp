@@ -56,8 +56,8 @@ public class DecodeFilteredPng
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Size LoadPng(byte[] bytes)
     {
-        using var image = Image.Load<Rgba32>(bytes);
-        return image.Size();
+        using Image<Rgba32> image = Image.Load<Rgba32>(bytes);
+        return image.Size;
     }
 
     private static string TestImageFullPath(string path)

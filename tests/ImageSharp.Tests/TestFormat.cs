@@ -199,8 +199,12 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
-        protected override IImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-           => this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+        protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        {
+            Image<TestPixelForAgnosticDecode> image =
+                this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+        }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
             => new() { GeneralOptions = options };
@@ -208,7 +212,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             Configuration configuration = options.GeneralOptions.Configuration;
-            var ms = new MemoryStream();
+            using MemoryStream ms = new();
             stream.CopyTo(ms, configuration.StreamProcessingBufferSize);
             byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
             this.testFormat.DecodeCalls.Add(new DecodeOperation

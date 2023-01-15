@@ -75,8 +75,8 @@ public partial class JpegDecoderTests
     [MemberData(nameof(RatioFiles))]
     public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         using Image image = JpegDecoder.Instance.Decode(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -88,9 +88,9 @@ public partial class JpegDecoderTests
     [MemberData(nameof(RatioFiles))]
     public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -101,9 +101,9 @@ public partial class JpegDecoderTests
     [MemberData(nameof(RatioFiles))]
     public async Task Identify_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = await JpegDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = await JpegDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -114,9 +114,9 @@ public partial class JpegDecoderTests
     [MemberData(nameof(QualityFiles))]
     public void Identify_VerifyQuality(string imagePath, int quality)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
     }
@@ -125,8 +125,8 @@ public partial class JpegDecoderTests
     [MemberData(nameof(QualityFiles))]
     public void Decode_VerifyQuality(string imagePath, int quality)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         using Image image = JpegDecoder.Instance.Decode(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
@@ -136,8 +136,8 @@ public partial class JpegDecoderTests
     [MemberData(nameof(QualityFiles))]
     public async Task Decode_VerifyQualityAsync(string imagePath, int quality)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         using Image image = await JpegDecoder.Instance.DecodeAsync(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(quality, meta.Quality);
@@ -153,9 +153,9 @@ public partial class JpegDecoderTests
     [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegEncodingColor.YCbCrRatio411)]
     public void Identify_DetectsCorrectColorType(string imagePath, JpegEncodingColor expectedColorType)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
-        IImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = JpegDecoder.Instance.Identify(DecoderOptions.Default, stream);
         JpegMetadata meta = image.Metadata.GetJpegMetadata();
         Assert.Equal(expectedColorType, meta.ColorType);
     }
@@ -174,13 +174,13 @@ public partial class JpegDecoderTests
         Assert.Equal(expectedColorType, meta.ColorType);
     }
 
-    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
+    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<ImageInfo> test)
     {
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
         if (useIdentify)
         {
-            IImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
+            ImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
             test(imageInfo);
         }
         else
@@ -318,10 +318,10 @@ public partial class JpegDecoderTests
     [Fact]
     public void EncodedStringTags_WriteAndRead()
     {
-        using var memoryStream = new MemoryStream();
-        using (var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
+        using MemoryStream memoryStream = new();
+        using (Image image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora)))
         {
-            var exif = new ExifProfile();
+            ExifProfile exif = new();
 
             exif.SetValue(ExifTag.GPSDateStamp, "2022-01-06");
 
@@ -343,7 +343,7 @@ public partial class JpegDecoderTests
         }
 
         memoryStream.Seek(0, SeekOrigin.Begin);
-        using (var image = Image.Load(memoryStream))
+        using (Image image = Image.Load(memoryStream))
         {
             ExifProfile exif = image.Metadata.ExifProfile;
             VerifyEncodedStrings(exif);
@@ -353,7 +353,7 @@ public partial class JpegDecoderTests
     [Fact]
     public void EncodedStringTags_Read()
     {
-        using var image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings));
+        using Image image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings));
         ExifProfile exif = image.Metadata.ExifProfile;
         VerifyEncodedStrings(exif);
     }

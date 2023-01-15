@@ -18,10 +18,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Rgb24>(options, this.MockFilePath);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            using (Image<Rgb24> img = Image.Load<Rgb24>(options, this.MockFilePath))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.Sample<Rgb24>(), img);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgb24>(this.Marker, this.TopLevelConfiguration);
         }
@@ -34,10 +35,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.MockFilePath);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            using (Image img = Image.Load(options, this.MockFilePath))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat.SampleAgnostic(), img);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }
@@ -50,10 +52,11 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load<Rgba32>(options, this.MockFilePath, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image<Rgba32> img = Image.Load<Rgba32>(options, this.MockFilePath))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
         }
@@ -66,17 +69,18 @@ public partial class ImageTests
                 Configuration = this.TopLevelConfiguration
             };
 
-            var img = Image.Load(options, this.MockFilePath, out IImageFormat format);
-
-            Assert.NotNull(img);
-            Assert.Equal(this.TestFormat, format);
+            using (Image img = Image.Load(options, this.MockFilePath))
+            {
+                Assert.NotNull(img);
+                Assert.Equal(this.TestFormat, img.Metadata.DecodedImageFormat);
+            }
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }
 
         [Fact]
         public void WhenFileNotFound_Throws()
-            => Assert.Throws<System.IO.FileNotFoundException>(
+            => Assert.Throws<FileNotFoundException>(
                 () =>
                 {
                     DecoderOptions options = new()

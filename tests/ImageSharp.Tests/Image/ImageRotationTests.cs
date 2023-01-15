@@ -45,12 +45,10 @@ public class ImageRotationTests
 
     private static (Size Original, Size Rotated) Rotate(int angle)
     {
-        var file = TestFile.Create(TestImages.Bmp.Car);
-        using (var image = Image.Load<Rgba32>(file.FullPath))
-        {
-            Size original = image.Size();
-            image.Mutate(x => x.Rotate(angle));
-            return (original, image.Size());
-        }
+        TestFile file = TestFile.Create(TestImages.Bmp.Car);
+        using Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath);
+        Size original = image.Size;
+        image.Mutate(x => x.Rotate(angle));
+        return (original, image.Size);
     }
 }

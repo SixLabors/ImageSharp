@@ -83,7 +83,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
 

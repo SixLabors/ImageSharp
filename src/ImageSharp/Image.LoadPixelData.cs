@@ -72,7 +72,7 @@ public abstract partial class Image
         int count = width * height;
         Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
-        var image = new Image<TPixel>(configuration, width, height);
+        Image<TPixel> image = new(configuration, width, height);
         data = data[..count];
         data.CopyTo(image.Frames.RootFrame.PixelBuffer.FastMemoryGroup);
 

@@ -95,7 +95,7 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.GetEncoder(format);
 
         if (encoder is null)
         {
@@ -139,7 +139,7 @@ public static partial class ImageExtensions
             throw new NotSupportedException("Cannot write to the stream.");
         }
 
-        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.GetEncoder(format);
 
         if (encoder is null)
         {

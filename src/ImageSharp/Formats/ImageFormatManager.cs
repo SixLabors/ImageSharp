@@ -3,6 +3,8 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 
 namespace SixLabors.ImageSharp.Formats;
 
@@ -91,9 +93,13 @@ public class ImageFormatManager
     /// <summary>
     /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
     /// </summary>
-    /// <param name="extension">The extension to discover</param>
-    /// <param name="format">The <see cref="IImageFormat"/> if found otherwise null</param>
-    /// <returns>False if no format was found</returns>
+    /// <param name="extension">The extension to return the format for.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given extension;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public bool TryFindFormatByFileExtension(string extension, [NotNullWhen(true)] out IImageFormat? format)
     {
         Guard.NotNullOrWhiteSpace(extension, nameof(extension));
@@ -106,16 +112,30 @@ public class ImageFormatManager
         format = this.imageFormats.FirstOrDefault(x =>
             x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
 
-        return format != null;
+        return format is not null;
     }
 
     /// <summary>
     /// For the specified mime type find the <see cref="IImageFormat"/>.
     /// </summary>
-    /// <param name="mimeType">The mime-type to discover</param>
-    /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
-    public IImageFormat? FindFormatByMimeType(string mimeType)
-        => this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+    /// <param name="mimeType">The mime-type to return the format for.</param>
+    /// <param name="format">
+    /// When this method returns, contains the format that matches the given mime-type;
+    /// otherwise, the default value for the type of the <paramref name="format"/> parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    public bool TryFindFormatByMimeType(string mimeType, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
+        return format is not null;
+    }
+
+    internal bool TryFindFormatByDecoder(IImageDecoder decoder, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.mimeTypeDecoders.FirstOrDefault(x => x.Value.GetType() == decoder.GetType()).Key;
+        return format is not null;
+    }
 
     /// <summary>
     /// Sets a specific image encoder as the encoder for a specific image format.
@@ -163,32 +183,54 @@ public class ImageFormatManager
     /// For the specified mime type find the decoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-    public IImageDecoder? FindDecoder(IImageFormat format)
+    /// <returns>The <see cref="IImageDecoder"/>.</returns>
+    /// <exception cref="UnknownImageFormatException">The format is not registered.</exception>
+    public IImageDecoder GetDecoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder? decoder)
-            ? decoder
-            : null;
+        if (!this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder? decoder))
+        {
+            ThrowInvalidDecoder(this);
+        }
+
+        return decoder;
     }
 
     /// <summary>
     /// For the specified mime type find the encoder.
     /// </summary>
     /// <param name="format">The format to discover</param>
-    /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-    public IImageEncoder? FindEncoder(IImageFormat format)
+    /// <returns>The <see cref="IImageEncoder"/>.</returns>
+    /// <exception cref="UnknownImageFormatException">The format is not registered.</exception>
+    public IImageEncoder GetEncoder(IImageFormat format)
     {
         Guard.NotNull(format, nameof(format));
 
-        return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder? encoder)
-            ? encoder
-            : null;
+        if (!this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder? encoder))
+        {
+            ThrowInvalidDecoder(this);
+        }
+
+        return encoder;
     }
 
     /// <summary>
     /// Sets the max header size.
     /// </summary>
     private void SetMaxHeaderSize() => this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
+
+    [DoesNotReturn]
+    internal static void ThrowInvalidDecoder(ImageFormatManager manager)
+    {
+        StringBuilder sb = new();
+        sb = sb.AppendLine("Image cannot be loaded. Available decoders:");
+
+        foreach (KeyValuePair<IImageFormat, IImageDecoder> val in manager.ImageDecoders)
+        {
+            sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+        }
+
+        throw new UnknownImageFormatException(sb.ToString());
+    }
 }

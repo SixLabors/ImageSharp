@@ -15,9 +15,9 @@ public interface IImageDecoder
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-    /// <returns>The <see cref="IImageInfo"/> object.</returns>
+    /// <returns>The <see cref="ImageInfo"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public IImageInfo Identify(DecoderOptions options, Stream stream);
+    public ImageInfo Identify(DecoderOptions options, Stream stream);
 
     /// <summary>
     /// Reads the raw image information from the specified stream.
@@ -27,7 +27,7 @@ public interface IImageDecoder
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="Task{IImageInfo}"/> object.</returns>
     /// <exception cref="ImageFormatException">Thrown if the encoded image contains errors.</exception>
-    public Task<IImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default);
+    public Task<ImageInfo> IdentifyAsync(DecoderOptions options, Stream stream, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.

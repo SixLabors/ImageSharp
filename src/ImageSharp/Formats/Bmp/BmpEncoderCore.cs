@@ -215,15 +215,15 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         BmpInfoHeader infoHeader = new(
             headerSize: infoHeaderSize,
-            height: height,
             width: width,
-            bitsPerPixel: bpp,
+            height: height,
             planes: 1,
+            bitsPerPixel: bpp,
             imageSize: height * bytesPerLine,
-            clrUsed: 0,
-            clrImportant: 0,
             xPelsPerMeter: hResolution,
-            yPelsPerMeter: vResolution);
+            yPelsPerMeter: vResolution,
+            clrUsed: 0,
+            clrImportant: 0);
 
         if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
         {
@@ -470,7 +470,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
 
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
         this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
@@ -541,7 +541,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize4Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -588,7 +588,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize2Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -644,7 +644,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize1Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();

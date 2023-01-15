@@ -19,11 +19,13 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel> image = WithSeekableStream(
-                options.GeneralOptions,
-                stream,
-                s => this.Decode<TPixel>(options, s, default));
+            options.GeneralOptions,
+            stream,
+            s => this.Decode<TPixel>(options, s, default));
 
         TransformColorProfile(options.GeneralOptions, image);
+        this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+        
         return image;
     }
 
@@ -36,6 +38,8 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             s => this.Decode(options, s, default));
 
         TransformColorProfile(options.GeneralOptions, image);
+        this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+        
         return image;
     }
 
@@ -50,6 +54,8 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             cancellationToken).ConfigureAwait(false);
 
         TransformColorProfile(options.GeneralOptions, image);
+        this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+        
         return image;
     }
 
@@ -63,6 +69,8 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             cancellationToken).ConfigureAwait(false);
 
         TransformColorProfile(options.GeneralOptions, image);
+        this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+        
         return image;
     }
 

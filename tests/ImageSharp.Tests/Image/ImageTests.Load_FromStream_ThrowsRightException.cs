@@ -18,7 +18,7 @@ public partial class ImageTests
         public void Image_Load_Throws_UnknownImageFormatException()
             => Assert.Throws<UnknownImageFormatException>(() =>
             {
-                using (Image.Load(DecoderOptions.Default, this.Stream, out IImageFormat format))
+                using (Image.Load(DecoderOptions.Default, this.Stream))
                 {
                 }
             });
@@ -27,7 +27,7 @@ public partial class ImageTests
         public void Image_Load_T_Throws_UnknownImageFormatException()
             => Assert.Throws<UnknownImageFormatException>(() =>
             {
-                using (Image.Load<Rgba32>(DecoderOptions.Default, this.Stream, out IImageFormat format))
+                using (Image.Load<Rgba32>(DecoderOptions.Default, this.Stream))
                 {
                 }
             });

@@ -106,7 +106,7 @@ public class AffineTransformTests
                 .AppendScale(new SizeF(sx, sy))
                 .AppendTranslation(new PointF(tx, ty));
 
-            this.PrintMatrix(builder.BuildMatrix(image.Size()));
+            this.PrintMatrix(builder.BuildMatrix(image.Size));
 
             image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 

@@ -16,15 +16,13 @@ public class ImageExtensionsTest
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
         string file = Path.Combine(dir, "SaveAsJpeg_Path.jpg");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsJpeg(file);
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
@@ -33,15 +31,13 @@ public class ImageExtensionsTest
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
         string file = Path.Combine(dir, "SaveAsJpegAsync_Path.jpg");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsJpegAsync(file);
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
@@ -50,15 +46,13 @@ public class ImageExtensionsTest
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
         string file = Path.Combine(dir, "SaveAsJpeg_Path_Encoder.jpg");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsJpeg(file, new JpegEncoder());
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
@@ -67,86 +61,76 @@ public class ImageExtensionsTest
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
         string file = Path.Combine(dir, "SaveAsJpegAsync_Path_Encoder.jpg");
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsJpegAsync(file, new JpegEncoder());
         }
 
-        using (Image.Load(file, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
     public void SaveAsJpeg_Stream()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsJpeg(memoryStream);
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
     public async Task SaveAsJpegAsync_StreamAsync()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsJpegAsync(memoryStream);
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
     public void SaveAsJpeg_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             image.SaveAsJpeg(memoryStream, new JpegEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is JpegFormat);
     }
 
     [Fact]
     public async Task SaveAsJpegAsync_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
             await image.SaveAsJpegAsync(memoryStream, new JpegEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/jpeg", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is JpegFormat);
     }
 }

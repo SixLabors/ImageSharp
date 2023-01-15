@@ -68,7 +68,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
         this.SanitizeAndSetEncoderOptions(image);
 
         byte signature = this.DeduceSignature();
-        this.WriteHeader(stream, signature, image.Size());
+        this.WriteHeader(stream, signature, image.Size);
 
         this.WritePixels(stream, image.Frames.RootFrame);
 

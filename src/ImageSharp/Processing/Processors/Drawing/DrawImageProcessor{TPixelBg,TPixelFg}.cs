@@ -78,7 +78,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         int locationY = this.Location.Y;
 
         // Align start/end positions.
-        Rectangle bounds = targetImage.Bounds();
+        Rectangle bounds = targetImage.Bounds;
 
         int minX = Math.Max(this.Location.X, sourceRectangle.X);
         int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Right);

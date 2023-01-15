@@ -14,11 +14,9 @@ namespace SixLabors.ImageSharp;
 /// For the non-generic <see cref="Image"/> type, the pixel type is only known at runtime.
 /// <see cref="Image"/> is always implemented by a pixel-specific <see cref="Image{TPixel}"/> instance.
 /// </summary>
-public abstract partial class Image : IImage, IConfigurationProvider
+public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProvider
 {
     private bool isDisposed;
-
-    private Size size;
     private readonly Configuration configuration;
 
     /// <summary>
@@ -27,16 +25,12 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// <param name="configuration">
     /// The configuration which allows altering default behaviour or extending the library.
     /// </param>
-    /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
-    /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
-    /// <param name="size">The <see cref="size"/>.</param>
+    /// <param name="pixelType">The pixel type information.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="size">The size in px units.</param>
     protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
-    {
-        this.configuration = configuration ?? Configuration.Default;
-        this.PixelType = pixelType;
-        this.size = size;
-        this.Metadata = metadata ?? new ImageMetadata();
-    }
+       : base(pixelType, size, metadata)
+        => this.configuration = configuration ?? Configuration.Default;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
@@ -60,18 +54,6 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// Gets the <see cref="ImageFrameCollection"/> implementing the public <see cref="Frames"/> property.
     /// </summary>
     protected abstract ImageFrameCollection NonGenericFrameCollection { get; }
-
-    /// <inheritdoc/>
-    public PixelTypeInfo PixelType { get; }
-
-    /// <inheritdoc />
-    public int Width => this.size.Width;
-
-    /// <inheritdoc />
-    public int Height => this.size.Height;
-
-    /// <inheritdoc/>
-    public ImageMetadata Metadata { get; }
 
     /// <summary>
     /// Gets the frames of the image as (non-generic) <see cref="ImageFrameCollection"/>.
@@ -148,7 +130,7 @@ public abstract partial class Image : IImage, IConfigurationProvider
     /// Update the size of the image after mutation.
     /// </summary>
     /// <param name="size">The <see cref="Size"/>.</param>
-    protected void UpdateSize(Size size) => this.size = size;
+    protected void UpdateSize(Size size) => this.Size = size;
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

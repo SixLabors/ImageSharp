@@ -23,7 +23,7 @@ public partial class ImageTests
         [Fact]
         public void Width_Height()
         {
-            using (var image = new Image<Rgba32>(11, 23))
+            using (Image<Rgba32> image = new(11, 23))
             {
                 Assert.Equal(11, image.Width);
                 Assert.Equal(23, image.Height);
@@ -40,7 +40,7 @@ public partial class ImageTests
         {
             Configuration configuration = Configuration.Default.Clone();
 
-            using (var image = new Image<Rgba32>(configuration, 11, 23))
+            using (Image<Rgba32> image = new(configuration, 11, 23))
             {
                 Assert.Equal(11, image.Width);
                 Assert.Equal(23, image.Height);
@@ -58,7 +58,7 @@ public partial class ImageTests
             Configuration configuration = Configuration.Default.Clone();
             Rgba32 color = Color.Aquamarine;
 
-            using (var image = new Image<Rgba32>(configuration, 11, 23, color))
+            using (Image<Rgba32> image = new(configuration, 11, 23, color))
             {
                 Assert.Equal(11, image.Width);
                 Assert.Equal(23, image.Height);
@@ -77,9 +77,9 @@ public partial class ImageTests
 
             byte dirtyValue = 123;
             configuration.MemoryAllocator = new TestMemoryAllocator(dirtyValue);
-            var metadata = new ImageMetadata();
+            ImageMetadata metadata = new();
 
-            using (var image = Image.CreateUninitialized<L8>(configuration, 21, 22, metadata))
+            using (Image<L8> image = Image.CreateUninitialized<L8>(configuration, 21, 22, metadata))
             {
                 Assert.Equal(21, image.Width);
                 Assert.Equal(22, image.Height);
@@ -108,7 +108,7 @@ public partial class ImageTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new(this.configuration, 10, 10);
             Rgba32 val = image[3, 4];
             Assert.Equal(default(Rgba32), val);
             image[3, 4] = Color.Red;
@@ -116,7 +116,7 @@ public partial class ImageTests
             Assert.Equal(Color.Red.ToRgba32(), val);
         }
 
-        public static TheoryData<bool, int> OutOfRangeData = new TheoryData<bool, int>()
+        public static TheoryData<bool, int> OutOfRangeData = new()
         {
             { false, -1 },
             { false, 10 },
@@ -133,7 +133,7 @@ public partial class ImageTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new(this.configuration, 10, 10);
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => _ = image[x, 3]);
             Assert.Equal("x", ex.ParamName);
         }
@@ -147,7 +147,7 @@ public partial class ImageTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new(this.configuration, 10, 10);
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => image[x, 3] = default);
             Assert.Equal("x", ex.ParamName);
         }
@@ -161,7 +161,7 @@ public partial class ImageTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new(this.configuration, 10, 10);
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => image[3, y] = default);
             Assert.Equal("y", ex.ParamName);
         }
@@ -178,7 +178,7 @@ public partial class ImageTests
                 this.LimitBufferCapacity(20);
             }
 
-            using var image = new Image<La16>(this.configuration, 10, 10);
+            using Image<La16> image = new(this.configuration, 10, 10);
             if (disco)
             {
                 Assert.True(image.GetPixelMemoryGroup().Count > 1);
@@ -204,7 +204,7 @@ public partial class ImageTests
         [InlineData(true)]
         public void CopyPixelDataTo_DestinationTooShort_Throws(bool byteSpan)
         {
-            using var image = new Image<La16>(this.configuration, 10, 10);
+            using Image<La16> image = new(this.configuration, 10, 10);
 
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() =>
             {
@@ -243,7 +243,7 @@ public partial class ImageTests
         [Fact]
         public void NullReference_Throws()
         {
-            using var img = new Image<Rgb24>(1, 1);
+            using Image<Rgb24> img = new(1, 1);
 
             Assert.Throws<ArgumentNullException>(() => img.ProcessPixelRows(null));
 
@@ -262,7 +262,7 @@ public partial class ImageTests
 
         public void MultipleDisposeCalls()
         {
-            var image = new Image<Rgba32>(this.configuration, 10, 10);
+            Image<Rgba32> image = new(this.configuration, 10, 10);
             image.Dispose();
             image.Dispose();
         }
@@ -270,24 +270,24 @@ public partial class ImageTests
         [Fact]
         public void NonPrivateProperties_ObjectDisposedException()
         {
-            var image = new Image<Rgba32>(this.configuration, 10, 10);
-            var genericImage = (Image)image;
+            Image<Rgba32> image = new(this.configuration, 10, 10);
+            Image genericImage = (Image)image;
 
             image.Dispose();
 
             // Image<TPixel>
-            Assert.Throws<ObjectDisposedException>(() => { var prop = image.Frames; });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrameCollection<Rgba32> prop = image.Frames; });
 
             // Image
-            Assert.Throws<ObjectDisposedException>(() => { var prop = genericImage.Frames; });
+            Assert.Throws<ObjectDisposedException>(() => { ImageFrameCollection prop = genericImage.Frames; });
         }
 
         [Fact]
         public void Save_ObjectDisposedException()
         {
-            using var stream = new MemoryStream();
-            var image = new Image<Rgba32>(this.configuration, 10, 10);
-            var encoder = new JpegEncoder();
+            using MemoryStream stream = new();
+            Image<Rgba32> image = new(this.configuration, 10, 10);
+            JpegEncoder encoder = new();
 
             image.Dispose();
 
@@ -307,18 +307,18 @@ public partial class ImageTests
         [Fact]
         public void NonPrivateMethods_ObjectDisposedException()
         {
-            var image = new Image<Rgba32>(this.configuration, 10, 10);
-            var genericImage = (Image)image;
+            Image<Rgba32> image = new(this.configuration, 10, 10);
+            Image genericImage = (Image)image;
 
             image.Dispose();
 
             // Image<TPixel>
-            Assert.Throws<ObjectDisposedException>(() => { var res = image.Clone(this.configuration); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = image.CloneAs<Rgba32>(this.configuration); });
-            Assert.Throws<ObjectDisposedException>(() => { var res = image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = image.Clone(this.configuration); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = image.CloneAs<Rgba32>(this.configuration); });
+            Assert.Throws<ObjectDisposedException>(() => { bool res = image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _); });
 
             // Image
-            Assert.Throws<ObjectDisposedException>(() => { var res = genericImage.CloneAs<Rgba32>(this.configuration); });
+            Assert.Throws<ObjectDisposedException>(() => { Image<Rgba32> res = genericImage.CloneAs<Rgba32>(this.configuration); });
         }
     }
 
@@ -327,29 +327,29 @@ public partial class ImageTests
         [Fact]
         public void KnownExtension_ReturnsEncoder()
         {
-            using var image = new Image<L8>(1, 1);
+            using Image<L8> image = new(1, 1);
             IImageEncoder encoder = image.DetectEncoder("dummy.png");
             Assert.NotNull(encoder);
             Assert.IsType<PngEncoder>(encoder);
         }
 
         [Fact]
-        public void UnknownExtension_ThrowsNotSupportedException()
+        public void UnknownExtension_ThrowsUnknownImageFormatException()
         {
-            using var image = new Image<L8>(1, 1);
-            Assert.Throws<NotSupportedException>(() => image.DetectEncoder("dummy.yolo"));
+            using Image<L8> image = new(1, 1);
+            Assert.Throws<UnknownImageFormatException>(() => image.DetectEncoder("dummy.yolo"));
         }
 
         [Fact]
-        public void NoDetectorRegisteredForKnownExtension_ThrowsNotSupportedException()
+        public void NoDetectorRegisteredForKnownExtension_ThrowsUnknownImageFormatException()
         {
-            var configuration = new Configuration();
-            var format = new TestFormat();
+            Configuration configuration = new();
+            TestFormat format = new();
             configuration.ImageFormatsManager.AddImageFormat(format);
             configuration.ImageFormatsManager.AddImageFormatDetector(new MockImageFormatDetector(format));
 
-            using var image = new Image<L8>(configuration, 1, 1);
-            Assert.Throws<NotSupportedException>(() => image.DetectEncoder($"dummy.{format.Extension}"));
+            using Image<L8> image = new(configuration, 1, 1);
+            Assert.Throws<UnknownImageFormatException>(() => image.DetectEncoder($"dummy.{format.Extension}"));
         }
     }
 }

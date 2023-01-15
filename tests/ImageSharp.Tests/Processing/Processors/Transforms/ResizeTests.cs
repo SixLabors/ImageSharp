@@ -38,15 +38,13 @@ public class ResizeTests
     {
         string filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
 
-        using (var image = Image.Load(filePath))
-        {
-            image.Mutate(x => x.Resize(image.Size() / 2));
-            string path = System.IO.Path.Combine(
-                TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
-                nameof(this.Resize_PixelAgnostic) + ".png");
+        using Image image = Image.Load(filePath);
+        image.Mutate(x => x.Resize(image.Size / 2));
+        string path = Path.Combine(
+            TestEnvironment.CreateOutputDirectory(nameof(ResizeTests)),
+            nameof(this.Resize_PixelAgnostic) + ".png");
 
-            image.Save(path);
-        }
+        image.Save(path);
     }
 
     [Theory(Skip = "Debug only, enable manually")]
@@ -63,11 +61,9 @@ public class ResizeTests
 
         provider.Configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInKilobytes * 1024;
 
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(destSize, destSize));
-            image.DebugSave(provider, appendPixelTypeToFileName: false);
-        }
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(destSize, destSize));
+        image.DebugSave(provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -81,14 +77,12 @@ public class ResizeTests
         // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
         // resizing: (15, 12) -> (10, 6)
         // kernel dimensions: (3, 4)
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
-            image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
-            FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
-            image.DebugSave(provider, outputInfo, appendPixelTypeToFileName: false);
-            image.CompareToReferenceOutput(provider, outputInfo, appendPixelTypeToFileName: false);
-        }
+        using Image<TPixel> image = provider.GetImage();
+        Size destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
+        image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+        FormattableString outputInfo = $"({wN}÷{wD},{hN}÷{hD})";
+        image.DebugSave(provider, outputInfo, appendPixelTypeToFileName: false);
+        image.CompareToReferenceOutput(provider, outputInfo, appendPixelTypeToFileName: false);
     }
 
     private static readonly int SizeOfVector4 = Unsafe.SizeOf<Vector4>();
@@ -106,48 +100,44 @@ public class ResizeTests
         int workingBufferLimitInRows)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image0 = provider.GetImage())
-        {
-            Size destSize = image0.Size() / 4;
+        using Image<TPixel> image0 = provider.GetImage();
+        Size destSize = image0.Size / 4;
 
-            var configuration = Configuration.CreateDefaultInstance();
+        Configuration configuration = Configuration.CreateDefaultInstance();
 
-            int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
-            var allocator = new TestMemoryAllocator();
-            allocator.EnableNonThreadSafeLogging();
-            configuration.MemoryAllocator = allocator;
-            configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
+        int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
+        TestMemoryAllocator allocator = new TestMemoryAllocator();
+        allocator.EnableNonThreadSafeLogging();
+        configuration.MemoryAllocator = allocator;
+        configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 
-            var verticalKernelMap = ResizeKernelMap.Calculate<BicubicResampler>(
-                default,
-                destSize.Height,
-                image0.Height,
-                Configuration.Default.MemoryAllocator);
-            int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
-            verticalKernelMap.Dispose();
+        ResizeKernelMap verticalKernelMap = ResizeKernelMap.Calculate<BicubicResampler>(
+            default,
+            destSize.Height,
+            image0.Height,
+            Configuration.Default.MemoryAllocator);
+        int minimumWorkerAllocationInBytes = verticalKernelMap.MaxDiameter * 2 * destSize.Width * SizeOfVector4;
+        verticalKernelMap.Dispose();
 
-            using (Image<TPixel> image = image0.Clone(configuration))
-            {
-                image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
+        using Image<TPixel> image = image0.Clone(configuration);
+        image.Mutate(x => x.Resize(destSize, KnownResamplers.Bicubic, false));
 
-                image.DebugSave(
-                    provider,
-                    testOutputDetails: workingBufferLimitInRows,
-                    appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(
-                    ImageComparer.TolerantPercentage(0.004f),
-                    provider,
-                    testOutputDetails: workingBufferLimitInRows,
-                    appendPixelTypeToFileName: false);
+        image.DebugSave(
+            provider,
+            testOutputDetails: workingBufferLimitInRows,
+            appendPixelTypeToFileName: false);
+        image.CompareToReferenceOutput(
+            ImageComparer.TolerantPercentage(0.004f),
+            provider,
+            testOutputDetails: workingBufferLimitInRows,
+            appendPixelTypeToFileName: false);
 
-                Assert.NotEmpty(allocator.AllocationLog);
+        Assert.NotEmpty(allocator.AllocationLog);
 
-                int maxAllocationSize = allocator.AllocationLog.Where(
-                    e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
+        int maxAllocationSize = allocator.AllocationLog.Where(
+            e => e.ElementType == typeof(Vector4)).Max(e => e.LengthInBytes);
 
-                Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
-            }
-        }
+        Assert.True(maxAllocationSize <= Math.Max(workingBufferSizeHintInBytes, minimumWorkerAllocationInBytes));
     }
 
     [Theory]
@@ -165,7 +155,7 @@ public class ResizeTests
     {
         using Image<TPixel> expected = provider.GetImage();
         int width = expected.Width;
-        Size destSize = expected.Size() / 4;
+        Size destSize = expected.Size / 4;
         expected.Mutate(c => c.Resize(destSize, KnownResamplers.Bicubic, false));
 
         // Replace configuration:
@@ -188,13 +178,11 @@ public class ResizeTests
     public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(image.Size() / 2, true));
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(image.Size / 2, true));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
 
     [Theory]
@@ -223,7 +211,7 @@ public class ResizeTests
         provider.RunValidatingProcessorTest(
             x =>
             {
-                var resizeOptions = new ResizeOptions()
+                ResizeOptions resizeOptions = new ResizeOptions()
                 {
                     Size = x.GetCurrentSize() / 2,
                     Mode = ResizeMode.Crop,
@@ -243,13 +231,11 @@ public class ResizeTests
     public void Resize_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
 
-            // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
-            image.DebugSave(provider, extension: "gif");
-        }
+        // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
+        image.DebugSave(provider, extension: "gif");
     }
 
     [Theory]
@@ -265,17 +251,13 @@ public class ResizeTests
     public void Resize_ThrowsForWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image0 = provider.GetImage())
-        {
-            Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imageMem));
-            var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
+        using Image<TPixel> image0 = provider.GetImage();
+        Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imageMem));
+        TestMemoryManager<TPixel> mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
 
-            using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
-            {
-                Assert.ThrowsAny<Exception>(
-                    () => { image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)); });
-            }
-        }
+        using Image<TPixel> image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height);
+        Assert.ThrowsAny<Exception>(
+            () => { image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)); });
     }
 
     [Theory]
@@ -341,7 +323,7 @@ public class ResizeTests
                                      && TestEnvironment.NetCoreVersion == null
                                      && sampler is NearestNeighborResampler;
 
-        var comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);
+        ImageComparer comparer = ImageComparer.TolerantPercentage(allowHigherInaccuracy ? 0.3f : 0.017f);
 
         // Let's make the working buffer size non-default:
         provider.Configuration.WorkingBufferSizeHintInBytes = 16 * 1024 * SizeOfVector4;
@@ -382,27 +364,25 @@ public class ResizeTests
     public void ResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var sourceRectangle = new Rectangle(
-                image.Width / 8,
-                image.Height / 8,
-                image.Width / 4,
-                image.Height / 4);
-            var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+        using Image<TPixel> image = provider.GetImage();
+        Rectangle sourceRectangle = new Rectangle(
+            image.Width / 8,
+            image.Height / 8,
+            image.Width / 4,
+            image.Height / 4);
+        Rectangle destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-            image.Mutate(
-                x => x.Resize(
-                    image.Width,
-                    image.Height,
-                    KnownResamplers.Bicubic,
-                    sourceRectangle,
-                    destRectangle,
-                    false));
+        image.Mutate(
+            x => x.Resize(
+                image.Width,
+                image.Height,
+                KnownResamplers.Bicubic,
+                sourceRectangle,
+                destRectangle,
+                false));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -410,13 +390,11 @@ public class ResizeTests
     public void ResizeHeightAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(0, image.Height / 3, false));
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(0, image.Height / 3, false));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -424,12 +402,10 @@ public class ResizeTests
     public void ResizeHeightCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(0, 5));
-            Assert.Equal(1, image.Width);
-            Assert.Equal(5, image.Height);
-        }
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(0, 5));
+        Assert.Equal(1, image.Width);
+        Assert.Equal(5, image.Height);
     }
 
     [Theory]
@@ -437,13 +413,11 @@ public class ResizeTests
     public void ResizeWidthAndKeepAspect<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(image.Width / 3, 0, false));
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(image.Width / 3, 0, false));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -451,12 +425,10 @@ public class ResizeTests
     public void ResizeWidthCannotKeepAspectKeepsOnePixel<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.Mutate(x => x.Resize(5, 0));
-            Assert.Equal(5, image.Width);
-            Assert.Equal(1, image.Height);
-        }
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Resize(5, 0));
+        Assert.Equal(5, image.Width);
+        Assert.Equal(1, image.Height);
     }
 
     [Theory]
@@ -464,20 +436,18 @@ public class ResizeTests
     public void ResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions
         {
-            var options = new ResizeOptions
-            {
-                Size = new Size(image.Width + 200, image.Height + 200),
-                Mode = ResizeMode.BoxPad,
-                PadColor = Color.HotPink
-            };
+            Size = new Size(image.Width + 200, image.Height + 200),
+            Mode = ResizeMode.BoxPad,
+            PadColor = Color.HotPink
+        };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -485,15 +455,13 @@ public class ResizeTests
     public void ResizeWithCropHeightMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var options = new ResizeOptions { Size = new Size(image.Width, image.Height / 2) };
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions { Size = new Size(image.Width, image.Height / 2) };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -501,15 +469,13 @@ public class ResizeTests
     public void ResizeWithCropWidthMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var options = new ResizeOptions { Size = new Size(image.Width / 2, image.Height) };
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions { Size = new Size(image.Width / 2, image.Height) };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -517,19 +483,17 @@ public class ResizeTests
     public void CanResizeLargeImageWithCropMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions
         {
-            var options = new ResizeOptions
-            {
-                Size = new Size(480, 600),
-                Mode = ResizeMode.Crop
-            };
+            Size = new Size(480, 600),
+            Mode = ResizeMode.Crop
+        };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -537,15 +501,13 @@ public class ResizeTests
     public void ResizeWithMaxMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var options = new ResizeOptions { Size = new Size(300, 300), Mode = ResizeMode.Max };
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions { Size = new Size(300, 300), Mode = ResizeMode.Max };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -553,19 +515,17 @@ public class ResizeTests
     public void ResizeWithMinMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions
         {
-            var options = new ResizeOptions
-            {
-                Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
-                Mode = ResizeMode.Min
-            };
+            Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
+            Mode = ResizeMode.Min
+        };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -573,20 +533,18 @@ public class ResizeTests
     public void ResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions
         {
-            var options = new ResizeOptions
-            {
-                Size = new Size(image.Width + 200, image.Height),
-                Mode = ResizeMode.Pad,
-                PadColor = Color.Lavender
-            };
+            Size = new Size(image.Width + 200, image.Height),
+            Mode = ResizeMode.Pad,
+            PadColor = Color.Lavender
+        };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -594,19 +552,17 @@ public class ResizeTests
     public void ResizeWithStretchMode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        ResizeOptions options = new ResizeOptions
         {
-            var options = new ResizeOptions
-            {
-                Size = new Size(image.Width / 2, image.Height),
-                Mode = ResizeMode.Stretch
-            };
+            Size = new Size(image.Width / 2, image.Height),
+            Mode = ResizeMode.Stretch
+        };
 
-            image.Mutate(x => x.Resize(options));
+        image.Mutate(x => x.Resize(options));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, appendPixelTypeToFileName: false);
     }
 
     [Theory]
@@ -622,27 +578,23 @@ public class ResizeTests
             return;
         }
 
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            // Don't bother saving, we're testing the EXIF metadata updates.
-            image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-        }
+        using Image<TPixel> image = provider.GetImage();
+        // Don't bother saving, we're testing the EXIF metadata updates.
+        image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
     }
 
     [Fact]
     public void Issue1195()
     {
-        using (var image = new Image<Rgba32>(2, 300))
-        {
-            var size = new Size(50, 50);
-            image.Mutate(x => x
-                .Resize(
-                    new ResizeOptions
-                    {
-                        Size = size,
-                        Mode = ResizeMode.Max
-                    }));
-        }
+        using Image<Rgba32> image = new Image<Rgba32>(2, 300);
+        Size size = new Size(50, 50);
+        image.Mutate(x => x
+            .Resize(
+                new ResizeOptions
+                {
+                    Size = size,
+                    Mode = ResizeMode.Max
+                }));
     }
 
     [Theory]
@@ -653,20 +605,18 @@ public class ResizeTests
     [InlineData(3, 7)]
     public void Issue1342(int width, int height)
     {
-        using (var image = new Image<Rgba32>(1, 1))
-        {
-            var size = new Size(width, height);
-            image.Mutate(x => x
-                .Resize(
-                    new ResizeOptions
-                    {
-                        Size = size,
-                        Sampler = KnownResamplers.NearestNeighbor
-                    }));
+        using Image<Rgba32> image = new Image<Rgba32>(1, 1);
+        Size size = new Size(width, height);
+        image.Mutate(x => x
+            .Resize(
+                new ResizeOptions
+                {
+                    Size = size,
+                    Sampler = KnownResamplers.NearestNeighbor
+                }));
 
-            Assert.Equal(width, image.Width);
-            Assert.Equal(height, image.Height);
-        }
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
     }
 
     [Theory]

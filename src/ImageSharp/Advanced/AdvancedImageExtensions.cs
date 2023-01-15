@@ -19,9 +19,9 @@ public static class AdvancedImageExtensions
     /// </summary>
     /// <param name="source">The source image.</param>
     /// <param name="filePath">The target file path to save the image to.</param>
-    /// <exception cref="ArgumentNullException">The file path is null.</exception>
-    /// <exception cref="NotSupportedException">No encoder available for provided path.</exception>
     /// <returns>The matching <see cref="IImageEncoder"/>.</returns>
+    /// <exception cref="ArgumentNullException">The file path is null.</exception>
+    /// <exception cref="UnknownImageFormatException">No encoder available for provided path.</exception>
     public static IImageEncoder DetectEncoder(this Image source, string filePath)
     {
         Guard.NotNull(filePath, nameof(filePath));
@@ -30,27 +30,27 @@ public static class AdvancedImageExtensions
         if (!source.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat? format))
         {
             StringBuilder sb = new();
-            sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}'. Registered encoders include:");
+            sb = sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}'. Registered encoders include:");
             foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
             {
-                sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
+                sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
             }
 
-            throw new NotSupportedException(sb.ToString());
+            throw new UnknownImageFormatException(sb.ToString());
         }
 
-        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.GetEncoder(format);
 
         if (encoder is null)
         {
             StringBuilder sb = new();
-            sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+            sb = sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
             foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
             {
-                sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
+                sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
             }
 
-            throw new NotSupportedException(sb.ToString());
+            throw new UnknownImageFormatException(sb.ToString());
         }
 
         return encoder;

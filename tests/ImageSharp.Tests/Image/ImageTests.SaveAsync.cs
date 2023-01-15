@@ -21,30 +21,26 @@ public partial class ImageTests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "DetectedEncodingAsync.png");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (Image<Rgba32> image = new(10, 10))
             {
                 await image.SaveAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            IImageFormat format = Image.DetectFormat(file);
+            Assert.True(format is PngFormat);
         }
 
         [Fact]
-        public async Task WhenExtensionIsUnknown_Throws()
+        public Task WhenExtensionIsUnknown_Throws_UnknownImageFormatException()
         {
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
-            await Assert.ThrowsAsync<NotSupportedException>(
+            return Assert.ThrowsAsync<UnknownImageFormatException>(
                 async () =>
                     {
-                        using (var image = new Image<Rgba32>(10, 10))
-                        {
-                            await image.SaveAsync(file);
-                        }
+                        using Image<Rgba32> image = new(10, 10);
+                        await image.SaveAsync(file);
                     });
         }
 
@@ -54,15 +50,13 @@ public partial class ImageTests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = Path.Combine(dir, "SetEncoding.dat");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (Image<Rgba32> image = new(10, 10))
             {
                 await image.SaveAsync(file, new PngEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/png", mime.DefaultMimeType);
-            }
+            IImageFormat format = Image.DetectFormat(file);
+            Assert.True(format is PngFormat);
         }
 
         [Theory]
@@ -74,39 +68,29 @@ public partial class ImageTests
         [InlineData("test.gif", "image/gif")]
         public async Task SaveStreamWithMime(string filename, string mimeType)
         {
-            using (var image = new Image<Rgba32>(5, 5))
-            {
-                string ext = Path.GetExtension(filename);
-                image.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat format);
-                Assert.Equal(mimeType, format!.DefaultMimeType);
+            using Image<Rgba32> image = new(5, 5);
+            string ext = Path.GetExtension(filename);
+            image.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat format);
+            Assert.Equal(mimeType, format!.DefaultMimeType);
 
-                using (var stream = new MemoryStream())
-                {
-                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                    await image.SaveAsync(asyncStream, format);
+            using MemoryStream stream = new();
+            AsyncStreamWrapper asyncStream = new(stream, () => false);
+            await image.SaveAsync(asyncStream, format);
 
-                    stream.Position = 0;
+            stream.Position = 0;
 
-                    (Image Image, IImageFormat Format) imf = await Image.LoadWithFormatAsync(stream);
-
-                    Assert.Equal(format, imf.Format);
-                    Assert.Equal(mimeType, imf.Format.DefaultMimeType);
-
-                    imf.Image.Dispose();
-                }
-            }
+            IImageFormat format2 = Image.DetectFormat(stream);
+            Assert.Equal(format, format2);
         }
 
         [Fact]
         public async Task ThrowsWhenDisposed()
         {
-            var image = new Image<Rgba32>(5, 5);
+            Image<Rgba32> image = new(5, 5);
             image.Dispose();
             IImageEncoder encoder = Mock.Of<IImageEncoder>();
-            using (var stream = new MemoryStream())
-            {
-                await Assert.ThrowsAsync<ObjectDisposedException>(async () => await image.SaveAsync(stream, encoder));
-            }
+            using MemoryStream stream = new();
+            await Assert.ThrowsAsync<ObjectDisposedException>(async () => await image.SaveAsync(stream, encoder));
         }
 
         [Theory]
@@ -118,27 +102,23 @@ public partial class ImageTests
         [InlineData("test.gif")]
         public async Task SaveAsync_NeverCallsSyncMethods(string filename)
         {
-            using (var image = new Image<Rgba32>(5, 5))
-            {
-                IImageEncoder encoder = image.DetectEncoder(filename);
-                using (var stream = new MemoryStream())
-                {
-                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                    await image.SaveAsync(asyncStream, encoder);
-                }
-            }
+            using Image<Rgba32> image = new(5, 5);
+            IImageEncoder encoder = image.DetectEncoder(filename);
+            using MemoryStream stream = new();
+            AsyncStreamWrapper asyncStream = new(stream, () => false);
+            await image.SaveAsync(asyncStream, encoder);
         }
 
         [Fact]
         public async Task SaveAsync_WithNonSeekableStream_IsCancellable()
         {
-            using var image = new Image<Rgba32>(4000, 4000);
-            var encoder = new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression };
-            using var stream = new MemoryStream();
-            var asyncStream = new AsyncStreamWrapper(stream, () => false);
-            var cts = new CancellationTokenSource();
+            using Image<Rgba32> image = new(4000, 4000);
+            PngEncoder encoder = new() { CompressionLevel = PngCompressionLevel.BestCompression };
+            using MemoryStream stream = new();
+            AsyncStreamWrapper asyncStream = new(stream, () => false);
+            CancellationTokenSource cts = new();
 
-            var pausedStream = new PausedStream(asyncStream);
+            PausedStream pausedStream = new(asyncStream);
             pausedStream.OnWaiting(s =>
             {
                 cts.Cancel();

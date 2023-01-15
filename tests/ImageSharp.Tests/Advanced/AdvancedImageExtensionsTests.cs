@@ -30,7 +30,7 @@ public class AdvancedImageExtensionsTests
             IMemoryGroup<TPixel> memoryGroup = image.GetPixelMemoryGroup();
 
             // Assert:
-            VerifyMemoryGroupDataMatchesTestPattern(provider, memoryGroup, image.Size());
+            VerifyMemoryGroupDataMatchesTestPattern(provider, memoryGroup, image.Size);
         }
 
         [Theory]
@@ -57,23 +57,23 @@ public class AdvancedImageExtensionsTests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image0 = provider.GetImage();
-            var targetBuffer = new TPixel[image0.Width * image0.Height];
+            TPixel[] targetBuffer = new TPixel[image0.Width * image0.Height];
 
             Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> sourceBuffer));
 
             sourceBuffer.CopyTo(targetBuffer);
 
-            var managerOfExternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
+            TestMemoryManager<TPixel> managerOfExternalMemory = new(targetBuffer);
 
             Memory<TPixel> externalMemory = managerOfExternalMemory.Memory;
 
-            using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
+            using (Image<TPixel> image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
             {
-                VerifyMemoryGroupDataMatchesTestPattern(provider, image1.GetPixelMemoryGroup(), image1.Size());
+                VerifyMemoryGroupDataMatchesTestPattern(provider, image1.GetPixelMemoryGroup(), image1.Size);
             }
 
             // Make sure externalMemory works after destruction:
-            VerifyMemoryGroupDataMatchesTestPattern(provider, image0.GetPixelMemoryGroup(), image0.Size());
+            VerifyMemoryGroupDataMatchesTestPattern(provider, image0.GetPixelMemoryGroup(), image0.Size);
         }
 
         private static void VerifyMemoryGroupDataMatchesTestPattern<TPixel>(

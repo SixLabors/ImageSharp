@@ -95,5 +95,5 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
         return this;
     }
 
-    private Rectangle GetCurrentBounds() => this.destination?.Bounds() ?? this.source.Bounds();
+    private Rectangle GetCurrentBounds() => this.destination?.Bounds ?? this.source.Bounds;
 }

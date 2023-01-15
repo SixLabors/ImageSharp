@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats;
 
@@ -208,10 +207,10 @@ public class GeneralFormatTests
         foreach (TestFile file in Files)
         {
             byte[] serialized;
-            using (Image image = Image.Load(file.Bytes, out IImageFormat mimeType))
+            using (Image image = Image.Load(file.Bytes))
             using (MemoryStream memoryStream = new())
             {
-                image.Save(memoryStream, mimeType);
+                image.Save(memoryStream, image.Metadata.DecodedImageFormat);
                 memoryStream.Flush();
                 serialized = memoryStream.ToArray();
             }
@@ -257,27 +256,21 @@ public class GeneralFormatTests
         image.Save(memoryStream, format);
         memoryStream.Position = 0;
 
-        IImageInfo imageInfo = Image.Identify(memoryStream);
+        ImageInfo imageInfo = Image.Identify(memoryStream);
 
         Assert.Equal(imageInfo.Width, width);
         Assert.Equal(imageInfo.Height, height);
-        memoryStream.Position = 0;
-
-        imageInfo = Image.Identify(memoryStream, out IImageFormat detectedFormat);
-
-        Assert.Equal(format, detectedFormat);
+        Assert.Equal(format, imageInfo.Metadata.DecodedImageFormat);
     }
 
     [Fact]
-    public void IdentifyReturnsNullWithInvalidStream()
+    public void Identify_UnknownImageFormatException_WithInvalidStream()
     {
         byte[] invalid = new byte[10];
 
         using MemoryStream memoryStream = new(invalid);
-        IImageInfo imageInfo = Image.Identify(memoryStream, out IImageFormat format);
 
-        Assert.Null(imageInfo);
-        Assert.Null(format);
+        Assert.Throws<UnknownImageFormatException>(() => Image.Identify(invalid));
     }
 
     private static IImageFormat GetFormat(string format)

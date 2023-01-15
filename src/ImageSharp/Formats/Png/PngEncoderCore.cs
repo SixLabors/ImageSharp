@@ -1300,7 +1300,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration());
 
         frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, image);
-        return frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+        return frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
     }
 
     /// <summary>

@@ -175,7 +175,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         try
         {

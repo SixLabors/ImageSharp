@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -69,6 +68,10 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         this.IccProfile = other.IccProfile?.DeepClone();
         this.IptcProfile = other.IptcProfile?.DeepClone();
         this.XmpProfile = other.XmpProfile?.DeepClone();
+
+        // NOTE: This clone is actually shallow but we share the same format
+        // instances for all images in the configuration.
+        this.DecodedImageFormat = other.DecodedImageFormat;
     }
 
     /// <summary>
@@ -137,22 +140,27 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <summary>
     /// Gets or sets the Exif profile.
     /// </summary>
-    public ExifProfile ExifProfile { get; set; }
+    public ExifProfile? ExifProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the XMP profile.
     /// </summary>
-    public XmpProfile XmpProfile { get; set; }
+    public XmpProfile? XmpProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the ICC profile.
     /// </summary>
-    public IccProfile IccProfile { get; set; }
+    public IccProfile? IccProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the IPTC profile.
     /// </summary>
-    public IptcProfile IptcProfile { get; set; }
+    public IptcProfile? IptcProfile { get; set; }
+
+    /// <summary>
+    /// Gets the original format, if any, the image was decode from.
+    /// </summary>
+    public IImageFormat? DecodedImageFormat { get; internal set; }
 
     /// <summary>
     /// Gets the metadata value associated with the specified key.
@@ -165,7 +173,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public TFormatMetadata GetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
          where TFormatMetadata : class, IDeepCloneable
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
         {
             return (TFormatMetadata)meta;
         }

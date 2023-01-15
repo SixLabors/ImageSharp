@@ -15,7 +15,7 @@ public abstract class BaseImageOperationsExtensionTest : IDisposable
     protected readonly GraphicsOptions options;
     private readonly Image<Rgba32> source;
 
-    public Rectangle SourceBounds() => this.source.Bounds();
+    public Rectangle SourceBounds() => this.source.Bounds;
 
     public BaseImageOperationsExtensionTest()
     {

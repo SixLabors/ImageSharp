@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Memory;
 
@@ -69,7 +68,7 @@ public readonly struct RowInterval : IEquatable<RowInterval>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return !ReferenceEquals(null, obj) && obj is RowInterval other && this.Equals(other);
     }

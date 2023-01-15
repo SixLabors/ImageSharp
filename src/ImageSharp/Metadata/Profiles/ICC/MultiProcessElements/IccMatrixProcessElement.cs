@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -38,7 +37,7 @@ internal sealed class IccMatrixProcessElement : IccMultiProcessElement, IEquatab
     public float[] MatrixOx1 { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccMultiProcessElement other)
+    public override bool Equals(IccMultiProcessElement? other)
     {
         if (base.Equals(other) && other is IccMatrixProcessElement element)
         {
@@ -50,11 +49,11 @@ internal sealed class IccMatrixProcessElement : IccMultiProcessElement, IEquatab
     }
 
     /// <inheritdoc />
-    public bool Equals(IccMatrixProcessElement other)
-        => this.Equals((IccMultiProcessElement)other);
+    public bool Equals(IccMatrixProcessElement? other)
+        => this.Equals((IccMultiProcessElement?)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccMatrixProcessElement);
 
     /// <inheritdoc />

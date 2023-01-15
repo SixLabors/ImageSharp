@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -89,7 +88,7 @@ public readonly struct YCbCr : IEquatable<YCbCr>
     public override string ToString() => FormattableString.Invariant($"YCbCr({this.Y}, {this.Cb}, {this.Cr})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is YCbCr other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is YCbCr other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -67,7 +66,7 @@ internal readonly struct IccLut : IEquatable<IccLut>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccLut iccLut && this.Equals(iccLut);
 
     /// <inheritdoc/>

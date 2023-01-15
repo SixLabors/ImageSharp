@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 
@@ -35,7 +34,7 @@ internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTag
     public Vector3[] Data { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         if (base.Equals(other) && other is IccXyzTagDataEntry entry)
         {
@@ -46,11 +45,11 @@ internal sealed class IccXyzTagDataEntry : IccTagDataEntry, IEquatable<IccXyzTag
     }
 
     /// <inheritdoc />
-    public bool Equals(IccXyzTagDataEntry other)
-        => this.Equals((IccTagDataEntry)other);
+    public bool Equals(IccXyzTagDataEntry? other)
+        => this.Equals((IccTagDataEntry?)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccXyzTagDataEntry);
 
     public override int GetHashCode()

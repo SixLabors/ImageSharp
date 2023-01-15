@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -101,7 +100,7 @@ public readonly struct EncodedString : IEquatable<EncodedString>
     public static bool operator !=(EncodedString left, EncodedString right) => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is EncodedString other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is EncodedString other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(EncodedString other) => this.Text == other.Text && this.Code == other.Code;

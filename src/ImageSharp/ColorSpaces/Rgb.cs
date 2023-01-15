@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -153,7 +152,7 @@ public readonly struct Rgb : IEquatable<Rgb>
     public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Rgb other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

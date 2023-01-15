@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -471,7 +470,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         && this.V7R == other.V7R;
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals((Block8x8F)obj);
+    public override bool Equals(object? obj) => this.Equals((Block8x8F?)obj);
 
     /// <inheritdoc />
     public override int GetHashCode()

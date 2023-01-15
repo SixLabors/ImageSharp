@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -132,7 +131,7 @@ public readonly struct LinearRgb : IEquatable<LinearRgb>
     public override string ToString() => FormattableString.Invariant($"LinearRgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is LinearRgb other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is LinearRgb other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

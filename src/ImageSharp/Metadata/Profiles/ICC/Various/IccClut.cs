@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -112,7 +111,7 @@ internal sealed class IccClut : IEquatable<IccClut>
     public byte[] GridPointCount { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccClut other)
+    public bool Equals(IccClut? other)
     {
         if (other is null)
         {
@@ -132,7 +131,7 @@ internal sealed class IccClut : IEquatable<IccClut>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccClut other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccClut other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

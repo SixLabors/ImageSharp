@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Text;
 
@@ -58,14 +57,14 @@ internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataT
     /// Gets the <see cref="Data"/> decoded as 7bit ASCII.
     /// If <see cref="IsAscii"/> is false, returns null
     /// </summary>
-    public string AsciiString => this.IsAscii ? Encoding.ASCII.GetString(this.Data, 0, this.Data.Length) : null;
+    public string? AsciiString => this.IsAscii ? Encoding.ASCII.GetString(this.Data, 0, this.Data.Length) : null;
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccDataTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccDataTagDataEntry other)
+    public bool Equals(IccDataTagDataEntry? other)
     {
         if (other is null)
         {
@@ -81,7 +80,7 @@ internal sealed class IccDataTagDataEntry : IccTagDataEntry, IEquatable<IccDataT
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccDataTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>

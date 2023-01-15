@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -96,7 +95,7 @@ public readonly struct Cmyk : IEquatable<Cmyk>
     public override string ToString() => FormattableString.Invariant($"Cmyk({this.C:#0.##}, {this.M:#0.##}, {this.Y:#0.##}, {this.K:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Cmyk other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Cmyk other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

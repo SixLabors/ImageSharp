@@ -177,7 +177,7 @@ public abstract class ImageDecoder : IImageDecoder
             return;
         }
 
-        IccProfile profile = image.Metadata?.IccProfile;
+        IccProfile? profile = image.Metadata?.IccProfile;
         if (profile is not null)
         {
             IccProfileConverter.Convert(image, profile, SrgbV4Profile.GetProfile());

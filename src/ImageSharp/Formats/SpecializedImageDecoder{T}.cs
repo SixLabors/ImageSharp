@@ -25,7 +25,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
 
         TransformColorProfile(options.GeneralOptions, image);
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
-        
+
         return image;
     }
 
@@ -39,7 +39,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
 
         TransformColorProfile(options.GeneralOptions, image);
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
-        
+
         return image;
     }
 
@@ -55,7 +55,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
 
         TransformColorProfile(options.GeneralOptions, image);
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
-        
+
         return image;
     }
 
@@ -70,7 +70,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
 
         TransformColorProfile(options.GeneralOptions, image);
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
-        
+
         return image;
     }
 

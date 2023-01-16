@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -122,7 +121,7 @@ internal sealed class IccParametricCurve : IEquatable<IccParametricCurve>
     public float F { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccParametricCurve other)
+    public bool Equals(IccParametricCurve? other)
     {
         if (other is null)
         {
@@ -145,7 +144,7 @@ internal sealed class IccParametricCurve : IEquatable<IccParametricCurve>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccParametricCurve other && this.Equals(other);
     }

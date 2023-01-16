@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -66,7 +65,7 @@ internal readonly struct IccNamedColor : IEquatable<IccNamedColor>
     public static bool operator !=(IccNamedColor left, IccNamedColor right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccNamedColor other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccNamedColor other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(IccNamedColor other)

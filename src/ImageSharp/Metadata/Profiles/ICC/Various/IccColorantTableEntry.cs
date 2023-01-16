@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -84,7 +83,7 @@ internal readonly struct IccColorantTableEntry : IEquatable<IccColorantTableEntr
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccColorantTableEntry other && this.Equals(other);
     }

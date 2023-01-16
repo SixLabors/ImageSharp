@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 
@@ -71,13 +70,13 @@ internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry, IEquatable<I
     public IccStandardIlluminant Illuminant { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
     {
         return other is IccMeasurementTagDataEntry entry && this.Equals(entry);
     }
 
     /// <inheritdoc/>
-    public bool Equals(IccMeasurementTagDataEntry other)
+    public bool Equals(IccMeasurementTagDataEntry? other)
     {
         if (other is null)
         {
@@ -98,7 +97,7 @@ internal sealed class IccMeasurementTagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccMeasurementTagDataEntry other && this.Equals(other);
     }

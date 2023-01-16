@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -249,7 +248,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is DenseMatrix<T> other && this.Equals(other);
 
     /// <inheritdoc/>

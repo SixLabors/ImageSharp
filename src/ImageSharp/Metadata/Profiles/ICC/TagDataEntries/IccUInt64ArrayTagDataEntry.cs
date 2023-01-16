@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -32,10 +31,10 @@ internal sealed class IccUInt64ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     public ulong[] Data { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccUInt64ArrayTagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccUInt64ArrayTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccUInt64ArrayTagDataEntry other)
+    public bool Equals(IccUInt64ArrayTagDataEntry? other)
     {
         if (other is null)
         {
@@ -51,7 +50,7 @@ internal sealed class IccUInt64ArrayTagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccUInt64ArrayTagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccUInt64ArrayTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(this.Signature, this.Data);

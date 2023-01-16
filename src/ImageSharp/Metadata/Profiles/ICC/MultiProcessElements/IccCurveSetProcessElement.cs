@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -23,7 +22,7 @@ internal sealed class IccCurveSetProcessElement : IccMultiProcessElement, IEquat
     public IccOneDimensionalCurve[] Curves { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccMultiProcessElement other)
+    public override bool Equals(IccMultiProcessElement? other)
     {
         if (base.Equals(other) && other is IccCurveSetProcessElement element)
         {
@@ -34,10 +33,10 @@ internal sealed class IccCurveSetProcessElement : IccMultiProcessElement, IEquat
     }
 
     /// <inheritdoc />
-    public bool Equals(IccCurveSetProcessElement other) => this.Equals((IccMultiProcessElement)other);
+    public bool Equals(IccCurveSetProcessElement? other) => this.Equals((IccMultiProcessElement?)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals(obj as IccCurveSetProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccCurveSetProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode() => base.GetHashCode();

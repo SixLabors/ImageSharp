@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 
@@ -135,7 +134,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is SignedRational other && this.Equals(other);
     }

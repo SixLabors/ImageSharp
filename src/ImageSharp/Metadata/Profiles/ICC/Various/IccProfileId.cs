@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 
@@ -81,7 +80,7 @@ public readonly struct IccProfileId : IEquatable<IccProfileId>
     public static bool operator !=(IccProfileId left, IccProfileId right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccProfileId other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccProfileId other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(IccProfileId other) =>

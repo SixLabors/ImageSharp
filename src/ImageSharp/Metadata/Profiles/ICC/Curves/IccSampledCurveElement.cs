@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -28,7 +27,7 @@ internal sealed class IccSampledCurveElement : IccCurveSegment, IEquatable<IccSa
     public float[] CurveEntries { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccCurveSegment other)
+    public override bool Equals(IccCurveSegment? other)
     {
         if (base.Equals(other) && other is IccSampledCurveElement segment)
         {
@@ -39,11 +38,11 @@ internal sealed class IccSampledCurveElement : IccCurveSegment, IEquatable<IccSa
     }
 
     /// <inheritdoc />
-    public bool Equals(IccSampledCurveElement other)
-        => this.Equals((IccCurveSegment)other);
+    public bool Equals(IccSampledCurveElement? other)
+        => this.Equals((IccCurveSegment?)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccSampledCurveElement);
 
     /// <inheritdoc />

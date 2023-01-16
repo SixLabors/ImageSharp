@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -85,11 +84,11 @@ internal sealed class IccCrdInfoTagDataEntry : IccTagDataEntry, IEquatable<IccCr
     public string RenderingIntent3Crd { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccCrdInfoTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccCrdInfoTagDataEntry other)
+    public bool Equals(IccCrdInfoTagDataEntry? other)
     {
         if (other is null)
         {
@@ -110,7 +109,7 @@ internal sealed class IccCrdInfoTagDataEntry : IccTagDataEntry, IEquatable<IccCr
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccCrdInfoTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>

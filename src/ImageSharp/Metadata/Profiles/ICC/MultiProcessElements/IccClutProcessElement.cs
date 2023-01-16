@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -23,7 +22,7 @@ internal sealed class IccClutProcessElement : IccMultiProcessElement, IEquatable
     public IccClut ClutValue { get; }
 
     /// <inheritdoc />
-    public override bool Equals(IccMultiProcessElement other)
+    public override bool Equals(IccMultiProcessElement? other)
     {
         if (base.Equals(other) && other is IccClutProcessElement element)
         {
@@ -34,10 +33,10 @@ internal sealed class IccClutProcessElement : IccMultiProcessElement, IEquatable
     }
 
     /// <inheritdoc />
-    public bool Equals(IccClutProcessElement other) => this.Equals((IccMultiProcessElement)other);
+    public bool Equals(IccClutProcessElement? other) => this.Equals((IccMultiProcessElement?)other);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => this.Equals(obj as IccClutProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccClutProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode() => base.GetHashCode();

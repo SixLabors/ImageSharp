@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -89,7 +88,7 @@ public readonly struct CieXyy : IEquatable<CieXyy>
     public override string ToString() => FormattableString.Invariant($"CieXyy({this.X:#0.##}, {this.Y:#0.##}, {this.Yl:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is CieXyy other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is CieXyy other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

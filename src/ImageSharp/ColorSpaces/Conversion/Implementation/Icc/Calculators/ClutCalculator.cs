@@ -14,6 +14,7 @@ internal class ClutCalculator : IVector4Calculator
     private readonly byte[] gridPointCount;
     private readonly int[] indexFactor;
     private readonly int nodeCount;
+    private readonly float[][] nodes;
 
     public ClutCalculator(IccClut clut)
     {
@@ -25,6 +26,7 @@ internal class ClutCalculator : IVector4Calculator
         this.gridPointCount = clut.GridPointCount;
         this.indexFactor = CalculateIndexFactor(clut.InputChannelCount, clut.GridPointCount);
         this.nodeCount = (int)Math.Pow(2, clut.InputChannelCount);
+        this.nodes = new float[this.nodeCount][];
     }
 
     public unsafe Vector4 Calculate(Vector4 value)
@@ -50,8 +52,7 @@ internal class ClutCalculator : IVector4Calculator
 
     private unsafe void Interpolate(float* values, int valueLength, float* result, int resultLength)
     {
-        float[][] nodes = new float[this.nodeCount][];
-        for (int i = 0; i < nodes.Length; i++)
+        for (int i = 0; i < this.nodes.Length; i++)
         {
             int index = 0;
             for (int j = 0; j < valueLength; j++)
@@ -61,7 +62,9 @@ internal class ClutCalculator : IVector4Calculator
                 index += (int)((this.indexFactor[j] * (position * fraction)) + 0.5f);
             }
 
-            nodes[i] = this.lut[index];
+            // TODO: The CMYK profile in our tests causes an out of range exception
+            // against 'lut'. Clamping the index leads to incorrect results.
+            this.nodes[i] = this.lut[index];
         }
 
         Span<float> factors = stackalloc float[this.nodeCount];
@@ -92,9 +95,9 @@ internal class ClutCalculator : IVector4Calculator
 
         for (int i = 0; i < resultLength; i++)
         {
-            for (int j = 0; j < nodes.Length; j++)
+            for (int j = 0; j < this.nodes.Length; j++)
             {
-                result[i] += nodes[j][i] * factors[j];
+                result[i] += this.nodes[j][i] * factors[j];
             }
         }
     }

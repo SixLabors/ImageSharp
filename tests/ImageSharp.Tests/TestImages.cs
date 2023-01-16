@@ -176,6 +176,7 @@ public static class TestImages
             public const string ProPhoto = "Jpg/icc-profiles/Momiji-ProPhoto-yes.jpg";
             public const string WideRGB = "Jpg/icc-profiles/Momiji-WideRGB-yes.jpg";
             public const string AppleRGB = "Jpg/icc-profiles/Momiji-AppleRGB-yes.jpg";
+            public const string CMYK = "Jpg/icc-profiles/issue-129.jpg";
         }
 
         public static class Progressive

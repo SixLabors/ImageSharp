@@ -20,6 +20,7 @@ public class IccProfileConverterTests
     [WithFile(TestImages.Jpeg.ICC.WideRGB, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.ICC.CMYK, PixelTypes.Rgb24)]
     public void CanRoundTripProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -45,6 +46,7 @@ public class IccProfileConverterTests
     [WithFile(TestImages.Jpeg.ICC.WideRGB, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.ICC.CMYK, PixelTypes.Rgb24)]
     public void CanConvertToSRGB<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

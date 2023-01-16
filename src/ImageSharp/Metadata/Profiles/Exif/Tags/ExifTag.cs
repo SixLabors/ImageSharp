@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -34,7 +33,7 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     public static bool operator !=(ExifTag left, ExifTag right) => !Equals(left, right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is ExifTag value)
         {
@@ -45,7 +44,7 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     }
 
     /// <inheritdoc/>
-    public bool Equals(ExifTag other)
+    public bool Equals(ExifTag? other)
     {
         if (other is null)
         {

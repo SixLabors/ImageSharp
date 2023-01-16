@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -141,7 +140,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is Bgra5551 other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Bgra5551 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -128,7 +127,7 @@ public readonly struct CieLch : IEquatable<CieLch>
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public override bool Equals(object obj) => obj is CieLch other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is CieLch other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.InteropServices;
 
@@ -77,7 +76,7 @@ internal readonly struct IccScreeningChannel : IEquatable<IccScreeningChannel>
         this.SpotShape == other.SpotShape;
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is IccScreeningChannel other && this.Equals(other);
     }

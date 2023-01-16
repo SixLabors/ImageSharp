@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -37,7 +36,7 @@ internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve
     public IccCurveSegment[] Segments { get; }
 
     /// <inheritdoc />
-    public bool Equals(IccOneDimensionalCurve other)
+    public bool Equals(IccOneDimensionalCurve? other)
     {
         if (other is null)
         {
@@ -54,7 +53,7 @@ internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => this.Equals(obj as IccOneDimensionalCurve);
 
     /// <inheritdoc />

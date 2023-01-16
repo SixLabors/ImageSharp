@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -126,7 +125,7 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is TiffBitsPerSample sample && this.Equals(sample);
 
     /// <inheritdoc/>

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -107,7 +106,7 @@ internal readonly struct GifGraphicControlExtension : IGifExtension, IEquatable<
         return value;
     }
 
-    public override bool Equals(object obj) => obj is GifGraphicControlExtension extension && this.Equals(extension);
+    public override bool Equals(object? obj) => obj is GifGraphicControlExtension extension && this.Equals(extension);
 
     public bool Equals(GifGraphicControlExtension other)
         => this.BlockSize == other.BlockSize

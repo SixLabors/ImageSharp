@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -49,7 +48,7 @@ internal struct ComplexVector4 : IEquatable<ComplexVector4>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is ComplexVector4 other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is ComplexVector4 other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

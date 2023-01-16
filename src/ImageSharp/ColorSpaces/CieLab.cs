@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -124,7 +123,7 @@ public readonly struct CieLab : IEquatable<CieLab>
     public override string ToString() => FormattableString.Invariant($"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is CieLab other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is CieLab other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

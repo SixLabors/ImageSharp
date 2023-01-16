@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
 
@@ -73,7 +72,7 @@ public readonly struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrima
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is RgbPrimariesChromaticityCoordinates other && this.Equals(other);
     }

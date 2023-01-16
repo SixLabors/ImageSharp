@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 
@@ -46,7 +45,7 @@ internal sealed class IccResponseCurve : IEquatable<IccResponseCurve>
     public IccResponseNumber[][] ResponseArrays { get; }
 
     /// <inheritdoc/>
-    public bool Equals(IccResponseCurve other)
+    public bool Equals(IccResponseCurve? other)
     {
         if (other is null)
         {
@@ -64,7 +63,7 @@ internal sealed class IccResponseCurve : IEquatable<IccResponseCurve>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccResponseCurve other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccResponseCurve other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

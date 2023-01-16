@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -72,7 +71,7 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     /// <param name="suffix">Suffix</param>
     /// <param name="colors">The named colors</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccNamedColor2TagDataEntry(int vendorFlags, string prefix, string suffix, IccNamedColor[] colors, IccProfileTag tagSignature)
+    public IccNamedColor2TagDataEntry(int vendorFlags, string? prefix, string? suffix, IccNamedColor[] colors, IccProfileTag tagSignature)
         : base(IccTypeSignature.NamedColor2, tagSignature)
     {
         Guard.NotNull(colors, nameof(colors));
@@ -100,12 +99,12 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     /// <summary>
     /// Gets the prefix
     /// </summary>
-    public string Prefix { get; }
+    public string? Prefix { get; }
 
     /// <summary>
     /// Gets the suffix
     /// </summary>
-    public string Suffix { get; }
+    public string? Suffix { get; }
 
     /// <summary>
     /// Gets the vendor specific flags
@@ -118,11 +117,11 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     public IccNamedColor[] Colors { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccNamedColor2TagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccNamedColor2TagDataEntry other)
+    public bool Equals(IccNamedColor2TagDataEntry? other)
     {
         if (other is null)
         {
@@ -143,7 +142,7 @@ internal sealed class IccNamedColor2TagDataEntry : IccTagDataEntry, IEquatable<I
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccNamedColor2TagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>

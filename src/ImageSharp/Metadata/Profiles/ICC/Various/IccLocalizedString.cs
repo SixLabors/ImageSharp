@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 
@@ -51,7 +50,7 @@ internal readonly struct IccLocalizedString : IEquatable<IccLocalizedString>
     /// <inheritdoc />
     public override string ToString() => $"{this.Culture.Name}: {this.Text}";
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccLocalizedString iccLocalizedString && this.Equals(iccLocalizedString);
 
     public override int GetHashCode()

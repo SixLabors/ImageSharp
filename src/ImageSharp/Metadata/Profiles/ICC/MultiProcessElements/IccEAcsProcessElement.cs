@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -20,9 +19,9 @@ internal sealed class IccEAcsProcessElement : IccMultiProcessElement, IEquatable
     }
 
     /// <inheritdoc />
-    public bool Equals(IccEAcsProcessElement other) => base.Equals(other);
+    public bool Equals(IccEAcsProcessElement? other) => base.Equals(other);
 
-    public override bool Equals(object obj) => this.Equals(obj as IccEAcsProcessElement);
+    public override bool Equals(object? obj) => this.Equals(obj as IccEAcsProcessElement);
 
     /// <inheritdoc />
     public override int GetHashCode() => base.GetHashCode();

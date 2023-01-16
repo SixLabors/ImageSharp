@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -22,7 +21,7 @@ internal abstract class IccCurveSegment : IEquatable<IccCurveSegment>
     public IccCurveSegmentSignature Signature { get; }
 
     /// <inheritdoc/>
-    public virtual bool Equals(IccCurveSegment other)
+    public virtual bool Equals(IccCurveSegment? other)
     {
         if (other is null)
         {
@@ -38,7 +37,7 @@ internal abstract class IccCurveSegment : IEquatable<IccCurveSegment>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => this.Equals(obj as IccCurveSegment);
+    public override bool Equals(object? obj) => this.Equals(obj as IccCurveSegment);
 
     /// <inheritdoc/>
     public override int GetHashCode() => this.Signature.GetHashCode();

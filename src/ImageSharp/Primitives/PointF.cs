@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.ComponentModel;
 using System.Numerics;
@@ -284,7 +283,7 @@ public struct PointF : IEquatable<PointF>
     public override string ToString() => $"PointF [ X={this.X}, Y={this.Y} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is PointF pointF && this.Equals(pointF);
+    public override bool Equals(object? obj) => obj is PointF pointF && this.Equals(pointF);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

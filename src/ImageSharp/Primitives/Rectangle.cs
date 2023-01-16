@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.ComponentModel;
 using System.Numerics;
@@ -444,7 +443,7 @@ public struct Rectangle : IEquatable<Rectangle>
     public override string ToString() => $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Rectangle other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Rectangle other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

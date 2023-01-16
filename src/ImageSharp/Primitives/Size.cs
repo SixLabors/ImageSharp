@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.ComponentModel;
 using System.Numerics;
@@ -269,7 +268,7 @@ public struct Size : IEquatable<Size>
     public override string ToString() => $"Size [ Width={this.Width}, Height={this.Height} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is Size other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Size other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 
@@ -113,10 +112,10 @@ internal sealed class IccLut8TagDataEntry : IccTagDataEntry, IEquatable<IccLut8T
     public IccLut[] OutputValues { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other) => other is IccLut8TagDataEntry entry && this.Equals(entry);
+    public override bool Equals(IccTagDataEntry? other) => other is IccLut8TagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
-    public bool Equals(IccLut8TagDataEntry other)
+    public bool Equals(IccLut8TagDataEntry? other)
     {
         if (other is null)
         {
@@ -136,7 +135,7 @@ internal sealed class IccLut8TagDataEntry : IccTagDataEntry, IEquatable<IccLut8T
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is IccLut8TagDataEntry other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccLut8TagDataEntry other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode()

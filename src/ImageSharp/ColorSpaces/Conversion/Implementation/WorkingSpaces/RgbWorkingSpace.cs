@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
 
@@ -53,7 +52,7 @@ public abstract class RgbWorkingSpace
     public abstract float Compress(float channel);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null)
         {

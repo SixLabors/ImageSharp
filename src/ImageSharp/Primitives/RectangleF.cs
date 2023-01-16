@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.ComponentModel;
 using System.Numerics;
@@ -379,7 +378,7 @@ public struct RectangleF : IEquatable<RectangleF>
         => $"RectangleF [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object obj) => obj is RectangleF other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is RectangleF other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

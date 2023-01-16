@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -56,7 +55,7 @@ public readonly struct IccVersion : IEquatable<IccVersion>
         => !(left == right);
 
     /// <inheritdoc/>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccVersion iccVersion && this.Equals(iccVersion);
 
     /// <inheritdoc/>

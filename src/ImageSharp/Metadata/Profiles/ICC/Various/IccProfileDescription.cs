@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -74,7 +73,7 @@ internal readonly struct IccProfileDescription : IEquatable<IccProfileDescriptio
         && this.DeviceModelInfo.AsSpan().SequenceEqual(other.DeviceModelInfo);
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is IccProfileDescription other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is IccProfileDescription other && this.Equals(other);
 
     /// <inheritdoc />
     public override int GetHashCode()

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -99,7 +98,7 @@ public readonly struct PngTextData : IEquatable<PngTextData>
     /// true if <paramref name="obj"/> and this instance are the same type and represent the
     /// same value; otherwise, false.
     /// </returns>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is PngTextData other && this.Equals(other);
 
     /// <summary>

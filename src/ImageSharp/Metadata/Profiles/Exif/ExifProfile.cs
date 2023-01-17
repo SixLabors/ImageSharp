@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -14,12 +15,12 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// The byte array to read the EXIF profile from.
     /// </summary>
-    private readonly byte[] data;
+    private readonly byte[]? data;
 
     /// <summary>
     /// The collection of EXIF values
     /// </summary>
-    private List<IExifValue> values;
+    private List<IExifValue>? values;
 
     /// <summary>
     /// The thumbnail offset position in the byte stream
@@ -35,7 +36,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Initializes a new instance of the <see cref="ExifProfile"/> class.
     /// </summary>
     public ExifProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -43,7 +44,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Initializes a new instance of the <see cref="ExifProfile"/> class.
     /// </summary>
     /// <param name="data">The byte array to read the EXIF profile from.</param>
-    public ExifProfile(byte[] data)
+    public ExifProfile(byte[]? data)
     {
         this.Parts = ExifParts.All;
         this.data = data;
@@ -110,6 +111,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Gets the values of this EXIF profile.
     /// </summary>
+    [MemberNotNull(nameof(values))]
     public IReadOnlyList<IExifValue> Values
     {
         get
@@ -125,7 +127,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <returns>
     /// The <see cref="Image"/>.
     /// </returns>
-    public Image CreateThumbnail() => this.CreateThumbnail<Rgba32>();
+    public Image? CreateThumbnail() => this.CreateThumbnail<Rgba32>();
 
     /// <summary>
     /// Returns the thumbnail in the EXIF profile when available.
@@ -134,7 +136,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <returns>
     /// The <see cref="Image{TPixel}"/>.
     /// </returns>
-    public Image<TPixel> CreateThumbnail<TPixel>()
+    public Image<TPixel>? CreateThumbnail<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.InitializeValues();
@@ -161,9 +163,9 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <param name="tag">The tag of the exif value.</param>
     /// <returns>The value with the specified tag.</returns>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
-    public IExifValue<TValueType> GetValue<TValueType>(ExifTag<TValueType> tag)
+    public IExifValue<TValueType>? GetValue<TValueType>(ExifTag<TValueType> tag)
     {
-        IExifValue value = this.GetValueInternal(tag);
+        IExifValue? value = this.GetValueInternal(tag);
         return value is null ? null : (IExifValue<TValueType>)value;
     }
 
@@ -203,7 +205,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Converts this instance to a byte array.
     /// </summary>
     /// <returns>The <see cref="T:byte[]"/></returns>
-    public byte[] ToByteArray()
+    public byte[]? ToByteArray()
     {
         if (this.values is null)
         {
@@ -227,7 +229,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <returns>The value with the specified tag.</returns>
-    internal IExifValue GetValueInternal(ExifTag tag)
+    internal IExifValue? GetValueInternal(ExifTag tag)
     {
         foreach (IExifValue exifValue in this.Values)
         {
@@ -245,7 +247,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <param name="value">The value.</param>
-    internal void SetValueInternal(ExifTag tag, object value)
+    internal void SetValueInternal(ExifTag tag, object? value)
     {
         foreach (IExifValue exifValue in this.Values)
         {
@@ -256,7 +258,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             }
         }
 
-        ExifValue newExifValue = ExifValues.Create(tag);
+        ExifValue? newExifValue = ExifValues.Create(tag);
         if (newExifValue is null)
         {
             throw new NotSupportedException();
@@ -278,7 +280,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
     private void SyncResolution(ExifTag<Rational> tag, double resolution)
     {
-        IExifValue<Rational> value = this.GetValue(tag);
+        IExifValue<Rational>? value = this.GetValue(tag);
 
         if (value is null)
         {
@@ -294,6 +296,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         this.SetValue(tag, newResolution);
     }
 
+    [MemberNotNull(nameof(values))]
     private void InitializeValues()
     {
         if (this.values != null)

@@ -22,7 +22,7 @@ internal sealed class ExifRationalArray : ExifArrayValue<Rational>
 
     public override ExifDataType DataType => ExifDataType.Rational;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

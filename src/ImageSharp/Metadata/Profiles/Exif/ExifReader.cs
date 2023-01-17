@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -20,7 +19,7 @@ internal class ExifReader : BaseExifReader
     {
     }
 
-    public ExifReader(byte[] exifData, MemoryAllocator allocator)
+    public ExifReader(byte[] exifData, MemoryAllocator? allocator)
         : base(new MemoryStream(exifData ?? throw new ArgumentNullException(nameof(exifData))), allocator)
     {
     }
@@ -90,13 +89,13 @@ internal abstract class BaseExifReader
     private readonly byte[] buf4 = new byte[4];
     private readonly byte[] buf2 = new byte[2];
 
-    private readonly MemoryAllocator allocator;
+    private readonly MemoryAllocator? allocator;
     private readonly Stream data;
-    private List<ExifTag> invalidTags;
+    private List<ExifTag>? invalidTags;
 
-    private List<ulong> subIfds;
+    private List<ulong>? subIfds;
 
-    protected BaseExifReader(Stream stream, MemoryAllocator allocator)
+    protected BaseExifReader(Stream stream, MemoryAllocator? allocator)
     {
         this.data = stream ?? throw new ArgumentNullException(nameof(stream));
         this.allocator = allocator;
@@ -219,7 +218,7 @@ internal abstract class BaseExifReader
         this.Seek(tag.Offset);
         if (this.TryReadSpan(buffer))
         {
-            object value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
+            object? value = this.ConvertValue(tag.DataType, buffer, tag.NumberOfComponents > 1 || tag.Exif.IsArray);
             this.Add(values, tag.Exif, value);
         }
     }
@@ -255,7 +254,7 @@ internal abstract class BaseExifReader
 
     private static byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-    private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
+    private object? ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, bool isArray)
     {
         if (buffer.Length == 0)
         {
@@ -390,7 +389,7 @@ internal abstract class BaseExifReader
             numberOfComponents = 4 / ExifDataTypes.GetSize(dataType);
         }
 
-        ExifValue exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
+        ExifValue? exifValue = ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents);
 
         if (exifValue is null)
         {
@@ -414,7 +413,7 @@ internal abstract class BaseExifReader
         }
         else
         {
-            object value = this.ConvertValue(dataType, offsetBuffer[..(int)size], numberOfComponents > 1 || exifValue.IsArray);
+            object? value = this.ConvertValue(dataType, offsetBuffer[..(int)size], numberOfComponents > 1 || exifValue.IsArray);
             this.Add(values, exifValue, value);
         }
     }
@@ -443,7 +442,7 @@ internal abstract class BaseExifReader
             numberOfComponents = 8 / ExifDataTypes.GetSize(dataType);
         }
 
-        ExifValue exifValue = tag switch
+        ExifValue? exifValue = tag switch
         {
             ExifTagValue.StripOffsets => new ExifLong8Array(ExifTagValue.StripOffsets),
             ExifTagValue.StripByteCounts => new ExifLong8Array(ExifTagValue.StripByteCounts),
@@ -471,12 +470,12 @@ internal abstract class BaseExifReader
         }
         else
         {
-            object value = this.ConvertValue(dataType, offsetBuffer[..(int)size], numberOfComponents > 1 || exifValue.IsArray);
+            object? value = this.ConvertValue(dataType, offsetBuffer[..(int)size], numberOfComponents > 1 || exifValue.IsArray);
             this.Add(values, exifValue, value);
         }
     }
 
-    private void Add(IList<IExifValue> values, IExifValue exif, object value)
+    private void Add(IList<IExifValue> values, IExifValue exif, object? value)
     {
         if (!exif.TrySetValue(value))
         {
@@ -510,7 +509,7 @@ internal abstract class BaseExifReader
     private void AddInvalidTag(ExifTag tag)
         => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
 
-    private void AddSubIfd(object val)
+    private void AddSubIfd(object? val)
         => (this.subIfds ??= new List<ulong>()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
 
     private void Seek(ulong pos)

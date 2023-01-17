@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using System.Text;
@@ -27,7 +26,8 @@ internal static class ExifEncodedStringHelpers
 
     // 20932 EUC-JP Japanese (JIS 0208-1990 and 0212-1990)
     // https://docs.microsoft.com/en-us/dotnet/api/system.text.encoding?view=net-6.0
-    private static Encoding JIS0208Encoding => CodePagesEncodingProvider.Instance.GetEncoding(20932);
+    private static Encoding JIS0208Encoding => CodePagesEncodingProvider.Instance.GetEncoding(20932) ??
+                                               throw new InvalidOperationException();
 
     public static bool IsEncodedString(ExifTagValue tag) => tag switch
     {

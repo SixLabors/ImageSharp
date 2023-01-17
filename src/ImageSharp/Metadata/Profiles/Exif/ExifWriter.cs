@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 
@@ -16,7 +15,7 @@ internal sealed class ExifWriter
     /// </summary>
     private readonly ExifParts allowedParts;
     private readonly IList<IExifValue> values;
-    private List<int> dataOffsets;
+    private List<int>? dataOffsets;
     private readonly List<IExifValue> ifdValues;
     private readonly List<IExifValue> exifValues;
     private readonly List<IExifValue> gpsValues;
@@ -45,8 +44,8 @@ internal sealed class ExifWriter
     {
         const uint startIndex = 0;
 
-        IExifValue exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
-        IExifValue gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
+        IExifValue? exifOffset = GetOffsetValue(this.ifdValues, this.exifValues, ExifTag.SubIFDOffset);
+        IExifValue? gpsOffset = GetOffsetValue(this.ifdValues, this.gpsValues, ExifTag.GPSIFDOffset);
 
         uint ifdLength = GetLength(this.ifdValues);
         uint exifLength = GetLength(this.exifValues);
@@ -160,7 +159,7 @@ internal sealed class ExifWriter
         return offset + 4;
     }
 
-    private static IExifValue GetOffsetValue(List<IExifValue> ifdValues, List<IExifValue> values, ExifTag offset)
+    private static IExifValue? GetOffsetValue(List<IExifValue> ifdValues, List<IExifValue> values, ExifTag offset)
     {
         int index = -1;
 
@@ -179,7 +178,9 @@ internal sealed class ExifWriter
                 return ifdValues[index];
             }
 
-            ExifValue result = ExifValues.Create(offset);
+            ExifValue? result = ExifValues.Create(offset);
+            Guard.NotNull(result);
+
             ifdValues.Add(result);
 
             return result;
@@ -219,7 +220,7 @@ internal sealed class ExifWriter
 
     private static bool HasValue(IExifValue exifValue)
     {
-        object value = exifValue.GetValue();
+        object? value = exifValue.GetValue();
         if (value is null)
         {
             return false;
@@ -270,11 +271,11 @@ internal sealed class ExifWriter
 
     internal static uint GetNumberOfComponents(IExifValue exifValue)
     {
-        object value = exifValue.GetValue();
+        object? value = exifValue.GetValue();
 
         if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
         {
-            return (uint)ExifUcs2StringHelpers.Ucs2Encoding.GetByteCount((string)value);
+            return (uint)ExifUcs2StringHelpers.Ucs2Encoding.GetByteCount((string?)value!);
         }
 
         if (value is EncodedString encodedString)
@@ -284,7 +285,7 @@ internal sealed class ExifWriter
 
         if (exifValue.DataType == ExifDataType.Ascii)
         {
-            return (uint)ExifConstants.DefaultEncoding.GetByteCount((string)value) + 1;
+            return (uint)ExifConstants.DefaultEncoding.GetByteCount((string?)value!) + 1;
         }
 
         if (value is Array arrayValue)
@@ -298,7 +299,7 @@ internal sealed class ExifWriter
     private static int WriteArray(IExifValue value, Span<byte> destination, int offset)
     {
         int newOffset = offset;
-        foreach (object obj in (Array)value.GetValue())
+        foreach (object obj in (Array)value.GetValue()!)
         {
             newOffset = WriteValue(value.DataType, obj, destination, newOffset);
         }
@@ -308,7 +309,7 @@ internal sealed class ExifWriter
 
     private int WriteData(uint startIndex, List<IExifValue> values, Span<byte> destination, int offset)
     {
-        if (this.dataOffsets.Count == 0)
+        if (this.dataOffsets is null || this.dataOffsets.Count == 0)
         {
             return offset;
         }
@@ -428,7 +429,8 @@ internal sealed class ExifWriter
 
     internal static int WriteValue(IExifValue exifValue, Span<byte> destination, int offset)
     {
-        object value = exifValue.GetValue();
+        object? value = exifValue.GetValue();
+        Guard.NotNull(value);
 
         if (ExifUcs2StringHelpers.IsUcs2Tag((ExifTagValue)(ushort)exifValue.Tag))
         {

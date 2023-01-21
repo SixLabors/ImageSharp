@@ -63,7 +63,7 @@ public class DrawImageProcessor : IImageProcessor
     public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Configuration configuration, Image<TPixelBg> source, Rectangle sourceRectangle)
         where TPixelBg : unmanaged, IPixel<TPixelBg>
     {
-        var visitor = new ProcessorFactoryVisitor<TPixelBg>(configuration, this, source, sourceRectangle);
+        ProcessorFactoryVisitor<TPixelBg> visitor = new(configuration, this, source, sourceRectangle);
         this.Image.AcceptVisitor(visitor);
         return visitor.Result;
     }
@@ -88,8 +88,7 @@ public class DrawImageProcessor : IImageProcessor
 
         public void Visit<TPixelFg>(Image<TPixelFg> image)
             where TPixelFg : unmanaged, IPixel<TPixelFg>
-        {
-            this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
+            => this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
                 this.configuration,
                 image,
                 this.source,
@@ -98,6 +97,5 @@ public class DrawImageProcessor : IImageProcessor
                 this.definition.ColorBlendingMode,
                 this.definition.AlphaCompositionMode,
                 this.definition.Opacity);
-        }
     }
 }

@@ -26,7 +26,14 @@ internal static class ExifEncodedStringHelpers
 
     // 20932 EUC-JP Japanese (JIS 0208-1990 and 0212-1990)
     // https://docs.microsoft.com/en-us/dotnet/api/system.text.encoding?view=net-6.0
-    private static Encoding JIS0208Encoding => Encoding.GetEncoding(20932);
+    private static Encoding JIS0208Encoding
+    {
+        get
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            return Encoding.GetEncoding(20932);
+        }
+    }
 
     public static bool IsEncodedString(ExifTagValue tag) => tag switch
     {

@@ -172,12 +172,21 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Returns the value with the specified tag.
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
-    /// <returns>The value with the specified tag.</returns>
+    /// <param name="exifValue">The value with the specified tag.</param>
+    /// <returns>True when found, otherwise false</returns>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
-    public IExifValue<TValueType>? GetValue<TValueType>(ExifTag<TValueType> tag)
+    public bool TryGetValue<TValueType>(ExifTag<TValueType> tag, [NotNullWhen(true)] out IExifValue<TValueType>? exifValue)
     {
         IExifValue? value = this.GetValueInternal(tag);
-        return value is null ? null : (IExifValue<TValueType>)value;
+
+        if (value is null)
+        {
+            exifValue = null;
+            return false;
+        }
+
+        exifValue = (IExifValue<TValueType>)value;
+        return true;
     }
 
     /// <summary>
@@ -291,9 +300,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
     private void SyncResolution(ExifTag<Rational> tag, double resolution)
     {
-        IExifValue<Rational>? value = this.GetValue(tag);
-
-        if (value is null)
+        if (!this.TryGetValue(tag, out IExifValue<Rational>? value))
         {
             return;
         }

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -78,15 +77,30 @@ public class TiffFrameMetadata : IDeepCloneable
     {
         if (profile != null)
         {
-            if (TiffBitsPerSample.TryParse(profile.GetValue(ExifTag.BitsPerSample)?.Value, out TiffBitsPerSample bitsPerSample))
+            if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
             {
-                meta.BitsPerSample = bitsPerSample;
+                if (TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
+                {
+                    meta.BitsPerSample = bitsPerSample;
+                }
             }
 
             meta.BitsPerPixel = meta.BitsPerSample?.BitsPerPixel();
-            meta.Compression = (TiffCompression?)profile.GetValue(ExifTag.Compression)?.Value;
-            meta.PhotometricInterpretation = (TiffPhotometricInterpretation?)profile.GetValue(ExifTag.PhotometricInterpretation)?.Value;
-            meta.Predictor = (TiffPredictor?)profile.GetValue(ExifTag.Predictor)?.Value;
+
+            if (profile.TryGetValue(ExifTag.Compression, out IExifValue<ushort>? compressionValue))
+            {
+                meta.Compression = (TiffCompression)compressionValue.Value;
+            }
+
+            if (profile.TryGetValue(ExifTag.PhotometricInterpretation, out IExifValue<ushort>? photometricInterpretationValue))
+            {
+                meta.PhotometricInterpretation = (TiffPhotometricInterpretation)photometricInterpretationValue.Value;
+            }
+
+            if (profile.TryGetValue(ExifTag.Predictor, out IExifValue<ushort>? predictorValue))
+            {
+                meta.Predictor = (TiffPredictor)predictorValue.Value;
+            }
 
             profile.RemoveValue(ExifTag.BitsPerSample);
             profile.RemoveValue(ExifTag.Compression);

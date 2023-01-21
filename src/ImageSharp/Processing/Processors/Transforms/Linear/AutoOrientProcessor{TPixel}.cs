@@ -88,8 +88,7 @@ internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
             return ExifOrientationMode.Unknown;
         }
 
-        IExifValue<ushort>? value = source.Metadata.ExifProfile.GetValue(ExifTag.Orientation);
-        if (value is null)
+        if (!source.Metadata.ExifProfile.TryGetValue(ExifTag.Orientation, out IExifValue<ushort>? value))
         {
             return ExifOrientationMode.Unknown;
         }

@@ -91,10 +91,13 @@ internal static class UnitConverter
     [MethodImpl(InliningOptions.ShortMethod)]
     public static PixelResolutionUnit ExifProfileToResolutionUnit(ExifProfile profile)
     {
-        IExifValue<ushort>? resolution = profile.GetValue(ExifTag.ResolutionUnit);
+        if (profile.TryGetValue(ExifTag.ResolutionUnit, out IExifValue<ushort>? resolution))
+        {
+            // EXIF is 1, 2, 3 so we minus "1" off the result.
+            return (PixelResolutionUnit)(byte)(resolution.Value - 1);
+        }
 
-        // EXIF is 1, 2, 3 so we minus "1" off the result.
-        return resolution is null ? DefaultResolutionUnit : (PixelResolutionUnit)(byte)(resolution.Value - 1);
+        return DefaultResolutionUnit;
     }
 
     /// <summary>

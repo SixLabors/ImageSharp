@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif;
 
@@ -255,7 +256,7 @@ public class ExifProfileTests
         xResolution = image.Metadata.ExifProfile.GetValue(ExifTag.XResolution);
         Assert.Equal(new Rational(150.0), xResolution.Value);
 
-        referenceBlackWhite = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
+        referenceBlackWhite = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite, false);
         Assert.Null(referenceBlackWhite);
 
         latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
@@ -300,7 +301,7 @@ public class ExifProfileTests
         Assert.NotNull(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
         Assert.True(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
         Assert.False(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
-        Assert.Null(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
+        Assert.Null(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace, false));
         Assert.Equal(profileCount - 1, image.Metadata.ExifProfile.Values.Count);
     }
 

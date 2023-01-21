@@ -23,7 +23,9 @@ public class ExifValueTests
     {
         Assert.NotNull(this.profile);
 
-        return this.profile.GetValue(ExifTag.Software);
+        this.profile.TryGetValue(ExifTag.Software, out IExifValue<string> value);
+
+        return value;
     }
 
     [Fact]

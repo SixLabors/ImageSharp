@@ -276,9 +276,15 @@ internal class TiffDecoderCore : IImageDecoderInternals
     private void DecodeImageWithStrips<TPixel>(ExifProfile tags, ImageFrame<TPixel> frame, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int rowsPerStrip = tags.GetValue(ExifTag.RowsPerStrip) != null
-            ? (int)tags.GetValue(ExifTag.RowsPerStrip).Value
-            : TiffConstants.RowsPerStripInfinity;
+        int rowsPerStrip;
+        if (tags.TryGetValue(ExifTag.RowsPerStrip, out IExifValue<Number> value))
+        {
+            rowsPerStrip = (int)value.Value;
+        }
+        else
+        {
+            rowsPerStrip = TiffConstants.RowsPerStripInfinity;
+        }
 
         Array stripOffsetsArray = (Array)tags.GetValueInternal(ExifTag.StripOffsets).GetValue();
         Array stripByteCountsArray = (Array)tags.GetValueInternal(ExifTag.StripByteCounts).GetValue();
@@ -320,8 +326,18 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int width = pixels.Width;
         int height = pixels.Height;
 
-        int tileWidth = (int)tags.GetValue(ExifTag.TileWidth).Value;
-        int tileLength = (int)tags.GetValue(ExifTag.TileLength).Value;
+        if (!tags.TryGetValue(ExifTag.TileWidth, out IExifValue<Number> valueWidth))
+        {
+            ArgumentNullException.ThrowIfNull(valueWidth);
+        }
+
+        if (!tags.TryGetValue(ExifTag.TileWidth, out IExifValue<Number> valueLength))
+        {
+            ArgumentNullException.ThrowIfNull(valueLength);
+        }
+
+        int tileWidth = (int)valueWidth.Value;
+        int tileLength = (int)valueLength.Value;
         int tilesAcross = (width + tileWidth - 1) / tileWidth;
         int tilesDown = (height + tileLength - 1) / tileLength;
 
@@ -775,8 +791,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <returns>The image width.</returns>
     private static int GetImageWidth(ExifProfile exifProfile)
     {
-        IExifValue<Number> width = exifProfile.GetValue(ExifTag.ImageWidth);
-        if (width == null)
+        if (!exifProfile.TryGetValue(ExifTag.ImageWidth, out IExifValue<Number> width))
         {
             TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageWidth");
         }
@@ -793,8 +808,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// <returns>The image height.</returns>
     private static int GetImageHeight(ExifProfile exifProfile)
     {
-        IExifValue<Number> height = exifProfile.GetValue(ExifTag.ImageLength);
-        if (height == null)
+        if (!exifProfile.TryGetValue(ExifTag.ImageLength, out IExifValue<Number> height))
         {
             TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageLength");
         }

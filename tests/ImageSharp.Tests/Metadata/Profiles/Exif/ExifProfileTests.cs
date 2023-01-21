@@ -345,13 +345,14 @@ public class ExifProfileTests
         ExifProfile profile = GetExifProfile();
 
         TestProfile(profile);
-
-        using Image thumbnail = profile.CreateThumbnail();
+        bool retVal = profile.TryCreateThumbnail(out Image thumbnail);
+        Assert.True(retVal);
         Assert.NotNull(thumbnail);
         Assert.Equal(256, thumbnail.Width);
         Assert.Equal(170, thumbnail.Height);
 
-        using Image<Rgba32> genericThumbnail = profile.CreateThumbnail<Rgba32>();
+        retVal = profile.TryCreateThumbnail<Rgba32>(out Image<Rgba32> genericThumbnail);
+        Assert.True(retVal);
         Assert.NotNull(genericThumbnail);
         Assert.Equal(256, genericThumbnail.Width);
         Assert.Equal(170, genericThumbnail.Height);

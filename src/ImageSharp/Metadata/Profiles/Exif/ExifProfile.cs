@@ -124,36 +124,47 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Returns the thumbnail in the EXIF profile when available.
     /// </summary>
+    /// <param name="image">The thumbnail</param>
     /// <returns>
-    /// The <see cref="Image"/>.
+    /// True, if there is a thumbnail otherwise false.
     /// </returns>
-    public Image? CreateThumbnail() => this.CreateThumbnail<Rgba32>();
+    public bool TryCreateThumbnail([NotNullWhen(true)] out Image? image)
+    {
+        if (this.TryCreateThumbnail(out Image<Rgba32>? innerimage))
+        {
+            image = innerimage;
+            return true;
+        }
+
+        image = null;
+        return false;
+    }
 
     /// <summary>
     /// Returns the thumbnail in the EXIF profile when available.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <returns>
-    /// The <see cref="Image{TPixel}"/>.
-    /// </returns>
-    public Image<TPixel>? CreateThumbnail<TPixel>()
+    /// <param name="image">The thumbnail.</param>
+    /// <returns>True, if there is a thumbnail otherwise false.</returns>
+    public bool TryCreateThumbnail<TPixel>([NotNullWhen(true)] out Image<TPixel>? image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.InitializeValues();
-
+        image = null;
         if (this.thumbnailOffset == 0 || this.thumbnailLength == 0)
         {
-            return null;
+            return false;
         }
 
         if (this.data is null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
         {
-            return null;
+            return false;
         }
 
         using (var memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
         {
-            return Image.Load<TPixel>(memStream);
+            image = Image.Load<TPixel>(memStream);
+            return true;
         }
     }
 

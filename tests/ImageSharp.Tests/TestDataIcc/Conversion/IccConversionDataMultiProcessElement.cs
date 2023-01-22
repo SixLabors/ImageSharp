@@ -18,20 +18,21 @@ public class IccConversionDataMultiProcessElement
     private static readonly IccClut Clut = new(
         new[]
         {
-        new[] { 0.2f, 0.3f },
-        new[] { 0.4f, 0.5f },
+            0.2f, 0.3f,
+            0.4f, 0.2f,
 
-        new[] { 0.21f, 0.31f },
-        new[] { 0.41f, 0.51f },
+            0.21f, 0.31f,
+            0.41f, 0.51f,
 
-        new[] { 0.22f, 0.32f },
-        new[] { 0.42f, 0.52f },
+            0.22f, 0.32f,
+            0.42f, 0.52f,
 
-        new[] { 0.23f, 0.33f },
-        new[] { 0.43f, 0.53f },
+            0.23f, 0.33f,
+            0.43f, 0.53f,
         },
         new byte[] { 2, 2, 2 },
-        IccClutDataType.Float);
+        IccClutDataType.Float,
+        outputChannelCount: 2);
 
     private static readonly IccFormulaCurveElement FormulaCurveElement1 = new(IccFormulaCurveType.Type1, 2.2f, 0.7f, 0.2f, 0.3f, 0, 0);
     private static readonly IccFormulaCurveElement FormulaCurveElement2 = new(IccFormulaCurveType.Type2, 2.2f, 0.9f, 0.9f, 0.02f, 0.1f, 0);

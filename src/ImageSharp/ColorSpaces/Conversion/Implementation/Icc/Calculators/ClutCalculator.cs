@@ -15,8 +15,7 @@ internal class ClutCalculator : IVector4Calculator
 {
     private readonly int inputCount;
     private readonly int outputCount;
-    private readonly float[][] lut;
-    private readonly float[] lutFlat;
+    private readonly float[] lut;
     private readonly byte[] gridPointCount;
     private readonly byte[] maxGridPoint;
     private readonly int[] indexFactor;
@@ -69,17 +68,6 @@ internal class ClutCalculator : IVector4Calculator
         }
 
         this.indexFactor = this.CalculateIndexFactor();
-
-        // TODO: Using here a flat array instead of a jagged array to match the reference implementation.
-        // Maybe consider changing the clut values from jagged to a flat in IccClut to avoid this allocation.
-        this.lutFlat = new float[this.lut.Length * 3];
-        int offset = 0;
-        for (int i = 0; i < this.lut.Length; i++)
-        {
-            this.lutFlat[offset++] = this.lut[i][0];
-            this.lutFlat[offset++] = this.lut[i][1];
-            this.lutFlat[offset++] = this.lut[i][2];
-        }
     }
 
     public unsafe Vector4 Calculate(Vector4 value)
@@ -209,7 +197,7 @@ internal class ClutCalculator : IVector4Calculator
         float nu = (float)(1.0 - u);
 
         int i;
-        Span<float> p = this.lutFlat.AsSpan((int)(ix * this.n001));
+        Span<float> p = this.lut.AsSpan((int)(ix * this.n001));
 
         // Normalize grid units.
         float dF0 = nu;
@@ -259,7 +247,7 @@ internal class ClutCalculator : IVector4Calculator
         float nu = (float)(1.0 - u);
 
         int i;
-        Span<float> p = this.lutFlat.AsSpan((int)((ix * this.n001) + (iy * this.n010)));
+        Span<float> p = this.lut.AsSpan((int)((ix * this.n001) + (iy * this.n010)));
 
         // Normalize grid units.
         float dF0 = nt * nu;
@@ -322,7 +310,7 @@ internal class ClutCalculator : IVector4Calculator
         float nt = (float)(1.0 - t);
         float nu = (float)(1.0 - u);
 
-        Span<float> p = this.lutFlat.AsSpan((int)((ix * this.n001) + (iy * this.n010) + (iz * this.n100)));
+        Span<float> p = this.lut.AsSpan((int)((ix * this.n001) + (iy * this.n010) + (iz * this.n100)));
 
         // Normalize grid units
         float dF0 = ns * nt * nu;
@@ -401,7 +389,7 @@ internal class ClutCalculator : IVector4Calculator
         float nu = (float)(1.0 - u);
         float nv = (float)(1.0 - v);
 
-        Span<float> p = this.lutFlat.AsSpan((int)((iw * this.n001) + (ix * this.n010) + (iy * this.n100) + (iz * this.n1000)));
+        Span<float> p = this.lut.AsSpan((int)((iw * this.n001) + (ix * this.n010) + (iy * this.n100) + (iz * this.n1000)));
 
         // Normalize grid units.
         float[] dF = new float[16];
@@ -458,7 +446,7 @@ internal class ClutCalculator : IVector4Calculator
             index += (int)this.ig[i] * this.dimSize[i];
         }
 
-        Span<float> p = this.lutFlat.AsSpan(index);
+        Span<float> p = this.lut.AsSpan(index);
         float[] temp = new float[2];
         bool nFlag = false;
 

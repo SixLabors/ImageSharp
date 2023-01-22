@@ -73,20 +73,21 @@ internal static class IccTestDataLut
     public static readonly IccClut Clut8ValGrad = new(
         new[]
         {
-            new[] { 1f / byte.MaxValue, 2f / byte.MaxValue, 3f / byte.MaxValue },
-            new[] { 4f / byte.MaxValue, 5f / byte.MaxValue, 6f / byte.MaxValue },
-            new[] { 7f / byte.MaxValue, 8f / byte.MaxValue, 9f / byte.MaxValue },
+            1f / byte.MaxValue, 2f / byte.MaxValue, 3f / byte.MaxValue,
+            4f / byte.MaxValue, 5f / byte.MaxValue, 6f / byte.MaxValue,
+            7f / byte.MaxValue, 8f / byte.MaxValue, 9f / byte.MaxValue,
 
-            new[] { 10f / byte.MaxValue, 11f / byte.MaxValue, 12f / byte.MaxValue },
-            new[] { 13f / byte.MaxValue, 14f / byte.MaxValue, 15f / byte.MaxValue },
-            new[] { 16f / byte.MaxValue, 17f / byte.MaxValue, 18f / byte.MaxValue },
+            10f / byte.MaxValue, 11f / byte.MaxValue, 12f / byte.MaxValue,
+            13f / byte.MaxValue, 14f / byte.MaxValue, 15f / byte.MaxValue,
+            16f / byte.MaxValue, 17f / byte.MaxValue, 18f / byte.MaxValue,
 
-            new[] { 19f / byte.MaxValue, 20f / byte.MaxValue, 21f / byte.MaxValue },
-            new[] { 22f / byte.MaxValue, 23f / byte.MaxValue, 24f / byte.MaxValue },
-            new[] { 25f / byte.MaxValue, 26f / byte.MaxValue, 27f / byte.MaxValue },
+            19f / byte.MaxValue, 20f / byte.MaxValue, 21f / byte.MaxValue,
+            22f / byte.MaxValue, 23f / byte.MaxValue, 24f / byte.MaxValue,
+            25f / byte.MaxValue, 26f / byte.MaxValue, 27f / byte.MaxValue,
         },
         new byte[] { 3, 3 },
-        IccClutDataType.UInt8);
+        IccClutDataType.UInt8,
+        outputChannelCount: 3);
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>
@@ -116,20 +117,21 @@ internal static class IccTestDataLut
     public static readonly IccClut Clut16ValGrad = new(
         new[]
         {
-            new[] { 1f / ushort.MaxValue, 2f / ushort.MaxValue, 3f / ushort.MaxValue },
-            new[] { 4f / ushort.MaxValue, 5f / ushort.MaxValue, 6f / ushort.MaxValue },
-            new[] { 7f / ushort.MaxValue, 8f / ushort.MaxValue, 9f / ushort.MaxValue },
+            1f / ushort.MaxValue, 2f / ushort.MaxValue, 3f / ushort.MaxValue,
+            4f / ushort.MaxValue, 5f / ushort.MaxValue, 6f / ushort.MaxValue,
+            7f / ushort.MaxValue, 8f / ushort.MaxValue, 9f / ushort.MaxValue,
 
-            new[] { 10f / ushort.MaxValue, 11f / ushort.MaxValue, 12f / ushort.MaxValue },
-            new[] { 13f / ushort.MaxValue, 14f / ushort.MaxValue, 15f / ushort.MaxValue },
-            new[] { 16f / ushort.MaxValue, 17f / ushort.MaxValue, 18f / ushort.MaxValue },
+            10f / ushort.MaxValue, 11f / ushort.MaxValue, 12f / ushort.MaxValue,
+            13f / ushort.MaxValue, 14f / ushort.MaxValue, 15f / ushort.MaxValue,
+            16f / ushort.MaxValue, 17f / ushort.MaxValue, 18f / ushort.MaxValue,
 
-            new[] { 19f / ushort.MaxValue, 20f / ushort.MaxValue, 21f / ushort.MaxValue },
-            new[] { 22f / ushort.MaxValue, 23f / ushort.MaxValue, 24f / ushort.MaxValue },
-            new[] { 25f / ushort.MaxValue, 26f / ushort.MaxValue, 27f / ushort.MaxValue },
+            19f / ushort.MaxValue, 20f / ushort.MaxValue, 21f / ushort.MaxValue,
+            22f / ushort.MaxValue, 23f / ushort.MaxValue, 24f / ushort.MaxValue,
+            25f / ushort.MaxValue, 26f / ushort.MaxValue, 27f / ushort.MaxValue,
         },
         new byte[] { 3, 3 },
-        IccClutDataType.UInt16);
+        IccClutDataType.UInt16,
+        outputChannelCount: 3);
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>
@@ -159,20 +161,21 @@ internal static class IccTestDataLut
     public static readonly IccClut CluTf32ValGrad = new(
         new[]
         {
-            new[] { 1f, 2f, 3f },
-            new[] { 4f, 5f, 6f },
-            new[] { 7f, 8f, 9f },
+            1f, 2f, 3f,
+            4f, 5f, 6f,
+            7f, 8f, 9f,
 
-            new[] { 1f, 2f, 3f },
-            new[] { 4f, 5f, 6f },
-            new[] { 7f, 8f, 9f },
+            1f, 2f, 3f,
+            4f, 5f, 6f,
+            7f, 8f, 9f,
 
-            new[] { 1f, 2f, 3f },
-            new[] { 4f, 5f, 6f },
-            new[] { 7f, 8f, 9f },
+            1f, 2f, 3f,
+            4f, 5f, 6f,
+            7f, 8f, 9f,
         },
         new byte[] { 3, 3 },
-        IccClutDataType.Float);
+        IccClutDataType.Float,
+        outputChannelCount: 3);
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>

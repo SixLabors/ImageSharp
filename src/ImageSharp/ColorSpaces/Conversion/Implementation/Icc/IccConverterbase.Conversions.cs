@@ -13,11 +13,11 @@ internal abstract partial class IccConverterBase
     private IVector4Calculator calculator;
 
     /// <summary>
-    /// Checks the profile for available conversion methods and gathers all the informations necessary for it
+    /// Checks the profile for available conversion methods and gathers all the information's necessary for it.
     /// </summary>
-    /// <param name="profile">The profile to use for the conversion</param>
-    /// <param name="toPcs">True if the conversion is to the Profile Connection Space</param>
-    /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available</param>
+    /// <param name="profile">The profile to use for the conversion.</param>
+    /// <param name="toPcs">True if the conversion is to the Profile Connection Space.</param>
+    /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available.</param>
     /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
     protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
         => this.calculator = GetConversionMethod(profile, renderingIntent) switch

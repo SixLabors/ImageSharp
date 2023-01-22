@@ -14,7 +14,8 @@ internal sealed class IccClut : IEquatable<IccClut>
     /// <param name="values">The CLUT values.</param>
     /// <param name="gridPointCount">The gridpoint count.</param>
     /// <param name="type">The data type of this CLUT.</param>
-    public IccClut(float[][] values, byte[] gridPointCount, IccClutDataType type)
+    /// <param name="outputChannelCount">The output channels count.</param>
+    public IccClut(float[] values, byte[] gridPointCount, IccClutDataType type, int outputChannelCount)
     {
         Guard.NotNull(values, nameof(values));
         Guard.NotNull(gridPointCount, nameof(gridPointCount));
@@ -22,7 +23,7 @@ internal sealed class IccClut : IEquatable<IccClut>
         this.Values = values;
         this.DataType = type;
         this.InputChannelCount = gridPointCount.Length;
-        this.OutputChannelCount = values[0].Length;
+        this.OutputChannelCount = outputChannelCount;
         this.GridPointCount = gridPointCount;
         this.CheckValues();
     }
@@ -30,7 +31,7 @@ internal sealed class IccClut : IEquatable<IccClut>
     /// <summary>
     /// Gets the values that make up this table.
     /// </summary>
-    public float[][] Values { get; }
+    public float[] Values { get; }
 
     /// <summary>
     /// Gets the CLUT data type (important when writing a profile).
@@ -92,7 +93,7 @@ internal sealed class IccClut : IEquatable<IccClut>
 
         for (int i = 0; i < this.Values.Length; i++)
         {
-            if (!this.Values[i].AsSpan().SequenceEqual(other.Values[i]))
+            if (!this.Values.SequenceEqual(other.Values))
             {
                 return false;
             }
@@ -106,16 +107,11 @@ internal sealed class IccClut : IEquatable<IccClut>
         Guard.MustBeBetweenOrEqualTo(this.InputChannelCount, 1, 15, nameof(this.InputChannelCount));
         Guard.MustBeBetweenOrEqualTo(this.OutputChannelCount, 1, 15, nameof(this.OutputChannelCount));
 
-        bool isLengthDifferent = this.Values.Any(t => t.Length != this.OutputChannelCount);
-        Guard.IsFalse(isLengthDifferent, nameof(this.Values), "The number of output values varies");
-
         int length = 0;
         for (int i = 0; i < this.InputChannelCount; i++)
         {
             length += (int)Math.Pow(this.GridPointCount[i], this.InputChannelCount);
         }
-
-        length /= this.InputChannelCount;
 
         Guard.IsTrue(this.Values.Length == length, nameof(this.Values), "Length of values array does not match the grid points");
     }

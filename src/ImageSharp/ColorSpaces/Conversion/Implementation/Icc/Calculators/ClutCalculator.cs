@@ -77,7 +77,7 @@ internal class ClutCalculator : IVector4Calculator
 
     public unsafe Vector4 Calculate(Vector4 value)
     {
-        Vector4 result = default;
+        Vector4 result = value;
         switch (this.inputCount)
         {
             case 1:

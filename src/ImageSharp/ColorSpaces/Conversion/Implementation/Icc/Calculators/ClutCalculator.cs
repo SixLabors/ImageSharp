@@ -22,11 +22,11 @@ internal class ClutCalculator : IVector4Calculator
     private readonly int[] dimSize;
     private readonly int nodeCount;
     private readonly float[][] nodes;
-    float[] g;
-    uint[] ig;
-    float[] s;
-    float[] df;
-    private uint[] nPower;
+    private readonly float[] g;
+    private readonly uint[] ig;
+    private readonly float[] s;
+    private readonly float[] df;
+    private readonly uint[] nPower;
     private int n000;
     private int n001;
     private int n010;
@@ -237,6 +237,7 @@ internal class ClutCalculator : IVector4Calculator
             ix--;
             u = 1.0f;
         }
+
         if (iy == my)
         {
             iy--;
@@ -258,7 +259,7 @@ internal class ClutCalculator : IVector4Calculator
         int offset = 0;
         for (i = 0; i < this.outputCount; i++)
         {
-            float pv = (p[offset + this.n000] * dF0) + (p[offset + this.n001] * dF1) + (p[ offset + this.n010] * dF2) + (p[offset + this.n011] * dF3);
+            float pv = (p[offset + this.n000] * dF0) + (p[offset + this.n001] * dF1) + (p[offset + this.n010] * dF2) + (p[offset + this.n011] * dF3);
 
             destPixel[i] = pv;
             offset++;

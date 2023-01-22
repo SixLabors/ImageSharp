@@ -63,6 +63,8 @@ internal class ClutCalculator : IVector4Calculator
 
         this.indexFactor = this.CalculateIndexFactor();
 
+        // TODO: Using here a flat array instead of a jagged array to match the reference implementation.
+        // Maybe consider changing the clut values from jagged to a flat in IccClut to avoid this allocation.
         this.lutFlat = new float[this.lut.Length * 3];
         int offset = 0;
         for (int i = 0; i < this.lut.Length; i++)

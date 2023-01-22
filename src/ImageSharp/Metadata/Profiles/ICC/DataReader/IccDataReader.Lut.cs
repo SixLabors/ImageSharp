@@ -72,22 +72,26 @@ internal sealed partial class IccDataReader
     /// <returns>The read CLUT8.</returns>
     public IccClut ReadClut8(int inChannelCount, int outChannelCount, byte[] gridPointCount)
     {
-        int start = this.currentIndex;
         int length = 0;
         for (int i = 0; i < inChannelCount; i++)
         {
             length += (int)Math.Pow(gridPointCount[i], inChannelCount);
         }
 
+        length /= inChannelCount;
+
         const float Max = byte.MaxValue;
 
-        var values = new float[length];
+        float[] values = new float[length * outChannelCount];
+        int offset = 0;
         for (int i = 0; i < length; i++)
         {
-            values[i] = this.data[this.currentIndex++] / Max;
+            for (int j = 0; j < outChannelCount; j++)
+            {
+                values[offset++] = this.data[this.currentIndex++] / Max;
+            }
         }
 
-        this.currentIndex = start + length;
         return new IccClut(values, gridPointCount, IccClutDataType.UInt8, outChannelCount);
     }
 
@@ -107,15 +111,21 @@ internal sealed partial class IccDataReader
             length += (int)Math.Pow(gridPointCount[i], inChannelCount);
         }
 
+        length /= inChannelCount;
+
         const float Max = ushort.MaxValue;
 
-        var values = new float[length];
+        float[] values = new float[length * outChannelCount];
+        int offset = 0;
         for (int i = 0; i < length; i++)
         {
-            values[i] = this.ReadUInt16() / Max;
+            for (int j = 0; j < outChannelCount; j++)
+            {
+                values[offset++] = this.ReadUInt16() / Max;
+            }
         }
 
-        this.currentIndex = start + (length * 2);
+        this.currentIndex = start + (length * outChannelCount * 2);
         return new IccClut(values, gridPointCount, IccClutDataType.UInt16, outChannelCount);
     }
 
@@ -135,13 +145,19 @@ internal sealed partial class IccDataReader
             length += (int)Math.Pow(gridPointCount[i], inChCount);
         }
 
-        var values = new float[length];
+        length /= inChCount;
+
+        float[] values = new float[length * outChCount];
+        int offset = 0;
         for (int i = 0; i < length; i++)
         {
-            values[i] = this.ReadSingle();
+            for (int j = 0; j < outChCount; j++)
+            {
+                values[offset++] = this.ReadSingle();
+            }
         }
 
-        this.currentIndex = start + (length * 4);
+        this.currentIndex = start + (length * outChCount * 4);
         return new IccClut(values, gridPointCount, IccClutDataType.Float, outChCount);
     }
 }

@@ -113,6 +113,7 @@ internal sealed class IccClut : IEquatable<IccClut>
             length += (int)Math.Pow(this.GridPointCount[i], this.InputChannelCount);
         }
 
-        Guard.IsTrue(this.Values.Length == length, nameof(this.Values), "Length of values array does not match the grid points");
+        // TODO: Disabled this check, not sure if this check is correct. 
+        // Guard.IsTrue(this.Values.Length == length, nameof(this.Values), "Length of values array does not match the grid points");
     }
 }

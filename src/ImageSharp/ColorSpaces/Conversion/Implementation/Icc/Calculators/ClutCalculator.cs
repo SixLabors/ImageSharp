@@ -18,6 +18,7 @@ internal class ClutCalculator : IVector4Calculator
     private readonly float[][] lut;
     private readonly float[] lutFlat;
     private readonly byte[] gridPointCount;
+    private readonly byte[] maxGridPoint;
     private readonly int[] indexFactor;
     private readonly int[] dimSize;
     private readonly int nodeCount;
@@ -51,10 +52,16 @@ internal class ClutCalculator : IVector4Calculator
         this.df = new float[this.nodeCount];
         this.nPower = new uint[16];
         this.lut = clut.Values;
-        this.gridPointCount = clut.GridPointCount;
         this.nodeCount = (int)Math.Pow(2, clut.InputChannelCount);
         this.nodes = new float[this.nodeCount][];
         this.dimSize = new int[this.inputCount];
+        this.gridPointCount = clut.GridPointCount;
+        this.maxGridPoint = new byte[this.inputCount];
+        for (int i = 0; i < this.inputCount; i++)
+        {
+            this.maxGridPoint[i] = (byte)(this.gridPointCount[i] - 1);
+        }
+
         this.dimSize[this.inputCount - 1] = this.outputCount;
         for (int i = this.inputCount - 2; i >= 0; i--)
         {
@@ -185,7 +192,7 @@ internal class ClutCalculator : IVector4Calculator
     /// <param name="destPixel">The interpolated output pixels.</param>
     private unsafe void Interpolate1d(float* srcPixel, float* destPixel)
     {
-        byte mx = this.gridPointCount[0];
+        byte mx = this.maxGridPoint[0];
 
         float x = UnitClip(srcPixel[0]) * mx;
 
@@ -225,8 +232,8 @@ internal class ClutCalculator : IVector4Calculator
     /// <param name="destPixel">The interpolated output pixels.</param>
     private unsafe void Interpolate2d(float* srcPixel, float* destPixel)
     {
-        byte mx = this.gridPointCount[0];
-        byte my = this.gridPointCount[1];
+        byte mx = this.maxGridPoint[0];
+        byte my = this.maxGridPoint[1];
 
         float x = UnitClip(srcPixel[0]) * mx;
         float y = UnitClip(srcPixel[1]) * my;
@@ -277,9 +284,9 @@ internal class ClutCalculator : IVector4Calculator
     /// <param name="destPixel">The interpolated output pixels.</param>
     private unsafe void Interpolate3d(float* srcPixel, float* destPixel)
     {
-        byte mx = this.gridPointCount[0];
-        byte my = this.gridPointCount[1];
-        byte mz = this.gridPointCount[2];
+        byte mx = this.maxGridPoint[0];
+        byte my = this.maxGridPoint[1];
+        byte mz = this.maxGridPoint[2];
 
         float x = UnitClip(srcPixel[0]) * mx;
         float y = UnitClip(srcPixel[1]) * my;
@@ -345,10 +352,10 @@ internal class ClutCalculator : IVector4Calculator
     /// <param name="destPixel">The interpolated output pixels.</param>
     private unsafe void Interpolate4d(float* srcPixel, float* destPixel)
     {
-        byte mw = this.gridPointCount[0];
-        byte mx = this.gridPointCount[1];
-        byte my = this.gridPointCount[2];
-        byte mz = this.gridPointCount[3];
+        byte mw = this.maxGridPoint[0];
+        byte mx = this.maxGridPoint[1];
+        byte my = this.maxGridPoint[2];
+        byte mz = this.maxGridPoint[3];
 
         float w = UnitClip(srcPixel[0]) * mw;
         float x = UnitClip(srcPixel[1]) * mx;
@@ -394,7 +401,7 @@ internal class ClutCalculator : IVector4Calculator
         float nu = (float)(1.0 - u);
         float nv = (float)(1.0 - v);
 
-        Span<float> p = this.lutFlat.AsSpan((int)((iw * n001) + (ix * n010) + (iy * n100) + (iz * n1000)));
+        Span<float> p = this.lutFlat.AsSpan((int)((iw * this.n001) + (ix * this.n010) + (iy * this.n100) + (iz * this.n1000)));
 
         // Normalize grid units.
         float[] dF = new float[16];

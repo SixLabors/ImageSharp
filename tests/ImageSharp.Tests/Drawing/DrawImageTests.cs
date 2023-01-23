@@ -146,9 +146,7 @@ public class DrawImageTests
     public void WorksWithDifferentBounds(TestImageProvider<Rgba32> provider, int width, int height)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50);
-        Assert.True(overlay.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> overlayMem));
-        overlayMem.Span.Fill(Color.Black);
+        using Image<Rgba32> overlay = new(50, 50,  Color.Black.ToRgba32());
 
         background.Mutate(c => c.DrawImage(overlay, new Rectangle(0, 0, width, height), PixelColorBlendingMode.Normal, 1F));
 

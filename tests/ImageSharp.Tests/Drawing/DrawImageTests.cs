@@ -119,9 +119,7 @@ public class DrawImageTests
     public void WorksWithDifferentLocations(TestImageProvider<Rgba32> provider, int x, int y)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50);
-        Assert.True(overlay.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> overlayMem));
-        overlayMem.Span.Fill(Color.Black);
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
 
         background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 
@@ -134,6 +132,31 @@ public class DrawImageTests
         background.CompareToReferenceOutput(
             provider,
             testOutputDetails: $"{x}_{y}",
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 10, 10)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 50, 25)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 25, 50)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 50, 50)]
+    public void WorksWithDifferentBounds(TestImageProvider<Rgba32> provider, int width, int height)
+    {
+        using Image<Rgba32> background = provider.GetImage();
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
+
+        background.Mutate(c => c.DrawImage(overlay, new Rectangle(0, 0, width, height), PixelColorBlendingMode.Normal, 1F));
+
+        background.DebugSave(
+            provider,
+            testOutputDetails: $"{width}_{height}",
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            testOutputDetails: $"{width}_{height}",
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
     }
@@ -158,12 +181,12 @@ public class DrawImageTests
         Point position = new((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
         image.Mutate(x => x.DrawImage(blend, position, .75F));
 
-        image.DebugSave(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
+        image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
         image.CompareToReferenceOutput(
             ImageComparer.TolerantPercentage(0.002f),
             provider,
-            appendSourceFileOrDescription: false,
-            appendPixelTypeToFileName: false);
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
     }
 
     [Theory]
@@ -179,9 +202,6 @@ public class DrawImageTests
 
         Assert.Contains("does not overlap", ex.ToString());
 
-        void Test()
-        {
-            background.Mutate(context => context.DrawImage(overlay, new Point(x, y), new GraphicsOptions()));
-        }
+        void Test() => background.Mutate(context => context.DrawImage(overlay, new Point(x, y), new GraphicsOptions()));
     }
 }

@@ -48,10 +48,44 @@ internal static class IccProfileConverter
                 Span<TPixel> row = accessor.GetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToVector4(configuration, row, vectorsSpan, PixelConversionModifiers.Scale);
 
-                for (int x = 0; x < vectorsSpan.Length; x++)
+                if (inputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieLab
+                && outputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieXyz)
                 {
-                    Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
-                    vectorsSpan[x] = converterPcsToData.Calculate(pcs);
+                    ColorSpaceConverter converter = new();
+                    for (int x = 0; x < vectorsSpan.Length; x++)
+                    {
+                        Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
+                        pcs = PcsToLab(pcs);
+                        CieXyz xyz = converter.ToCieXyz(new CieLab(pcs.X, pcs.Y, pcs.Z, new CieXyz(inputIccProfile.Header.PcsIlluminant)));
+                        pcs = new Vector4(xyz.X, xyz.Y, xyz.Z, pcs.W);
+
+                        vectorsSpan[x] = converterPcsToData.Calculate(pcs);
+                    }
+                }
+                else if (inputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieXyz
+                && outputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieLab)
+                {
+                    Vector3 illuminant = outputIccProfile.Header.PcsIlluminant;
+                    ColorSpaceConverter converter = new(new ColorSpaceConverterOptions()
+                    {
+                        WhitePoint = new(illuminant),
+                    });
+
+                    for (int x = 0; x < vectorsSpan.Length; x++)
+                    {
+                        Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
+                        CieLab lab = converter.ToCieLab(new CieXyz(pcs.X, pcs.Y, pcs.Z));
+                        pcs = LabToPcs(pcs, lab);
+                        vectorsSpan[x] = converterPcsToData.Calculate(pcs);
+                    }
+                }
+                else
+                {
+                    for (int x = 0; x < vectorsSpan.Length; x++)
+                    {
+                        Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
+                        vectorsSpan[x] = converterPcsToData.Calculate(pcs);
+                    }
                 }
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, row);
@@ -59,6 +93,22 @@ internal static class IccProfileConverter
         });
 
         image.Metadata.IccProfile = outputIccProfile;
+    }
+
+    private static unsafe Vector4 PcsToLab(Vector4 input)
+    {
+        Vector3* v = (Vector3*)&input;
+        v[0] *= 100F;
+        v[0] -= new Vector3(0, 128F, 128F);
+        return input;
+    }
+
+    private static unsafe Vector4 LabToPcs(Vector4 input, CieLab lab)
+    {
+        Vector3* v = (Vector3*)&input;
+        v[0] = new Vector3(lab.L, lab.A + 128F, lab.B + 128F);
+        v[0] /= 100F;
+        return input;
     }
 
     private readonly struct IccProfileConverterVisitor : IImageVisitor

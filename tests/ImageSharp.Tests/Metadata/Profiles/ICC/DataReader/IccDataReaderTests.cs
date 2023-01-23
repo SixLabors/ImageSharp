@@ -9,8 +9,5 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 public class IccDataReaderTests
 {
     [Fact]
-    public void ConstructorThrowsNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new IccDataReader(null));
-    }
+    public void ConstructorThrowsNullException() => Assert.Throws<ArgumentNullException>(() => new IccDataReader(null));
 }

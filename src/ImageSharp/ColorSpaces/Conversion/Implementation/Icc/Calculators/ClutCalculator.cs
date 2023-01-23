@@ -48,10 +48,10 @@ internal class ClutCalculator : IVector4Calculator
         this.g = new float[this.inputCount];
         this.ig = new uint[this.inputCount];
         this.s = new float[this.inputCount];
-        this.df = new float[this.nodeCount];
         this.nPower = new uint[16];
         this.lut = clut.Values;
         this.nodeCount = (int)Math.Pow(2, clut.InputChannelCount);
+        this.df = new float[this.nodeCount];
         this.nodes = new float[this.nodeCount][];
         this.dimSize = new int[this.inputCount];
         this.gridPointCount = clut.GridPointCount;
@@ -435,10 +435,10 @@ internal class ClutCalculator : IVector4Calculator
         int index = 0;
         for (int i = 0; i < this.inputCount; i++)
         {
-            this.g[i] = UnitClip(srcPixel[i]) * this.gridPointCount[i];
+            this.g[i] = UnitClip(srcPixel[i]) * this.maxGridPoint[i];
             this.ig[i] = (uint)this.g[i];
             this.s[this.inputCount - 1 - i] = this.g[i] - this.ig[i];
-            if (this.ig[i] == this.gridPointCount[i])
+            if (this.ig[i] == this.maxGridPoint[i])
             {
                 this.ig[i]--;
                 this.s[this.inputCount - 1 - i] = 1.0f;

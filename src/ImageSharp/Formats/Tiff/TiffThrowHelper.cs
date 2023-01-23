@@ -11,6 +11,9 @@ internal static class TiffThrowHelper
     public static Exception ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
     [DoesNotReturn]
+    public static Exception ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
+
+    [DoesNotReturn]
     public static Exception NotSupportedDecompressor(string compressionType) => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
 
     [DoesNotReturn]

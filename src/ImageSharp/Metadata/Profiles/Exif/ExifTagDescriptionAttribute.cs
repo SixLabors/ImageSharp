@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -25,17 +26,20 @@ internal sealed class ExifTagDescriptionAttribute : Attribute
     /// </summary>
     /// <param name="tag">The tag.</param>
     /// <param name="value">The value.</param>
+    /// <param name="description">The description.</param>
     /// <returns>
-    /// The <see cref="string"/>.
+    /// True when description was found
     /// </returns>
-    public static string? GetDescription(ExifTag tag, object? value)
+    public static bool TryGetDescription(ExifTag tag, object? value, [NotNullWhen(true)] out string? description)
     {
-        var tagValue = (ExifTagValue)(ushort)tag;
+        ExifTagValue tagValue = (ExifTagValue)(ushort)tag;
         FieldInfo? field = typeof(ExifTagValue).GetField(tagValue.ToString(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+        description = null;
 
         if (field is null)
         {
-            return null;
+            return false;
         }
 
         foreach (CustomAttributeData customAttribute in field.CustomAttributes)
@@ -44,10 +48,12 @@ internal sealed class ExifTagDescriptionAttribute : Attribute
 
             if (Equals(attributeValue, value))
             {
-                return (string?)customAttribute.ConstructorArguments[1].Value;
+                description = (string?)customAttribute.ConstructorArguments[1].Value;
+
+                return description is not null;
             }
         }
 
-        return null;
+        return false;
     }
 }

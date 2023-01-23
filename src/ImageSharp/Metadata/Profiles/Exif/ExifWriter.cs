@@ -179,9 +179,11 @@ internal sealed class ExifWriter
             }
 
             ExifValue? result = ExifValues.Create(offset);
-            Guard.NotNull(result);
 
-            ifdValues.Add(result);
+            if (result is not null)
+            {
+                ifdValues.Add(result);
+            }
 
             return result;
         }

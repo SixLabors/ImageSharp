@@ -793,7 +793,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     {
         if (!exifProfile.TryGetValue(ExifTag.ImageWidth, out IExifValue<Number> width))
         {
-            TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageWidth");
+            TiffThrowHelper.ThrowInvalidImageContentException("The TIFF image frame is missing the ImageWidth");
         }
 
         DebugGuard.MustBeLessThanOrEqualTo((ulong)width.Value, (ulong)int.MaxValue, nameof(ExifTag.ImageWidth));

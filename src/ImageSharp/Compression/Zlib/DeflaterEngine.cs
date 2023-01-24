@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -87,7 +86,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     /// <summary>
     /// The input data for compression.
     /// </summary>
-    private byte[] inputBuf;
+    private byte[]? inputBuf;
 
     /// <summary>
     /// The offset into inputBuf, where input data starts.
@@ -222,7 +221,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     /// <param name="buffer">The buffer containing input data.</param>
     /// <param name="offset">The offset of the first byte of data.</param>
     /// <param name="count">The number of bytes of data to use as input.</param>
-    public void SetInput(byte[] buffer, int offset, int count)
+    public void SetInput(byte[]? buffer, int offset, int count)
     {
         if (buffer is null)
         {
@@ -362,6 +361,8 @@ internal sealed unsafe class DeflaterEngine : IDisposable
                 more = this.inputEnd - this.inputOff;
             }
 
+            ArgumentNullException.ThrowIfNull(this.inputBuf);
+
             Unsafe.CopyBlockUnaligned(
                 ref this.window.Span[this.strstart + this.lookahead],
                 ref this.inputBuf[this.inputOff],
@@ -392,11 +393,6 @@ internal sealed unsafe class DeflaterEngine : IDisposable
 
             this.prevMemoryHandle.Dispose();
             this.prevMemoryOwner.Dispose();
-
-            this.windowMemoryOwner = null;
-            this.headMemoryOwner = null;
-            this.prevMemoryOwner = null;
-            this.huffman = null;
 
             this.isDisposed = true;
         }

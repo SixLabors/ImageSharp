@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -285,7 +284,6 @@ internal sealed class Deflater : IDisposable
         if (!this.isDisposed)
         {
             this.engine.Dispose();
-            this.engine = null;
             this.isDisposed = true;
         }
     }

@@ -89,7 +89,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
 
         int width = maxX - minX;
 
-        var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+        Rectangle workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
         // Not a valid operation because rectangle does not overlap with this image.
         if (workingRect.Width <= 0 || workingRect.Height <= 0)
@@ -98,7 +98,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
                 "Cannot draw image because the source image does not overlap the target image.");
         }
 
-        var operation = new RowOperation(source.PixelBuffer, targetImage.Frames.RootFrame.PixelBuffer, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+        DrawImageProcessor<TPixelBg, TPixelFg>.RowOperation operation = new(source.PixelBuffer, targetImage.Frames.RootFrame.PixelBuffer, blender, configuration, minX, width, locationY, targetX, this.Opacity);
         ParallelRowIterator.IterateRows(
             configuration,
             workingRect,

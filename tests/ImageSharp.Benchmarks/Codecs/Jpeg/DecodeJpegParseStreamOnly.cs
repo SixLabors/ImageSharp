@@ -54,6 +54,8 @@ public class DecodeJpegParseStreamOnly
         {
         }
 
+        public override bool HasPixelBuffer() => throw new NotImplementedException();
+
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
         }

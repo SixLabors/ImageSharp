@@ -26,16 +26,6 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
     /// <param name="yDensity">The vertical pixel density.</param>
     private JFifMarker(byte majorVersion, byte minorVersion, byte densityUnits, short xDensity, short yDensity)
     {
-        if (xDensity <= 0)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException($"X-Density {xDensity} must be greater than 0.");
-        }
-
-        if (yDensity <= 0)
-        {
-            JpegThrowHelper.ThrowInvalidImageContentException($"Y-Density {yDensity} must be greater than 0.");
-        }
-
         this.MajorVersion = majorVersion;
         this.MinorVersion = minorVersion;
 
@@ -64,12 +54,12 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
     public PixelResolutionUnit DensityUnits { get; }
 
     /// <summary>
-    /// Gets the horizontal pixel density. Must not be zero.
+    /// Gets the horizontal pixel density.
     /// </summary>
     public short XDensity { get; }
 
     /// <summary>
-    /// Gets the vertical pixel density. Must not be zero.
+    /// Gets the vertical pixel density.
     /// </summary>
     public short YDensity { get; }
 
@@ -88,12 +78,8 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
             byte densityUnits = bytes[7];
             short xDensity = (short)((bytes[8] << 8) | bytes[9]);
             short yDensity = (short)((bytes[10] << 8) | bytes[11]);
-
-            if (xDensity > 0 && yDensity > 0)
-            {
-                marker = new JFifMarker(majorVersion, minorVersion, densityUnits, xDensity, yDensity);
-                return true;
-            }
+            marker = new JFifMarker(majorVersion, minorVersion, densityUnits, xDensity, yDensity);
+            return true;
         }
 
         marker = default;

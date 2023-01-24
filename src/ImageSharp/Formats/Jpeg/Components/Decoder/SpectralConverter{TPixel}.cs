@@ -86,6 +86,12 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     public Configuration Configuration { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the converter has a pixel buffer.
+    /// </summary>
+    /// <returns><see langword="true"/> if the converter has a pixel buffer; otherwise, <see langword="false"/>.</returns>
+    public override bool HasPixelBuffer() => this.pixelBuffer is not null;
+
+    /// <summary>
     /// Gets converted pixel buffer.
     /// </summary>
     /// <remarks>

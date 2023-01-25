@@ -123,7 +123,7 @@ internal abstract partial class MemoryGroup<T>
 
         public override void RecreateViewAfterSwap()
         {
-            this.View?.Invalidate();
+            this.View.Invalidate();
             this.View = new MemoryGroupView<T>(this);
         }
 

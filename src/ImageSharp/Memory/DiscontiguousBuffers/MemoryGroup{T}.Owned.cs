@@ -141,7 +141,7 @@ internal abstract partial class MemoryGroup<T>
                 return;
             }
 
-            this.View?.Invalidate();
+            this.View.Invalidate();
 
             if (this.groupLifetimeGuard != null)
             {

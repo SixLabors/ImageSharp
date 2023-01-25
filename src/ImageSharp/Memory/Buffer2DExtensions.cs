@@ -22,7 +22,7 @@ public static class Buffer2DExtensions
         where T : struct
     {
         Guard.NotNull(buffer, nameof(buffer));
-        return buffer.FastMemoryGroup.View;
+        return buffer.FastMemoryGroup.View!;
     }
 
     /// <summary>

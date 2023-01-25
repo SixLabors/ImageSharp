@@ -106,7 +106,7 @@ internal static class MemoryGroupExtensions
         }
     }
 
-    internal static void CopyTo<T>(this IMemoryGroup<T> source, IMemoryGroup<T> target)
+    internal static void CopyTo<T>(this IMemoryGroup<T>? source, IMemoryGroup<T>? target)
         where T : struct
     {
         Guard.NotNull(source, nameof(source));

@@ -43,5 +43,5 @@ internal abstract class ManagedBufferBase<T> : MemoryManager<T>
     /// Gets the object that should be pinned.
     /// </summary>
     /// <returns>The pinnable <see cref="object"/>.</returns>
-    protected abstract object GetPinnableObject();
+    protected abstract object? GetPinnableObject();
 }

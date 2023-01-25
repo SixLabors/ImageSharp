@@ -43,7 +43,7 @@ public sealed class Buffer2D<T> : IDisposable
     /// Gets the backing <see cref="IMemoryGroup{T}"/>.
     /// </summary>
     /// <returns>The MemoryGroup.</returns>
-    public IMemoryGroup<T> MemoryGroup => this.FastMemoryGroup.View;
+    public IMemoryGroup<T>? MemoryGroup => this.FastMemoryGroup.View;
 
     /// <summary>
     /// Gets the backing <see cref="MemoryGroup{T}"/> without the view abstraction.
@@ -138,7 +138,7 @@ public sealed class Buffer2D<T> : IDisposable
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
         DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-        return this.FastMemoryGroup.View.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
+        return this.FastMemoryGroup.View!.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
     }
 
     /// <summary>

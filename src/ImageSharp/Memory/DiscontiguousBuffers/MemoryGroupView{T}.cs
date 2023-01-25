@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory;
 internal class MemoryGroupView<T> : IMemoryGroup<T>
     where T : struct
 {
-    private MemoryGroup<T> owner;
+    private MemoryGroup<T>? owner;
     private readonly MemoryOwnerWrapper[] memoryWrappers;
 
     public MemoryGroupView(MemoryGroup<T> owner)
@@ -63,6 +63,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         }
     }
 
+    [MemberNotNullWhen(true, nameof(owner))]
     public bool IsValid => this.owner != null;
 
     public Memory<T> this[int index]
@@ -99,6 +100,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
         this.owner = null;
     }
 
+    [MemberNotNull(nameof(owner))]
     private void EnsureIsValid()
     {
         if (!this.IsValid)

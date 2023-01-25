@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -15,8 +15,8 @@ internal abstract partial class MemoryGroup<T>
     /// </summary>
     public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
     {
-        private IMemoryOwner<T>[] memoryOwners;
-        private RefCountedMemoryLifetimeGuard groupLifetimeGuard;
+        private IMemoryOwner<T>[]? memoryOwners;
+        private RefCountedMemoryLifetimeGuard? groupLifetimeGuard;
 
         public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
             : base(bufferLength, totalLength)
@@ -123,7 +123,7 @@ internal abstract partial class MemoryGroup<T>
 
         public override void RecreateViewAfterSwap()
         {
-            this.View.Invalidate();
+            this.View?.Invalidate();
             this.View = new MemoryGroupView<T>(this);
         }
 
@@ -141,7 +141,7 @@ internal abstract partial class MemoryGroup<T>
                 return;
             }
 
-            this.View.Invalidate();
+            this.View?.Invalidate();
 
             if (this.groupLifetimeGuard != null)
             {
@@ -149,7 +149,7 @@ internal abstract partial class MemoryGroup<T>
             }
             else
             {
-                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners!)
                 {
                     memoryOwner.Dispose();
                 }
@@ -161,6 +161,7 @@ internal abstract partial class MemoryGroup<T>
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
+        [MemberNotNull(nameof(memoryOwners))]
         private void EnsureNotDisposed()
         {
             if (this.memoryOwners is null)
@@ -170,6 +171,7 @@ internal abstract partial class MemoryGroup<T>
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
+        [DoesNotReturn]
         private static void ThrowObjectDisposedException() => throw new ObjectDisposedException(nameof(MemoryGroup<T>));
 
         // When the MemoryGroup points to multiple buffers via `groupLifetimeGuard`,

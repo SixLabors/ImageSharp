@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Diagnostics;
 
@@ -15,7 +14,7 @@ internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
     private int refCount = 1;
     private int disposed;
     private int released;
-    private string allocationStackTrace;
+    private string? allocationStackTrace;
 
     protected RefCountedMemoryLifetimeGuard()
     {

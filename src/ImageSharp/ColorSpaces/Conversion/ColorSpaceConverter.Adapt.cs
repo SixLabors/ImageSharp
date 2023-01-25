@@ -32,7 +32,8 @@ public partial class ColorSpaceConverter
             return color;
         }
 
-        return this.chromaticAdaptation.Transform(color, sourceWhitePoint, targetWhitePoint);
+        // We know that chromaticAdaption is not null because performChromaticAdaption is checked
+        return this.chromaticAdaptation!.Transform(color, sourceWhitePoint, targetWhitePoint);
     }
 
     /// <summary>
@@ -132,7 +133,8 @@ public partial class ColorSpaceConverter
         CieXyz unadapted = converterToXYZ.Convert(color);
 
         // Adaptation
-        CieXyz adapted = this.chromaticAdaptation.Transform(unadapted, color.WorkingSpace.WhitePoint, this.targetRgbWorkingSpace.WhitePoint);
+        // We know that chromaticAdaption is not null because performChromaticAdaption is checked
+        CieXyz adapted = this.chromaticAdaptation!.Transform(unadapted, color.WorkingSpace.WhitePoint, this.targetRgbWorkingSpace.WhitePoint);
 
         // Conversion back to RGB
         return this.cieXyzToLinearRgbConverter.Convert(adapted);

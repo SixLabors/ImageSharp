@@ -44,7 +44,7 @@ public class ColorSpaceConverterOptions
     /// <summary>
     /// Gets or sets the chromatic adaptation method used. When <value>null</value>, no adaptation will be performed.
     /// </summary>
-    public IChromaticAdaptation ChromaticAdaptation { get; set; } = new VonKriesChromaticAdaptation();
+    public IChromaticAdaptation? ChromaticAdaptation { get; set; } = new VonKriesChromaticAdaptation();
 
     /// <summary>
     /// Gets or sets transformation matrix used in conversion to and from <see cref="Lms"/>.

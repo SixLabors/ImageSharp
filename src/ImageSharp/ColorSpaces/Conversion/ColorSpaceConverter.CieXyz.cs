@@ -13,7 +13,7 @@ public partial class ColorSpaceConverter
 {
     private static readonly HunterLabToCieXyzConverter HunterLabToCieXyzConverter = new();
 
-    private LinearRgbToCieXyzConverter linearRgbToCieXyzConverter;
+    private LinearRgbToCieXyzConverter? linearRgbToCieXyzConverter;
 
     /// <summary>
     /// Converts a <see cref="CieLab"/> into a <see cref="CieXyz"/>.

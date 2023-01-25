@@ -48,6 +48,6 @@ internal abstract partial class MemoryGroup<T>
             return ((IList<Memory<T>>)this.source).GetEnumerator();
         }
 
-        public override void Dispose() => this.View?.Invalidate();
+        public override void Dispose() => this.View.Invalidate();
     }
 }

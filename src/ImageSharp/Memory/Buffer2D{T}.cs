@@ -138,7 +138,7 @@ public sealed class Buffer2D<T> : IDisposable
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
         DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-        return this.FastMemoryGroup.View!.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
+        return this.FastMemoryGroup.View.GetBoundedMemorySlice(y * (long)this.Width, this.Width);
     }
 
     /// <summary>

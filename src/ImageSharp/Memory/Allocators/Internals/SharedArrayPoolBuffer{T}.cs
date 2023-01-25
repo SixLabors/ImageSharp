@@ -40,7 +40,11 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         return MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
     }
 
-    protected override object? GetPinnableObject() => this.Array;
+    protected override object GetPinnableObject()
+    {
+        Guard.NotNull(this.Array);
+        return this.Array;
+    }
 
     public void AddRef()
     {

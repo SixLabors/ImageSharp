@@ -43,7 +43,7 @@ public sealed class Buffer2D<T> : IDisposable
     /// Gets the backing <see cref="IMemoryGroup{T}"/>.
     /// </summary>
     /// <returns>The MemoryGroup.</returns>
-    public IMemoryGroup<T>? MemoryGroup => this.FastMemoryGroup.View;
+    public IMemoryGroup<T> MemoryGroup => this.FastMemoryGroup.View;
 
     /// <summary>
     /// Gets the backing <see cref="MemoryGroup{T}"/> without the view abstraction.

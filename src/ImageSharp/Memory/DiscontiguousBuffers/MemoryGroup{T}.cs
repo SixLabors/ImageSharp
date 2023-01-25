@@ -41,7 +41,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// <inheritdoc />
     public bool IsValid { get; private set; } = true;
 
-    public MemoryGroupView<T>? View { get; private set; }
+    public MemoryGroupView<T> View { get; private set; } = null!;
 
     /// <inheritdoc />
     public abstract Memory<T> this[int index] { get; }

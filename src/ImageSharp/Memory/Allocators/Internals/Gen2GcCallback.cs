@@ -42,7 +42,7 @@ internal sealed class Gen2GcCallback : CriticalFinalizerObject
             // Execute the callback method.
             try
             {
-                if (this.callback1 is not null && !this.callback1(targetObj))
+                if (!this.callback1!(targetObj))
                 {
                     // If the callback returns false, this callback object is no longer needed.
                     this.weakTargetObj.Free();
@@ -63,7 +63,7 @@ internal sealed class Gen2GcCallback : CriticalFinalizerObject
             // Execute the callback method.
             try
             {
-                if (this.callback0 is not null && !this.callback0())
+                if (!this.callback0!())
                 {
                     // If the callback returns false, this callback object is no longer needed.
                     return;

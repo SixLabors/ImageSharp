@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -42,7 +43,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     protected override object GetPinnableObject()
     {
-        Guard.NotNull(this.Array);
+        this.CheckDisposed();
         return this.Array;
     }
 
@@ -55,6 +56,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     public void ReleaseRef() => this.lifetimeGuard.ReleaseRef();
 
     [Conditional("DEBUG")]
+    [MemberNotNull(nameof(Array))]
     private void CheckDisposed()
     {
         if (this.Array == null)

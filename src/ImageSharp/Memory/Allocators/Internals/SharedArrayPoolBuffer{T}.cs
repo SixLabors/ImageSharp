@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -22,7 +22,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         this.lifetimeGuard = new LifetimeGuard(this.Array);
     }
 
-    public byte[] Array { get; private set; }
+    public byte[]? Array { get; private set; }
 
     protected override void Dispose(bool disposing)
     {
@@ -41,7 +41,11 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
         return MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
     }
 
-    protected override object GetPinnableObject() => this.Array;
+    protected override object GetPinnableObject()
+    {
+        this.CheckDisposed();
+        return this.Array;
+    }
 
     public void AddRef()
     {
@@ -52,6 +56,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     public void ReleaseRef() => this.lifetimeGuard.ReleaseRef();
 
     [Conditional("DEBUG")]
+    [MemberNotNull(nameof(Array))]
     private void CheckDisposed()
     {
         if (this.Array == null)
@@ -62,7 +67,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     private sealed class LifetimeGuard : RefCountedMemoryLifetimeGuard
     {
-        private byte[] array;
+        private byte[]? array;
 
         public LifetimeGuard(byte[] array) => this.array = array;
 
@@ -73,7 +78,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
             // This is not ideal, but subsequent leaks will end up returning arrays to per-cpu buckets,
             // meaning likely a different bucket than it was rented from,
             // but this is PROBABLY better than not returning the arrays at all.
-            ArrayPool<byte>.Shared.Return(this.array);
+            ArrayPool<byte>.Shared.Return(this.array!);
             this.array = null;
         }
     }

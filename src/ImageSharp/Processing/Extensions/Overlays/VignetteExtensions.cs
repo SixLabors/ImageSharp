@@ -14,27 +14,27 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(this IImageProcessingContext source) =>
         Vignette(source, source.GetGraphicsOptions());
 
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="color">The color to set as the vignette.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(this IImageProcessingContext source, Color color) =>
         Vignette(source, source.GetGraphicsOptions(), color);
 
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="radiusX">The the x-radius.</param>
     /// <param name="radiusY">The the y-radius.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         float radiusX,
@@ -44,25 +44,25 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(this IImageProcessingContext source, Rectangle rectangle) =>
         Vignette(source, source.GetGraphicsOptions(), rectangle);
 
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="color">The color to set as the vignette.</param>
     /// <param name="radiusX">The the x-radius.</param>
     /// <param name="radiusY">The the y-radius.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         Color color,
@@ -74,9 +74,9 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The options effecting pixel blending.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(this IImageProcessingContext source, GraphicsOptions options) =>
         source.VignetteInternal(
             options,
@@ -87,10 +87,10 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The options effecting pixel blending.</param>
     /// <param name="color">The color to set as the vignette.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         GraphicsOptions options,
@@ -104,11 +104,11 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The options effecting pixel blending.</param>
     /// <param name="radiusX">The the x-radius.</param>
     /// <param name="radiusY">The the y-radius.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         GraphicsOptions options,
@@ -119,12 +119,12 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The options effecting pixel blending.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         GraphicsOptions options,
@@ -139,7 +139,7 @@ public static class VignetteExtensions
     /// <summary>
     /// Applies a radial vignette effect to an image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The options effecting pixel blending.</param>
     /// <param name="color">The color to set as the vignette.</param>
     /// <param name="radiusX">The the x-radius.</param>
@@ -147,7 +147,7 @@ public static class VignetteExtensions
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Vignette(
         this IImageProcessingContext source,
         GraphicsOptions options,

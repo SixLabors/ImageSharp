@@ -14,9 +14,9 @@ public static class BinaryDitherExtensions
     /// <summary>
     /// Dithers the image reducing it to two colors using ordered dithering.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext
         BinaryDither(this IImageProcessingContext source, IDither dither) =>
         BinaryDither(source, dither, Color.White, Color.Black);
@@ -24,11 +24,11 @@ public static class BinaryDitherExtensions
     /// <summary>
     /// Dithers the image reducing it to two colors using ordered dithering.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BinaryDither(
         this IImageProcessingContext source,
         IDither dither,
@@ -39,12 +39,12 @@ public static class BinaryDitherExtensions
     /// <summary>
     /// Dithers the image reducing it to two colors using ordered dithering.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BinaryDither(
         this IImageProcessingContext source,
         IDither dither,
@@ -54,14 +54,14 @@ public static class BinaryDitherExtensions
     /// <summary>
     /// Dithers the image reducing it to two colors using ordered dithering.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
     /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BinaryDither(
         this IImageProcessingContext source,
         IDither dither,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Processing;
@@ -12,10 +12,10 @@ public static class RotateFlipExtensions
     /// <summary>
     /// Rotates and flips an image by the given instructions.
     /// </summary>
-    /// <param name="source">The image to rotate, flip, or both.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rotateMode">The <see cref="RotateMode"/> to perform the rotation.</param>
     /// <param name="flipMode">The <see cref="FlipMode"/> to perform the flip.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext RotateFlip(this IImageProcessingContext source, RotateMode rotateMode, FlipMode flipMode)
         => source.Rotate(rotateMode).Flip(flipMode);
 }

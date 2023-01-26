@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Filters;
@@ -18,9 +18,9 @@ public static class SaturateExtensions
     /// A value of 0 is completely un-saturated. A value of 1 leaves the input unchanged.
     /// Other values are linear multipliers on the effect. Values of amount over 1 are allowed, providing super-saturated results
     /// </remarks>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Saturate(this IImageProcessingContext source, float amount)
         => source.ApplyProcessor(new SaturateProcessor(amount));
 
@@ -31,12 +31,12 @@ public static class SaturateExtensions
     /// A value of 0 is completely un-saturated. A value of 1 leaves the input unchanged.
     /// Other values are linear multipliers on the effect. Values of amount over 1 are allowed, providing super-saturated results
     /// </remarks>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Saturate(this IImageProcessingContext source, float amount, Rectangle rectangle)
         => source.ApplyProcessor(new SaturateProcessor(amount), rectangle);
 }

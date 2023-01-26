@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors;
@@ -15,21 +15,21 @@ public static class ColorBlindnessExtensions
     /// <summary>
     /// Applies the given colorblindness simulator to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext ColorBlindness(this IImageProcessingContext source, ColorBlindnessMode colorBlindness)
         => source.ApplyProcessor(GetProcessor(colorBlindness));
 
     /// <summary>
     /// Applies the given colorblindness simulator to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="colorBlindnessMode">The type of color blindness simulator to apply.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext ColorBlindness(this IImageProcessingContext source, ColorBlindnessMode colorBlindnessMode, Rectangle rectangle)
         => source.ApplyProcessor(GetProcessor(colorBlindnessMode), rectangle);
 

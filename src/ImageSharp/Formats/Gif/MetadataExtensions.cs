@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 
@@ -37,5 +38,5 @@ public static partial class MetadataExtensions
     /// <returns>
     /// <see langword="true"/> if the gif frame metadata exists; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool TryGetGifMetadata(this ImageFrameMetadata source, out GifFrameMetadata metadata) => source.TryGetFormatMetadata(GifFormat.Instance, out metadata);
+    public static bool TryGetGifMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out GifFrameMetadata? metadata) => source.TryGetFormatMetadata(GifFormat.Instance, out metadata);
 }

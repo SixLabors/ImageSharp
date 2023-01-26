@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -49,22 +48,22 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// <summary>
     /// Gets or sets the Exif profile.
     /// </summary>
-    public ExifProfile ExifProfile { get; set; }
+    public ExifProfile? ExifProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the XMP profile.
     /// </summary>
-    public XmpProfile XmpProfile { get; set; }
+    public XmpProfile? XmpProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the ICC profile.
     /// </summary>
-    public IccProfile IccProfile { get; set; }
+    public IccProfile? IccProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the iptc profile.
     /// </summary>
-    public IptcProfile IptcProfile { get; set; }
+    public IptcProfile? IptcProfile { get; set; }
 
     /// <inheritdoc/>
     public ImageFrameMetadata DeepClone() => new(this);
@@ -83,7 +82,7 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         where TFormatMetadata : class
         where TFormatFrameMetadata : class, IDeepCloneable
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
         {
             return (TFormatFrameMetadata)meta;
         }
@@ -107,11 +106,11 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// <returns>
     /// <see langword="true"/> if the frame metadata exists for the specified key; otherwise, <see langword="false"/>.
     /// </returns>
-    public bool TryGetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, out TFormatFrameMetadata metadata)
+    public bool TryGetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, out TFormatFrameMetadata? metadata)
         where TFormatMetadata : class
         where TFormatFrameMetadata : class, IDeepCloneable
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable meta))
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
         {
             metadata = (TFormatFrameMetadata)meta;
             return true;

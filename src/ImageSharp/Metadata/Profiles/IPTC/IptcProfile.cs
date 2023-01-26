@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
@@ -30,7 +30,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     public IptcProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -38,7 +38,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     /// <param name="data">The byte array to read the iptc profile from.</param>
-    public IptcProfile(byte[] data)
+    public IptcProfile(byte[]? data)
     {
         this.Data = data;
         this.Initialize();
@@ -53,14 +53,11 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     {
         Guard.NotNull(other, nameof(other));
 
-        if (other.values != null)
-        {
-            this.values = new Collection<IptcValue>();
+        this.values = new Collection<IptcValue>();
 
-            foreach (IptcValue value in other.Values)
-            {
-                this.values.Add(value.DeepClone());
-            }
+        foreach (IptcValue value in other.Values)
+        {
+            this.values.Add(value.DeepClone());
         }
 
         if (other.Data != null)
@@ -78,7 +75,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <summary>
     /// Gets the byte data of the IPTC profile.
     /// </summary>
-    public byte[] Data { get; private set; }
+    public byte[]? Data { get; private set; }
 
     /// <summary>
     /// Gets the values of this iptc profile.
@@ -310,6 +307,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
         return offset;
     }
 
+    [MemberNotNull(nameof(values))]
     private void Initialize()
     {
         if (this.values != null)

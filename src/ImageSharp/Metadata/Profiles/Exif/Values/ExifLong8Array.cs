@@ -34,7 +34,7 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
         }
     }
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

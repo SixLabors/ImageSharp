@@ -24,9 +24,9 @@ internal sealed class ExifString : ExifValue<string>
 
     public override ExifDataType DataType => ExifDataType.Ascii;
 
-    protected override string StringValue => this.Value;
+    protected override string? StringValue => this.Value;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

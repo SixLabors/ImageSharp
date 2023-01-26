@@ -27,12 +27,12 @@ public interface IExifValue : IDeepCloneable<IExifValue>
     /// Gets the value of this exif value.
     /// </summary>
     /// <returns>The value of this exif value.</returns>
-    object GetValue();
+    object? GetValue();
 
     /// <summary>
     /// Sets the value of this exif value.
     /// </summary>
     /// <param name="value">The value of this exif value.</param>
     /// <returns>A value indicating whether the value could be set.</returns>
-    bool TrySetValue(object value);
+    bool TrySetValue(object? value);
 }

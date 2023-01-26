@@ -135,7 +135,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         }
 
         // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:
-        if (MemoryGroup<T>.TryAllocate(this.pool, totalLength, bufferAlignment, options, out MemoryGroup<T> poolGroup))
+        if (MemoryGroup<T>.TryAllocate(this.pool, totalLength, bufferAlignment, options, out MemoryGroup<T>? poolGroup))
         {
             return poolGroup;
         }

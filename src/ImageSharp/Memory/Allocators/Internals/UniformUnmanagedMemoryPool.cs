@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics;
 
@@ -13,7 +12,7 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
 {
     private static int minTrimPeriodMilliseconds = int.MaxValue;
     private static readonly List<WeakReference<UniformUnmanagedMemoryPool>> AllPools = new();
-    private static Timer trimTimer;
+    private static Timer? trimTimer;
 
     private static readonly Stopwatch Stopwatch = Stopwatch.StartNew();
 
@@ -97,7 +96,7 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
     /// <summary>
     /// Rent <paramref name="bufferCount"/> buffers or return 'null' if the pool is full.
     /// </summary>
-    public UnmanagedMemoryHandle[] Rent(int bufferCount)
+    public UnmanagedMemoryHandle[]? Rent(int bufferCount)
     {
         UnmanagedMemoryHandle[] buffersLocal = this.buffers;
 
@@ -248,7 +247,7 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
 
             foreach (WeakReference<UniformUnmanagedMemoryPool> weakPoolRef in AllPools)
             {
-                if (weakPoolRef.TryGetTarget(out UniformUnmanagedMemoryPool pool))
+                if (weakPoolRef.TryGetTarget(out UniformUnmanagedMemoryPool? pool))
                 {
                     pool.Trim();
                 }

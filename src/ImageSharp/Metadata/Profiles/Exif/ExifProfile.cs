@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -14,12 +14,12 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// The byte array to read the EXIF profile from.
     /// </summary>
-    private readonly byte[] data;
+    private readonly byte[]? data;
 
     /// <summary>
     /// The collection of EXIF values
     /// </summary>
-    private List<IExifValue> values;
+    private List<IExifValue>? values;
 
     /// <summary>
     /// The thumbnail offset position in the byte stream
@@ -35,7 +35,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Initializes a new instance of the <see cref="ExifProfile"/> class.
     /// </summary>
     public ExifProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -43,7 +43,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Initializes a new instance of the <see cref="ExifProfile"/> class.
     /// </summary>
     /// <param name="data">The byte array to read the EXIF profile from.</param>
-    public ExifProfile(byte[] data)
+    public ExifProfile(byte[]? data)
     {
         this.Parts = ExifParts.All;
         this.data = data;
@@ -78,7 +78,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         this.InvalidTags = other.InvalidTags.Count > 0
             ? new List<ExifTag>(other.InvalidTags)
-            : (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+            : Array.Empty<ExifTag>();
 
         if (other.values != null)
         {
@@ -110,6 +110,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Gets the values of this EXIF profile.
     /// </summary>
+    [MemberNotNull(nameof(values))]
     public IReadOnlyList<IExifValue> Values
     {
         get
@@ -122,36 +123,47 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Returns the thumbnail in the EXIF profile when available.
     /// </summary>
+    /// <param name="image">The thumbnail</param>
     /// <returns>
-    /// The <see cref="Image"/>.
+    /// True, if there is a thumbnail otherwise false.
     /// </returns>
-    public Image CreateThumbnail() => this.CreateThumbnail<Rgba32>();
+    public bool TryCreateThumbnail([NotNullWhen(true)] out Image? image)
+    {
+        if (this.TryCreateThumbnail(out Image<Rgba32>? innerimage))
+        {
+            image = innerimage;
+            return true;
+        }
+
+        image = null;
+        return false;
+    }
 
     /// <summary>
     /// Returns the thumbnail in the EXIF profile when available.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <returns>
-    /// The <see cref="Image{TPixel}"/>.
-    /// </returns>
-    public Image<TPixel> CreateThumbnail<TPixel>()
+    /// <param name="image">The thumbnail.</param>
+    /// <returns>True, if there is a thumbnail otherwise false.</returns>
+    public bool TryCreateThumbnail<TPixel>([NotNullWhen(true)] out Image<TPixel>? image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.InitializeValues();
-
+        image = null;
         if (this.thumbnailOffset == 0 || this.thumbnailLength == 0)
         {
-            return null;
+            return false;
         }
 
         if (this.data is null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
         {
-            return null;
+            return false;
         }
 
-        using (var memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
+        using (MemoryStream memStream = new(this.data, this.thumbnailOffset, this.thumbnailLength))
         {
-            return Image.Load<TPixel>(memStream);
+            image = Image.Load<TPixel>(memStream);
+            return true;
         }
     }
 
@@ -159,12 +171,21 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Returns the value with the specified tag.
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
-    /// <returns>The value with the specified tag.</returns>
+    /// <param name="exifValue">The value with the specified tag.</param>
+    /// <returns>True when found, otherwise false</returns>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
-    public IExifValue<TValueType> GetValue<TValueType>(ExifTag<TValueType> tag)
+    public bool TryGetValue<TValueType>(ExifTag<TValueType> tag, [NotNullWhen(true)] out IExifValue<TValueType>? exifValue)
     {
-        IExifValue value = this.GetValueInternal(tag);
-        return value is null ? null : (IExifValue<TValueType>)value;
+        IExifValue? value = this.GetValueInternal(tag);
+
+        if (value is null)
+        {
+            exifValue = null;
+            return false;
+        }
+
+        exifValue = (IExifValue<TValueType>)value;
+        return true;
     }
 
     /// <summary>
@@ -203,7 +224,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// Converts this instance to a byte array.
     /// </summary>
     /// <returns>The <see cref="T:byte[]"/></returns>
-    public byte[] ToByteArray()
+    public byte[]? ToByteArray()
     {
         if (this.values is null)
         {
@@ -215,19 +236,19 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return Array.Empty<byte>();
         }
 
-        var writer = new ExifWriter(this.values, this.Parts);
+        ExifWriter writer = new(this.values, this.Parts);
         return writer.GetData();
     }
 
     /// <inheritdoc/>
-    public ExifProfile DeepClone() => new ExifProfile(this);
+    public ExifProfile DeepClone() => new(this);
 
     /// <summary>
     /// Returns the value with the specified tag.
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <returns>The value with the specified tag.</returns>
-    internal IExifValue GetValueInternal(ExifTag tag)
+    internal IExifValue? GetValueInternal(ExifTag tag)
     {
         foreach (IExifValue exifValue in this.Values)
         {
@@ -245,7 +266,8 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <param name="value">The value.</param>
-    internal void SetValueInternal(ExifTag tag, object value)
+    /// <exception cref="NotSupportedException">Newly created value is null.</exception>
+    internal void SetValueInternal(ExifTag tag, object? value)
     {
         foreach (IExifValue exifValue in this.Values)
         {
@@ -256,10 +278,10 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             }
         }
 
-        ExifValue newExifValue = ExifValues.Create(tag);
+        ExifValue? newExifValue = ExifValues.Create(tag);
         if (newExifValue is null)
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException($"Newly created value for tag {tag} is null.");
         }
 
         newExifValue.TrySetValue(value);
@@ -278,9 +300,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
     private void SyncResolution(ExifTag<Rational> tag, double resolution)
     {
-        IExifValue<Rational> value = this.GetValue(tag);
-
-        if (value is null)
+        if (!this.TryGetValue(tag, out IExifValue<Rational>? value))
         {
             return;
         }
@@ -290,10 +310,11 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             this.RemoveValue(value.Tag);
         }
 
-        var newResolution = new Rational(resolution, false);
+        Rational newResolution = new(resolution, false);
         this.SetValue(tag, newResolution);
     }
 
+    [MemberNotNull(nameof(values))]
     private void InitializeValues()
     {
         if (this.values != null)
@@ -307,13 +328,13 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return;
         }
 
-        var reader = new ExifReader(this.data);
+        ExifReader reader = new(this.data);
 
         this.values = reader.ReadValues();
 
         this.InvalidTags = reader.InvalidTags.Count > 0
             ? new List<ExifTag>(reader.InvalidTags)
-            : (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+            : Array.Empty<ExifTag>();
 
         this.thumbnailOffset = (int)reader.ThumbnailOffset;
         this.thumbnailLength = (int)reader.ThumbnailLength;

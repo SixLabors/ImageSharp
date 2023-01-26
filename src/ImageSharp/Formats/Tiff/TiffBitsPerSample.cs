@@ -82,7 +82,7 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     /// <param name="value">The value to parse.</param>
     /// <param name="sample">The tiff bits per sample.</param>
     /// <returns>True, if the value could be parsed.</returns>
-    public static bool TryParse(ushort[] value, out TiffBitsPerSample sample)
+    public static bool TryParse(ushort[]? value, out TiffBitsPerSample sample)
     {
         if (value is null || value.Length == 0)
         {

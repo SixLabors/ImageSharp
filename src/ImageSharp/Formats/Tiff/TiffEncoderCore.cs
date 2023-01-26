@@ -164,8 +164,6 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            TiffNewSubfileType subfileType = (TiffNewSubfileType)(frame.Metadata.ExifProfile?.GetValue(ExifTag.SubfileType)?.Value ?? (int)TiffNewSubfileType.FullImage);
-
             ifdMarker = this.WriteFrame(writer, frame, image.Metadata, metadataImage, ifdMarker);
             metadataImage = null;
         }

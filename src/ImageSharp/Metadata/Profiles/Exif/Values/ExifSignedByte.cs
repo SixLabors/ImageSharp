@@ -21,7 +21,7 @@ internal sealed class ExifSignedByte : ExifValue<sbyte>
 
     protected override string StringValue => this.Value.ToString("X2", CultureInfo.InvariantCulture);
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

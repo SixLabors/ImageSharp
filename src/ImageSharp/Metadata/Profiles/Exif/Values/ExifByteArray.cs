@@ -16,7 +16,7 @@ internal sealed class ExifByteArray : ExifArrayValue<byte>
 
     public override ExifDataType DataType { get; }
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

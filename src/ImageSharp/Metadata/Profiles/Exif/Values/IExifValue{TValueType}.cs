@@ -12,5 +12,5 @@ public interface IExifValue<TValueType> : IExifValue
     /// <summary>
     /// Gets or sets the value.
     /// </summary>
-    TValueType Value { get; set; }
+    TValueType? Value { get; set; }
 }

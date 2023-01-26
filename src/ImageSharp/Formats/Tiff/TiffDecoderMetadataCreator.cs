@@ -38,14 +38,12 @@ internal static class TiffDecoderMetadataCreator
                     frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
                 }
 
-                IExifValue<byte[]> xmpProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.XMP);
-                if (xmpProfileBytes != null)
+                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]> xmpProfileBytes))
                 {
                     frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                 }
 
-                IExifValue<byte[]> iccProfileBytes = frameMetaData.ExifProfile.GetValue(ExifTag.IccProfile);
-                if (iccProfileBytes != null)
+                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
                 {
                     frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                 }
@@ -70,16 +68,20 @@ internal static class TiffDecoderMetadataCreator
     private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)
     {
         imageMetaData.ResolutionUnits = exifProfile != null ? UnitConverter.ExifProfileToResolutionUnit(exifProfile) : PixelResolutionUnit.PixelsPerInch;
-        double? horizontalResolution = exifProfile?.GetValue(ExifTag.XResolution)?.Value.ToDouble();
-        if (horizontalResolution != null)
+
+        if (exifProfile is null)
         {
-            imageMetaData.HorizontalResolution = horizontalResolution.Value;
+            return;
         }
 
-        double? verticalResolution = exifProfile?.GetValue(ExifTag.YResolution)?.Value.ToDouble();
-        if (verticalResolution != null)
+        if (exifProfile.TryGetValue(ExifTag.XResolution, out IExifValue<Rational> horizontalResolution))
         {
-            imageMetaData.VerticalResolution = verticalResolution.Value;
+            imageMetaData.HorizontalResolution = horizontalResolution.Value.ToDouble();
+        }
+
+        if (exifProfile.TryGetValue(ExifTag.YResolution, out IExifValue<Rational> verticalResolution))
+        {
+            imageMetaData.VerticalResolution = verticalResolution.Value.ToDouble();
         }
     }
 

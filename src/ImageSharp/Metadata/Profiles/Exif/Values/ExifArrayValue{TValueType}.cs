@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -23,11 +22,11 @@ internal abstract class ExifArrayValue<TValueType> : ExifValue, IExifValue<TValu
 
     public override bool IsArray => true;
 
-    public TValueType[] Value { get; set; }
+    public TValueType[]? Value { get; set; }
 
-    public override object GetValue() => this.Value;
+    public override object? GetValue() => this.Value;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (value is null)
         {

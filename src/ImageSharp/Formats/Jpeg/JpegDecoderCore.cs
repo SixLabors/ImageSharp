@@ -717,9 +717,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
     private double GetExifResolutionValue(ExifTag<Rational> tag)
     {
-        IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
+        if (this.Metadata.ExifProfile.TryGetValue(tag, out IExifValue<Rational> resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
 
-        return resolution is null ? 0 : resolution.Value.ToDouble();
+        return 0;
     }
 
     /// <summary>

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -20,7 +19,7 @@ namespace SixLabors.ImageSharp;
 public readonly partial struct Color : IEquatable<Color>
 {
     private readonly Rgba64 data;
-    private readonly IPixel boxedHighPrecisionPixel;
+    private readonly IPixel? boxedHighPrecisionPixel;
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private Color(byte r, byte g, byte b, byte a)
@@ -317,7 +316,7 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj) => obj is Color other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is Color other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

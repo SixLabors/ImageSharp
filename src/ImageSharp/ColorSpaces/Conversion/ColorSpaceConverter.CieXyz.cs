@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -11,9 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
 /// </content>
 public partial class ColorSpaceConverter
 {
-    private static readonly HunterLabToCieXyzConverter HunterLabToCieXyzConverter = new();
-
-    private LinearRgbToCieXyzConverter linearRgbToCieXyzConverter;
+    private static readonly ConcurrentDictionary<RgbWorkingSpace, LinearRgbToCieXyzConverter> ConverterCache = new();
 
     /// <summary>
     /// Converts a <see cref="CieLab"/> into a <see cref="CieXyz"/>.
@@ -327,7 +326,7 @@ public partial class ColorSpaceConverter
     public CieXyz ToCieXyz(in LinearRgb color)
     {
         // Conversion
-        LinearRgbToCieXyzConverter converter = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
+        LinearRgbToCieXyzConverter converter = GetLinearRgbToCieXyzConverter(color.WorkingSpace);
         CieXyz unadapted = converter.Convert(color);
 
         return this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
@@ -454,13 +453,6 @@ public partial class ColorSpaceConverter
     /// </summary>
     /// <param name="workingSpace">The source working space</param>
     /// <returns>The <see cref="LinearRgbToCieXyzConverter"/></returns>
-    private LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpace workingSpace)
-    {
-        if (this.linearRgbToCieXyzConverter?.SourceWorkingSpace.Equals(workingSpace) == true)
-        {
-            return this.linearRgbToCieXyzConverter;
-        }
-
-        return this.linearRgbToCieXyzConverter = new LinearRgbToCieXyzConverter(workingSpace);
-    }
+    private static LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpace workingSpace)
+        => ConverterCache.GetOrAdd(workingSpace, (key) => new LinearRgbToCieXyzConverter(key));
 }

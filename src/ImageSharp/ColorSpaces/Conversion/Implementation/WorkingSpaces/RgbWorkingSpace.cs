@@ -75,7 +75,5 @@ public abstract class RgbWorkingSpace
 
     /// <inheritdoc/>
     public override int GetHashCode()
-    {
-        return HashCode.Combine(this.WhitePoint, this.ChromaticityCoordinates);
-    }
+        => HashCode.Combine(this.WhitePoint, this.ChromaticityCoordinates);
 }

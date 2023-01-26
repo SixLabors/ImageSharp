@@ -356,6 +356,18 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 // to uint to avoid sign extension.
                 if (stream.RemainingBytes < (uint)markerContentByteSize)
                 {
+                    if (metadataOnly && this.Metadata != null && this.Frame != null)
+                    {
+                        // We have enough data to decode the image, so we can stop parsing.
+                        return;
+                    }
+
+                    if (this.Metadata != null && this.Frame != null && spectralConverter.HasPixelBuffer())
+                    {
+                        // We have enough data to decode the image, so we can stop parsing.
+                        return;
+                    }
+
                     JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
                 }
 

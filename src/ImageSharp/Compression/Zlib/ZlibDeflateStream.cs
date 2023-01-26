@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Png;
@@ -171,8 +170,6 @@ internal sealed class ZlibDeflateStream : Stream
             this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));
             this.rawStream.WriteByte((byte)(crc & 0xFF));
         }
-
-        this.deflateStream = null;
 
         base.Dispose(disposing);
         this.isDisposed = true;

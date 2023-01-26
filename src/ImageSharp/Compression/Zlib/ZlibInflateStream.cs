@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using SixLabors.ImageSharp.IO;
 
@@ -90,7 +90,7 @@ internal sealed class ZlibInflateStream : Stream
     /// <summary>
     /// Gets the compressed stream over the deframed inner stream.
     /// </summary>
-    public DeflateStream CompressedStream { get; private set; }
+    public DeflateStream? CompressedStream { get; private set; }
 
     /// <summary>
     /// Adds new bytes from a frame found in the original stream.
@@ -98,6 +98,7 @@ internal sealed class ZlibInflateStream : Stream
     /// <param name="bytes">The current remaining data according to the chunk length.</param>
     /// <param name="isCriticalChunk">Whether the chunk to be inflated is a critical chunk.</param>
     /// <returns>The <see cref="bool"/>.</returns>
+    [MemberNotNullWhen(true, nameof(CompressedStream))]
     public bool AllocateNewBytes(int bytes, bool isCriticalChunk)
     {
         this.currentDataRemaining = bytes;
@@ -210,6 +211,7 @@ internal sealed class ZlibInflateStream : Stream
         this.isDisposed = true;
     }
 
+    [MemberNotNullWhen(true, nameof(CompressedStream))]
     private bool InitializeInflateStream(bool isCriticalChunk)
     {
         // Read the zlib header : http://tools.ietf.org/html/rfc1950

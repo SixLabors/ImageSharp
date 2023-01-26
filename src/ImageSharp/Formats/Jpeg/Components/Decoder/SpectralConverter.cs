@@ -121,4 +121,10 @@ internal abstract class SpectralConverter
 
         return size;
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the converter has a pixel buffer.
+    /// </summary>
+    /// <returns><see langword="true"/> if the converter has a pixel buffer; otherwise, <see langword="false"/>.</returns>
+    public abstract bool HasPixelBuffer();
 }

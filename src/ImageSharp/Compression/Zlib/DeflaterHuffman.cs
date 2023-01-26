@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -427,10 +426,6 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
             this.blTree.Dispose();
             this.distTree.Dispose();
 
-            this.Pending = null;
-            this.literalTree = null;
-            this.blTree = null;
-            this.distTree = null;
             this.isDisposed = true;
         }
     }
@@ -976,10 +971,6 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
                 this.codesMemoryHandle.Dispose();
                 this.codesMemoryOwner.Dispose();
-
-                this.frequenciesMemoryOwner = null;
-                this.lengthsMemoryOwner = null;
-                this.codesMemoryOwner = null;
 
                 this.isDisposed = true;
             }

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory;
 internal unsafe struct MemoryGroupSpanCache
 {
     public SpanCacheMode Mode;
-    public byte[] SingleArray;
+    public byte[]? SingleArray;
     public void* SinglePointer;
     public void*[] MultiPointer;
 

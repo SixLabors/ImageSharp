@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory.Internals;
@@ -41,7 +41,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// <inheritdoc />
     public bool IsValid { get; private set; } = true;
 
-    public MemoryGroupView<T> View { get; private set; }
+    public MemoryGroupView<T> View { get; private set; } = null!;
 
     /// <inheritdoc />
     public abstract Memory<T> this[int index] { get; }
@@ -150,7 +150,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         long totalLengthInElements,
         int bufferAlignmentInElements,
         AllocationOptions options,
-        out MemoryGroup<T> memoryGroup)
+        [NotNullWhen(true)] out MemoryGroup<T>? memoryGroup)
     {
         Guard.NotNull(pool, nameof(pool));
         Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
@@ -188,7 +188,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
             bufferCount++;
         }
 
-        UnmanagedMemoryHandle[] arrays = pool.Rent(bufferCount);
+        UnmanagedMemoryHandle[]? arrays = pool.Rent(bufferCount);
 
         if (arrays == null)
         {

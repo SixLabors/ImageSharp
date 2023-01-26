@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -79,7 +78,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         this.InvalidTags = other.InvalidTags.Count > 0
             ? new List<ExifTag>(other.InvalidTags)
-            : (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+            : Array.Empty<ExifTag>();
 
         if (other.values != null)
         {
@@ -161,7 +160,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return false;
         }
 
-        using (var memStream = new MemoryStream(this.data, this.thumbnailOffset, this.thumbnailLength))
+        using (MemoryStream memStream = new(this.data, this.thumbnailOffset, this.thumbnailLength))
         {
             image = Image.Load<TPixel>(memStream);
             return true;
@@ -237,12 +236,12 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return Array.Empty<byte>();
         }
 
-        var writer = new ExifWriter(this.values, this.Parts);
+        ExifWriter writer = new(this.values, this.Parts);
         return writer.GetData();
     }
 
     /// <inheritdoc/>
-    public ExifProfile DeepClone() => new ExifProfile(this);
+    public ExifProfile DeepClone() => new(this);
 
     /// <summary>
     /// Returns the value with the specified tag.
@@ -267,6 +266,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <param name="value">The value.</param>
+    /// <exception cref="NotSupportedException">Newly created value is null.</exception>
     internal void SetValueInternal(ExifTag tag, object? value)
     {
         foreach (IExifValue exifValue in this.Values)
@@ -281,7 +281,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         ExifValue? newExifValue = ExifValues.Create(tag);
         if (newExifValue is null)
         {
-            throw new NotSupportedException();
+            throw new NotSupportedException($"Newly created value for tag {tag} is null.");
         }
 
         newExifValue.TrySetValue(value);
@@ -310,7 +310,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             this.RemoveValue(value.Tag);
         }
 
-        var newResolution = new Rational(resolution, false);
+        Rational newResolution = new(resolution, false);
         this.SetValue(tag, newResolution);
     }
 
@@ -328,13 +328,13 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return;
         }
 
-        var reader = new ExifReader(this.data);
+        ExifReader reader = new(this.data);
 
         this.values = reader.ReadValues();
 
         this.InvalidTags = reader.InvalidTags.Count > 0
             ? new List<ExifTag>(reader.InvalidTags)
-            : (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+            : Array.Empty<ExifTag>();
 
         this.thumbnailOffset = (int)reader.ThumbnailOffset;
         this.thumbnailLength = (int)reader.ThumbnailLength;

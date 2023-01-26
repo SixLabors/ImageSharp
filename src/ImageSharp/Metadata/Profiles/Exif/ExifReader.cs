@@ -22,6 +22,7 @@ internal class ExifReader : BaseExifReader
     public ExifReader(byte[] exifData, MemoryAllocator? allocator)
         : base(new MemoryStream(exifData ?? throw new ArgumentNullException(nameof(exifData))), allocator)
     {
+        // TODO: We never call this constructor passing a non-null allocator.
     }
 
     /// <summary>

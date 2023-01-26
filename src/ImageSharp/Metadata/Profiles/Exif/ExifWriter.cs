@@ -90,7 +90,7 @@ internal sealed class ExifWriter
         if (gpsLength > 0)
         {
             i = this.WriteHeaders(this.gpsValues, result, i);
-            i = this.WriteData(startIndex, this.gpsValues, result, i);
+            this.WriteData(startIndex, this.gpsValues, result, i);
         }
 
         return result;
@@ -228,9 +228,8 @@ internal sealed class ExifWriter
             return false;
         }
 
-        if (exifValue.DataType == ExifDataType.Ascii)
+        if (exifValue.DataType == ExifDataType.Ascii && value is string stringValue)
         {
-            string stringValue = (string)value;
             return stringValue.Length > 0;
         }
 

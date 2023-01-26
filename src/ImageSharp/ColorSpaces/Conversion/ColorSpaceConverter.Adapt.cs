@@ -129,7 +129,7 @@ public partial class ColorSpaceConverter
         }
 
         // Conversion to XYZ
-        LinearRgbToCieXyzConverter converterToXYZ = this.GetLinearRgbToCieXyzConverter(color.WorkingSpace);
+        LinearRgbToCieXyzConverter converterToXYZ = GetLinearRgbToCieXyzConverter(color.WorkingSpace);
         CieXyz unadapted = converterToXYZ.Convert(color);
 
         // Adaptation

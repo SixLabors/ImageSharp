@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
 public partial class ColorSpaceConverter
 {
     // Options.
-    private static readonly ColorSpaceConverterOptions DefaultOptions = new ColorSpaceConverterOptions();
+    private static readonly ColorSpaceConverterOptions DefaultOptions = new();
     private readonly Matrix4x4 lmsAdaptationMatrix;
     private readonly CieXyz whitePoint;
     private readonly CieXyz targetLuvWhitePoint;

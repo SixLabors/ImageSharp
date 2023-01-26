@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
@@ -94,7 +94,7 @@ public class MemoryDiagnosticsTests
             if (subscribeLeakHandle)
             {
                 // Make sure at least some of the leak callbacks have time to complete on the ThreadPool
-                Thread.Sleep(200);
+                Thread.Sleep(500);
                 Assert.True(leakCounter > 3, $"leakCounter did not count enough leaks ({leakCounter} only)");
             }
 

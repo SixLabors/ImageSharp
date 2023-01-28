@@ -94,7 +94,7 @@ public class MemoryDiagnosticsTests
             if (subscribeLeakHandle)
             {
                 // Make sure at least some of the leak callbacks have time to complete on the ThreadPool
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
                 Assert.True(leakCounter > 3, $"leakCounter did not count enough leaks ({leakCounter} only)");
             }
 

@@ -31,6 +31,14 @@ public class TiffMetadata : IDeepCloneable
     /// </summary>
     public TiffFormatType FormatType { get; set; }
 
+    /// <summary>
+    /// Gets or sets the frames.
+    /// </summary>
+    /// <value>
+    /// The frames.
+    /// </value>
+    public IList<TiffFrameMetadata> Frames { get; set; } = new List<TiffFrameMetadata>();
+
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new TiffMetadata(this);
 }

@@ -61,8 +61,17 @@ internal static class TiffDecoderMetadataCreator
         TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
         tiffMetadata.ByteOrder = byteOrder;
         tiffMetadata.FormatType = isBigTiff ? TiffFormatType.BigTIFF : TiffFormatType.Default;
-
         return imageMetaData;
+    }
+
+    public static void FillFrames(TiffMetadata tiffMetadata, IList<ExifProfile> directories)
+    {
+        foreach (ExifProfile dir in directories)
+        {
+            TiffFrameMetadata meta = TiffFormat.Instance.CreateDefaultFormatFrameMetadata();
+            TiffFrameMetadata.Parse(meta, dir);
+            tiffMetadata.Frames.Add(meta);
+        }
     }
 
     private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)

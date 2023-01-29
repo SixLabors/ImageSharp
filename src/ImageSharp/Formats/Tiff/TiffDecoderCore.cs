@@ -169,7 +169,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             this.inputStream = stream;
             var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
 
-            IEnumerable<ExifProfile> directories = reader.Read();
+            IList<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
             this.isBigTiff = reader.IsBigTiff;
 
@@ -187,6 +187,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
             }
 
             ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
+
+            TiffDecoderMetadataCreator.FillFrames(metadata.GetTiffMetadata(), directories);
 
             // TODO: Tiff frames can have different sizes.
             ImageFrame<TPixel> root = frames[0];
@@ -217,12 +219,15 @@ internal class TiffDecoderCore : IImageDecoderInternals
     {
         this.inputStream = stream;
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
-        IEnumerable<ExifProfile> directories = reader.Read();
+        IList<ExifProfile> directories = reader.Read();
 
         ExifProfile rootFrameExifProfile = directories.First();
         TiffFrameMetadata rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
 
         ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, reader.IsBigTiff, rootFrameExifProfile);
+
+        TiffDecoderMetadataCreator.FillFrames(metadata.GetTiffMetadata(), directories);
+
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 

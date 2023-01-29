@@ -37,7 +37,7 @@ internal class DirectoryReader
     /// Reads image file directories.
     /// </summary>
     /// <returns>Image file directories.</returns>
-    public IEnumerable<ExifProfile> Read()
+    public IList<ExifProfile> Read()
     {
         this.ByteOrder = ReadByteOrder(this.stream);
         var headerReader = new HeaderReader(this.stream, this.ByteOrder);
@@ -66,7 +66,7 @@ internal class DirectoryReader
         throw TiffThrowHelper.ThrowInvalidHeader();
     }
 
-    private IEnumerable<ExifProfile> ReadIfds(bool isBigTiff)
+    private IList<ExifProfile> ReadIfds(bool isBigTiff)
     {
         var readers = new List<EntryReader>();
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)

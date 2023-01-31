@@ -302,8 +302,11 @@ public partial class JpegDecoderTests
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2315
+    // https://github.com/SixLabors/ImageSharp/issues/2334
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2315_NotEnoughBytes, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.Issues.Issue2334_NotEnoughBytesA, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.Issues.Issue2334_NotEnoughBytesB, PixelTypes.Rgba32)]
     public void Issue2315_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

@@ -282,6 +282,8 @@ public static class TestImages
             public const string Issue2133_DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
             public const string Issue2136_ScanMarkerExtraneousBytes = "Jpg/issues/Issue2136-scan-segment-extraneous-bytes.jpg";
             public const string Issue2315_NotEnoughBytes = "Jpg/issues/issue-2315.jpg";
+            public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
+            public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
 
             public static class Fuzz
             {

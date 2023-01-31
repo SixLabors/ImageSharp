@@ -26,7 +26,6 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly int maxColors;
     private readonly int bitDepth;
     private readonly Octree octree;
-    [NotNull]
     private IMemoryOwner<TPixel>? paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private EuclideanPixelMap<TPixel>? pixelMap;
@@ -99,7 +98,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         }
 
         int paletteIndex = 0;
-        Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
+        Span<TPixel> paletteSpan = this.paletteOwner!.GetSpan();
 
         // On very rare occasions, (blur.png), the quantizer does not preserve a
         // transparent entry when palletizing the captured colors.
@@ -113,7 +112,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         }
 
         this.octree.Palletize(paletteSpan, max, ref paletteIndex);
-        ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
+        ReadOnlyMemory<TPixel> result = this.paletteOwner!.Memory[..paletteSpan.Length];
 
         // When called multiple times by QuantizerUtilities.BuildPalette
         // this prevents memory churn caused by reallocation.

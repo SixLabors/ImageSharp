@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -14,8 +14,8 @@ public static class AutoOrientExtensions
     /// <summary>
     /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
     /// </summary>
-    /// <param name="source">The image to auto rotate.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext AutoOrient(this IImageProcessingContext source)
         => source.ApplyProcessor(new AutoOrientProcessor());
 }

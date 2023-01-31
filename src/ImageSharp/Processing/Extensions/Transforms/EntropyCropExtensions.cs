@@ -14,17 +14,17 @@ public static class EntropyCropExtensions
     /// <summary>
     /// Crops an image to the area of greatest entropy using a threshold for entropic density of <value>.5F</value>.
     /// </summary>
-    /// <param name="source">The image to crop.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext EntropyCrop(this IImageProcessingContext source) =>
         source.ApplyProcessor(new EntropyCropProcessor());
 
     /// <summary>
     /// Crops an image to the area of greatest entropy.
     /// </summary>
-    /// <param name="source">The image to crop.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="threshold">The threshold for entropic density.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext EntropyCrop(this IImageProcessingContext source, float threshold) =>
         source.ApplyProcessor(new EntropyCropProcessor(threshold));
 }

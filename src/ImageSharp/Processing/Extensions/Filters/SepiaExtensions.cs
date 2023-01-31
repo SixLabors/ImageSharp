@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Filters;
@@ -14,40 +14,40 @@ public static class SepiaExtensions
     /// <summary>
     /// Applies sepia toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Sepia(this IImageProcessingContext source)
          => Sepia(source, 1F);
 
     /// <summary>
     /// Applies sepia toning to the image using the given amount.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Sepia(this IImageProcessingContext source, float amount)
          => source.ApplyProcessor(new SepiaProcessor(amount));
 
     /// <summary>
     /// Applies sepia toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Sepia(this IImageProcessingContext source, Rectangle rectangle)
         => Sepia(source, 1F, rectangle);
 
     /// <summary>
     /// Applies sepia toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Sepia(this IImageProcessingContext source, float amount, Rectangle rectangle)
         => source.ApplyProcessor(new SepiaProcessor(amount), rectangle);
 }

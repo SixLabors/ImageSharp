@@ -14,9 +14,9 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given <see cref="Size"/>.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="size">The target image size.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, Size size)
         => Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, false);
@@ -24,10 +24,10 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given <see cref="Size"/>.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="size">The target image size.</param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, Size size, bool compand)
         => Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, compand);
@@ -35,10 +35,10 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, int width, int height)
         => Resize(source, width, height, KnownResamplers.Bicubic, false);
@@ -46,11 +46,11 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, int width, int height, bool compand)
         => Resize(source, width, height, KnownResamplers.Bicubic, compand);
@@ -58,11 +58,11 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, int width, int height, IResampler sampler)
         => Resize(source, width, height, sampler, false);
@@ -70,11 +70,11 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="size">The target image size.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, Size size, IResampler sampler, bool compand)
         => Resize(source, size.Width, size.Height, sampler, new Rectangle(0, 0, size.Width, size.Height), compand);
@@ -82,12 +82,12 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, int width, int height, IResampler sampler, bool compand)
         => Resize(source, width, height, sampler, new Rectangle(0, 0, width, height), compand);
@@ -96,7 +96,7 @@ public static class ResizeExtensions
     /// Resizes an image to the given width and height with the given sampler and
     /// source rectangle.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
@@ -107,7 +107,7 @@ public static class ResizeExtensions
     /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
     /// </param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(
         this IImageProcessingContext source,
@@ -133,7 +133,7 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler and source rectangle.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="width">The target image width.</param>
     /// <param name="height">The target image height.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
@@ -141,7 +141,7 @@ public static class ResizeExtensions
     /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
     /// </param>
     /// <param name="compand">Whether to compress and expand the image color-space to gamma correct the image during processing.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(
         this IImageProcessingContext source,
@@ -166,9 +166,9 @@ public static class ResizeExtensions
     /// <summary>
     /// Resizes an image in accordance with the given <see cref="ResizeOptions"/>.
     /// </summary>
-    /// <param name="source">The image to resize.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The resize options.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, ResizeOptions options)
         => source.ApplyProcessor(new ResizeProcessor(options, source.GetCurrentSize()));

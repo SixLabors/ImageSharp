@@ -14,17 +14,17 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette using <see cref="KnownDitherings.Bayer8x8"/>.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(this IImageProcessingContext source) =>
         Dither(source, KnownDitherings.Bayer8x8);
 
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither) =>
@@ -33,10 +33,10 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="ditherScale">The dithering scale used to adjust the amount of dither.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -46,10 +46,10 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to the given palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="palette">The palette to select substitute colors from.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -59,11 +59,11 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to the given palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="ditherScale">The dithering scale used to adjust the amount of dither.</param>
     /// <param name="palette">The palette to select substitute colors from.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -74,23 +74,23 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette using <see cref="KnownDitherings.Bayer8x8"/>.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(this IImageProcessingContext source, Rectangle rectangle) =>
         Dither(source, KnownDitherings.Bayer8x8, rectangle);
 
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -100,13 +100,13 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to a web-safe palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="ditherScale">The dithering scale used to adjust the amount of dither.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -117,13 +117,13 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to the given palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="palette">The palette to select substitute colors from.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,
@@ -134,14 +134,14 @@ public static class DitherExtensions
     /// <summary>
     /// Dithers the image reducing it to the given palette.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="dither">The ordered ditherer.</param>
     /// <param name="ditherScale">The dithering scale used to adjust the amount of dither.</param>
     /// <param name="palette">The palette to select substitute colors from.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Dither(
         this IImageProcessingContext source,
         IDither dither,

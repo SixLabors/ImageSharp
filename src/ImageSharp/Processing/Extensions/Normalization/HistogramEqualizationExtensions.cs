@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Normalization;
@@ -13,17 +13,17 @@ public static class HistogramEqualizationExtensions
     /// <summary>
     /// Equalizes the histogram of an image to increases the contrast.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext HistogramEqualization(this IImageProcessingContext source) =>
         HistogramEqualization(source, new HistogramEqualizationOptions());
 
     /// <summary>
     /// Equalizes the histogram of an image to increases the contrast.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="options">The histogram equalization options to use.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext HistogramEqualization(
         this IImageProcessingContext source,
         HistogramEqualizationOptions options) =>

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -21,7 +20,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private EuclideanPixelMap<TPixel> pixelMap;
+    [NotNull]
+    private EuclideanPixelMap<TPixel>? pixelMap;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.

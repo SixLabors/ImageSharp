@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -20,8 +19,8 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
     private readonly Size destinationSize;
     private readonly IResampler resampler;
     private readonly Matrix4x4 transformMatrix;
-    private ImageFrame<TPixel> source;
-    private ImageFrame<TPixel> destination;
+    private ImageFrame<TPixel>? source;
+    private ImageFrame<TPixel>? destination;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
@@ -53,8 +52,8 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TResampler : struct, IResampler
     {
         Configuration configuration = this.Configuration;
-        ImageFrame<TPixel> source = this.source;
-        ImageFrame<TPixel> destination = this.destination;
+        ImageFrame<TPixel> source = this.source!;
+        ImageFrame<TPixel> destination = this.destination!;
         Matrix4x4 matrix = this.transformMatrix;
 
         // Handle transforms that result in output identical to the original.

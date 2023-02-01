@@ -27,12 +27,13 @@ internal static class TiffColorWriterFactory
                 return new TiffPaletteWriter<TPixel>(image, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
             case TiffPhotometricInterpretation.BlackIsZero:
             case TiffPhotometricInterpretation.WhiteIsZero:
-                if (bitsPerPixel == 1)
+                return bitsPerPixel switch
                 {
-                    return new TiffBiColorWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
-                }
+                    1 => new TiffBiColorWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector),
+                    16 => new TiffGrayL16Writer<TPixel>(image, memoryAllocator, configuration, entriesCollector),
+                    _ => new TiffGrayWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector)
+                };
 
-                return new TiffGrayWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
             default:
                 return new TiffRgbWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
         }

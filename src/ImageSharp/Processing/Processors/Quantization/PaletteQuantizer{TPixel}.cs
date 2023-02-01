@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private EuclideanPixelMap<TPixel> pixelMap;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
@@ -46,7 +46,7 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette => this.pixelMap!.Palette;
+    public ReadOnlyMemory<TPixel> Palette => this.pixelMap.Palette;
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -62,12 +62,11 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
-        => (byte)this.pixelMap!.GetClosestColor(color, out match);
+        => (byte)this.pixelMap.GetClosestColor(color, out match);
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.pixelMap?.Dispose();
-        this.pixelMap = null;
+        this.pixelMap.Dispose();
     }
 }

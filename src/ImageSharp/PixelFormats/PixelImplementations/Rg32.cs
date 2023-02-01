@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -146,7 +145,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     public readonly Vector2 ToVector2() => new Vector2(this.PackedValue & 0xFFFF, (this.PackedValue >> 16) & 0xFFFF) / Max;
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Rg32 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Rg32 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

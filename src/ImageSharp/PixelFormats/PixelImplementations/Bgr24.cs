@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -232,7 +231,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     public readonly bool Equals(Bgr24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Bgr24 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Bgr24 other && this.Equals(other);
 
     /// <inheritdoc />
     public override readonly string ToString() => $"Bgr24({this.B}, {this.G}, {this.R})";

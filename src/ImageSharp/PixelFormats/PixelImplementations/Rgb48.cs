@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -210,7 +209,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public void FromRgb48(Rgb48 source) => this = source;
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Rgb48 rgb48 && this.Equals(rgb48);
+    public override readonly bool Equals(object? obj) => obj is Rgb48 rgb48 && this.Equals(rgb48);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 using System.Numerics;
@@ -193,7 +192,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is RgbaVector other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

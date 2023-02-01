@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -444,7 +443,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     }
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);
+    public override readonly bool Equals(object? obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

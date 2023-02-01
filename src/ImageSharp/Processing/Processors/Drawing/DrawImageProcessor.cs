@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,7 +64,7 @@ public class DrawImageProcessor : IImageProcessor
     {
         ProcessorFactoryVisitor<TPixelBg> visitor = new(configuration, this, source, sourceRectangle);
         this.Image.AcceptVisitor(visitor);
-        return visitor.Result;
+        return visitor.Result!;
     }
 
     private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
@@ -84,7 +83,7 @@ public class DrawImageProcessor : IImageProcessor
             this.sourceRectangle = sourceRectangle;
         }
 
-        public IImageProcessor<TPixelBg> Result { get; private set; }
+        public IImageProcessor<TPixelBg>? Result { get; private set; }
 
         public void Visit<TPixelFg>(Image<TPixelFg> image)
             where TPixelFg : unmanaged, IPixel<TPixelFg>

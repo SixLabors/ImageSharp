@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Filters;
@@ -14,21 +14,21 @@ public static class HueExtensions
     /// <summary>
     /// Alters the hue component of the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees)
         => source.ApplyProcessor(new HueProcessor(degrees));
 
     /// <summary>
     /// Alters the hue component of the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Hue(this IImageProcessingContext source, float degrees, Rectangle rectangle)
         => source.ApplyProcessor(new HueProcessor(degrees), rectangle);
 }

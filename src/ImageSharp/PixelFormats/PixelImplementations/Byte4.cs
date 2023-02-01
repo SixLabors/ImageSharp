@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -141,7 +140,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Byte4 byte4 && this.Equals(byte4);
+    public override readonly bool Equals(object? obj) => obj is Byte4 byte4 && this.Equals(byte4);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

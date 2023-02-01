@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
@@ -21,7 +20,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
     private readonly int destinationHeight;
     private readonly IResampler resampler;
     private readonly Rectangle destinationRectangle;
-    private Image<TPixel> destination;
+    private Image<TPixel>? destination;
 
     public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
@@ -56,7 +55,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
     {
         Configuration configuration = this.Configuration;
         Image<TPixel> source = this.Source;
-        Image<TPixel> destination = this.destination;
+        Image<TPixel> destination = this.destination!;
         Rectangle sourceRectangle = this.SourceRectangle;
         Rectangle destinationRectangle = this.destinationRectangle;
         bool compand = this.options.Compand;

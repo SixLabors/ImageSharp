@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -15,9 +15,9 @@ public static class TransformExtensions
     /// <summary>
     /// Performs an affine transform of an image.
     /// </summary>
-    /// <param name="source">The image to transform.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="builder">The affine transform builder.</param>
-    /// <returns>The <see cref="Image{TPixel}"/></returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
         this IImageProcessingContext source,
         AffineTransformBuilder builder) =>
@@ -26,62 +26,60 @@ public static class TransformExtensions
     /// <summary>
     /// Performs an affine transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="builder">The affine transform builder.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         AffineTransformBuilder builder,
         IResampler sampler) =>
-        ctx.Transform(new Rectangle(Point.Empty, ctx.GetCurrentSize()), builder, sampler);
+        source.Transform(new Rectangle(Point.Empty, source.GetCurrentSize()), builder, sampler);
 
     /// <summary>
     /// Performs an affine transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="sourceRectangle">The source rectangle</param>
     /// <param name="builder">The affine transform builder.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         Rectangle sourceRectangle,
         AffineTransformBuilder builder,
         IResampler sampler)
     {
         Matrix3x2 transform = builder.BuildMatrix(sourceRectangle);
         Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
-        return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
+        return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 
     /// <summary>
     /// Performs an affine transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="sourceRectangle">The source rectangle</param>
     /// <param name="transform">The transformation matrix.</param>
     /// <param name="targetDimensions">The size of the result image.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         Rectangle sourceRectangle,
         Matrix3x2 transform,
         Size targetDimensions,
         IResampler sampler)
-    {
-        return ctx.ApplyProcessor(
+        => source.ApplyProcessor(
             new AffineTransformProcessor(transform, sampler, targetDimensions),
             sourceRectangle);
-    }
 
     /// <summary>
     /// Performs a projective transform of an image.
     /// </summary>
-    /// <param name="source">The image to transform.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="builder">The affine transform builder.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
         this IImageProcessingContext source,
         ProjectiveTransformBuilder builder) =>
@@ -90,53 +88,51 @@ public static class TransformExtensions
     /// <summary>
     /// Performs a projective transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="builder">The projective transform builder.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         ProjectiveTransformBuilder builder,
         IResampler sampler) =>
-        ctx.Transform(new Rectangle(Point.Empty, ctx.GetCurrentSize()), builder, sampler);
+        source.Transform(new Rectangle(Point.Empty, source.GetCurrentSize()), builder, sampler);
 
     /// <summary>
     /// Performs a projective transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="sourceRectangle">The source rectangle</param>
     /// <param name="builder">The projective transform builder.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         Rectangle sourceRectangle,
         ProjectiveTransformBuilder builder,
         IResampler sampler)
     {
         Matrix4x4 transform = builder.BuildMatrix(sourceRectangle);
         Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
-        return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
+        return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 
     /// <summary>
     /// Performs a projective transform of an image using the specified sampling algorithm.
     /// </summary>
-    /// <param name="ctx">The <see cref="IImageProcessingContext"/>.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="sourceRectangle">The source rectangle</param>
     /// <param name="transform">The transformation matrix.</param>
     /// <param name="targetDimensions">The size of the result image.</param>
     /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Transform(
-        this IImageProcessingContext ctx,
+        this IImageProcessingContext source,
         Rectangle sourceRectangle,
         Matrix4x4 transform,
         Size targetDimensions,
         IResampler sampler)
-    {
-        return ctx.ApplyProcessor(
+        => source.ApplyProcessor(
             new ProjectiveTransformProcessor(transform, sampler, targetDimensions),
             sourceRectangle);
-    }
 }

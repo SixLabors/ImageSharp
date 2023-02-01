@@ -14,19 +14,19 @@ public static class LomographExtensions
     /// <summary>
     /// Alters the colors of the image recreating an old Lomograph camera effect.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Lomograph(this IImageProcessingContext source)
         => source.ApplyProcessor(new LomographProcessor(source.GetGraphicsOptions()));
 
     /// <summary>
     /// Alters the colors of the image recreating an old Lomograph camera effect.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Lomograph(this IImageProcessingContext source, Rectangle rectangle)
         => source.ApplyProcessor(new LomographProcessor(source.GetGraphicsOptions()), rectangle);
 }

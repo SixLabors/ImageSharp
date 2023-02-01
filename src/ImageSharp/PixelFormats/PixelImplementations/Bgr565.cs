@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -151,7 +150,7 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
                    (this.PackedValue & 0x1F) * (1F / 31F));
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is Bgr565 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Bgr565 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -171,7 +171,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             quantized = null;
         }
 
-        paletteQuantizer.Dispose();
+        if (hasPaletteQuantizer)
+        {
+            paletteQuantizer.Dispose();
+        }
     }
 
     private void EncodeFrame<TPixel>(

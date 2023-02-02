@@ -169,7 +169,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     [Theory]
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Bit1)]
     [WithFile(GrayscaleUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8)]
-    [WithFile(GrayscaleUncompressed, PixelTypes.L16, TiffBitsPerPixel.Bit16)]
+    [WithFile(GrayscaleUncompressed16Bit, PixelTypes.L16, TiffBitsPerPixel.Bit16)]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Bit24)]
     [WithFile(Rgb4BitPalette, PixelTypes.Rgba32, TiffBitsPerPixel.Bit4)]
     [WithFile(RgbPalette, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8)]
@@ -417,32 +417,32 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.PaletteColor, TiffCompression.Lzw, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Deflate, TiffPredictor.Horizontal);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Lzw);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Lzw, TiffPredictor.Horizontal);
 
     [Theory]
-    [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeGray16_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits);
 
@@ -513,7 +513,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 
     [Theory]
     [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
-    [WithFile(GrayscaleUncompressed, PixelTypes.L16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
+    [WithFile(GrayscaleUncompressed16Bit, PixelTypes.L16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate)]
     [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.None)]

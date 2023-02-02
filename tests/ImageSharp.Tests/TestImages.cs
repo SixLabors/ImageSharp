@@ -767,6 +767,7 @@ public static class TestImages
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
         public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";
         public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
+        public const string Calliphora_GrayscaleUncompressed16Bit = "Tiff/Calliphora_grayscale_uncompressed_16bit.tiff";
         public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
         public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
         public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
@@ -798,6 +799,7 @@ public static class TestImages
 
         public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
         public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+        public const string GrayscaleUncompressed16Bit = "Tiff/grayscale_uncompressed_16bit.tiff";
         public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
         public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
         public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";

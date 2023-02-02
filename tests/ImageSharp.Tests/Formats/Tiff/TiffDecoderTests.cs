@@ -27,6 +27,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [InlineData(RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(SmallRgbDeflate, 24, 32, 32, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Calliphora_GrayscaleUncompressed, 8, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
+    [InlineData(Calliphora_GrayscaleUncompressed16Bit, 16, 200, 298, 96, 96, PixelResolutionUnit.PixelsPerInch)]
     [InlineData(Flower4BitPalette, 4, 73, 43, 72, 72, PixelResolutionUnit.PixelsPerInch)]
     public void Identify(string imagePath, int expectedPixelSize, int expectedWidth, int expectedHeight, double expectedHResolution, double expectedVResolution, PixelResolutionUnit expectedResolutionUnit)
     {
@@ -64,6 +65,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32)]
     [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleUncompressed16Bit, PixelTypes.Rgba32)]
     [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
     [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)

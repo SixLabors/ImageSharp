@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -68,7 +67,6 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.pixelMap?.Dispose();
-        this.pixelMap = null;
+        this.pixelMap.Dispose();
     }
 }

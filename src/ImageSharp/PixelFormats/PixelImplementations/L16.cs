@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -153,7 +152,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     public void FromRgba64(Rgba64 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
 
     /// <inheritdoc />
-    public override readonly bool Equals(object obj) => obj is L16 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is L16 other && this.Equals(other);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]

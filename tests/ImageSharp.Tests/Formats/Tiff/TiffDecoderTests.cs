@@ -35,7 +35,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo info = Image.Identify(stream);
 
-        Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
+        Assert.Equal(expectedPixelSize, info.PixelType.BitsPerPixel);
         Assert.Equal(expectedWidth, info.Width);
         Assert.Equal(expectedHeight, info.Height);
         Assert.NotNull(info.Metadata);
@@ -601,6 +601,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(RgbDeflateMultistrip, PixelTypes.Rgba32)]
     [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]
     [WithFile(Calliphora_GrayscaleDeflate_Predictor, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleDeflate16Bit, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleDeflate_Predictor16Bit, PixelTypes.Rgba32)]
     [WithFile(Calliphora_RgbDeflate_Predictor, PixelTypes.Rgba32)]
     [WithFile(RgbDeflate, PixelTypes.Rgba32)]
     [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32)]
@@ -617,6 +619,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Calliphora_RgbPaletteLzw_Predictor, PixelTypes.Rgba32)]
     [WithFile(Calliphora_RgbLzwPredictor, PixelTypes.Rgba32)]
     [WithFile(Calliphora_GrayscaleLzw_Predictor, PixelTypes.Rgba32)]
+    [WithFile(Calliphora_GrayscaleLzw_Predictor16Bit, PixelTypes.Rgba32)]
     [WithFile(SmallRgbLzw, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_LzwCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);

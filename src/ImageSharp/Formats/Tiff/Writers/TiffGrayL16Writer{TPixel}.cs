@@ -1,0 +1,22 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers;
+
+internal sealed class TiffGrayL16Writer<TPixel> : TiffCompositeColorWriter<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
+{
+    public TiffGrayL16Writer(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+        : base(image, memoryAllocator, configuration, entriesCollector)
+    {
+    }
+
+    /// <inheritdoc />
+    public override int BitsPerPixel => 16;
+
+    /// <inheritdoc />
+    protected override void EncodePixels(Span<TPixel> pixels, Span<byte> buffer) => PixelOperations<TPixel>.Instance.ToL16Bytes(this.Configuration, pixels, buffer, pixels.Length);
+}

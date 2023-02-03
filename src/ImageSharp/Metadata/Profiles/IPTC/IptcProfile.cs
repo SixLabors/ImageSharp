@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// </summary>
 public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 {
-    private Collection<IptcValue> values;
+    private readonly Collection<IptcValue> values = new();
 
     private const byte IptcTagMarkerByte = 0x1c;
 
@@ -52,8 +52,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     private IptcProfile(IptcProfile other)
     {
         Guard.NotNull(other, nameof(other));
-
-        this.values = new Collection<IptcValue>();
 
         foreach (IptcValue value in other.Values)
         {
@@ -307,16 +305,8 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
         return offset;
     }
 
-    [MemberNotNull(nameof(values))]
     private void Initialize()
     {
-        if (this.values != null)
-        {
-            return;
-        }
-
-        this.values = new Collection<IptcValue>();
-
         if (this.Data == null || this.Data[0] != IptcTagMarkerByte)
         {
             return;

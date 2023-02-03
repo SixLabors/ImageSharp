@@ -54,7 +54,7 @@ public enum TiffBitsPerPixel
     /// <summary>
     /// 16 bits per pixel, for gray images.
     ///
-    /// Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 24 bits per pixel instead.
+    /// Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 16 bits grayscale instead.
     /// </summary>
     Bit16 = 16,
 

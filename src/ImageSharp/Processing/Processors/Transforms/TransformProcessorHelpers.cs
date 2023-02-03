@@ -26,12 +26,12 @@ internal static class TransformProcessorHelpers
         }
 
         // Only set the value if it already exists.
-        if (profile.GetValue(ExifTag.PixelXDimension) != null)
+        if (profile.TryGetValue(ExifTag.PixelXDimension, out _))
         {
             profile.SetValue(ExifTag.PixelXDimension, image.Width);
         }
 
-        if (profile.GetValue(ExifTag.PixelYDimension) != null)
+        if (profile.TryGetValue(ExifTag.PixelYDimension, out _))
         {
             profile.SetValue(ExifTag.PixelYDimension, image.Height);
         }

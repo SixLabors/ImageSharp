@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.InteropServices;
 
@@ -20,7 +19,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
     private static long totalOomRetries;
 
     // A Monitor to wait/signal when we are low on memory.
-    private static object lowMemoryMonitor;
+    private static object? lowMemoryMonitor;
 
     public static readonly UnmanagedMemoryHandle NullHandle;
 
@@ -114,9 +113,9 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
         if (Volatile.Read(ref lowMemoryMonitor) != null)
         {
             // We are low on memory. Signal all threads waiting in AllocateHandle().
-            Monitor.Enter(lowMemoryMonitor);
-            Monitor.PulseAll(lowMemoryMonitor);
-            Monitor.Exit(lowMemoryMonitor);
+            Monitor.Enter(lowMemoryMonitor!);
+            Monitor.PulseAll(lowMemoryMonitor!);
+            Monitor.Exit(lowMemoryMonitor!);
         }
 
         this.lengthInBytes = 0;
@@ -124,7 +123,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
 
     public bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
 
-    public override bool Equals(object obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
+    public override bool Equals(object? obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
 
     public override int GetHashCode() => this.handle.GetHashCode();
 }

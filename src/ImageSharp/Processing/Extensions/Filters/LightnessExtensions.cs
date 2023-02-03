@@ -18,9 +18,9 @@ public static class LightnessExtensions
     /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
     /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing lighter results.
     /// </remarks>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Lightness(this IImageProcessingContext source, float amount)
         => source.ApplyProcessor(new LightnessProcessor(amount));
 
@@ -31,12 +31,12 @@ public static class LightnessExtensions
     /// A value of 0 will create an image that is completely black. A value of 1 leaves the input unchanged.
     /// Other values are linear multipliers on the effect. Values of an amount over 1 are allowed, providing lighter results.
     /// </remarks>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Lightness(this IImageProcessingContext source, float amount, Rectangle rectangle)
         => source.ApplyProcessor(new LightnessProcessor(amount), rectangle);
 }

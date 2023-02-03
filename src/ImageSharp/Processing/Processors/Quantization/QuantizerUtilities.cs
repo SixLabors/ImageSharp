@@ -146,7 +146,7 @@ public static class QuantizerUtilities
         where TFrameQuantizer : struct, IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        IDither dither = quantizer.Options.Dither;
+        IDither? dither = quantizer.Options.Dither;
         Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
         if (dither is null)

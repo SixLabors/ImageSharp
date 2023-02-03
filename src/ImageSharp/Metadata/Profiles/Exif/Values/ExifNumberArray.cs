@@ -34,7 +34,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
         }
     }
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

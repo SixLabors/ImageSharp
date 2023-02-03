@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -180,7 +179,6 @@ internal sealed unsafe class DeflaterPendingBuffer : IDisposable
         {
             this.bufferMemoryHandle.Dispose();
             this.bufferMemoryOwner.Dispose();
-            this.bufferMemoryOwner = null;
             this.isDisposed = true;
         }
     }

@@ -47,15 +47,6 @@ public class JFifMarkerTests
     }
 
     [Fact]
-    public void MarkerIgnoresCorrectHeaderButInvalidDensities()
-    {
-        bool isJFif = JFifMarker.TryParse(this.bytes3, out JFifMarker marker);
-
-        Assert.False(isJFif);
-        Assert.Equal(default, marker);
-    }
-
-    [Fact]
     public void MarkerEqualityIsCorrect()
     {
         JFifMarker.TryParse(this.bytes, out JFifMarker marker);

@@ -50,19 +50,21 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
                 return left > 0 ? left : 0;
             }))
         {
-            deframeStream.AllocateNewBytes(byteCount, true);
-            DeflateStream dataStream = deframeStream.CompressedStream;
-
-            int totalRead = 0;
-            while (totalRead < buffer.Length)
+            if (deframeStream.AllocateNewBytes(byteCount, true))
             {
-                int bytesRead = dataStream.Read(buffer, totalRead, buffer.Length - totalRead);
-                if (bytesRead <= 0)
-                {
-                    break;
-                }
+                DeflateStream? dataStream = deframeStream.CompressedStream;
 
-                totalRead += bytesRead;
+                int totalRead = 0;
+                while (totalRead < buffer.Length)
+                {
+                    int bytesRead = dataStream.Read(buffer, totalRead, buffer.Length - totalRead);
+                    if (bytesRead <= 0)
+                    {
+                        break;
+                    }
+
+                    totalRead += bytesRead;
+                }
             }
         }
 

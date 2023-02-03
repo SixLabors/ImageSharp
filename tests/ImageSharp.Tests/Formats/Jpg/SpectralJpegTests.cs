@@ -187,6 +187,8 @@ public class SpectralJpegTests
             }
         }
 
+        public override bool HasPixelBuffer() => throw new NotImplementedException();
+
         public override void InjectFrameData(JpegFrame frame, IRawJpegData jpegData)
         {
             this.frame = frame;

@@ -17,7 +17,7 @@ internal sealed class ExifSignedShortArray : ExifArrayValue<short>
 
     public override ExifDataType DataType => ExifDataType.SignedShort;
 
-    public override bool TrySetValue(object value)
+    public override bool TrySetValue(object? value)
     {
         if (base.TrySetValue(value))
         {

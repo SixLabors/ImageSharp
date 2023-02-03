@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -140,7 +139,7 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     /// </summary>
     /// <param name="obj">The object to compare.</param>
     /// <returns>True if the object is equal to the packed vector.</returns>
-    public override readonly bool Equals(object obj) => obj is A8 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is A8 other && this.Equals(other);
 
     /// <summary>
     /// Compares another A8 packed vector with the packed vector.

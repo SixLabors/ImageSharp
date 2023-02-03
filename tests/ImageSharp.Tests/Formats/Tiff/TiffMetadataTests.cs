@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
@@ -74,6 +75,7 @@ public class TiffMetadataTests
     [Theory]
     [InlineData(Calliphora_BiColorUncompressed, 1)]
     [InlineData(GrayscaleUncompressed, 8)]
+    [InlineData(GrayscaleUncompressed16Bit, 16)]
     [InlineData(RgbUncompressed, 24)]
     public void Identify_DetectsCorrectBitPerPixel(string imagePath, int expectedBitsPerPixel)
     {
@@ -167,9 +169,9 @@ public class TiffMetadataTests
         Assert.Equal("Make", exifProfile.GetValue(ExifTag.Make).Value);
         Assert.Equal("Model", exifProfile.GetValue(ExifTag.Model).Value);
         Assert.Equal("ImageSharp", exifProfile.GetValue(ExifTag.Software).Value);
-        Assert.Null(exifProfile.GetValue(ExifTag.DateTime)?.Value);
+        Assert.Null(exifProfile.GetValue(ExifTag.DateTime, false)?.Value);
         Assert.Equal("Artist", exifProfile.GetValue(ExifTag.Artist).Value);
-        Assert.Null(exifProfile.GetValue(ExifTag.HostComputer)?.Value);
+        Assert.Null(exifProfile.GetValue(ExifTag.HostComputer, false)?.Value);
         Assert.Equal("Copyright", exifProfile.GetValue(ExifTag.Copyright).Value);
         Assert.Equal(4, exifProfile.GetValue(ExifTag.Rating).Value);
         Assert.Equal(75, exifProfile.GetValue(ExifTag.RatingPercent).Value);
@@ -178,9 +180,9 @@ public class TiffMetadataTests
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
         Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
         Assert.Equal(new Number[] { 285u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
-        Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples)?.Value);
+        Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples, false)?.Value);
         Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
-        Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat));
+        Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat, false));
         Assert.Equal(PixelResolutionUnit.PixelsPerInch, UnitConverter.ExifProfileToResolutionUnit(exifProfile));
         ushort[] colorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
         Assert.NotNull(colorMap);

@@ -356,6 +356,18 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 // to uint to avoid sign extension.
                 if (stream.RemainingBytes < (uint)markerContentByteSize)
                 {
+                    if (metadataOnly && this.Metadata != null && this.Frame != null)
+                    {
+                        // We have enough data to decode the image, so we can stop parsing.
+                        return;
+                    }
+
+                    if (this.Metadata != null && this.Frame != null && spectralConverter.HasPixelBuffer())
+                    {
+                        // We have enough data to decode the image, so we can stop parsing.
+                        return;
+                    }
+
                     JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
                 }
 
@@ -705,9 +717,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
     private double GetExifResolutionValue(ExifTag<Rational> tag)
     {
-        IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
+        if (this.Metadata.ExifProfile.TryGetValue(tag, out IExifValue<Rational> resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
 
-        return resolution is null ? 0 : resolution.Value.ToDouble();
+        return 0;
     }
 
     /// <summary>

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -16,8 +15,8 @@ internal sealed class KernelSamplingMap : IDisposable
 {
     private readonly MemoryAllocator allocator;
     private bool isDisposed;
-    private IMemoryOwner<int> yOffsets;
-    private IMemoryOwner<int> xOffsets;
+    private IMemoryOwner<int>? yOffsets;
+    private IMemoryOwner<int>? xOffsets;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KernelSamplingMap"/> class.
@@ -65,10 +64,10 @@ internal sealed class KernelSamplingMap : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<int> GetRowOffsetSpan() => this.yOffsets.GetSpan();
+    public Span<int> GetRowOffsetSpan() => this.yOffsets!.GetSpan();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<int> GetColumnOffsetSpan() => this.xOffsets.GetSpan();
+    public Span<int> GetColumnOffsetSpan() => this.xOffsets!.GetSpan();
 
     /// <inheritdoc/>
     public void Dispose()

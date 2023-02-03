@@ -15,7 +15,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies <see cref="GrayscaleMode.Bt709"/> grayscale toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Grayscale(this IImageProcessingContext source)
         => Grayscale(source, GrayscaleMode.Bt709);
@@ -23,7 +23,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies <see cref="GrayscaleMode.Bt709"/> grayscale toning to the image using the given amount.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Grayscale(this IImageProcessingContext source, float amount)
@@ -32,7 +32,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies grayscale toning to the image with the given <see cref="GrayscaleMode"/>.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="mode">The formula to apply to perform the operation.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Grayscale(this IImageProcessingContext source, GrayscaleMode mode)
@@ -41,7 +41,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies grayscale toning to the image with the given <see cref="GrayscaleMode"/> using the given amount.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="mode">The formula to apply to perform the operation.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
@@ -58,7 +58,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies <see cref="GrayscaleMode.Bt709"/> grayscale toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
@@ -69,7 +69,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies <see cref="GrayscaleMode.Bt709"/> grayscale toning to the image using the given amount.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
@@ -81,7 +81,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies grayscale toning to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="mode">The formula to apply to perform the operation.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
@@ -93,7 +93,7 @@ public static class GrayscaleExtensions
     /// <summary>
     /// Applies grayscale toning to the image using the given amount.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="mode">The formula to apply to perform the operation.</param>
     /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
     /// <param name="rectangle">

@@ -42,7 +42,16 @@ internal static class TiffDecoderOptionsParser
             }
         }
 
-        TiffFillOrder fillOrder = (TiffFillOrder?)exifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
+        TiffFillOrder fillOrder;
+        if (exifProfile.TryGetValue(ExifTag.FillOrder, out IExifValue<ushort> value))
+        {
+            fillOrder = (TiffFillOrder)value.Value;
+        }
+        else
+        {
+            fillOrder = TiffFillOrder.MostSignificantBitFirst;
+        }
+
         if (fillOrder == TiffFillOrder.LeastSignificantBitFirst && frameMetadata.BitsPerPixel != TiffBitsPerPixel.Bit1)
         {
             TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is only supported in combination with 1bit per pixel bicolor tiff's.");
@@ -53,10 +62,10 @@ internal static class TiffDecoderOptionsParser
             TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
         }
 
-        TiffSampleFormat[] sampleFormats = exifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
         TiffSampleFormat? sampleFormat = null;
-        if (sampleFormats != null)
+        if (exifProfile.TryGetValue(ExifTag.SampleFormat, out var formatValue))
         {
+            TiffSampleFormat[] sampleFormats = formatValue.Value.Select(a => (TiffSampleFormat)a).ToArray();
             sampleFormat = sampleFormats[0];
             foreach (TiffSampleFormat format in sampleFormats)
             {
@@ -67,7 +76,12 @@ internal static class TiffDecoderOptionsParser
             }
         }
 
-        ushort[] ycbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+        ushort[] ycbcrSubSampling = null;
+        if (exifProfile.TryGetValue(ExifTag.YCbCrSubsampling, out IExifValue<ushort[]> subSamplingValue))
+        {
+            ycbcrSubSampling = subSamplingValue.Value;
+        }
+
         if (ycbcrSubSampling != null && ycbcrSubSampling.Length != 2)
         {
             TiffThrowHelper.ThrowImageFormatException("Invalid YCbCrSubsampling, expected 2 values.");
@@ -78,23 +92,52 @@ internal static class TiffDecoderOptionsParser
             TiffThrowHelper.ThrowImageFormatException("ChromaSubsampleVert shall always be less than or equal to ChromaSubsampleHoriz.");
         }
 
-        if (exifProfile.GetValue(ExifTag.StripRowCounts)?.Value != null)
+        if (exifProfile.TryGetValue(ExifTag.StripRowCounts, out _))
         {
             TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
         }
 
-        options.PlanarConfiguration = (TiffPlanarConfiguration?)exifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
+        if (exifProfile.TryGetValue(ExifTag.PlanarConfiguration, out IExifValue<ushort> planarValue))
+        {
+            options.PlanarConfiguration = (TiffPlanarConfiguration)planarValue.Value;
+        }
+        else
+        {
+            options.PlanarConfiguration = DefaultPlanarConfiguration;
+        }
+
         options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
         options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
         options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
         options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
         options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
-        options.ReferenceBlackAndWhite = exifProfile.GetValue(ExifTag.ReferenceBlackWhite)?.Value;
-        options.YcbcrCoefficients = exifProfile.GetValue(ExifTag.YCbCrCoefficients)?.Value;
-        options.YcbcrSubSampling = exifProfile.GetValue(ExifTag.YCbCrSubsampling)?.Value;
+
+        if (exifProfile.TryGetValue(ExifTag.ReferenceBlackWhite, out IExifValue<Rational[]> blackWhiteValue))
+        {
+            options.ReferenceBlackAndWhite = blackWhiteValue.Value;
+        }
+
+        if (exifProfile.TryGetValue(ExifTag.YCbCrCoefficients, out IExifValue<Rational[]> coefficientsValue))
+        {
+            options.YcbcrCoefficients = coefficientsValue.Value;
+        }
+
+        if (exifProfile.TryGetValue(ExifTag.YCbCrSubsampling, out IExifValue<ushort[]> ycbrSubSamplingValue))
+        {
+            options.YcbcrSubSampling = ycbrSubSamplingValue.Value;
+        }
+
         options.FillOrder = fillOrder;
-        options.JpegTables = exifProfile.GetValue(ExifTag.JPEGTables)?.Value;
-        options.OldJpegCompressionStartOfImageMarker = exifProfile.GetValue(ExifTag.JPEGInterchangeFormat)?.Value;
+
+        if (exifProfile.TryGetValue(ExifTag.JPEGTables, out IExifValue<byte[]> jpegTablesValue))
+        {
+            options.JpegTables = jpegTablesValue.Value;
+        }
+
+        if (exifProfile.TryGetValue(ExifTag.JPEGInterchangeFormat, out IExifValue<uint> jpegInterchangeFormatValue))
+        {
+            options.OldJpegCompressionStartOfImageMarker = jpegInterchangeFormatValue.Value;
+        }
 
         options.ParseColorType(exifProfile);
         options.ParseCompression(frameMetadata.Compression, exifProfile);
@@ -394,9 +437,9 @@ internal static class TiffDecoderOptionsParser
 
             case TiffPhotometricInterpretation.PaletteColor:
             {
-                options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
-                if (options.ColorMap != null)
+                if (exifProfile.TryGetValue(ExifTag.ColorMap, out IExifValue<ushort[]> value))
                 {
+                    options.ColorMap = value.Value;
                     if (options.BitsPerSample.Channels != 1)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
@@ -414,7 +457,11 @@ internal static class TiffDecoderOptionsParser
 
             case TiffPhotometricInterpretation.YCbCr:
             {
-                options.ColorMap = exifProfile.GetValue(ExifTag.ColorMap)?.Value;
+                if (exifProfile.TryGetValue(ExifTag.ColorMap, out IExifValue<ushort[]> value))
+                {
+                    options.ColorMap = value.Value;
+                }
+
                 if (options.BitsPerSample.Channels != 3)
                 {
                     TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for YCbCr images.");
@@ -508,7 +555,15 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.CcittGroup3Fax:
             {
                 options.CompressionType = TiffDecoderCompressionType.T4;
-                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+
+                if (exifProfile.TryGetValue(ExifTag.T4Options, out IExifValue<uint> t4OptionsValue))
+                {
+                    options.FaxCompressionOptions = (FaxCompressionOptions)t4OptionsValue.Value;
+                }
+                else
+                {
+                    options.FaxCompressionOptions = FaxCompressionOptions.None;
+                }
 
                 break;
             }
@@ -516,7 +571,14 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.CcittGroup4Fax:
             {
                 options.CompressionType = TiffDecoderCompressionType.T6;
-                options.FaxCompressionOptions = exifProfile.GetValue(ExifTag.T4Options) != null ? (FaxCompressionOptions)exifProfile.GetValue(ExifTag.T4Options).Value : FaxCompressionOptions.None;
+                if (exifProfile.TryGetValue(ExifTag.T4Options, out IExifValue<uint> t4OptionsValue))
+                {
+                    options.FaxCompressionOptions = (FaxCompressionOptions)t4OptionsValue.Value;
+                }
+                else
+                {
+                    options.FaxCompressionOptions = FaxCompressionOptions.None;
+                }
 
                 break;
             }

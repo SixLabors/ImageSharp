@@ -67,6 +67,11 @@ internal static class HorizontalPredictor
         {
             ApplyHorizontalPrediction8Bit(rows, width);
         }
+        else if (bitsPerPixel == 16)
+        {
+            // Assume rows are L16 grayscale since that's currently the only way 16 bits is supported by encoder
+            ApplyHorizontalPrediction16Bit(rows, width);
+        }
         else if (bitsPerPixel == 24)
         {
             ApplyHorizontalPrediction24Bit(rows, width);
@@ -98,6 +103,32 @@ internal static class HorizontalPredictor
                 byte b = (byte)(rowRgb[x].B - rowRgb[x - 1].B);
                 var rgb = new Rgb24(r, g, b);
                 rowRgb[x].FromRgb24(rgb);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies a horizontal predictor to the L16 row.
+    /// Make use of the fact that many continuous-tone images rarely vary much in pixel value from one pixel to the next.
+    /// In such images, if we replace the pixel values by differences between consecutive pixels, many of the differences should be 0, plus
+    /// or minus 1, and so on.This reduces the apparent information content and allows LZW to encode the data more compactly.
+    /// </summary>
+    /// <param name="rows">The L16 pixel rows.</param>
+    /// <param name="width">The width.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void ApplyHorizontalPrediction16Bit(Span<byte> rows, int width)
+    {
+        DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
+        int height = rows.Length / width;
+        for (int y = 0; y < height; y++)
+        {
+            Span<byte> rowSpan = rows.Slice(y * width, width);
+            Span<L16> rowL16 = MemoryMarshal.Cast<byte, L16>(rowSpan);
+
+            for (int x = rowL16.Length - 1; x >= 1; x--)
+            {
+                ushort val = (ushort)(rowL16[x].PackedValue - rowL16[x - 1].PackedValue);
+                rowL16[x].PackedValue = val;
             }
         }
     }

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
@@ -137,8 +136,6 @@ internal sealed class DeflaterOutputStream : Stream
                 this.memoryOwner.Dispose();
             }
 
-            this.deflater = null;
-            this.memoryOwner = null;
             this.isDisposed = true;
             base.Dispose(disposing);
         }

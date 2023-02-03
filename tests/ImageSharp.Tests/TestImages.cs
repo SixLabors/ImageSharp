@@ -292,6 +292,9 @@ public static class TestImages
             public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
             public const string Issue2133_DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
             public const string Issue2136_ScanMarkerExtraneousBytes = "Jpg/issues/Issue2136-scan-segment-extraneous-bytes.jpg";
+            public const string Issue2315_NotEnoughBytes = "Jpg/issues/issue-2315.jpg";
+            public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
+            public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
 
             public static class Fuzz
             {
@@ -775,6 +778,10 @@ public static class TestImages
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
         public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";
         public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
+        public const string Calliphora_GrayscaleUncompressed16Bit = "Tiff/Calliphora_grayscale_uncompressed_16bit.tiff";
+        public const string Calliphora_GrayscaleDeflate_Predictor16Bit = "Tiff/Calliphora_gray_deflate_predictor_16bit.tiff";
+        public const string Calliphora_GrayscaleLzw_Predictor16Bit = "Tiff/Calliphora_gray_lzw_predictor_16bit.tiff";
+        public const string Calliphora_GrayscaleDeflate16Bit = "Tiff/Calliphora_gray_deflate_16bit.tiff";
         public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
         public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
         public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
@@ -806,6 +813,7 @@ public static class TestImages
 
         public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
         public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+        public const string GrayscaleUncompressed16Bit = "Tiff/grayscale_uncompressed_16bit.tiff";
         public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
         public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
         public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";

@@ -78,14 +78,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <summary>
     /// Gets the values of this iptc profile.
     /// </summary>
-    public IEnumerable<IptcValue> Values
-    {
-        get
-        {
-            this.Initialize();
-            return this.values;
-        }
-    }
+    public IEnumerable<IptcValue> Values => this.values;
 
     /// <inheritdoc/>
     public IptcProfile DeepClone() => new(this);
@@ -116,8 +109,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>True when the value was found and removed.</returns>
     public bool RemoveValue(IptcTag tag)
     {
-        this.Initialize();
-
         bool removed = false;
         for (int i = this.values.Count - 1; i >= 0; i--)
         {
@@ -139,8 +130,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>True when the value was found and removed.</returns>
     public bool RemoveValue(IptcTag tag, string value)
     {
-        this.Initialize();
-
         bool removed = false;
         for (int i = this.values.Count - 1; i >= 0; i--)
         {

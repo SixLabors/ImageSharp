@@ -32,6 +32,12 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
+          - os: buildjet-2vcpu-ubuntu-2204
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
           - os: ubuntu-latest
             framework: net6.0
             sdk: 6.0.x
@@ -43,6 +49,11 @@ jobs:
             runtime: -x64
             codecov: false
           - os: windows-latest
+            framework: net6.0
+            sdk: 6.0.x
+            runtime: -x64
+            codecov: false
+          - os: buildjet-2vcpu-ubuntu-2204
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64

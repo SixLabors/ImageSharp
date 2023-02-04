@@ -50,6 +50,9 @@ public class GifDecoderTests
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+        // Floating point differences result in minor pixel differences.
+        // Output have been manually verified.
         image.CompareToReferenceOutput(
             ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0002F : 0.0001F),
             provider,

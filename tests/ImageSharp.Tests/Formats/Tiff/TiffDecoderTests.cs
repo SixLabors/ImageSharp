@@ -766,6 +766,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+        // Floating point differences result in minor pixel differences.
+        // Output have been manually verified.
         image.CompareToReferenceOutput(
             TestEnvironment.OSArchitecture == Architecture.Arm64 ? ImageComparer.TolerantPercentage(0.0006F) : ImageComparer.Exact,
             provider,

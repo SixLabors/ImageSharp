@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+#if NET7_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
 

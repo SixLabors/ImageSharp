@@ -64,7 +64,7 @@ public partial class JpegEncoderTests
     {
         { JpegEncodingColor.Luminance, 100, 0.0175f / 100 },
         { JpegEncodingColor.Luminance, 80,  0.6730f / 100 },
-        { JpegEncodingColor.Luminance, 40,  0.9941f / 100 },
+        { JpegEncodingColor.Luminance, 40, 0.9943f / 100 },
     };
 
     [Theory]

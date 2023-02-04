@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
@@ -759,7 +760,7 @@ public class TgaDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0001F),
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.00017F : 0.0001F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

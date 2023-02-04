@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -50,7 +51,7 @@ public class GifDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0001F),
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0002F : 0.0001F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

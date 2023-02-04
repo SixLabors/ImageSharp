@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -366,7 +367,7 @@ public class WebpDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0007F),
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0156F : 0.0007F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

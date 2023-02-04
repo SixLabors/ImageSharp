@@ -75,6 +75,7 @@ public class TiffMetadataTests
     [Theory]
     [InlineData(Calliphora_BiColorUncompressed, 1)]
     [InlineData(GrayscaleUncompressed, 8)]
+    [InlineData(GrayscaleUncompressed16Bit, 16)]
     [InlineData(RgbUncompressed, 24)]
     public void Identify_DetectsCorrectBitPerPixel(string imagePath, int expectedBitsPerPixel)
     {

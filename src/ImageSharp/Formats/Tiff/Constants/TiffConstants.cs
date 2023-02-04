@@ -74,6 +74,11 @@ internal static class TiffConstants
     public static readonly TiffBitsPerSample BitsPerSample8Bit = new TiffBitsPerSample(8, 0, 0);
 
     /// <summary>
+    /// The bits per sample for 16-bit grayscale images.
+    /// </summary>
+    public static readonly TiffBitsPerSample BitsPerSample16Bit = new TiffBitsPerSample(16, 0, 0);
+
+    /// <summary>
     /// The bits per sample for color images with 8 bits for each color channel.
     /// </summary>
     public static readonly TiffBitsPerSample BitsPerSampleRgb8Bit = new TiffBitsPerSample(8, 8, 8);

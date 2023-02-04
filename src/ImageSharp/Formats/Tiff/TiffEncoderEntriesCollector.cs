@@ -343,20 +343,20 @@ internal class TiffEncoderEntriesCollector
                     return TiffConstants.BitsPerSampleRgb8Bit.ToArray();
 
                 case TiffPhotometricInterpretation.WhiteIsZero:
-                    if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
+                    return encoder.BitsPerPixel switch
                     {
-                        return TiffConstants.BitsPerSample1Bit.ToArray();
-                    }
-
-                    return TiffConstants.BitsPerSample8Bit.ToArray();
+                        TiffBitsPerPixel.Bit1 => TiffConstants.BitsPerSample1Bit.ToArray(),
+                        TiffBitsPerPixel.Bit16 => TiffConstants.BitsPerSample16Bit.ToArray(),
+                        _ => TiffConstants.BitsPerSample8Bit.ToArray()
+                    };
 
                 case TiffPhotometricInterpretation.BlackIsZero:
-                    if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit1)
+                    return encoder.BitsPerPixel switch
                     {
-                        return TiffConstants.BitsPerSample1Bit.ToArray();
-                    }
-
-                    return TiffConstants.BitsPerSample8Bit.ToArray();
+                        TiffBitsPerPixel.Bit1 => TiffConstants.BitsPerSample1Bit.ToArray(),
+                        TiffBitsPerPixel.Bit16 => TiffConstants.BitsPerSample16Bit.ToArray(),
+                        _ => TiffConstants.BitsPerSample8Bit.ToArray()
+                    };
 
                 default:
                     return TiffConstants.BitsPerSampleRgb8Bit.ToArray();

@@ -331,6 +331,14 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             return;
         }
 
+#if NET7_0_OR_GREATER
+        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+        {
+            // Skip on .NET7 ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
+            return;
+        }
+#endif
+
         if (!TestEnvironment.RunsOnCI)
         {
             // This may fail in local runs resulting in high memory load.

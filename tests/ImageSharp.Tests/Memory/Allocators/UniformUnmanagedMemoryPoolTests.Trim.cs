@@ -2,9 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-#if NET7_0_OR_GREATER
 using System.Runtime.InteropServices;
-#endif
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -69,13 +67,11 @@ public partial class UniformUnmanagedMemoryPoolTests
                     return;
                 }
 
-#if NET7_0_OR_GREATER
-        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
-        {
-            // Skip on .NET7 ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
-            return;
-        }
-#endif
+                if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+                {
+                    // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
+                    return;
+                }
 
                 RemoteExecutor.Invoke(RunTest).Dispose();
 

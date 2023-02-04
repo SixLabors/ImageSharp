@@ -50,7 +50,7 @@ public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
             return "MacOS";
         }
 
-        if (TestEnvironment.IsMacOS)
+        if (TestEnvironment.IsLinux)
         {
             return "Linux";
         }

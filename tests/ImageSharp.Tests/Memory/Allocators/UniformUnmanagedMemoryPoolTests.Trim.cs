@@ -66,6 +66,14 @@ public partial class UniformUnmanagedMemoryPoolTests
                     return;
                 }
 
+#if NET7_0_OR_GREATER
+        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+        {
+            // Skip on .NET7 ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
+            return;
+        }
+#endif
+
                 RemoteExecutor.Invoke(RunTest).Dispose();
 
                 static void RunTest()

@@ -763,7 +763,7 @@ public class TgaDecoderTests
         // Floating point differences result in minor pixel differences.
         // Output have been manually verified.
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.00017F : 0.0001F),
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0016F : 0.0001F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

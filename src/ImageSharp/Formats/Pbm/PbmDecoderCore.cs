@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -45,7 +44,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.

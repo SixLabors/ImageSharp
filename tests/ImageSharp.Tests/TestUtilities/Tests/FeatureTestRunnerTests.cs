@@ -2,8 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using Xunit.Abstractions;
+using Aes = System.Runtime.Intrinsics.X86.Aes;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests;
 
@@ -12,9 +14,9 @@ public class FeatureTestRunnerTests
     public static TheoryData<HwIntrinsics, string[]> Intrinsics =>
         new()
         {
-            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, new string[] { "EnableAES", "AllowAll" } },
-            { HwIntrinsics.DisableHWIntrinsic, new string[] { "EnableHWIntrinsic" } },
-            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new string[] { "EnableSSE42", "EnableAVX" } }
+            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, new[] { "EnableAES", "AllowAll" } },
+            { HwIntrinsics.DisableHWIntrinsic, new[] { "EnableHWIntrinsic" } },
+            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new[] { "EnableSSE42", "EnableAVX" } }
         };
 
     [Theory]
@@ -101,6 +103,12 @@ public class FeatureTestRunnerTests
                     Assert.False(Bmi1.IsSupported);
                     Assert.False(Bmi2.IsSupported);
                     Assert.False(Lzcnt.IsSupported);
+                    Assert.False(AdvSimd.IsSupported);
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    Assert.False(Crc32.IsSupported);
+                    Assert.False(Dp.IsSupported);
+                    Assert.False(Sha1.IsSupported);
+                    Assert.False(Sha256.IsSupported);
                     break;
                 case HwIntrinsics.DisableSSE:
                     Assert.False(Sse.IsSupported);
@@ -146,6 +154,24 @@ public class FeatureTestRunnerTests
                     break;
                 case HwIntrinsics.DisableLZCNT:
                     Assert.False(Lzcnt.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64AdvSimd:
+                    Assert.False(AdvSimd.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Aes:
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Crc32:
+                    Assert.False(Crc32.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Dp:
+                    Assert.False(Dp.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Sha1:
+                    Assert.False(Sha1.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Sha256:
+                    Assert.False(Sha256.IsSupported);
                     break;
             }
         }
@@ -198,6 +224,12 @@ public class FeatureTestRunnerTests
                     Assert.False(Bmi1.IsSupported);
                     Assert.False(Bmi2.IsSupported);
                     Assert.False(Lzcnt.IsSupported);
+                    Assert.False(AdvSimd.IsSupported);
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    Assert.False(Crc32.IsSupported);
+                    Assert.False(Dp.IsSupported);
+                    Assert.False(Sha1.IsSupported);
+                    Assert.False(Sha256.IsSupported);
                     break;
                 case HwIntrinsics.DisableSSE:
                     Assert.False(Sse.IsSupported);
@@ -243,6 +275,24 @@ public class FeatureTestRunnerTests
                     break;
                 case HwIntrinsics.DisableLZCNT:
                     Assert.False(Lzcnt.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64AdvSimd:
+                    Assert.False(AdvSimd.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Aes:
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Crc32:
+                    Assert.False(Crc32.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Dp:
+                    Assert.False(Dp.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Sha1:
+                    Assert.False(Sha1.IsSupported);
+                    break;
+                case HwIntrinsics.DisableArm64Sha256:
+                    Assert.False(Sha256.IsSupported);
                     break;
             }
         }

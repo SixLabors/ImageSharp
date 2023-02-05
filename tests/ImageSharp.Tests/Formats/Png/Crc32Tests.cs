@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SharpCrc32 = ICSharpCode.SharpZipLib.Checksum.Crc32;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -13,10 +14,7 @@ public class Crc32Tests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public void ReturnsCorrectWhenEmpty(uint input)
-    {
-        Assert.Equal(input, Crc32.Calculate(input, default));
-    }
+    public void CalculateCrc_ReturnsCorrectResultWhenEmpty(uint input) => Assert.Equal(input, Crc32.Calculate(input, default));
 
     [Theory]
     [InlineData(0)]
@@ -26,23 +24,43 @@ public class Crc32Tests
     [InlineData(1024 + 15)]
     [InlineData(2034)]
     [InlineData(4096)]
-    public void MatchesReference(int length)
-    {
-        var data = GetBuffer(length);
-        var crc = new SharpCrc32();
-        crc.Update(data);
+    public void CalculateCrc_MatchesReference(int length) => CalculateCrcAndCompareToReference(length);
 
+    private static void CalculateCrcAndCompareToReference(int length)
+    {
+        // arrange
+        byte[] data = GetBuffer(length);
+        SharpCrc32 crc = new();
+        crc.Update(data);
         long expected = crc.Value;
+
+        // act
         long actual = Crc32.Calculate(data);
 
+        // assert
         Assert.Equal(expected, actual);
     }
 
     private static byte[] GetBuffer(int length)
     {
-        var data = new byte[length];
+        byte[] data = new byte[length];
         new Random(1).NextBytes(data);
 
         return data;
+    }
+
+    [Fact]
+    public void RunCalculateCrcTest_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateCrcTest, HwIntrinsics.AllowAll);
+
+    [Fact]
+    public void RunCalculateCrcTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCalculateCrcTest, HwIntrinsics.DisableHWIntrinsic);
+
+    private static void RunCalculateCrcTest()
+    {
+        int[] testData = { 0, 8, 215, 1024, 1024 + 15, 2034, 4096 };
+        for (int i = 0; i < testData.Length; i++)
+        {
+            CalculateCrcAndCompareToReference(testData[i]);
+        }
     }
 }

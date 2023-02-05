@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -72,7 +71,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration? configuration;
 
     /// <summary>
     /// The color depth, in number of bits per pixel.
@@ -142,7 +141,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             _ => 0
         };
 
-        byte[] iccProfileData = null;
+        byte[] iccProfileData = Array.Empty<byte>();
         int iccProfileSize = 0;
         if (metadata.IccProfile != null)
         {

@@ -39,19 +39,19 @@ public class PaletteQuantizer : IQuantizer
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc />
-    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration? configuration)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.CreatePixelSpecificQuantizer<TPixel>(configuration, this.Options);
 
     /// <inheritdoc />
-    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration? configuration, QuantizerOptions options)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(options, nameof(options));
 
         // Always use the palette length over options since the palette cannot be reduced.
         TPixel[] palette = new TPixel[this.colorPalette.Length];
-        Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
+        Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
         return new PaletteQuantizer<TPixel>(configuration, options, palette);
     }
 }

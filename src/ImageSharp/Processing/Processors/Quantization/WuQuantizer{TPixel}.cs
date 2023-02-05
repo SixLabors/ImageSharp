@@ -85,7 +85,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public WuQuantizer(Configuration configuration, QuantizerOptions options)
+    public WuQuantizer(Configuration? configuration, QuantizerOptions options)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(options, nameof(options));

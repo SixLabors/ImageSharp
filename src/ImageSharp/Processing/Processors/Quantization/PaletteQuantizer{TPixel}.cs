@@ -29,7 +29,7 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     /// <param name="palette">The palette to use.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public PaletteQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> palette)
+    public PaletteQuantizer(Configuration? configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> palette)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(options, nameof(options));

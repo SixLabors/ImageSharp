@@ -33,12 +33,12 @@ public class WuQuantizer : IQuantizer
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc />
-    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration? configuration)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.CreatePixelSpecificQuantizer<TPixel>(configuration, this.Options);
 
     /// <inheritdoc />
-    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration? configuration, QuantizerOptions options)
         where TPixel : unmanaged, IPixel<TPixel>
         => new WuQuantizer<TPixel>(configuration, options);
 }

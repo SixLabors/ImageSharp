@@ -91,7 +91,7 @@ public abstract partial class Image
             ImageFormatManager.ThrowInvalidDecoder(configuration.ImageFormatsManager);
         }
 
-        return format!;
+        return format;
     }
 
     /// <summary>

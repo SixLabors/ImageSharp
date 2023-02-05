@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -26,7 +25,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration? configuration;
 
     /// <summary>
     /// Reusable buffer for writing data.

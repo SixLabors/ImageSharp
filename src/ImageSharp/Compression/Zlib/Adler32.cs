@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 #pragma warning disable IDE0007 // Use implicit type
@@ -95,7 +96,7 @@ internal static class Adler32
                 Vector128<sbyte> tap1 = Sse2.LoadVector128((sbyte*)tapPtr);
                 Vector128<sbyte> tap2 = Sse2.LoadVector128((sbyte*)(tapPtr + 0x10));
                 Vector128<byte> zero = Vector128<byte>.Zero;
-                var ones = Vector128.Create((short)1);
+                Vector128<short> ones = Vector128.Create((short)1);
 
                 while (blocks > 0)
                 {
@@ -179,13 +180,13 @@ internal static class Adler32
             byte* localBufferPtr = bufferPtr;
 
             Vector256<byte> zero = Vector256<byte>.Zero;
-            var dot3v = Vector256.Create((short)1);
-            var dot2v = Vector256.Create(32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
+            Vector256<short> dot3v = Vector256.Create((short)1);
+            Vector256<sbyte> dot2v = Vector256.Create(32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
 
             // Process n blocks of data. At most NMAX data bytes can be
             // processed before s2 must be reduced modulo BASE.
-            var vs1 = Vector256.CreateScalar(s1);
-            var vs2 = Vector256.CreateScalar(s2);
+            Vector256<uint> vs1 = Vector256.CreateScalar(s1);
+            Vector256<uint> vs2 = Vector256.CreateScalar(s2);
 
             while (length >= 32)
             {
@@ -243,6 +244,100 @@ internal static class Adler32
         }
     }
 
+    // Based on: https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
+    [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+    private static unsafe uint CalculateArm(uint adler, ReadOnlySpan<byte> buffer)
+    {
+        // Split Adler-32 into component sums.
+        uint s1 = adler & 0xFFFF;
+        uint s2 = (adler >> 16) & 0xFFFF;
+        uint length = (uint)buffer.Length;
+
+        // Process the data in blocks.
+        long blocks = length / BlockSize;
+        length -= (uint)(blocks * BlockSize);
+        fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
+        {
+            byte* localBufferPtr = bufferPtr;
+
+            while (blocks != 0)
+            {
+                uint n = NMAX / BlockSize;
+                if (n > blocks)
+                {
+                    n = (uint)blocks;
+                }
+
+                blocks -= n;
+
+                // Process n blocks of data. At most nMax data bytes can be
+                // processed before s2 must be reduced modulo Base.
+                Vector128<uint> vs1 = Vector128<uint>.Zero;
+                Vector128<uint> vs2 = vs1.WithElement(3, s1 * n);
+                Vector128<ushort> vColumnSum1 = Vector128<ushort>.Zero;
+                Vector128<ushort> vColumnSum2 = Vector128<ushort>.Zero;
+                Vector128<ushort> vColumnSum3 = Vector128<ushort>.Zero;
+                Vector128<ushort> vColumnSum4 = Vector128<ushort>.Zero;
+
+                do
+                {
+                    // Load 32 input bytes.
+                    Vector128<ushort> bytes1 = AdvSimd.LoadVector128(localBufferPtr).AsUInt16();
+                    Vector128<ushort> bytes2 = AdvSimd.LoadVector128(localBufferPtr + 0x10).AsUInt16();
+
+                    // Add previous block byte sum to v_s2.
+                    vs2 = AdvSimd.Add(vs2, vs1);
+
+                    // Horizontally add the bytes for s1.
+                    vs1 = AdvSimd.AddPairwiseWideningAndAdd(
+                        vs1.AsUInt32(),
+                        AdvSimd.AddPairwiseWideningAndAdd(AdvSimd.AddPairwiseWidening(bytes1.AsByte()).AsUInt16(), bytes2.AsByte()));
+
+                    // Vertically add the bytes for s2.
+                    vColumnSum1 = AdvSimd.AddWideningLower(vColumnSum1, bytes1.GetLower().AsByte());
+                    vColumnSum2 = AdvSimd.AddWideningLower(vColumnSum2, bytes1.GetUpper().AsByte());
+                    vColumnSum3 = AdvSimd.AddWideningLower(vColumnSum3, bytes2.GetLower().AsByte());
+                    vColumnSum4 = AdvSimd.AddWideningLower(vColumnSum4, bytes2.GetUpper().AsByte());
+
+                    localBufferPtr += BlockSize;
+                }
+                while (--n > 0);
+
+                vs2 = AdvSimd.ShiftLeftLogical(vs2, 5);
+
+                // Multiply-add bytes by [ 32, 31, 30, ... ] for s2.
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum1.GetLower(), Vector64.Create((ushort)32, 31, 30, 29));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum1.GetUpper(), Vector64.Create((ushort)28, 27, 26, 25));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum2.GetLower(), Vector64.Create((ushort)24, 23, 22, 21));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum2.GetUpper(), Vector64.Create((ushort)20, 19, 18, 17));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum3.GetLower(), Vector64.Create((ushort)16, 15, 14, 13));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum3.GetUpper(), Vector64.Create((ushort)12, 11, 10, 9));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum4.GetLower(), Vector64.Create((ushort)8, 7, 6, 5));
+                vs2 = AdvSimd.MultiplyWideningLowerAndAdd(vs2, vColumnSum4.GetUpper(), Vector64.Create((ushort)4, 3, 2, 1));
+
+                // Sum epi32 ints v_s1(s2) and accumulate in s1(s2).
+                Vector64<uint> sum1 = AdvSimd.AddPairwise(vs1.GetLower(), vs1.GetUpper());
+                Vector64<uint> sum2 = AdvSimd.AddPairwise(vs2.GetLower(), vs2.GetUpper());
+                Vector64<uint> s1s2 = AdvSimd.AddPairwise(sum1, sum2);
+
+                // Store the results.
+                s1 += AdvSimd.Extract(s1s2, 0);
+                s2 += AdvSimd.Extract(s1s2, 1);
+
+                // Reduce.
+                s1 %= BASE;
+                s2 %= BASE;
+            }
+
+            if (length > 0)
+            {
+                HandleLeftOver(localBufferPtr, length, ref s1, ref s2);
+            }
+
+            return s1 | (s2 << 16);
+        }
+    }
+
     private static unsafe void HandleLeftOver(byte* localBufferPtr, uint length, ref uint s1, ref uint s2)
     {
         if (length >= 16)
@@ -286,7 +381,6 @@ internal static class Adler32
     {
         uint s1 = adler & 0xFFFF;
         uint s2 = (adler >> 16) & 0xFFFF;
-        uint k;
 
         fixed (byte* bufferPtr = buffer)
         {
@@ -295,7 +389,7 @@ internal static class Adler32
 
             while (length > 0)
             {
-                k = length < NMAX ? length : NMAX;
+                uint k = length < NMAX ? length : NMAX;
                 length -= k;
 
                 while (k >= 16)

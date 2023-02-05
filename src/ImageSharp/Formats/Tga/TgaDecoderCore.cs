@@ -262,6 +262,13 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                             ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                         }
                     }
+                    else
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                        }
+                    }
 
                     break;
 
@@ -269,6 +276,13 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     if (invertX)
                     {
                         for (int x = width - 1; x >= 0; x--)
+                        {
+                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                        }
+                    }
+                    else
+                    {
+                        for (int x = 0; x < width; x++)
                         {
                             ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                         }

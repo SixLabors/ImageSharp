@@ -63,7 +63,8 @@ jobs:
             codecov: false
         exclude:
           - isARM: false
-            options.os: buildjet-4vcpu-ubuntu-2204-arm
+            options:
+              os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{matrix.options.os}}
 

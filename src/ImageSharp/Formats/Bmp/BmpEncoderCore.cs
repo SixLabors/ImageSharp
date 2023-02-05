@@ -141,7 +141,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             _ => 0
         };
 
-        byte[] iccProfileData = Array.Empty<byte>();
+        byte[]? iccProfileData = null;
         int iccProfileSize = 0;
         if (metadata.IccProfile != null)
         {
@@ -181,7 +181,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="metadata">The metadata.</param>
     /// <param name="iccProfileData">The icc profile data.</param>
     /// <returns>The bitmap information header.</returns>
-    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[] iccProfileData)
+    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[]? iccProfileData)
     {
         int hResolution = 0;
         int vResolution = 0;
@@ -235,7 +235,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && metadata.IccProfile != null)
         {
-            infoHeader.ProfileSize = iccProfileData.Length;
+            infoHeader.ProfileSize = iccProfileData!.Length;
             infoHeader.CsType = BmpColorSpace.PROFILE_EMBEDDED;
             infoHeader.Intent = BmpRenderingIntent.LCS_GM_IMAGES;
         }
@@ -249,7 +249,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="stream">The stream to write to.</param>
     /// <param name="iccProfileData">The color profile data.</param>
     /// <param name="buffer">The buffer.</param>
-    private static void WriteColorProfile(Stream stream, byte[] iccProfileData, Span<byte> buffer)
+    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer)
     {
         if (iccProfileData != null)
         {

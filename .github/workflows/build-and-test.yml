@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         isARM:
-          - contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64')
+          - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
             framework: net7.0

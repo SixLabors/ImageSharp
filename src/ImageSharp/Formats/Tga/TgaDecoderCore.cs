@@ -259,7 +259,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     {
                         for (int x = width - 1; x >= 0; x--)
                         {
-                            this.ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                         }
                     }
 
@@ -270,7 +270,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     {
                         for (int x = width - 1; x >= 0; x--)
                         {
-                            this.ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                         }
                     }
 
@@ -352,7 +352,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadL8Pixel(stream, color, x, pixelSpan);
+                    ReadL8Pixel(stream, color, x, pixelSpan);
                 }
             }
 
@@ -662,7 +662,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadL8Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan)
+    private static void ReadL8Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte pixelValue = (byte)stream.ReadByte();
@@ -758,7 +758,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadPalettedBgr24Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+    private static void ReadPalettedBgr24Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int colorIndex = stream.ReadByte();
@@ -772,7 +772,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadPalettedBgra32Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+    private static void ReadPalettedBgra32Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int colorIndex = stream.ReadByte();
@@ -788,6 +788,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <summary>
     /// Produce uncompressed tga data from a run length encoded stream.
     /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="buffer">Buffer for uncompressed data.</param>

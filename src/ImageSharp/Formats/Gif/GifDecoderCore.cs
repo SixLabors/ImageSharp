@@ -140,7 +140,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                             this.ReadApplicationExtension(stream);
                             break;
                         case GifConstants.PlainTextLabel:
-                            this.SkipBlock(stream); // Not supported by any known decoder.
+                            SkipBlock(stream); // Not supported by any known decoder.
                             break;
                     }
                 }
@@ -189,7 +189,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     switch (stream.ReadByte())
                     {
                         case GifConstants.GraphicControlLabel:
-                            this.SkipBlock(stream); // Skip graphic control extension block
+                            SkipBlock(stream); // Skip graphic control extension block
                             break;
                         case GifConstants.CommentLabel:
                             this.ReadComments(stream);
@@ -198,7 +198,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                             this.ReadApplicationExtension(stream);
                             break;
                         case GifConstants.PlainTextLabel:
-                            this.SkipBlock(stream); // Not supported by any known decoder.
+                            SkipBlock(stream); // Not supported by any known decoder.
                             break;
                     }
                 }
@@ -307,7 +307,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 {
                     // Reset the stream position and continue.
                     stream.Position = position;
-                    this.SkipBlock(stream, appLength);
+                    SkipBlock(stream, appLength);
                 }
 
                 return;
@@ -327,12 +327,12 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
             // Could be something else not supported yet.
             // Skip the subblock and terminator.
-            this.SkipBlock(stream, subBlockSize);
+            SkipBlock(stream, subBlockSize);
 
             return;
         }
 
-        this.SkipBlock(stream, appLength); // Not supported by any known decoder.
+        SkipBlock(stream, appLength); // Not supported by any known decoder.
     }
 
     /// <summary>
@@ -340,7 +340,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <param name="blockSize">The length of the block to skip.</param>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// </summary>
-    private void SkipBlock(BufferedReadStream stream, int blockSize = 0)
+    private static void SkipBlock(BufferedReadStream stream, int blockSize = 0)
     {
         if (blockSize > 0)
         {
@@ -363,7 +363,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         int length;
 
-        var stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
         while ((length = stream.ReadByte()) != 0)
         {
             if (length > GifConstants.MaxCommentSubBlockLength)
@@ -432,7 +432,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             this.ReadFrameColors(ref image, ref previousFrame, indices, colorTable, this.imageDescriptor);
 
             // Skip any remaining blocks
-            this.SkipBlock(stream);
+            SkipBlock(stream);
         }
         finally
         {

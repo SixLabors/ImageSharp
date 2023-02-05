@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
@@ -34,6 +35,10 @@ internal static class UpFilter
         {
             DecodeSse2(scanline, previousScanline);
         }
+        else if (AdvSimd.IsSupported)
+        {
+            DecodeArm(scanline, previousScanline);
+        }
         else
         {
             DecodeScalar(scanline, previousScanline);
@@ -51,11 +56,10 @@ internal static class UpFilter
         while (rb >= Vector256<byte>.Count)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-            Vector256<byte> current = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
+            Vector256<byte> prior = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
             Vector256<byte> up = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
 
-            Vector256<byte> sum = Avx2.Add(up, current);
-            Unsafe.As<byte, Vector256<byte>>(ref scanRef) = sum;
+            Unsafe.As<byte, Vector256<byte>>(ref scanRef) = Avx2.Add(up, prior);
 
             offset += Vector256<byte>.Count;
             rb -= Vector256<byte>.Count;
@@ -82,14 +86,44 @@ internal static class UpFilter
         while (rb >= Vector128<byte>.Count)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
-            Vector128<byte> current = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
+            Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
             Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
 
-            Vector128<byte> sum = Sse2.Add(up, current);
-            Unsafe.As<byte, Vector128<byte>>(ref scanRef) = sum;
+            Unsafe.As<byte, Vector128<byte>>(ref scanRef) = Sse2.Add(up, prior);
 
             offset += Vector128<byte>.Count;
             rb -= Vector128<byte>.Count;
+        }
+
+        // Handle left over.
+        for (nint i = offset; i < scanline.Length; i++)
+        {
+            ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
+            byte above = Unsafe.Add(ref prevBaseRef, offset);
+            scan = (byte)(scan + above);
+            offset++;
+        }
+    }
+
+    private static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
+    {
+        ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+        ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+        // Up(x) + Prior(x)
+        int rb = scanline.Length;
+        nint offset = 1;
+        const int bytesPerBatch = 16;
+        while (rb >= bytesPerBatch)
+        {
+            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
+            Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+
+            Unsafe.As<byte, Vector128<byte>>(ref scanRef) = AdvSimd.Add(prior, up);
+
+            offset += bytesPerBatch;
+            rb -= bytesPerBatch;
         }
 
         // Handle left over.

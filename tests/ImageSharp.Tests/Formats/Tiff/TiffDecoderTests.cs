@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
@@ -765,8 +766,11 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+        // Floating point differences result in minor pixel differences.
+        // Output have been manually verified.
         image.CompareToReferenceOutput(
-            ImageComparer.Exact,
+            TestEnvironment.OSArchitecture == Architecture.Arm64 ? ImageComparer.TolerantPercentage(0.0006F) : ImageComparer.Exact,
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

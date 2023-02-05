@@ -65,7 +65,7 @@ public class A8Tests
         Assert.Equal(0, actual.X);
         Assert.Equal(0, actual.Y);
         Assert.Equal(0, actual.Z);
-        Assert.Equal(.5F, actual.W, 2);
+        Assert.Equal(.5F, actual.W, precision: 2);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class A8Tests
         Assert.Equal(0, actual.X);
         Assert.Equal(0, actual.Y);
         Assert.Equal(0, actual.Z);
-        Assert.Equal(.5F, actual.W, 2);
+        Assert.Equal(.5F, actual.W, precision: 2);
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public class LosslessUtilsTests
 
         float actual = LosslessUtils.CombinedShannonEntropy(x, y);
 
-        Assert.Equal(expected, actual, 5);
+        Assert.Equal(expected, actual, precision: 5);
     }
 
     private static void RunSubtractGreenTest()

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -63,6 +64,12 @@ public partial class UniformUnmanagedMemoryPoolTests
                 {
                     // This may fail in local runs resulting in high memory load.
                     // Remove the condition for local debugging!
+                    return;
+                }
+
+                if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+                {
+                    // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
                     return;
                 }
 

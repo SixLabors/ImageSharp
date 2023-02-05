@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -23,13 +24,13 @@ public class WebpEncoderTests
     public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var options = new WebpEncoder();
+        WebpEncoder options = new();
         using Image<TPixel> input = provider.GetImage();
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         input.Save(memoryStream, options);
 
         memoryStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memoryStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memoryStream);
 
         ImageMetadata meta = output.Metadata;
         WebpMetadata webpMetaData = meta.GetWebpMetadata();
@@ -43,7 +44,7 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Quality = 100,
@@ -61,7 +62,7 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Quality = quality
@@ -90,7 +91,7 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithDifferentMethodAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method, int quality)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = method,
@@ -107,14 +108,14 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithBestQuality_HasExpectedSize<TPixel>(TestImageProvider<TPixel> provider, int expectedBytes)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = WebpEncodingMethod.BestQuality
         };
 
         using Image<TPixel> image = provider.GetImage();
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         image.Save(memoryStream, encoder);
 
         Assert.Equal(memoryStream.Length, expectedBytes);
@@ -130,7 +131,7 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithNearLosslessFlag_Works<TPixel>(TestImageProvider<TPixel> provider, int nearLosslessQuality)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             NearLossless = true,
@@ -154,7 +155,7 @@ public class WebpEncoderTests
     public void Encode_Lossless_WithPreserveTransparentColor_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = method,
@@ -170,9 +171,9 @@ public class WebpEncoderTests
     public void Encode_Lossless_OneByOnePixel_Works()
     {
         // Just make sure, encoding 1 pixel by 1 pixel does not throw an exception.
-        using var image = new Image<Rgba32>(1, 1);
-        var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
-        using (var memStream = new MemoryStream())
+        using Image<Rgba32> image = new(1, 1);
+        WebpEncoder encoder = new() { FileFormat = WebpFileFormatType.Lossless };
+        using (MemoryStream memStream = new())
         {
             image.SaveAsWebp(memStream, encoder);
         }
@@ -185,7 +186,7 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             Quality = quality
@@ -205,7 +206,7 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithDifferentFilterStrength_Works<TPixel>(TestImageProvider<TPixel> provider, int filterStrength)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             FilterStrength = filterStrength
@@ -225,7 +226,7 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithDifferentSpatialNoiseShapingStrength_Works<TPixel>(TestImageProvider<TPixel> provider, int snsStrength)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             SpatialNoiseShaping = snsStrength
@@ -254,7 +255,7 @@ public class WebpEncoderTests
     public void Encode_Lossy_WithDifferentMethodsAndQuality_Works<TPixel>(TestImageProvider<TPixel> provider, WebpEncodingMethod method, int quality)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             Method = method,
@@ -267,11 +268,15 @@ public class WebpEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, 64020)]
-    public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedFileSize)
+    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
+    public void Encode_Lossy_WithAlpha_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        // Floating point differences result in minor pixel differences affecting compression.
+        // Output have been manually verified.
+        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 64060 : 64020;
+
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             UseAlphaCompression = false
@@ -291,11 +296,15 @@ public class WebpEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32, 16200)]
-    public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedFileSize)
+    [WithFile(TestImages.Png.Transparency, PixelTypes.Rgba32)]
+    public void Encode_Lossy_WithAlphaUsingCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var encoder = new WebpEncoder()
+        // Floating point differences result in minor pixel differences affecting compression.
+        // Output have been manually verified.
+        int expectedFileSize = TestEnvironment.OSArchitecture == Architecture.Arm64 ? 16240 : 16200;
+
+        WebpEncoder encoder = new()
         {
             FileFormat = WebpFileFormatType.Lossy,
             UseAlphaCompression = true
@@ -322,7 +331,7 @@ public class WebpEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless };
+        WebpEncoder encoder = new() { FileFormat = WebpFileFormatType.Lossless };
         image.VerifyEncoder(provider, "webp", string.Empty, encoder);
     }
 
@@ -334,16 +343,16 @@ public class WebpEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy };
+        WebpEncoder encoder = new() { FileFormat = WebpFileFormatType.Lossy };
         image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
     }
 
     public static void RunEncodeLossy_WithPeakImage()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
         using Image<Rgba32> image = provider.GetImage();
 
-        var encoder = new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy };
+        WebpEncoder encoder = new() { FileFormat = WebpFileFormatType.Lossy };
         image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
     }
 

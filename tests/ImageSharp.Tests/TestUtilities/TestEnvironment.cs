@@ -117,6 +117,10 @@ public static partial class TestEnvironment
 
     internal static bool IsFramework => NetCoreVersion == null;
 
+    internal static Architecture OSArchitecture => RuntimeInformation.OSArchitecture;
+
+    internal static Architecture ProcessArchitecture => RuntimeInformation.ProcessArchitecture;
+
     /// <summary>
     /// A dummy operation to enforce the execution of the static constructor.
     /// </summary>

@@ -9,10 +9,13 @@ on:
   pull_request:
     branches:
       - main
+    types: [ labeled, opened, synchronize, reopened ]
 jobs:
   Build:
     strategy:
       matrix:
+        isARM:
+          - contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64')
         options:
           - os: ubuntu-latest
             framework: net7.0
@@ -47,6 +50,14 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
+          - os: buildjet-4vcpu-ubuntu-2204-arm
+            framework: net6.0
+            sdk: 6.0.x
+            runtime: -x64
+            codecov: false
+        exclude:
+          - isARM: false
+            options.os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{matrix.options.os}}
 

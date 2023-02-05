@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Text;
 
@@ -22,10 +21,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
             other.data.AsSpan().CopyTo(this.data);
         }
 
-        if (other.Encoding != null)
-        {
-            this.Encoding = (Encoding)other.Encoding.Clone();
-        }
+        this.encoding = (Encoding)other.Encoding.Clone();
 
         this.Tag = other.Tag;
         this.Strict = other.Strict;
@@ -133,7 +129,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     /// <param name="obj">The object to compare this <see cref="IptcValue"/> with.</param>
     /// <returns>True when the specified object is equal to the current <see cref="IptcValue"/>.</returns>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
         {
@@ -148,7 +144,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// </summary>
     /// <param name="other">The iptc value to compare this <see cref="IptcValue"/> with.</param>
     /// <returns>True when the specified iptc value is equal to the current <see cref="IptcValue"/>.</returns>
-    public bool Equals(IptcValue other)
+    public bool Equals(IptcValue? other)
     {
         if (other is null)
         {

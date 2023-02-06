@@ -228,9 +228,9 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             infoHeader.Compression = BmpCompression.BitFields;
         }
 
-        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && metadata.IccProfile != null)
+        if (this.infoHeaderType is BmpInfoHeaderType.WinVersion5 && iccProfileData != null)
         {
-            infoHeader.ProfileSize = iccProfileData!.Length;
+            infoHeader.ProfileSize = iccProfileData.Length;
             infoHeader.CsType = BmpColorSpace.PROFILE_EMBEDDED;
             infoHeader.Intent = BmpRenderingIntent.LCS_GM_IMAGES;
         }

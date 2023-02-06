@@ -473,7 +473,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
 
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
 
         for (int y = image.Height - 1; y >= 0; y--)
         {
@@ -547,7 +547,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
@@ -595,7 +595,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 4 != 0 ? this.padding - 1 : this.padding;
@@ -652,7 +652,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        this.WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
 
         ReadOnlySpan<byte> quantizedPixelRow = quantized.DangerousGetRowSpan(0);
         int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
@@ -688,7 +688,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="quantizedColorPalette">The color palette from the quantized image.</param>
     /// <param name="colorPalette">A temporary byte span to write the color palette to.</param>
     /// <param name="configuration">The global configuration</param>
-    private void WriteColorPalette<TPixel>(Stream stream, ReadOnlySpan<TPixel> quantizedColorPalette, Span<byte> colorPalette, Configuration configuration)
+    private static void WriteColorPalette<TPixel>(Stream stream, ReadOnlySpan<TPixel> quantizedColorPalette, Span<byte> colorPalette, Configuration configuration)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int quantizedColorBytes = quantizedColorPalette.Length * 4;

@@ -61,6 +61,16 @@ internal static partial class Crc32
             return ~CalculateSse(~crc, buffer);
         }
 
+        if (ArmCrc32.Arm64.IsSupported)
+        {
+            return ~CalculateArm64(~crc, buffer);
+        }
+
+        if (ArmCrc32.IsSupported)
+        {
+            return ~CalculateArm(~crc, buffer);
+        }
+
         return ~CalculateScalar(~crc, buffer);
     }
 

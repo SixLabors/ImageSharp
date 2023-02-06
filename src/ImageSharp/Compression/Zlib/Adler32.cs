@@ -71,6 +71,11 @@ internal static class Adler32
             return CalculateSse(adler, buffer);
         }
 
+        if (AdvSimd.IsSupported)
+        {
+            return CalculateArm(adler, buffer);
+        }
+
         return CalculateScalar(adler, buffer);
     }
 

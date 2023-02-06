@@ -289,9 +289,7 @@ public readonly partial struct Color : IEquatable<Color>
     /// <param name="source">The source color span.</param>
     /// <param name="destination">The destination pixel span.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-#pragma warning disable RCS1163 // Unused parameter.
     public static void ToPixel<TPixel>(ReadOnlySpan<Color> source, Span<TPixel> destination)
-#pragma warning restore RCS1163 // Unused parameter.
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // TODO: Investigate bulk operations utilizing configuration parameter here.

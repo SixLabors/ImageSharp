@@ -69,9 +69,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
-    private IMemoryOwner<Moment> momentsOwner;
-    private IMemoryOwner<byte> tagsOwner;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly IMemoryOwner<Moment> momentsOwner;
+    private readonly IMemoryOwner<byte> tagsOwner;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
     private readonly Box[] colorCube;
@@ -85,7 +85,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public WuQuantizer(Configuration? configuration, QuantizerOptions options)
+    public WuQuantizer(Configuration configuration, QuantizerOptions options)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(options, nameof(options));

@@ -159,7 +159,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
-        this.WriteImage(stream, image, configuration);
+        this.WriteImage(configuration, stream, image);
         WriteColorProfile(stream, iccProfileData, buffer);
 
         stream.Flush();
@@ -307,43 +307,43 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes the pixel data to the binary stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    /// <param name="configuration">The global configuration.</param>
-    private void WriteImage<TPixel>(Stream stream, Image<TPixel> image, Configuration configuration)
+    private void WriteImage<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
         switch (this.bitsPerPixel)
         {
             case BmpBitsPerPixel.Pixel32:
-                this.Write32BitPixelData(stream, pixels, configuration);
+                this.Write32BitPixelData(configuration, stream, pixels);
                 break;
 
             case BmpBitsPerPixel.Pixel24:
-                this.Write24BitPixelData(stream, pixels, configuration);
+                this.Write24BitPixelData(configuration, stream, pixels);
                 break;
 
             case BmpBitsPerPixel.Pixel16:
-                this.Write16BitPixelData(stream, pixels, configuration);
+                this.Write16BitPixelData(configuration, stream, pixels);
                 break;
 
             case BmpBitsPerPixel.Pixel8:
-                this.Write8BitPixelData(stream, image, configuration);
+                this.Write8BitPixelData(configuration, stream, image);
                 break;
 
             case BmpBitsPerPixel.Pixel4:
-                this.Write4BitPixelData(stream, image, configuration);
+                this.Write4BitPixelData(configuration, stream, image);
                 break;
 
             case BmpBitsPerPixel.Pixel2:
-                this.Write2BitPixelData(stream, image, configuration);
+                this.Write2BitPixelData(configuration, stream, image);
                 break;
 
             case BmpBitsPerPixel.Pixel1:
-                this.Write1BitPixelData(stream, image, configuration);
+                this.Write1BitPixelData(configuration, stream, image);
                 break;
         }
     }
@@ -355,10 +355,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 32-bit data with a color palette to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration.</param>
-    private void Write32BitPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, Configuration configuration)
+    private void Write32BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
@@ -380,10 +380,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 24-bit pixel data with a color palette to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration.</param>
-    private void Write24BitPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, Configuration configuration)
+    private void Write24BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -407,11 +407,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 16-bit pixel data with a color palette to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration.</param>
-    private void Write16BitPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, Configuration configuration)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private void Write16BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
         int rowBytesWithoutPadding = width * 2;
@@ -436,10 +436,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 8 bit pixel data with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration.</param>
-    private void Write8BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Configuration configuration)
+    private void Write8BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool isL8 = typeof(TPixel) == typeof(L8);
@@ -452,7 +452,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            this.Write8BitColor(stream, image, colorPalette, configuration);
+            this.Write8BitColor(configuration, stream, image, colorPalette);
         }
     }
 
@@ -460,11 +460,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes an 8 bit color image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
     /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
-    /// <param name="configuration">The global configuration</param>
-    private void Write8BitColor<TPixel>(Stream stream, Image<TPixel> image, Span<byte> colorPalette, Configuration configuration)
+    private void Write8BitColor<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
@@ -473,7 +473,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
 
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette);
 
         for (int y = image.Height - 1; y >= 0; y--)
         {
@@ -529,10 +529,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 4 bit pixel data with a color palette. The color palette has 16 entry's with 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration.</param>
-    private void Write4BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Configuration configuration)
+    private void Write4BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
@@ -547,7 +547,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette);
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
@@ -577,10 +577,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 2 bit pixel data with a color palette. The color palette has 4 entry's with 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration</param>
-    private void Write2BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Configuration configuration)
+    private void Write2BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
@@ -595,7 +595,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette);
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 4 != 0 ? this.padding - 1 : this.padding;
@@ -634,10 +634,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes 1 bit pixel data with a color palette. The color palette has 2 entry's with 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    /// <param name="configuration">The global configuration</param>
-    private void Write1BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Configuration configuration)
+    private void Write1BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
@@ -652,7 +652,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
-        WriteColorPalette(stream, quantizedColorPalette, colorPalette, configuration);
+        WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette);
 
         ReadOnlySpan<byte> quantizedPixelRow = quantized.DangerousGetRowSpan(0);
         int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
@@ -684,11 +684,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// Writes the color palette to the stream. The color palette has 4 bytes for each entry.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="quantizedColorPalette">The color palette from the quantized image.</param>
     /// <param name="colorPalette">A temporary byte span to write the color palette to.</param>
-    /// <param name="configuration">The global configuration</param>
-    private static void WriteColorPalette<TPixel>(Stream stream, ReadOnlySpan<TPixel> quantizedColorPalette, Span<byte> colorPalette, Configuration configuration)
+    private static void WriteColorPalette<TPixel>(Configuration configuration, Stream stream, ReadOnlySpan<TPixel> quantizedColorPalette, Span<byte> colorPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int quantizedColorBytes = quantizedColorPalette.Length * 4;

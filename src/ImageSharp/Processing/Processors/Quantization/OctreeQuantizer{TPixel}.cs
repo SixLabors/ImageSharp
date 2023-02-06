@@ -26,7 +26,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly int maxColors;
     private readonly int bitDepth;
     private readonly Octree octree;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private EuclideanPixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
@@ -38,11 +38,8 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public OctreeQuantizer(Configuration? configuration, QuantizerOptions options)
+    public OctreeQuantizer(Configuration configuration, QuantizerOptions options)
     {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.NotNull(options, nameof(options));
-
         this.Configuration = configuration;
         this.Options = options;
 

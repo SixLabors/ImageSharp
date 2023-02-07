@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -141,7 +140,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private void EncodeFrames<TPixel>(
         Stream stream,
         Image<TPixel> image,
-        IndexedImageFrame<TPixel>? quantized,
+        IndexedImageFrame<TPixel> quantized,
         ReadOnlyMemory<TPixel> palette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -168,7 +167,6 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
             // Clean up for the next run.
             quantized.Dispose();
-            quantized = null;
         }
 
         if (hasPaletteQuantizer)

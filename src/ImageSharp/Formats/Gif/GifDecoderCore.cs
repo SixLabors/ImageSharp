@@ -337,9 +337,9 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
     /// <summary>
     /// Skips over a block or reads its terminator.
-    /// <param name="blockSize">The length of the block to skip.</param>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="blockSize">The length of the block to skip.</param>
     private static void SkipBlock(BufferedReadStream stream, int blockSize = 0)
     {
         if (blockSize > 0)
@@ -363,7 +363,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         int length;
 
-        StringBuilder stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new();
         while ((length = stream.ReadByte()) != 0)
         {
             if (length > GifConstants.MaxCommentSubBlockLength)
@@ -450,7 +450,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     private void ReadFrameIndices(BufferedReadStream stream, Buffer2D<byte> indices)
     {
         int minCodeSize = stream.ReadByte();
-        using LzwDecoder lzwDecoder = new LzwDecoder(this.configuration.MemoryAllocator, stream);
+        using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream);
         lzwDecoder.DecodePixels(minCodeSize, indices);
     }
 

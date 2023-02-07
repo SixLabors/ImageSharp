@@ -30,7 +30,7 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     /// <param name="size">The size in px units.</param>
     protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata? metadata, Size size)
        : base(pixelType, size, metadata)
-        => this.configuration = configuration ?? Configuration.Default;
+        => this.configuration = configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.

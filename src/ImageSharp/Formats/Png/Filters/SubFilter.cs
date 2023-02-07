@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
@@ -28,6 +29,10 @@ internal static class SubFilter
         if (Sse2.IsSupported && bytesPerPixel is 4)
         {
             DecodeSse2(scanline);
+        }
+        else if (AdvSimd.IsSupported && bytesPerPixel is 4)
+        {
+            DecodeArm(scanline);
         }
         else
         {
@@ -55,6 +60,30 @@ internal static class SubFilter
 
             rb -= 4;
             offset += 4;
+        }
+    }
+
+    public static void DecodeArm(Span<byte> scanline)
+    {
+        ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+
+        Vector64<byte> d = Vector64<byte>.Zero;
+
+        int rb = scanline.Length;
+        int offset = 1;
+        const int bytesPerBatch = 4;
+        while (rb >= bytesPerBatch)
+        {
+            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            Vector64<byte> a = d;
+            d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+            d = AdvSimd.Add(d, a);
+
+            Unsafe.As<byte, int>(ref scanRef) = d.AsInt32().ToScalar();
+
+            rb -= bytesPerBatch;
+            offset += bytesPerBatch;
         }
     }
 

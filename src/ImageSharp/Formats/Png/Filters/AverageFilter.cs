@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
@@ -35,6 +36,10 @@ internal static class AverageFilter
         {
             DecodeSse2(scanline, previousScanline);
         }
+        else if (AdvSimd.IsSupported && bytesPerPixel is 4)
+        {
+            DecodeArm(scanline, previousScanline);
+        }
         else
         {
             DecodeScalar(scanline, previousScanline, bytesPerPixel);
@@ -48,7 +53,7 @@ internal static class AverageFilter
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
         Vector128<byte> d = Vector128<byte>.Zero;
-        var ones = Vector128.Create((byte)1);
+        Vector128<byte> ones = Vector128.Create((byte)1);
 
         int rb = scanline.Length;
         nint offset = 1;
@@ -72,6 +77,33 @@ internal static class AverageFilter
 
             rb -= 4;
             offset += 4;
+        }
+    }
+
+    public static void DecodeArm(Span<byte> scanline, Span<byte> previousScanline)
+    {
+        ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+        ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+
+        Vector64<byte> d = Vector64<byte>.Zero;
+
+        int rb = scanline.Length;
+        int offset = 1;
+        const int bytesPerBatch = 4;
+        while (rb >= bytesPerBatch)
+        {
+            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            Vector64<byte> a = d;
+            Vector64<byte> b = Vector64.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+            d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
+
+            Vector64<byte> avg = AdvSimd.FusedAddHalving(a, b);
+            d = AdvSimd.Add(d, avg);
+
+            Unsafe.As<byte, int>(ref scanRef) = d.AsInt32().ToScalar();
+
+            rb -= bytesPerBatch;
+            offset += bytesPerBatch;
         }
     }
 

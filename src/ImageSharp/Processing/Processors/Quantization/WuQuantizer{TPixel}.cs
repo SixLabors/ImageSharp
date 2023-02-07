@@ -69,9 +69,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
-    private IMemoryOwner<Moment> momentsOwner;
-    private IMemoryOwner<byte> tagsOwner;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly IMemoryOwner<Moment> momentsOwner;
+    private readonly IMemoryOwner<byte> tagsOwner;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
     private readonly Box[] colorCube;

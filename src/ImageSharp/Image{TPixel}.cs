@@ -77,7 +77,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="width">The width of the image in pixels.</param>
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="metadata">The images metadata.</param>
-    internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
+    internal Image(Configuration configuration, int width, int height, ImageMetadata? metadata)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
@@ -128,7 +128,7 @@ public sealed class Image<TPixel> : Image
         int width,
         int height,
         TPixel backgroundColor,
-        ImageMetadata metadata)
+        ImageMetadata? metadata)
         : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 

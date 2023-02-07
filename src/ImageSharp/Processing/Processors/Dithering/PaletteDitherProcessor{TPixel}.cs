@@ -35,7 +35,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
 
         ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
         this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
-        Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
+        Color.ToPixel(sourcePalette, this.paletteOwner.Memory.Span);
 
         this.ditherProcessor = new DitherProcessor(
             this.Configuration,

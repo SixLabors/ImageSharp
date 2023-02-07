@@ -51,7 +51,7 @@ public class PaletteQuantizer : IQuantizer
 
         // Always use the palette length over options since the palette cannot be reduced.
         TPixel[] palette = new TPixel[this.colorPalette.Length];
-        Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
+        Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
         return new PaletteQuantizer<TPixel>(configuration, options, palette);
     }
 }

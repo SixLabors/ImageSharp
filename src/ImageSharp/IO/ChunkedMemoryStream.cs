@@ -47,8 +47,6 @@ internal sealed class ChunkedMemoryStream : Stream
     /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
     {
-        Guard.NotNull(allocator, nameof(allocator));
-
         this.allocatorCapacity = allocator.GetBufferCapacityInBytes();
         this.allocator = allocator;
     }

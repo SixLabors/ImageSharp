@@ -19,7 +19,7 @@ public sealed class ProjectiveTransformProcessor : CloningImageProcessor
     public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Size targetDimensions)
     {
         Guard.NotNull(sampler, nameof(sampler));
-        Guard.MustBeValueType(sampler, nameof(sampler));
+        Guard.SamplerMustBeValueType(sampler);
 
         if (TransformUtils.IsDegenerate(matrix))
         {

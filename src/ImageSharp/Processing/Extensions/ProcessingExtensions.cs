@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -135,7 +134,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ArgumentNullException">The operation is null.</exception>
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
-    public static Image Clone(this Image source, Action<IImageProcessingContext> operation)
+    public static Image? Clone(this Image source, Action<IImageProcessingContext> operation)
         => Clone(source, source.GetConfiguration(), operation);
 
     /// <summary>
@@ -150,14 +149,14 @@ public static partial class ProcessingExtensions
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     /// <returns>The new <see cref="Image"/>.</returns>
-    public static Image Clone(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
+    public static Image? Clone(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(source, nameof(source));
         Guard.NotNull(operation, nameof(operation));
         source.EnsureNotDisposed();
 
-        var visitor = new ProcessingVisitor(configuration, operation, false);
+        ProcessingVisitor visitor = new(configuration, operation, false);
         source.AcceptVisitor(visitor);
         return visitor.ResultImage;
     }
@@ -282,7 +281,7 @@ public static partial class ProcessingExtensions
             this.mutate = mutate;
         }
 
-        public Image ResultImage { get; private set; }
+        public Image? ResultImage { get; private set; }
 
         public void Visit<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>

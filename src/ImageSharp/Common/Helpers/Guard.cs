@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors;
 
@@ -17,13 +17,14 @@ internal static partial class Guard
     /// <typeparam name="TValue">The type of the value.</typeparam>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a value type.</exception>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void MustBeValueType<TValue>(TValue value, string parameterName)
+    public static void SamplerMustBeValueType<TValue>(TValue value, [CallerArgumentExpression("value")] string? parameterName = null)
+        where TValue : IResampler
     {
         if (value.GetType().IsValueType)
         {
             return;
         }
 
-        ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
+        ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName!);
     }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -183,7 +182,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         try
         {
-            var accessor = new PixelAccessor<TPixel>(this.PixelBuffer);
+            PixelAccessor<TPixel> accessor = new(this.PixelBuffer);
             processPixels(accessor);
         }
         finally
@@ -211,8 +210,8 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         try
         {
-            var accessor1 = new PixelAccessor<TPixel>(this.PixelBuffer);
-            var accessor2 = new PixelAccessor<TPixel2>(frame2.PixelBuffer);
+            PixelAccessor<TPixel> accessor1 = new(this.PixelBuffer);
+            PixelAccessor<TPixel2> accessor2 = new(frame2.PixelBuffer);
             processPixels(accessor1, accessor2);
         }
         finally
@@ -247,9 +246,9 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         try
         {
-            var accessor1 = new PixelAccessor<TPixel>(this.PixelBuffer);
-            var accessor2 = new PixelAccessor<TPixel2>(frame2.PixelBuffer);
-            var accessor3 = new PixelAccessor<TPixel3>(frame3.PixelBuffer);
+            PixelAccessor<TPixel> accessor1 = new(this.PixelBuffer);
+            PixelAccessor<TPixel2> accessor2 = new(frame2.PixelBuffer);
+            PixelAccessor<TPixel3> accessor3 = new(frame3.PixelBuffer);
             processPixels(accessor1, accessor2, accessor3);
         }
         finally
@@ -342,8 +341,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         if (disposing)
         {
-            this.PixelBuffer?.Dispose();
-            this.PixelBuffer = null;
+            this.PixelBuffer.Dispose();
         }
 
         this.isDisposed = true;
@@ -379,14 +377,14 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// </summary>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
     /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-    internal ImageFrame<TPixel> Clone(Configuration configuration) => new ImageFrame<TPixel>(configuration, this);
+    internal ImageFrame<TPixel> Clone(Configuration configuration) => new(configuration, this);
 
     /// <summary>
     /// Returns a copy of the image frame in the given pixel format.
     /// </summary>
     /// <typeparam name="TPixel2">The pixel format.</typeparam>
     /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
-    internal ImageFrame<TPixel2> CloneAs<TPixel2>()
+    internal ImageFrame<TPixel2>? CloneAs<TPixel2>()
         where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
 
     /// <summary>
@@ -400,11 +398,11 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         if (typeof(TPixel2) == typeof(TPixel))
         {
-            return this.Clone(configuration) as ImageFrame<TPixel2>;
+            return (this.Clone(configuration) as ImageFrame<TPixel2>)!;
         }
 
-        var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
-        var operation = new RowIntervalOperation<TPixel2>(this.PixelBuffer, target.PixelBuffer, configuration);
+        ImageFrame<TPixel2> target = new(configuration, this.Width, this.Height, this.Metadata.DeepClone());
+        RowIntervalOperation<TPixel2> operation = new(this.PixelBuffer, target.PixelBuffer, configuration);
 
         ParallelRowIterator.IterateRowIntervals(
             configuration,

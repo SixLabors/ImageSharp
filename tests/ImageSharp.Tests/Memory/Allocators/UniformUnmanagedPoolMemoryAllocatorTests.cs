@@ -261,6 +261,12 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             return;
         }
 
+        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+        {
+            // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
+            return;
+        }
+
         if (!TestEnvironment.RunsOnCI)
         {
             // This may fail in local runs resulting in high memory load.
@@ -320,6 +326,12 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         if (TestEnvironment.IsMacOS)
         {
             // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
+            return;
+        }
+
+        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
+        {
+            // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
             return;
         }
 

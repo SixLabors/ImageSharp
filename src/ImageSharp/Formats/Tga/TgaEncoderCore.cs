@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -22,11 +21,6 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Used for allocating memory during processing operations.
     /// </summary>
     private readonly MemoryAllocator memoryAllocator;
-
-    /// <summary>
-    /// The global configuration.
-    /// </summary>
-    private Configuration configuration;
 
     /// <summary>
     /// Reusable buffer for writing data.
@@ -68,7 +62,6 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        this.configuration = image.GetConfiguration();
         ImageMetadata metadata = image.Metadata;
         TgaMetadata tgaMetadata = metadata.GetTgaMetadata();
         this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
@@ -124,7 +117,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         }
         else
         {
-            this.WriteImage(stream, image.Frames.RootFrame);
+            this.WriteImage(image.GetConfiguration(), stream, image.Frames.RootFrame);
         }
 
         stream.Flush();
@@ -134,30 +127,31 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Writes the pixel data to the binary stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.PixelBuffer;
         switch (this.bitsPerPixel)
         {
             case TgaBitsPerPixel.Pixel8:
-                this.Write8Bit(stream, pixels);
+                this.Write8Bit(configuration, stream, pixels);
                 break;
 
             case TgaBitsPerPixel.Pixel16:
-                this.Write16Bit(stream, pixels);
+                this.Write16Bit(configuration, stream, pixels);
                 break;
 
             case TgaBitsPerPixel.Pixel24:
-                this.Write24Bit(stream, pixels);
+                this.Write24Bit(configuration, stream, pixels);
                 break;
 
             case TgaBitsPerPixel.Pixel32:
-                this.Write32Bit(stream, pixels);
+                this.Write32Bit(configuration, stream, pixels);
                 break;
         }
     }
@@ -227,7 +221,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
             case TgaBitsPerPixel.Pixel16:
                 Bgra5551 bgra5551 = new(color.ToVector4());
-                BinaryPrimitives.TryWriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
+                BinaryPrimitives.WriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
                 stream.WriteByte(this.buffer[0]);
                 stream.WriteByte(this.buffer[1]);
 
@@ -321,9 +315,10 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Writes the 8bit pixels uncompressed to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write8Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+    private void Write8Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 1);
@@ -333,7 +328,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         {
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToL8Bytes(
-                this.configuration,
+                configuration,
                 pixelSpan,
                 rowSpan,
                 pixelSpan.Length);
@@ -345,9 +340,10 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Writes the 16bit pixels uncompressed to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+    private void Write16Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 2);
@@ -357,7 +353,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         {
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
-                this.configuration,
+                configuration,
                 pixelSpan,
                 rowSpan,
                 pixelSpan.Length);
@@ -369,9 +365,10 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Writes the 24bit pixels uncompressed to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+    private void Write24Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 3);
@@ -381,7 +378,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         {
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgr24Bytes(
-                this.configuration,
+                configuration,
                 pixelSpan,
                 rowSpan,
                 pixelSpan.Length);
@@ -393,9 +390,10 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// Writes the 32bit pixels uncompressed to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+    private void Write32Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
@@ -405,7 +403,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         {
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra32Bytes(
-                this.configuration,
+                configuration,
                 pixelSpan,
                 rowSpan,
                 pixelSpan.Length);

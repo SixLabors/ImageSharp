@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -365,8 +366,11 @@ public class WebpDecoderTests
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+        // Floating point differences result in minor pixel differences.
+        // Output have been manually verified.
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0007F),
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0156F : 0.0007F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

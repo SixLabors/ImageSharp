@@ -29,12 +29,12 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The metadata.
     /// </summary>
-    private ImageMetadata metadata = null!;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// The tga specific metadata.
     /// </summary>
-    private TgaMetadata tgaMetadata = null!;
+    private TgaMetadata? tgaMetadata;
 
     /// <summary>
     /// The file header containing general information about the image.
@@ -533,6 +533,9 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     {
         TPixel color = default;
         bool invertX = InvertX(origin);
+
+        Guard.NotNull(this.tgaMetadata);
+
         if (this.tgaMetadata.AlphaChannelBits == 8 && !invertX)
         {
             using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0);
@@ -591,6 +594,9 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel color = default;
+
+        Guard.NotNull(this.tgaMetadata);
+
         byte alphaBits = this.tgaMetadata.AlphaChannelBits;
         using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
         {
@@ -721,6 +727,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgra pixel");
         }
+
+        Guard.NotNull(this.tgaMetadata);
 
         byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
         color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));

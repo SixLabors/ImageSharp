@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors;
 
@@ -17,8 +16,8 @@ internal static partial class Guard
     /// <typeparam name="TValue">The type of the value.</typeparam>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a value type.</exception>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void SamplerMustBeValueType<TValue>(TValue value, [CallerArgumentExpression("value")] string? parameterName = null)
-        where TValue : IResampler
+    public static void MustBeValueType<TValue>(TValue value, [CallerArgumentExpression("value")] string? parameterName = null)
+        where TValue : notnull
     {
         if (value.GetType().IsValueType)
         {

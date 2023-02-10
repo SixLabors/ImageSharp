@@ -17,7 +17,7 @@ public class ResizeProcessor : CloningImageProcessor
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(options.Sampler, nameof(options.Sampler));
-        Guard.SamplerMustBeValueType(options.Sampler);
+        Guard.MustBeValueType(options.Sampler);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options);
 

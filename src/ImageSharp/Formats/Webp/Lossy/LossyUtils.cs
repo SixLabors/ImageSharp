@@ -126,18 +126,16 @@ internal static class LossyUtils
     public static int Vp8_SseNxN(Span<byte> a, Span<byte> b, int w, int h)
     {
         int count = 0;
-        int aOffset = 0;
-        int bOffset = 0;
+        int offset = 0;
         for (int y = 0; y < h; y++)
         {
             for (int x = 0; x < w; x++)
             {
-                int diff = a[aOffset + x] - b[bOffset + x];
+                int diff = a[offset + x] - b[offset + x];
                 count += diff * diff;
             }
 
-            aOffset += WebpConstants.Bps;
-            bOffset += WebpConstants.Bps;
+            offset += WebpConstants.Bps;
         }
 
         return count;

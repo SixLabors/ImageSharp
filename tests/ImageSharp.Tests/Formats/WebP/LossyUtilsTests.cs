@@ -140,7 +140,7 @@ public class LossyUtilsTests
         int expected = 2063;
 
         // act
-        int actual = LossyUtils.Vp8_Sse16X16(a, b);
+        int actual = LossyUtils.Vp8_Sse16x16(a, b);
 
         // assert
         Assert.Equal(expected, actual);
@@ -186,7 +186,7 @@ public class LossyUtilsTests
         int expected = 749;
 
         // act
-        int actual = LossyUtils.Vp8_Sse16X8(a, b);
+        int actual = LossyUtils.Vp8_Sse16x8(a, b);
 
         // assert
         Assert.Equal(expected, actual);
@@ -195,33 +195,25 @@ public class LossyUtilsTests
     private static void RunVp8Sse4X4Test()
     {
         // arrange
-        byte[] a =
+        Random rand = new(1234);
+        byte[] a = new byte[128 * 10];
+        byte[] b = new byte[128 * 10];
+        for (int i = 0; i < a.Length; i++)
         {
-            27, 27, 28, 29, 29, 28, 27, 27, 27, 28, 28, 29, 29, 28, 28, 27, 129, 129, 129, 129, 129, 129, 129,
-            129, 128, 128, 128, 128, 128, 128, 128, 128, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 29, 29, 28,
-            28, 27, 129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128, 27, 27, 26,
-            26, 26, 26, 27, 27, 27, 28, 28, 29, 29, 28, 28, 27, 129, 129, 129, 129, 129, 129, 129, 129, 128,
-            128, 128, 128, 128, 128, 128, 128, 28, 27, 27, 26, 26, 27, 27, 28, 27, 28, 28, 29, 29, 28, 28, 27,
-            129, 129, 129, 129, 129, 129, 129, 129, 128, 128, 128, 128, 128, 128, 128, 128
-        };
+            a[i] = (byte)rand.Next(byte.MaxValue);
+            b[i] = (byte)rand.Next(byte.MaxValue);
+        }
+        int[] expected = { 194133, 125861, 165966, 195688, 106491, 173015, 266960, 200272, 311224, 122545 };
 
-        byte[] b =
+        // act + assert
+        int offset = 0;
+        for (int i = 0; i < expected.Length; i++)
         {
-            26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 204, 204, 204, 204, 204, 204, 204,
-            204, 204, 204, 204, 204, 204, 204, 204, 204, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
-            28, 28, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 26, 26, 26,
-            26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 204, 204, 204, 204, 204, 204, 204, 204, 204,
-            204, 204, 204, 204, 204, 204, 204, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
-            204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204, 204
-        };
+            int actual = LossyUtils.Vp8_Sse4x4(a.AsSpan(offset), b.AsSpan(offset));
+            Assert.Equal(expected[i], actual);
 
-        int expected = 27;
-
-        // act
-        int actual = LossyUtils.Vp8_Sse4X4(a, b);
-
-        // assert
-        Assert.Equal(expected, actual);
+            offset += 128;
+        }
     }
 
     private static void RunMean16x4Test()
@@ -329,12 +321,15 @@ public class LossyUtilsTests
     [Fact]
     public void Vp8Sse16X8_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableAVX2);
 
+    // This will test the AVX2 version.
     [Fact]
     public void Vp8Sse4X4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.AllowAll);
 
+    // This will test the fallback scalar version.
     [Fact]
-    public void Vp8Sse4X4_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2);
+    public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX);
 
+    // This will test the SSE2 version.
     [Fact]
     public void Vp8Sse4X4_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableAVX2);
 

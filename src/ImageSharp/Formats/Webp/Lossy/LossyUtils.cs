@@ -226,7 +226,7 @@ internal static class LossyUtils
             sum = AccumulateSSE16Neon(a.Slice(y * WebpConstants.Bps), b.Slice(y * WebpConstants.Bps), sum);
         }
 
-        return ReduceSum(sum);
+        return Numerics.ReduceSumArm(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -238,7 +238,7 @@ internal static class LossyUtils
             sum = AccumulateSSE16Neon(a.Slice(y * WebpConstants.Bps), b.Slice(y * WebpConstants.Bps), sum);
         }
 
-        return ReduceSum(sum);
+        return Numerics.ReduceSumArm(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -255,7 +255,8 @@ internal static class LossyUtils
         // pair-wise adds and widen.
         Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
         Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
-        return ReduceSum(AdvSimd.Add(sum1, sum2));
+
+        return Numerics.ReduceSumArm(AdvSimd.Add(sum1, sum2));
     }
 
     // Load all 4x4 pixels into a single Vector128<uint>
@@ -271,14 +272,6 @@ internal static class LossyUtils
             output = AdvSimd.LoadAndInsertScalar(output, 3, (uint*)(srcRef + (WebpConstants.Bps * 3)));
             return output;
         }
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReduceSum(Vector128<uint> sum)
-    {
-        Vector128<ulong> sum2 = AdvSimd.AddPairwiseWidening(sum);
-        Vector64<uint> sum3 = AdvSimd.Add(sum2.GetLower().AsUInt32(), sum2.GetUpper().AsUInt32());
-        return (int)AdvSimd.Extract(sum3, 0);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -222,62 +222,79 @@ public class LossyUtilsTests
     public void HadamardTransform_Works() => RunHadamardTransformTest();
 
     [Fact]
-    public void TransformTwo_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformTwoTest, HwIntrinsics.AllowAll);
+    public void TransformTwo_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformTwoTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void TransformTwo_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformTwoTest, HwIntrinsics.DisableHWIntrinsic);
+    public void TransformTwo_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformTwoTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void TransformOne_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformOneTest, HwIntrinsics.AllowAll);
+    public void TransformOne_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformOneTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void TransformOne_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformOneTest, HwIntrinsics.DisableHWIntrinsic);
+    public void TransformOne_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformOneTest, HwIntrinsics.DisableHWIntrinsic);
 
-    // This will test the AVX2 version.
+    // This will test the AVX2 or ARM version.
     [Fact]
-    public void Vp8Sse16X16_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.AllowAll);
-
-    // This will test the SSE2 version.
-    [Fact]
-    public void Vp8Sse16X16_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableAVX2);
-
-    // This will test the fallback scalar version.
-    [Fact]
-    public void Vp8Sse16X16_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX);
-
-    // This will test the AVX2 version.
-    [Fact]
-    public void Vp8Sse16X8_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.AllowAll);
+    public void Vp8Sse16X16_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.AllowAll);
 
     // This will test the SSE2 version.
     [Fact]
-    public void Vp8Sse16X8_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableAVX2);
+    public void Vp8Sse16X16_WithoutAVX2_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableAVX2);
 
     // This will test the fallback scalar version.
     [Fact]
-    public void Vp8Sse16X8_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX);
+    public void Vp8Sse16X16_WithoutSSE2_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
 
-    // This will test the AVX2 version.
+    // This will test the AVX2 or ARM version.
     [Fact]
-    public void Vp8Sse4X4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.AllowAll);
+    public void Vp8Sse16X8_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.AllowAll);
 
     // This will test the SSE2 version.
     [Fact]
-    public void Vp8Sse4X4_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableAVX2);
+    public void Vp8Sse16X8_WithoutAVX2_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableAVX2);
 
     // This will test the fallback scalar version.
     [Fact]
-    public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX);
+    public void Vp8Sse16X8_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
+
+    // This will test the AVX2 version or ARM version.
+    [Fact]
+    public void Vp8Sse4X4_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.AllowAll);
+
+    // This will test the SSE2 version.
+    [Fact]
+    public void Vp8Sse4X4_WithoutAVX2_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableAVX2);
+
+    // This will test the fallback scalar version.
+    [Fact]
+    public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
 
     [Fact]
-    public void Mean16x4_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.AllowAll);
+    public void Mean16x4_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void Mean16x4_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.DisableHWIntrinsic);
+    public void Mean16x4_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunMean16x4Test, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
-    public void HadamardTransform_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.AllowAll);
+    public void HadamardTransform_WithHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void HadamardTransform_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableHWIntrinsic);
+    public void HadamardTransform_WithoutHardwareIntrinsics_Works() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunHadamardTransformTest, HwIntrinsics.DisableHWIntrinsic);
 }

@@ -140,7 +140,7 @@ public class LossyUtilsTests
         int expected = 2063;
 
         // act
-        int actual = LossyUtils.Vp8_Sse16X16(a, b);
+        int actual = LossyUtils.Vp8_Sse16x16(a, b);
 
         // assert
         Assert.Equal(expected, actual);
@@ -186,7 +186,7 @@ public class LossyUtilsTests
         int expected = 749;
 
         // act
-        int actual = LossyUtils.Vp8_Sse16X8(a, b);
+        int actual = LossyUtils.Vp8_Sse16x8(a, b);
 
         // assert
         Assert.Equal(expected, actual);
@@ -218,7 +218,7 @@ public class LossyUtilsTests
         int expected = 27;
 
         // act
-        int actual = LossyUtils.Vp8_Sse4X4(a, b);
+        int actual = LossyUtils.Vp8_Sse4x4(a, b);
 
         // assert
         Assert.Equal(expected, actual);

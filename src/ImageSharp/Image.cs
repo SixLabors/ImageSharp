@@ -28,9 +28,9 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="size">The size in px units.</param>
-    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
+    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata? metadata, Size size)
        : base(pixelType, size, metadata)
-        => this.configuration = configuration ?? Configuration.Default;
+        => this.configuration = configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
@@ -43,7 +43,7 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     internal Image(
         Configuration configuration,
         PixelTypeInfo pixelType,
-        ImageMetadata metadata,
+        ImageMetadata? metadata,
         int width,
         int height)
         : this(configuration, pixelType, metadata, new Size(width, height))

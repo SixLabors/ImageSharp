@@ -219,9 +219,14 @@ internal static class LossyUtils
     private static int Vp8_Sse16x16_Neon(Span<byte> a, Span<byte> b)
     {
         Vector128<uint> sum = Vector128<uint>.Zero;
+        ref byte aRef = ref MemoryMarshal.GetReference(a);
+        ref byte bRef = ref MemoryMarshal.GetReference(b);
         for (int y = 0; y < 16; y++)
         {
-            sum = AccumulateSSE16Neon(a.Slice(y * WebpConstants.Bps), b.Slice(y * WebpConstants.Bps), sum);
+            sum = AccumulateSSE16Neon(
+                ref Unsafe.Add(ref aRef, y * WebpConstants.Bps),
+                ref Unsafe.Add(ref bRef, y * WebpConstants.Bps),
+                sum);
         }
 
         return Numerics.ReduceSumArm(sum);
@@ -231,9 +236,14 @@ internal static class LossyUtils
     private static int Vp8_Sse16x8_Neon(Span<byte> a, Span<byte> b)
     {
         Vector128<uint> sum = Vector128<uint>.Zero;
+        ref byte aRef = ref MemoryMarshal.GetReference(a);
+        ref byte bRef = ref MemoryMarshal.GetReference(b);
         for (int y = 0; y < 8; y++)
         {
-            sum = AccumulateSSE16Neon(a.Slice(y * WebpConstants.Bps), b.Slice(y * WebpConstants.Bps), sum);
+            sum = AccumulateSSE16Neon(
+                ref Unsafe.Add(ref aRef, y * WebpConstants.Bps),
+                ref Unsafe.Add(ref bRef, y * WebpConstants.Bps),
+                sum);
         }
 
         return Numerics.ReduceSumArm(sum);
@@ -273,11 +283,8 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector128<uint> AccumulateSSE16Neon(Span<byte> a, Span<byte> b, Vector128<uint> sum)
+    private static Vector128<uint> AccumulateSSE16Neon(ref byte aRef, ref byte bRef, Vector128<uint> sum)
     {
-        ref byte aRef = ref MemoryMarshal.GetReference(a);
-        ref byte bRef = ref MemoryMarshal.GetReference(b);
-
         Vector128<byte> a0 = Unsafe.As<byte, Vector128<byte>>(ref aRef);
         Vector128<byte> b0 = Unsafe.As<byte, Vector128<byte>>(ref bRef);
 

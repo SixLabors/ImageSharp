@@ -14,7 +14,7 @@ internal static class LossyUtils
 {
     // Note: method name in libwebp reference implementation is called VP8SSE16x16.
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static int Vp8_Sse16X16(Span<byte> a, Span<byte> b)
+    public static int Vp8_Sse16x16(Span<byte> a, Span<byte> b)
     {
         if (Avx2.IsSupported)
         {
@@ -31,7 +31,7 @@ internal static class LossyUtils
 
     // Note: method name in libwebp reference implementation is called VP8SSE16x8.
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static int Vp8_Sse16X8(Span<byte> a, Span<byte> b)
+    public static int Vp8_Sse16x8(Span<byte> a, Span<byte> b)
     {
         if (Avx2.IsSupported)
         {
@@ -48,7 +48,7 @@ internal static class LossyUtils
 
     // Note: method name in libwebp reference implementation is called VP8SSE4x4.
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static int Vp8_Sse4X4(Span<byte> a, Span<byte> b)
+    public static int Vp8_Sse4x4(Span<byte> a, Span<byte> b)
     {
         if (Avx2.IsSupported)
         {
@@ -77,8 +77,8 @@ internal static class LossyUtils
             Vector256<byte> b01s = Avx2.UnpackLow(b01.AsByte(), Vector256<byte>.Zero);
 
             // subtract, square and accumulate.
-            Vector256<byte> d0 = Avx2.SubtractSaturate(a01s, b01s);
-            Vector256<int> e0 = Avx2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
+            Vector256<short> d0 = Avx2.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
+            Vector256<int> e0 = Avx2.MultiplyAddAdjacent(d0, d0);
 
             return Numerics.ReduceSum(e0);
         }
@@ -110,10 +110,10 @@ internal static class LossyUtils
             Vector128<byte> b23s = Sse2.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
 
             // subtract, square and accumulate.
-            Vector128<byte> d0 = Sse2.SubtractSaturate(a01s, b01s);
-            Vector128<byte> d1 = Sse2.SubtractSaturate(a23s, b23s);
-            Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0.AsInt16(), d0.AsInt16());
-            Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1.AsInt16(), d1.AsInt16());
+            Vector128<short> d0 = Sse2.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
+            Vector128<short> d1 = Sse2.SubtractSaturate(a23s.AsInt16(), b23s.AsInt16());
+            Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0, d0);
+            Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1, d1);
             Vector128<int> sum = Sse2.Add(e0, e1);
 
             return Numerics.ReduceSum(sum);
@@ -126,18 +126,16 @@ internal static class LossyUtils
     public static int Vp8_SseNxN(Span<byte> a, Span<byte> b, int w, int h)
     {
         int count = 0;
-        int aOffset = 0;
-        int bOffset = 0;
+        int offset = 0;
         for (int y = 0; y < h; y++)
         {
             for (int x = 0; x < w; x++)
             {
-                int diff = a[aOffset + x] - b[bOffset + x];
+                int diff = a[offset + x] - b[offset + x];
                 count += diff * diff;
             }
 
-            aOffset += WebpConstants.Bps;
-            bOffset += WebpConstants.Bps;
+            offset += WebpConstants.Bps;
         }
 
         return count;

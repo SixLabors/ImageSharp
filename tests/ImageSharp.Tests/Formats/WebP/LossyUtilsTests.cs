@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -244,13 +245,19 @@ public class LossyUtilsTests
 
     // This will test the SSE2 version.
     [Fact]
-    public void Vp8Sse16X16_WithoutAVX2_Works() =>
+    public void Vp8Sse16X16_WithoutAVX2_Works()
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            return;
+        }
+
         FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableAVX2);
+    }
 
     // This will test the fallback scalar version.
     [Fact]
-    public void Vp8Sse16X16_WithoutSSE2_Works() =>
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
+    public void Vp8Sse16X16_WithoutHwIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X16Test, HwIntrinsics.DisableHWIntrinsic);
 
     // This will test the AVX2 or ARM version.
     [Fact]
@@ -259,13 +266,20 @@ public class LossyUtilsTests
 
     // This will test the SSE2 version.
     [Fact]
-    public void Vp8Sse16X8_WithoutAVX2_Works() =>
+    public void Vp8Sse16X8_WithoutAVX2_Works()
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            return;
+        }
+
         FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableAVX2);
+    }
 
     // This will test the fallback scalar version.
     [Fact]
     public void Vp8Sse16X8_WithoutHardwareIntrinsics_Works() =>
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse16X8Test, HwIntrinsics.DisableHWIntrinsic);
 
     // This will test the AVX2 version or ARM version.
     [Fact]
@@ -274,13 +288,20 @@ public class LossyUtilsTests
 
     // This will test the SSE2 version.
     [Fact]
-    public void Vp8Sse4X4_WithoutAVX2_Works() =>
+    public void Vp8Sse4X4_WithoutAVX2_Works()
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            return;
+        }
+
         FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableAVX2);
+    }
 
     // This will test the fallback scalar version.
     [Fact]
     public void Vp8Sse4X4_WithoutHardwareIntrinsics_Works() =>
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableArm64AdvSimd);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunVp8Sse4X4Test, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void Mean16x4_WithHardwareIntrinsics_Works() =>

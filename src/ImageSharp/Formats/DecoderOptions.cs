@@ -17,13 +17,14 @@ public sealed class DecoderOptions
 
     /// <summary>
     /// Gets the shared default general decoder options instance.
+    /// Used internally to reduce allocations for default decoding operations.
     /// </summary>
     internal static DecoderOptions Default { get; } = LazyOptions.Value;
 
     /// <summary>
     /// Gets a custom configuration instance to be used by the image processing pipeline.
     /// </summary>
-    public Configuration Configuration { get; internal set; } = Configuration.Default;
+    public Configuration Configuration { get; init; } = Configuration.Default;
 
     /// <summary>
     /// Gets the target size to decode the image into. Scaling should use an operation equivalent to <see cref="ResizeMode.Max"/>.

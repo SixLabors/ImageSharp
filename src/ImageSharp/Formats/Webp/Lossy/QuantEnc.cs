@@ -53,7 +53,7 @@ internal static unsafe class QuantEnc
             rdCur.Nz = (uint)ReconstructIntra16(it, dqm, rdCur, tmpDst, mode);
 
             // Measure RD-score.
-            rdCur.D = LossyUtils.Vp8_Sse16X16(src, tmpDst);
+            rdCur.D = LossyUtils.Vp8_Sse16x16(src, tmpDst);
             rdCur.SD = tlambda != 0 ? Mult8B(tlambda, LossyUtils.Vp8Disto16X16(src, tmpDst, WeightY, scratch)) : 0;
             rdCur.H = WebpConstants.Vp8FixedCostsI16[mode];
             rdCur.R = it.GetCostLuma16(rdCur, proba, res);
@@ -145,7 +145,7 @@ internal static unsafe class QuantEnc
                 rdTmp.Nz = (uint)ReconstructIntra4(it, dqm, tmpLevels, src, tmpDst, mode);
 
                 // Compute RD-score.
-                rdTmp.D = LossyUtils.Vp8_Sse4X4(src, tmpDst);
+                rdTmp.D = LossyUtils.Vp8_Sse4x4(src, tmpDst);
                 rdTmp.SD = tlambda != 0 ? Mult8B(tlambda, LossyUtils.Vp8Disto4X4(src, tmpDst, WeightY, scratch)) : 0;
                 rdTmp.H = modeCosts[mode];
 
@@ -235,7 +235,7 @@ internal static unsafe class QuantEnc
             rdUv.Nz = (uint)ReconstructUv(it, dqm, rdUv, tmpDst, mode);
 
             // Compute RD-score
-            rdUv.D = LossyUtils.Vp8_Sse16X8(src, tmpDst);
+            rdUv.D = LossyUtils.Vp8_Sse16x8(src, tmpDst);
             rdUv.SD = 0;    // not calling TDisto here: it tends to flatten areas.
             rdUv.H = WebpConstants.Vp8FixedCostsUv[mode];
             rdUv.R = it.GetCostUv(rdUv, proba, res);
@@ -389,7 +389,7 @@ internal static unsafe class QuantEnc
             for (mode = 0; mode < WebpConstants.NumPredModes; ++mode)
             {
                 Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
-                long score = (LossyUtils.Vp8_Sse16X16(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
+                long score = (LossyUtils.Vp8_Sse16x16(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
 
                 if (mode > 0 && WebpConstants.Vp8FixedCostsI16[mode] > bitLimit)
                 {
@@ -436,7 +436,7 @@ internal static unsafe class QuantEnc
                 for (mode = 0; mode < WebpConstants.NumBModes; ++mode)
                 {
                     Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
-                    long score = (LossyUtils.Vp8_Sse4X4(src, reference) * WebpConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
+                    long score = (LossyUtils.Vp8_Sse4x4(src, reference) * WebpConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
                     if (score < bestI4Score)
                     {
                         bestI4Mode = mode;
@@ -485,7 +485,7 @@ internal static unsafe class QuantEnc
             for (mode = 0; mode < WebpConstants.NumPredModes; ++mode)
             {
                 Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
-                long score = (LossyUtils.Vp8_Sse16X8(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
+                long score = (LossyUtils.Vp8_Sse16x8(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
                 if (score < bestUvScore)
                 {
                     bestMode = mode;

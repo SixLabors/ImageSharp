@@ -229,7 +229,11 @@ internal static class LossyUtils
                 sum);
         }
 
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
         return Numerics.ReduceSumArm(sum);
+#endif
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -246,7 +250,11 @@ internal static class LossyUtils
                 sum);
         }
 
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
         return Numerics.ReduceSumArm(sum);
+#endif
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -264,7 +272,12 @@ internal static class LossyUtils
         Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
         Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
 
-        return Numerics.ReduceSumArm(AdvSimd.Add(sum1, sum2));
+        Vector128<uint> sum = AdvSimd.Add(sum1, sum2);
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
+        return Numerics.ReduceSumArm(sum);
+#endif
     }
 
     // Load all 4x4 pixels into a single Vector128<uint>

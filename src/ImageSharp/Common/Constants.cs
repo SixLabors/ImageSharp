@@ -1,5 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp;
 
@@ -12,6 +14,11 @@ internal static class Constants
     /// The epsilon value for comparing floating point numbers.
     /// </summary>
     public static readonly float Epsilon = 0.001F;
+
+    /// <summary>
+    /// The epsilon value for comparing floating point numbers.
+    /// </summary>
+    public static readonly Vector256<float> Epsilon256 = Vector256.Create(0.001F);
 
     /// <summary>
     /// The epsilon squared value for comparing floating point numbers.

@@ -207,7 +207,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
 
-            options.Configuration = this.Configuration;
+            options.SetConfiguration(this.Configuration);
 
             // Used in small subset of decoder tests, no caching.
             // TODO: Check Path here. Why combined?
@@ -244,7 +244,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             Guard.NotNull(decoder, nameof(decoder));
             Guard.NotNull(options, nameof(options));
 
-            options.GeneralOptions.Configuration = this.Configuration;
+            options.GeneralOptions.SetConfiguration(this.Configuration);
 
             // Used in small subset of decoder tests, no caching.
             // TODO: Check Path here. Why combined?
@@ -268,7 +268,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         private Image<TPixel> DecodeImage(IImageDecoder decoder, DecoderOptions options)
         {
-            options.Configuration = this.Configuration;
+            options.SetConfiguration(this.Configuration);
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);
@@ -278,7 +278,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         private Image<TPixel> DecodeImage<T>(ISpecializedImageDecoder<T> decoder, T options)
             where T : class, ISpecializedDecoderOptions, new()
         {
-            options.GeneralOptions.Configuration = this.Configuration;
+            options.GeneralOptions.SetConfiguration(this.Configuration);
 
             var testFile = TestFile.Create(this.FilePath);
             using Stream stream = new MemoryStream(testFile.Bytes);

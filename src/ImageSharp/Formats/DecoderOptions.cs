@@ -16,9 +16,9 @@ public sealed class DecoderOptions
     private uint maxFrames = int.MaxValue;
 
     // Used by the FileProvider in the unit tests to set the configuration on the fly.
-#pragma warning disable SA1401 // Fields should be private
-    internal Configuration BackingConfiguration = Configuration.Default;
-#pragma warning restore SA1401 // Fields should be private
+#pragma warning disable IDE0032 // Use auto property
+    private Configuration configuration = Configuration.Default;
+#pragma warning restore IDE0032 // Use auto property
 
     /// <summary>
     /// Gets the shared default general decoder options instance.
@@ -29,7 +29,11 @@ public sealed class DecoderOptions
     /// <summary>
     /// Gets a custom configuration instance to be used by the image processing pipeline.
     /// </summary>
-    public Configuration Configuration { get => this.BackingConfiguration; init => this.BackingConfiguration = value; }
+#pragma warning disable IDE0032 // Use auto property
+#pragma warning disable RCS1085 // Use auto-implemented property.
+    public Configuration Configuration { get => this.configuration; init => this.configuration = value; }
+#pragma warning restore RCS1085 // Use auto-implemented property.
+#pragma warning restore IDE0032 // Use auto property
 
     /// <summary>
     /// Gets the target size to decode the image into. Scaling should use an operation equivalent to <see cref="ResizeMode.Max"/>.
@@ -50,10 +54,6 @@ public sealed class DecoderOptions
     /// Gets the maximum number of image frames to decode, inclusive.
     /// </summary>
     public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
-}
 
-internal static class DecoderOptionsExtensions
-{
-    public static void SetConfiguration(this DecoderOptions options, Configuration configuration)
-        => options.BackingConfiguration = configuration;
+    internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

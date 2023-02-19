@@ -138,20 +138,22 @@ var blenders = new []{
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
                 ref float amountBase = ref MemoryMarshal.GetReference(amount);
 
+                Vector256<float> vOne = Vector256.Create(1F);
+
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
-                    // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
                     // We need to create a Vector256<float> containing the current and next amount values
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
-                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
-                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
+                        Vector128.Create(amountBase),
+                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                    opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
                     backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
                     sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 1);
+                    amountBase = ref Unsafe.Add(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)

@@ -21,6 +21,12 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 /// </remarks>
 internal static partial class PorterDuffFunctions
 {
+    private const int BlendAlphaControl = 0b_10_00_10_00;
+    private const int ShuffleAlphaControl = 0b_11_11_11_11;
+    private static readonly Vector256<float> Vector256Half = Vector256.Create(0.5F);
+    private static readonly Vector256<float> Vector256One = Vector256.Create(1F);
+    private static readonly Vector256<float> Vector256Two = Vector256.Create(2F);
+
     /// <summary>
     /// Returns the result of the "Normal" compositing equation.
     /// </summary>
@@ -79,7 +85,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Add(Vector256<float> backdrop, Vector256<float> source)
-        => Avx.Min(Vector256.Create(1F), Avx.Add(backdrop, source));
+        => Avx.Min(Vector256One, Avx.Add(backdrop, source));
 
     /// <summary>
     /// Returns the result of the "Subtract" compositing equation.
@@ -99,7 +105,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Subtract(Vector256<float> backdrop, Vector256<float> source)
-        => Avx.Min(Vector256.Create(1F), Avx.Subtract(backdrop, source));
+        => Avx.Min(Vector256One, Avx.Subtract(backdrop, source));
 
     /// <summary>
     /// Returns the result of the "Screen" compositing equation.
@@ -119,10 +125,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Screen(Vector256<float> backdrop, Vector256<float> source)
-    {
-        Vector256<float> vOne = Vector256.Create(1F);
-        return Avx.Subtract(vOne, Avx.Multiply(Avx.Subtract(vOne, backdrop), Avx.Subtract(vOne, source)));
-    }
+        => Avx.Subtract(Vector256One, Avx.Multiply(Avx.Subtract(Vector256One, backdrop), Avx.Subtract(Vector256One, source)));
 
     /// <summary>
     /// Returns the result of the "Darken" compositing equation.
@@ -180,6 +183,19 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "Overlay" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Overlay(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> color = OverlayValueFunction(backdrop, source);
+        return Avx.Min(Vector256One, Avx.Blend(color, Vector256<float>.Zero, BlendAlphaControl));
+    }
+
+    /// <summary>
     /// Returns the result of the "HardLight" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -196,6 +212,19 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "HardLight" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> HardLight(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> color = OverlayValueFunction(source, backdrop);
+        return Avx.Min(Vector256One, Avx.Blend(color, Vector256<float>.Zero, BlendAlphaControl));
+    }
+
+    /// <summary>
     /// Helper function for Overlay and HardLight modes
     /// </summary>
     /// <param name="backdrop">Backdrop color element</param>
@@ -204,6 +233,22 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float OverlayValueFunction(float backdrop, float source)
         => backdrop <= 0.5f ? (2 * backdrop * source) : 1 - (2 * (1 - source) * (1 - backdrop));
+
+    /// <summary>
+    /// Helper function for Overlay and HardLight modes
+    /// </summary>
+    /// <param name="backdrop">Backdrop color element</param>
+    /// <param name="source">Source color element</param>
+    /// <returns>Overlay value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> OverlayValueFunction(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> left = Avx.Multiply(Avx.Multiply(Vector256Two, backdrop), source);
+        Vector256<float> right = Avx.Subtract(Vector256One, Avx.Multiply(Avx.Multiply(Vector256Two, Avx.Subtract(Vector256One, source)), Avx.Subtract(Vector256One, backdrop)));
+
+        Vector256<float> cmp = Avx.CompareGreaterThan(backdrop, Vector256Half);
+        return Avx.BlendVariable(left, right, cmp);
+    }
 
     /// <summary>
     /// Returns the result of the "Over" compositing equation.
@@ -243,12 +288,9 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Over(Vector256<float> destination, Vector256<float> source, Vector256<float> blend)
     {
-        const int blendAlphaControl = 0b_10_00_10_00;
-        const int shuffleAlphaControl = 0b_11_11_11_11;
-
         // calculate weights
-        Vector256<float> sW = Avx.Shuffle(source, source, shuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, shuffleAlphaControl);
+        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
+        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
         Vector256<float> blendW = Avx.Multiply(sW, dW);
 
         Vector256<float> dstW = Avx.Subtract(dW, blendW);
@@ -264,7 +306,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Constants.Epsilon256));
-        return Avx.Blend(color, alpha, blendAlphaControl);
+        return Avx.Blend(color, alpha, BlendAlphaControl);
     }
 
     /// <summary>
@@ -304,15 +346,11 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Atop(Vector256<float> destination, Vector256<float> source, Vector256<float> blend)
     {
-        // calculate weights
-        const int blendAlphaControl = 0b_10_00_10_00;
-        const int shuffleAlphaControl = 0b_11_11_11_11;
-
         // calculate final alpha
-        Vector256<float> alpha = Avx.Shuffle(destination, destination, shuffleAlphaControl);
+        Vector256<float> alpha = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
 
         // calculate weights
-        Vector256<float> sW = Avx.Shuffle(source, source, shuffleAlphaControl);
+        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
         Vector256<float> blendW = Avx.Multiply(sW, alpha);
         Vector256<float> dstW = Avx.Subtract(alpha, blendW);
 
@@ -321,7 +359,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Constants.Epsilon256));
-        return Avx.Blend(color, alpha, blendAlphaControl);
+        return Avx.Blend(color, alpha, BlendAlphaControl);
     }
 
     /// <summary>
@@ -351,12 +389,9 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> In(Vector256<float> destination, Vector256<float> source)
     {
-        const int blendAlphaControl = 0b_10_00_10_00;
-        const int shuffleAlphaControl = 0b_11_11_11_11;
-
         // calculate alpha
-        Vector256<float> sW = Avx.Shuffle(source, source, shuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, shuffleAlphaControl);
+        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
+        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
         Vector256<float> alpha = Avx.Multiply(sW, dW);
 
         // premultiply
@@ -364,7 +399,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Constants.Epsilon256));
-        return Avx.Blend(color, alpha, blendAlphaControl);
+        return Avx.Blend(color, alpha, BlendAlphaControl);
     }
 
     /// <summary>
@@ -394,20 +429,17 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Out(Vector256<float> destination, Vector256<float> source)
     {
-        const int blendAlphaControl = 0b_10_00_10_00;
-        const int shuffleAlphaControl = 0b_11_11_11_11;
-
         // calculate alpha
-        Vector256<float> sW = Avx.Shuffle(source, source, shuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, shuffleAlphaControl);
-        Vector256<float> alpha = Avx.Multiply(Avx.Subtract(Vector256.Create(1F), dW), sW);
+        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
+        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
+        Vector256<float> alpha = Avx.Multiply(Avx.Subtract(Vector256One, dW), sW);
 
         // premultiply
         Vector256<float> color = Avx.Multiply(source, alpha);
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Constants.Epsilon256));
-        return Avx.Blend(color, alpha, blendAlphaControl);
+        return Avx.Blend(color, alpha, BlendAlphaControl);
     }
 
     /// <summary>
@@ -441,16 +473,12 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Xor(Vector256<float> destination, Vector256<float> source)
     {
-        const int blendAlphaControl = 0b_10_00_10_00;
-        const int shuffleAlphaControl = 0b_11_11_11_11;
-
         // calculate weights
-        Vector256<float> sW = Avx.Shuffle(source, source, shuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, shuffleAlphaControl);
+        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
+        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
 
-        Vector256<float> vOne = Vector256.Create(1F);
-        Vector256<float> srcW = Avx.Subtract(vOne, dW);
-        Vector256<float> dstW = Avx.Subtract(vOne, sW);
+        Vector256<float> srcW = Avx.Subtract(Vector256One, dW);
+        Vector256<float> dstW = Avx.Subtract(Vector256One, sW);
 
         // calculate alpha
         Vector256<float> alpha = SimdUtils.HwIntrinsics.MultiplyAdd(sW, srcW, Avx.Multiply(dW, dstW));
@@ -458,7 +486,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Constants.Epsilon256));
-        return Avx.Blend(color, alpha, blendAlphaControl);
+        return Avx.Blend(color, alpha, BlendAlphaControl);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -102,7 +102,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Subtract(Vector256<float> backdrop, Vector256<float> source)
-        => Avx.Min(Vector256.Create(1F), Avx.Subtract(backdrop, source));
+        => Avx.Max(Vector256<float>.Zero, Avx.Subtract(backdrop, source));
 
     /// <summary>
     /// Returns the result of the "Screen" compositing equation.

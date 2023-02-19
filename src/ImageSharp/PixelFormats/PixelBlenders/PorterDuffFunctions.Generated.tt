@@ -348,7 +348,7 @@ internal static partial class PorterDuffFunctions
     /// <param name="opacity">The source opacity. Range 0..1</param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> <#=blender#>Xor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
+    public static Vector256<float> <#=blender#>Clear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
 
 <#} #>

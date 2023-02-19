@@ -37,7 +37,7 @@ public class PorterDuffBulkVsSingleVector
         }
     }
 
-    [Benchmark(Description = "Scalar")]
+    [Benchmark(Description = "Scalar", Baseline = true)]
     public Vector4 OverlayValueFunction_Scalar()
     {
         Vector4 result = default;

@@ -293,8 +293,8 @@ internal static partial class PorterDuffFunctions
         // calculate weights
         Vector256<float> sW = Avx.Permute(source, ShuffleAlphaControl);
         Vector256<float> dW = Avx.Permute(destination, ShuffleAlphaControl);
-        Vector256<float> blendW = Avx.Multiply(sW, dW);
 
+        Vector256<float> blendW = Avx.Multiply(sW, dW);
         Vector256<float> dstW = Avx.Subtract(dW, blendW);
         Vector256<float> srcW = Avx.Subtract(sW, blendW);
 
@@ -303,8 +303,8 @@ internal static partial class PorterDuffFunctions
 
         // calculate final color
         Vector256<float> color = Avx.Multiply(destination, dstW);
-        color = SimdUtils.HwIntrinsics.MultiplyAdd(source, srcW, color);
-        color = SimdUtils.HwIntrinsics.MultiplyAdd(blend, blendW, color);
+        color = SimdUtils.HwIntrinsics.MultiplyAdd(color, source, srcW);
+        color = SimdUtils.HwIntrinsics.MultiplyAdd(color, blend, blendW);
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
@@ -349,15 +349,15 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> Atop(Vector256<float> destination, Vector256<float> source, Vector256<float> blend)
     {
         // calculate final alpha
-        Vector256<float> alpha = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
+        Vector256<float> alpha = Avx.Permute(destination, ShuffleAlphaControl);
 
         // calculate weights
-        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
+        Vector256<float> sW = Avx.Permute(source, ShuffleAlphaControl);
         Vector256<float> blendW = Avx.Multiply(sW, alpha);
         Vector256<float> dstW = Avx.Subtract(alpha, blendW);
 
         // calculate final color
-        Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(destination, dstW, Avx.Multiply(blend, blendW));
+        Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(blend, blendW), destination, dstW);
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
@@ -482,8 +482,8 @@ internal static partial class PorterDuffFunctions
         Vector256<float> dstW = Avx.Subtract(vOne, sW);
 
         // calculate alpha
-        Vector256<float> alpha = SimdUtils.HwIntrinsics.MultiplyAdd(sW, srcW, Avx.Multiply(dW, dstW));
-        Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(sW, source), srcW, Avx.Multiply(Avx.Multiply(dW, destination), dstW));
+        Vector256<float> alpha = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(dW, dstW), sW, srcW);
+        Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(Avx.Multiply(dW, destination), dstW), Avx.Multiply(sW, source), srcW);
 
         // unpremultiply
         color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders;
 
 public class PorterDuffFunctionsTests
 {
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) }
@@ -23,7 +24,19 @@ public class PorterDuffFunctionsTests
         Assert.Equal(expected, actual);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> MultiplyFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(NormalBlendFunctionData))]
+    public void NormalBlendFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.NormalSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> MultiplyFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) },
@@ -38,7 +51,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> AddFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> AddFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(.6f, .6f, .6f, 1f) },
@@ -53,7 +66,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(0, 0, 0, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -68,7 +81,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> ScreenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> ScreenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -83,7 +96,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> DarkenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> DarkenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(.6f, .6f, .6f, 1f) },
@@ -98,7 +111,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> LightenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> LightenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -113,7 +126,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> OverlayFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> OverlayFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -128,7 +141,7 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> HardLightFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> HardLightFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1f) },

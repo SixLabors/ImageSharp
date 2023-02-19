@@ -124,7 +124,7 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> Screen(Vector256<float> backdrop, Vector256<float> source)
     {
         Vector256<float> vOne = Vector256.Create(1F);
-        return Avx.Subtract(vOne, Avx.Multiply(Avx.Subtract(vOne, backdrop), Avx.Subtract(vOne, source)));
+        return SimdUtils.HwIntrinsics.MultiplyAddNegated(Avx.Subtract(vOne, backdrop), Avx.Subtract(vOne, source), vOne);
     }
 
     /// <summary>
@@ -244,10 +244,10 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> OverlayValueFunction(Vector256<float> backdrop, Vector256<float> source)
     {
         Vector256<float> vOne = Vector256.Create(1F);
-        Vector256<float> vTwo = Vector256.Create(2F);
         Vector256<float> left = Avx.Multiply(Avx.Add(backdrop, backdrop), source);
-        Vector256<float> right = Avx.Subtract(vOne, Avx.Multiply(Avx.Multiply(vTwo, Avx.Subtract(vOne, source)), Avx.Subtract(vOne, backdrop)));
 
+        Vector256<float> vOneMinusSource = Avx.Subtract(vOne, source);
+        Vector256<float> right = SimdUtils.HwIntrinsics.MultiplyAddNegated(Avx.Add(vOneMinusSource, vOneMinusSource), Avx.Subtract(vOne, backdrop), vOne);
         Vector256<float> cmp = Avx.CompareGreaterThan(backdrop, Vector256.Create(.5F));
         return Avx.BlendVariable(left, right, cmp);
     }
@@ -430,9 +430,7 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> Out(Vector256<float> destination, Vector256<float> source)
     {
         // calculate alpha
-        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
-        Vector256<float> alpha = Avx.Multiply(Avx.Subtract(Vector256.Create(1F), dW), sW);
+        Vector256<float> alpha = Avx.Permute(Avx.Multiply(source, Avx.Subtract(Vector256.Create(1F), destination)), ShuffleAlphaControl);
 
         // premultiply
         Vector256<float> color = Avx.Multiply(source, alpha);

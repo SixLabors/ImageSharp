@@ -533,6 +533,7 @@ internal static partial class SimdUtils
 
         /// <summary>
         /// Performs a multiplication and an addition of the <see cref="Vector256{Single}"/>.
+        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
         /// </summary>
         /// <remarks>ret = (vm0 * vm1) + va</remarks>
         /// <param name="va">The vector to add to the intermediate result.</param>
@@ -555,6 +556,7 @@ internal static partial class SimdUtils
 
         /// <summary>
         /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
+        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
         /// </summary>
         /// <remarks>ret = (vm0 * vm1) - vs</remarks>
         /// <param name="vs">The vector to subtract from the intermediate result.</param>
@@ -573,6 +575,28 @@ internal static partial class SimdUtils
             }
 
             return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
+        }
+
+        /// <summary>
+        /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
+        /// </summary>
+        /// <remarks>ret = c - (a * b)</remarks>
+        /// <param name="a">The first vector to multiply.</param>
+        /// <param name="b">The second vector to multiply.</param>
+        /// <param name="c">The vector to add negated to the intermediate result.</param>
+        /// <returns>The <see cref="Vector256{T}"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Vector256<float> MultiplyAddNegated(
+            in Vector256<float> a,
+            in Vector256<float> b,
+            in Vector256<float> c)
+        {
+            if (Fma.IsSupported)
+            {
+                return Fma.MultiplyAddNegated(a, b, c);
+            }
+
+            return Avx.Subtract(c, Avx.Multiply(a, b));
         }
 
         /// <summary>

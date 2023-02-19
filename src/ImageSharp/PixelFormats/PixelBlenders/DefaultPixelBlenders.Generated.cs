@@ -98,7 +98,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -197,7 +201,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplySrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -296,7 +304,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -395,7 +407,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -494,7 +510,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -593,7 +613,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -692,7 +716,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -791,7 +819,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlaySrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -890,7 +922,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightSrc(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -989,7 +1025,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1088,7 +1128,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplySrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1187,7 +1231,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1286,7 +1334,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1385,7 +1437,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1484,7 +1540,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1583,7 +1643,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1682,7 +1746,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlaySrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1781,7 +1849,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightSrcAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1880,7 +1952,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -1979,7 +2055,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplySrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2078,7 +2158,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2177,7 +2261,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2276,7 +2364,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2375,7 +2467,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2474,7 +2570,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2573,7 +2673,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlaySrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2672,7 +2776,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightSrcOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2771,7 +2879,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2870,7 +2982,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplySrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -2969,7 +3085,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3068,7 +3188,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3167,7 +3291,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3266,7 +3394,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3365,7 +3497,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3464,7 +3600,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlaySrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3563,7 +3703,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightSrcIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3662,7 +3806,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3761,7 +3909,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplySrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3860,7 +4012,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -3959,7 +4115,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4058,7 +4218,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4157,7 +4321,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4256,7 +4424,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4355,7 +4527,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlaySrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4454,7 +4630,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightSrcOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4553,7 +4733,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4652,7 +4836,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4751,7 +4939,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4850,7 +5042,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -4949,7 +5145,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5048,7 +5248,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5147,7 +5351,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5246,7 +5454,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5345,7 +5557,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightDest(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5444,7 +5660,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5543,7 +5763,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5642,7 +5866,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5741,7 +5969,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5840,7 +6072,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -5939,7 +6175,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6038,7 +6278,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6137,7 +6381,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6236,7 +6484,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightDestAtop(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6335,7 +6587,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6434,7 +6690,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6533,7 +6793,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6632,7 +6896,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6731,7 +6999,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6830,7 +7102,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -6929,7 +7205,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7028,7 +7308,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7127,7 +7411,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightDestOver(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7226,7 +7514,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7325,7 +7617,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7424,7 +7720,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7523,7 +7823,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7622,7 +7926,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7721,7 +8029,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7820,7 +8132,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -7919,7 +8235,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8018,7 +8338,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightDestIn(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8117,7 +8441,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8216,7 +8544,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8315,7 +8647,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8414,7 +8750,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8513,7 +8853,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8612,7 +8956,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8711,7 +9059,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8810,7 +9162,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -8909,7 +9265,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightDestOut(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9008,7 +9368,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9107,7 +9471,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9206,7 +9574,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9305,7 +9677,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9404,7 +9780,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9503,7 +9883,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9602,7 +9986,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9701,7 +10089,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9800,7 +10192,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightClear(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9899,7 +10295,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.NormalXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -9998,7 +10398,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.MultiplyXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10097,7 +10501,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.AddXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10196,7 +10604,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.SubtractXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10295,7 +10707,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.ScreenXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10394,7 +10810,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.DarkenXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10493,7 +10913,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.LightenXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10592,7 +11016,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.OverlayXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);
@@ -10691,7 +11119,11 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.HardLightXor(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);

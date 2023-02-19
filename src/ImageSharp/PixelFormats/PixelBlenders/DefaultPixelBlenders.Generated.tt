@@ -141,7 +141,11 @@ var blenders = new []{
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     // TODO: It would be better if we can clamp this outside of the loop using our SIMD methods.
-                    Vector256<float> opacity = Vector256.Create(Numerics.Clamp(amountBase, 0, 1F));
+                    // We need to create a Vector256<float> containing the current and next amount values
+                    // taking up each half of the Vector256<float> and then clamp them.
+                    Vector256<float> opacity = Vector256.Create(
+                        Vector128.Create(Numerics.Clamp(amountBase, 0, 1F)),
+                        Vector128.Create(Numerics.Clamp(Unsafe.Add(ref amountBase, 1), 0, 1F)));
 
                     destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
                     destinationBase = ref Unsafe.Add(ref destinationBase, 1);

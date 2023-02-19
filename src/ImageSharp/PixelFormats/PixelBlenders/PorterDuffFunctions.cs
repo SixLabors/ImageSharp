@@ -291,8 +291,8 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> Over(Vector256<float> destination, Vector256<float> source, Vector256<float> blend)
     {
         // calculate weights
-        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
+        Vector256<float> sW = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> dW = Avx.Permute(destination, ShuffleAlphaControl);
         Vector256<float> blendW = Avx.Multiply(sW, dW);
 
         Vector256<float> dstW = Avx.Subtract(dW, blendW);
@@ -392,9 +392,7 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> In(Vector256<float> destination, Vector256<float> source)
     {
         // calculate alpha
-        Vector256<float> sW = Avx.Shuffle(source, source, ShuffleAlphaControl);
-        Vector256<float> dW = Avx.Shuffle(destination, destination, ShuffleAlphaControl);
-        Vector256<float> alpha = Avx.Multiply(sW, dW);
+        Vector256<float> alpha = Avx.Permute(Avx.Multiply(source, destination), ShuffleAlphaControl);
 
         // premultiply
         Vector256<float> color = Avx.Multiply(source, alpha);

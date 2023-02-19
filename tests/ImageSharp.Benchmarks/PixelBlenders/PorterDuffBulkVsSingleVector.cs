@@ -53,7 +53,7 @@ public class PorterDuffBulkVsSingleVector
     public Vector256<float> OverlayValueFunction_Avx()
     {
         ref Vector256<float> backdrop = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference<Vector4>(this.backdrop));
-        ref Vector256<float> source = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference<Vector4>(this.backdrop));
+        ref Vector256<float> source = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference<Vector4>(this.source));
 
         Vector256<float> result = default;
         Vector256<float> opacity = Vector256.Create(.5F);

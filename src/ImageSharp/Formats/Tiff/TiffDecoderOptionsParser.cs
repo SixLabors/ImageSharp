@@ -509,6 +509,11 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CMYK images.");
                 }
 
+                if (exifProfile.GetValueInternal(ExifTag.InkNames) is not null)
+                {
+                    TiffThrowHelper.ThrowNotSupported("The custom ink name strings are not supported for CMYK images.");
+                }
+
                 options.ColorType = TiffColorType.Cmyk;
                 break;
             }

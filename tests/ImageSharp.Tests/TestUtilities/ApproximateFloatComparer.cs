@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -14,7 +16,8 @@ internal readonly struct ApproximateFloatComparer :
     IEqualityComparer<Vector2>,
     IEqualityComparer<IPixel>,
     IEqualityComparer<Vector4>,
-    IEqualityComparer<ColorMatrix>
+    IEqualityComparer<ColorMatrix>,
+    IEqualityComparer<Vector256<float>>
 {
     private readonly float epsilon;
 
@@ -72,4 +75,16 @@ internal readonly struct ApproximateFloatComparer :
 
     /// <inheritdoc/>
     public int GetHashCode(ColorMatrix obj) => obj.GetHashCode();
+
+    public bool Equals(Vector256<float> x, Vector256<float> y)
+        => this.Equals(x.GetElement(0), y.GetElement(0))
+        && this.Equals(x.GetElement(1), y.GetElement(1))
+        && this.Equals(x.GetElement(2), y.GetElement(2))
+        && this.Equals(x.GetElement(3), y.GetElement(3))
+        && this.Equals(x.GetElement(4), y.GetElement(4))
+        && this.Equals(x.GetElement(5), y.GetElement(5))
+        && this.Equals(x.GetElement(6), y.GetElement(6))
+        && this.Equals(x.GetElement(7), y.GetElement(7));
+
+    public int GetHashCode([DisallowNull] Vector256<float> obj) => obj.GetHashCode();
 }

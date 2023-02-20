@@ -28,6 +28,7 @@ internal static class TiffDecoderMetadataCreator
         if (!ignoreMetadata)
         {
             var tiffMetadata = imageMetaData.GetTiffMetadata();
+            var framesMetadata = new List<TiffFrameMetadata>(frames.Count);
             for (int i = 0; i < frames.Count; i++)
             {
                 ImageFrameMetadata frameMetaData = frames[i];
@@ -46,8 +47,10 @@ internal static class TiffDecoderMetadataCreator
                     frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                 }
 
-                tiffMetadata.Frames.Add(frameMetaData.GetTiffMetadata());
+                framesMetadata.Add(frameMetaData.GetTiffMetadata());
             }
+
+            tiffMetadata.Frames = framesMetadata;
         }
 
         return imageMetaData;

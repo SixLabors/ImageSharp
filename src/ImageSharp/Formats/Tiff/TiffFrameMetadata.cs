@@ -28,6 +28,7 @@ public class TiffFrameMetadata : IDeepCloneable
         this.Compression = other.Compression;
         this.PhotometricInterpretation = other.PhotometricInterpretation;
         this.Predictor = other.Predictor;
+        this.InkSet = other.InkSet;
     }
 
     /// <summary>

@@ -19,7 +19,20 @@ public class TiffMetadata : IDeepCloneable
     /// Initializes a new instance of the <see cref="TiffMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private TiffMetadata(TiffMetadata other) => this.ByteOrder = other.ByteOrder;
+    private TiffMetadata(TiffMetadata other)
+    {
+        this.ByteOrder = other.ByteOrder;
+        this.FormatType = other.FormatType;
+
+        var frames = new List<TiffFrameMetadata>(other.Frames.Count);
+        foreach (var otherFrame in other.Frames)
+        {
+            var frame = (TiffFrameMetadata)otherFrame.DeepClone();
+            frames.Add(frame);
+        }
+
+        this.Frames = frames;
+    }
 
     /// <summary>
     /// Gets or sets the byte order.
@@ -37,7 +50,7 @@ public class TiffMetadata : IDeepCloneable
     /// <value>
     /// The frames.
     /// </value>
-    public IList<TiffFrameMetadata> Frames { get; set; } = new List<TiffFrameMetadata>();
+    public IReadOnlyList<TiffFrameMetadata> Frames { get; set; } = Array.Empty<TiffFrameMetadata>();
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new TiffMetadata(this);

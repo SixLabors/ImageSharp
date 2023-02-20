@@ -500,10 +500,17 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 WithW(Vector4 value, Vector4 w)
     {
-        // TODO: Provide SSE fallback which uses "shuffle" - just pick XYZ from value and W from w
         if (Sse41.IsSupported)
         {
             return Sse41.Insert(value.AsVector128(), w.AsVector128(), 0b11_11_0000).AsVector4();
+        }
+
+        if (Sse.IsSupported)
+        {
+            // Create tmp as <w[3], w[0], value[2], value[0]>
+            // Then return <value[0], value[1], tmp[2], tmp[0]> (which is <value[0], value[1], value[2], w[3]>)
+            Vector128<float> tmp = Sse.Shuffle(w.AsVector128(), value.AsVector128(), 0b00_10_00_11);
+            return Sse.Shuffle(value.AsVector128(), tmp, 0b00_10_01_00).AsVector4();
         }
 
         value.W = w.W;

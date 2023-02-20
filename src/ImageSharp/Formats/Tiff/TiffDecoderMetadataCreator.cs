@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -17,22 +16,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// </summary>
 internal static class TiffDecoderMetadataCreator
 {
-    public static ImageMetadata Create<TPixel>(List<ImageFrame<TPixel>> frames, bool ignoreMetadata, ByteOrder byteOrder, bool isBigTiff)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public static ImageMetadata Create(List<ImageFrameMetadata> frames, bool ignoreMetadata, ByteOrder byteOrder, bool isBigTiff)
     {
         if (frames.Count < 1)
         {
             TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
         }
 
-        ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0].Metadata.ExifProfile);
+        ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0].ExifProfile);
 
         if (!ignoreMetadata)
         {
+            var tiffMetadata = imageMetaData.GetTiffMetadata();
             for (int i = 0; i < frames.Count; i++)
             {
-                ImageFrame<TPixel> frame = frames[i];
-                ImageFrameMetadata frameMetaData = frame.Metadata;
+                ImageFrameMetadata frameMetaData = frames[i];
                 if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                 {
                     frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
@@ -47,13 +45,15 @@ internal static class TiffDecoderMetadataCreator
                 {
                     frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                 }
+
+                tiffMetadata.Frames.Add(frameMetaData.GetTiffMetadata());
             }
         }
 
         return imageMetaData;
     }
 
-    public static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
+    private static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
     {
         var imageMetaData = new ImageMetadata();
         SetResolution(imageMetaData, exifProfile);
@@ -62,16 +62,6 @@ internal static class TiffDecoderMetadataCreator
         tiffMetadata.ByteOrder = byteOrder;
         tiffMetadata.FormatType = isBigTiff ? TiffFormatType.BigTIFF : TiffFormatType.Default;
         return imageMetaData;
-    }
-
-    public static void FillFrames(TiffMetadata tiffMetadata, IList<ExifProfile> directories)
-    {
-        foreach (ExifProfile dir in directories)
-        {
-            TiffFrameMetadata meta = TiffFormat.Instance.CreateDefaultFormatFrameMetadata();
-            TiffFrameMetadata.Parse(meta, dir);
-            tiffMetadata.Frames.Add(meta);
-        }
     }
 
     private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)

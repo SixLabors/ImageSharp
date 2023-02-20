@@ -164,6 +164,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         var frames = new List<ImageFrame<TPixel>>();
+        var framesMetadata = new List<ImageFrameMetadata>();
         try
         {
             this.inputStream = stream;
@@ -179,6 +180,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 cancellationToken.ThrowIfCancellationRequested();
                 ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                 frames.Add(frame);
+                framesMetadata.Add(frame.Metadata);
 
                 if (++frameCount == this.maxFrames)
                 {
@@ -186,9 +188,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 }
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
-
-            TiffDecoderMetadataCreator.FillFrames(metadata.GetTiffMetadata(), directories);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
             // TODO: Tiff frames can have different sizes.
             ImageFrame<TPixel> root = frames[0];
@@ -221,17 +221,21 @@ internal class TiffDecoderCore : IImageDecoderInternals
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
         IList<ExifProfile> directories = reader.Read();
 
+        var frames = new List<ImageFrameMetadata>();
+        foreach (ExifProfile dir in directories)
+        {
+            var frame = this.CreateFrameMetadata(dir);
+            frames.Add(frame);
+        }
+
         ExifProfile rootFrameExifProfile = directories.First();
-        TiffFrameMetadata rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
 
-        ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, reader.IsBigTiff, rootFrameExifProfile);
-
-        TiffDecoderMetadataCreator.FillFrames(metadata.GetTiffMetadata(), directories);
+        ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 
-        return new ImageInfo(new PixelTypeInfo((int)rootMetadata.BitsPerPixel), width, height, metadata);
+        return new ImageInfo(new PixelTypeInfo((int)frames.First().GetTiffMetadata().BitsPerPixel), width, height, metadata);
     }
 
     /// <summary>
@@ -244,16 +248,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
     private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrameMetadata imageFrameMetaData = new();
-        if (!this.skipMetadata)
-        {
-            imageFrameMetaData.ExifProfile = tags;
-        }
-
-        TiffFrameMetadata tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
-        TiffFrameMetadata.Parse(tiffFrameMetaData, tags);
-
-        bool isTiled = this.VerifyAndParse(tags, tiffFrameMetaData);
+        var imageFrameMetaData = this.CreateFrameMetadata(tags);
+        bool isTiled = this.VerifyAndParse(tags, imageFrameMetaData.GetTiffMetadata());
 
         int width = GetImageWidth(tags);
         int height = GetImageHeight(tags);
@@ -269,6 +265,19 @@ internal class TiffDecoderCore : IImageDecoderInternals
         }
 
         return frame;
+    }
+
+    private ImageFrameMetadata CreateFrameMetadata(ExifProfile tags)
+    {
+        ImageFrameMetadata imageFrameMetaData = new();
+        if (!this.skipMetadata)
+        {
+            imageFrameMetaData.ExifProfile = tags;
+        }
+
+        TiffFrameMetadata.Parse(imageFrameMetaData.GetTiffMetadata(), tags);
+
+        return imageFrameMetaData;
     }
 
     /// <summary>

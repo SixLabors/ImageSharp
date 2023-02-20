@@ -56,6 +56,11 @@ public class TiffFrameMetadata : IDeepCloneable
     public TiffPredictor? Predictor { get; set; }
 
     /// <summary>
+    /// Gets or sets the set of inks used in a separated (<see cref="TiffPhotometricInterpretation.Separated"/>) image.
+    /// </summary>
+    public TiffInkSet? InkSet { get; set; }
+
+    /// <summary>
     /// Returns a new <see cref="TiffFrameMetadata"/> instance parsed from the given Exif profile.
     /// </summary>
     /// <param name="profile">The Exif profile containing tiff frame directory tags to parse.
@@ -100,6 +105,11 @@ public class TiffFrameMetadata : IDeepCloneable
             if (profile.TryGetValue(ExifTag.Predictor, out IExifValue<ushort>? predictorValue))
             {
                 meta.Predictor = (TiffPredictor)predictorValue.Value;
+            }
+
+            if (profile.TryGetValue(ExifTag.InkSet, out IExifValue<ushort>? inkSetValue))
+            {
+                meta.InkSet = (TiffInkSet)inkSetValue.Value;
             }
 
             profile.RemoveValue(ExifTag.BitsPerSample);

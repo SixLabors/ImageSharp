@@ -278,9 +278,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        color.W = alpha.W;
-
-        return color;
+        return WithW(color, alpha);
     }
 
     /// <summary>
@@ -339,9 +337,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        color.W = alpha.W;
-
-        return color;
+        return WithW(color, alpha);
     }
 
     /// <summary>
@@ -385,9 +381,7 @@ internal static partial class PorterDuffFunctions
 
         Vector4 color = source * alpha;                    // premultiply
         color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
-        color.W = alpha.W;
-
-        return color;
+        return WithW(color, alpha);
     }
 
     /// <summary>
@@ -425,9 +419,7 @@ internal static partial class PorterDuffFunctions
 
         Vector4 color = source * alpha;                    // premultiply
         color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
-        color.W = alpha.W;
-
-        return color;
+        return WithW(color, alpha);
     }
 
     /// <summary>
@@ -470,9 +462,7 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        color.W = alpha.W;
-
-        return color;
+        return WithW(color, alpha);
     }
 
     /// <summary>

@@ -263,19 +263,22 @@ internal static partial class PorterDuffFunctions
     public static Vector4 Over(Vector4 destination, Vector4 source, Vector4 blend)
     {
         // calculate weights
-        float blendW = destination.W * source.W;
-        float dstW = destination.W - blendW;
-        float srcW = source.W - blendW;
+        Vector4 sW = PermuteW(source);
+        Vector4 dW = PermuteW(destination);
+
+        Vector4 blendW = sW * dW;
+        Vector4 dstW = dW - blendW;
+        Vector4 srcW = sW - blendW;
 
         // calculate final alpha
-        float alpha = dstW + source.W;
+        Vector4 alpha = dstW + sW;
 
         // calculate final color
         Vector4 color = (destination * dstW) + (source * srcW) + (blend * blendW);
 
         // unpremultiply
-        color /= MathF.Max(alpha, Constants.Epsilon);
-        color.W = alpha;
+        color /= Vector4.Max(alpha, new(Constants.Epsilon));
+        color.W = alpha.W;
 
         return color;
     }
@@ -322,18 +325,21 @@ internal static partial class PorterDuffFunctions
     public static Vector4 Atop(Vector4 destination, Vector4 source, Vector4 blend)
     {
         // calculate weights
-        float blendW = destination.W * source.W;
-        float dstW = destination.W - blendW;
+        Vector4 sW = PermuteW(source);
+        Vector4 dW = PermuteW(destination);
+
+        Vector4 blendW = sW * dW;
+        Vector4 dstW = dW - blendW;
 
         // calculate final alpha
-        float alpha = destination.W;
+        Vector4 alpha = dW;
 
         // calculate final color
         Vector4 color = (destination * dstW) + (blend * blendW);
 
         // unpremultiply
-        color /= MathF.Max(alpha, Constants.Epsilon);
-        color.W = alpha;
+        color /= Vector4.Max(alpha, new(Constants.Epsilon));
+        color.W = alpha.W;
 
         return color;
     }
@@ -373,11 +379,13 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 In(Vector4 destination, Vector4 source)
     {
-        float alpha = destination.W * source.W;
+        Vector4 sW = PermuteW(source);
+        Vector4 dW = PermuteW(destination);
+        Vector4 alpha = dW * sW;
 
         Vector4 color = source * alpha;                    // premultiply
-        color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
-        color.W = alpha;
+        color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
+        color.W = alpha.W;
 
         return color;
     }
@@ -411,11 +419,13 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 Out(Vector4 destination, Vector4 source)
     {
-        float alpha = (1 - destination.W) * source.W;
+        Vector4 sW = PermuteW(source);
+        Vector4 dW = PermuteW(destination);
+        Vector4 alpha = (Vector4.One - dW) * sW;
 
         Vector4 color = source * alpha;                    // premultiply
-        color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
-        color.W = alpha;
+        color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
+        color.W = alpha.W;
 
         return color;
     }
@@ -449,15 +459,18 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 Xor(Vector4 destination, Vector4 source)
     {
-        float srcW = 1 - destination.W;
-        float dstW = 1 - source.W;
+        Vector4 sW = PermuteW(source);
+        Vector4 dW = PermuteW(destination);
 
-        float alpha = (source.W * srcW) + (destination.W * dstW);
-        Vector4 color = (source.W * source * srcW) + (destination.W * destination * dstW);
+        Vector4 srcW = Vector4.One - dW;
+        Vector4 dstW = Vector4.One - sW;
+
+        Vector4 alpha = (sW * srcW) + (dW * dstW);
+        Vector4 color = (sW * source * srcW) + (dW * destination * dstW);
 
         // unpremultiply
-        color /= MathF.Max(alpha, Constants.Epsilon);
-        color.W = alpha;
+        color /= Vector4.Max(alpha, new(Constants.Epsilon));
+        color.W = alpha.W;
 
         return color;
     }
@@ -493,4 +506,28 @@ internal static partial class PorterDuffFunctions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<float> Clear(Vector256<float> backdrop, Vector256<float> source) => Vector256<float>.Zero;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector4 WithW(Vector4 value, Vector4 w)
+    {
+        // TODO: Provide SSE fallback which uses "shuffle" - just pick XYZ from value and W from w
+        if (Sse41.IsSupported)
+        {
+            return Sse41.Insert(value.AsVector128(), w.AsVector128(), 0b11_11_0000).AsVector4();
+        }
+
+        value.W = w.W;
+        return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector4 PermuteW(Vector4 value)
+    {
+        if (Sse.IsSupported)
+        {
+            return Sse.Shuffle(value.AsVector128(), value.AsVector128(), 0b11111111).AsVector4();
+        }
+
+        return new(value.W);
+    }
 }

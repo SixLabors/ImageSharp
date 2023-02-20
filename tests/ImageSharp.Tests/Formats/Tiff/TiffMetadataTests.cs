@@ -31,13 +31,16 @@ public class TiffMetadataTests
         TiffMetadata meta = new()
         {
             ByteOrder = ByteOrder.BigEndian,
+            FormatType = TiffFormatType.BigTIFF,
         };
 
         TiffMetadata clone = (TiffMetadata)meta.DeepClone();
 
         clone.ByteOrder = ByteOrder.LittleEndian;
+        clone.FormatType = TiffFormatType.Default;
 
-        Assert.False(meta.ByteOrder == clone.ByteOrder);
+        Assert.Equal(ByteOrder.BigEndian, meta.ByteOrder);
+        Assert.Equal(TiffFormatType.BigTIFF, meta.FormatType);
     }
 
     [Theory]
@@ -104,6 +107,24 @@ public class TiffMetadataTests
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
         Assert.NotNull(tiffMetadata);
         Assert.Equal(expectedByteOrder, tiffMetadata.ByteOrder);
+    }
+
+    [Theory]
+    [InlineData(Cmyk, 1, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    public void Identify_Frames(string imagePath, int framesCount, TiffPhotometricInterpretation photometric, TiffInkSet? inkSet)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+        Assert.NotNull(tiffMetadata);
+
+        Assert.Equal(framesCount, tiffMetadata.Frames.Count);
+        Assert.Equal(photometric, tiffMetadata.Frames[0].PhotometricInterpretation);
+        Assert.Equal(inkSet, tiffMetadata.Frames[0].InkSet);
     }
 
     [Theory]

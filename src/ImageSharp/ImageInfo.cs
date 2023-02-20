@@ -18,7 +18,7 @@ public class ImageInfo
     /// <param name="width">The width of the image in px units.</param>
     /// <param name="height">The height of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
-    public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetadata metadata)
+    public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetadata? metadata)
         : this(pixelType, new(width, height), metadata)
     {
     }
@@ -29,7 +29,7 @@ public class ImageInfo
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="size">The size of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
-    public ImageInfo(PixelTypeInfo pixelType, Size size, ImageMetadata metadata)
+    public ImageInfo(PixelTypeInfo pixelType, Size size, ImageMetadata? metadata)
     {
         this.PixelType = pixelType;
         this.Metadata = metadata ?? new ImageMetadata();

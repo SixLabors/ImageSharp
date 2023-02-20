@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -120,8 +121,11 @@ public partial class PngDecoderTests
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+        // Floating point differences result in minor pixel differences.
+        // Output have been manually verified.
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0003F), // Magick decoder shows difference on Mac
+            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0005F : 0.0003F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

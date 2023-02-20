@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -18,10 +17,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
     "Design",
     "CA1001:Types that own disposable fields should be disposable",
     Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
-internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
+internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private EuclideanPixelMap<TPixel> pixelMap;
+    private readonly EuclideanPixelMap<TPixel> pixelMap;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
@@ -66,9 +65,5 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
         => (byte)this.pixelMap.GetClosestColor(color, out match);
 
     /// <inheritdoc/>
-    public void Dispose()
-    {
-        this.pixelMap?.Dispose();
-        this.pixelMap = null;
-    }
+    public void Dispose() => this.pixelMap.Dispose();
 }

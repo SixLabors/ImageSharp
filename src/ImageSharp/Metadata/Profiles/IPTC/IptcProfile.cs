@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Metadata.Profiles.IPTC;
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// </summary>
 public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 {
-    private Collection<IptcValue> values;
+    private readonly Collection<IptcValue> values = new();
 
     private const byte IptcTagMarkerByte = 0x1c;
 
@@ -30,7 +30,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     public IptcProfile()
-        : this((byte[])null)
+        : this((byte[]?)null)
     {
     }
 
@@ -38,7 +38,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// Initializes a new instance of the <see cref="IptcProfile"/> class.
     /// </summary>
     /// <param name="data">The byte array to read the iptc profile from.</param>
-    public IptcProfile(byte[] data)
+    public IptcProfile(byte[]? data)
     {
         this.Data = data;
         this.Initialize();
@@ -53,14 +53,9 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     {
         Guard.NotNull(other, nameof(other));
 
-        if (other.values != null)
+        foreach (IptcValue value in other.Values)
         {
-            this.values = new Collection<IptcValue>();
-
-            foreach (IptcValue value in other.Values)
-            {
-                this.values.Add(value.DeepClone());
-            }
+            this.values.Add(value.DeepClone());
         }
 
         if (other.Data != null)
@@ -78,19 +73,12 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <summary>
     /// Gets the byte data of the IPTC profile.
     /// </summary>
-    public byte[] Data { get; private set; }
+    public byte[]? Data { get; private set; }
 
     /// <summary>
     /// Gets the values of this iptc profile.
     /// </summary>
-    public IEnumerable<IptcValue> Values
-    {
-        get
-        {
-            this.Initialize();
-            return this.values;
-        }
-    }
+    public IEnumerable<IptcValue> Values => this.values;
 
     /// <inheritdoc/>
     public IptcProfile DeepClone() => new(this);
@@ -121,8 +109,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>True when the value was found and removed.</returns>
     public bool RemoveValue(IptcTag tag)
     {
-        this.Initialize();
-
         bool removed = false;
         for (int i = this.values.Count - 1; i >= 0; i--)
         {
@@ -144,8 +130,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>True when the value was found and removed.</returns>
     public bool RemoveValue(IptcTag tag, string value)
     {
-        this.Initialize();
-
         bool removed = false;
         for (int i = this.values.Count - 1; i >= 0; i--)
         {
@@ -312,13 +296,6 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 
     private void Initialize()
     {
-        if (this.values != null)
-        {
-            return;
-        }
-
-        this.values = new Collection<IptcValue>();
-
         if (this.Data == null || this.Data[0] != IptcTagMarkerByte)
         {
             return;

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -20,8 +19,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
     private readonly Size destinationSize;
     private readonly Matrix3x2 transformMatrix;
     private readonly IResampler resampler;
-    private ImageFrame<TPixel> source;
-    private ImageFrame<TPixel> destination;
+    private ImageFrame<TPixel>? source;
+    private ImageFrame<TPixel>? destination;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
@@ -53,8 +52,8 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         where TResampler : struct, IResampler
     {
         Configuration configuration = this.Configuration;
-        ImageFrame<TPixel> source = this.source;
-        ImageFrame<TPixel> destination = this.destination;
+        ImageFrame<TPixel> source = this.source!;
+        ImageFrame<TPixel> destination = this.destination!;
         Matrix3x2 matrix = this.transformMatrix;
 
         // Handle transforms that result in output identical to the original.

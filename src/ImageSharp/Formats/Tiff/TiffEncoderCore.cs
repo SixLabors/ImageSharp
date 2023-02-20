@@ -376,11 +376,14 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 case TiffBitsPerPixel.Bit8:
                     this.SetEncoderOptions(bitsPerPixel, photometricInterpretation ?? TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
                     break;
+                case TiffBitsPerPixel.Bit16:
+                    // Assume desire to encode as L16 grayscale
+                    this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
+                    break;
                 case TiffBitsPerPixel.Bit6:
                 case TiffBitsPerPixel.Bit10:
                 case TiffBitsPerPixel.Bit12:
                 case TiffBitsPerPixel.Bit14:
-                case TiffBitsPerPixel.Bit16:
                 case TiffBitsPerPixel.Bit30:
                 case TiffBitsPerPixel.Bit36:
                 case TiffBitsPerPixel.Bit42:
@@ -413,10 +416,17 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 return;
             }
 
-            // At the moment only 8 and 32 bits per pixel can be preserved by the tiff encoder.
+            // At the moment only 8, 16 and 32 bits per pixel can be preserved by the tiff encoder.
             if (inputBitsPerPixel == 8)
             {
                 this.SetEncoderOptions(TiffBitsPerPixel.Bit8, TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
+                return;
+            }
+
+            if (inputBitsPerPixel == 16)
+            {
+                // Assume desire to encode as L16 grayscale
+                this.SetEncoderOptions(TiffBitsPerPixel.Bit16, TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
                 return;
             }
 
@@ -431,6 +441,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 if (IsOneBitCompression(this.CompressionType))
                 {
                     this.SetEncoderOptions(TiffBitsPerPixel.Bit1, photometricInterpretation, compression, TiffPredictor.None);
+                    return;
+                }
+
+                if (inputBitsPerPixel == 16)
+                {
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit16, photometricInterpretation, compression, predictor);
                     return;
                 }
 

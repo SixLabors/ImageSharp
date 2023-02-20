@@ -9,10 +9,13 @@ on:
   pull_request:
     branches:
       - main
+    types: [ labeled, opened, synchronize, reopened ]
 jobs:
   Build:
     strategy:
       matrix:
+        isARM:
+          - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
             framework: net7.0
@@ -32,6 +35,12 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
+          - os: buildjet-4vcpu-ubuntu-2204-arm
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
           - os: ubuntu-latest
             framework: net6.0
             sdk: 6.0.x
@@ -47,10 +56,23 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
+          - os: buildjet-4vcpu-ubuntu-2204-arm
+            framework: net6.0
+            sdk: 6.0.x
+            runtime: -x64
+            codecov: false
+        exclude:
+          - isARM: false
+            options:
+              os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{matrix.options.os}}
 
     steps:
+      - name: Install libgdi+, which is required for tests running on ubuntu
+        if: ${{ matrix.options.os == 'buildjet-4vcpu-ubuntu-2204-arm' }}
+        run: sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
       - name: Git Config
         shell: bash
         run: |
@@ -92,7 +114,6 @@ jobs:
         if: ${{ matrix.options.sdk-preview != true }}
         uses: actions/setup-dotnet@v3
         with:
-          include-prerelease: true
           dotnet-version: |
             6.0.x
 
@@ -100,7 +121,6 @@ jobs:
         if: ${{ matrix.options.sdk-preview == true }}
         uses: actions/setup-dotnet@v3
         with:
-          include-prerelease: true
           dotnet-version: |
             7.0.x
 

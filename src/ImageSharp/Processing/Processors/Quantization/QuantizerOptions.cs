@@ -17,7 +17,7 @@ public class QuantizerOptions
     /// Gets or sets the  algorithm to apply to the output image.
     /// Defaults to <see cref="QuantizerConstants.DefaultDither"/>; set to <see langword="null"/> for no dithering.
     /// </summary>
-    public IDither Dither { get; set; } = QuantizerConstants.DefaultDither;
+    public IDither? Dither { get; set; } = QuantizerConstants.DefaultDither;
 
     /// <summary>
     /// Gets or sets the dithering scale used to adjust the amount of dither. Range 0..1.

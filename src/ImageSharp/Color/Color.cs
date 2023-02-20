@@ -286,13 +286,10 @@ public readonly partial struct Color : IEquatable<Color>
     /// Bulk converts a span of <see cref="Color"/> to a span of a specified <typeparamref name="TPixel"/> type.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
-    /// <param name="configuration">The configuration.</param>
     /// <param name="source">The source color span.</param>
     /// <param name="destination">The destination pixel span.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-#pragma warning disable RCS1163 // Unused parameter.
-    public static void ToPixel<TPixel>(Configuration configuration, ReadOnlySpan<Color> source, Span<TPixel> destination)
-#pragma warning restore RCS1163 // Unused parameter.
+    public static void ToPixel<TPixel>(ReadOnlySpan<Color> source, Span<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // TODO: Investigate bulk operations utilizing configuration parameter here.

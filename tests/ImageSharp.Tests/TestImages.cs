@@ -282,6 +282,8 @@ public static class TestImages
             public const string Issue2133_DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
             public const string Issue2136_ScanMarkerExtraneousBytes = "Jpg/issues/Issue2136-scan-segment-extraneous-bytes.jpg";
             public const string Issue2315_NotEnoughBytes = "Jpg/issues/issue-2315.jpg";
+            public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
+            public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
 
             public static class Fuzz
             {
@@ -375,14 +377,14 @@ public static class TestImages
         public const string Os2v2Short = "Bmp/pal8os2v2-16.bmp";
         public const string Os2v2 = "Bmp/pal8os2v2.bmp";
         public const string Os2BitmapArray = "Bmp/ba-bm.bmp";
-        public const string Os2BitmapArray9s = "Bmp/9S.BMP";
-        public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.BMP";
-        public const string Os2BitmapArrayMarble = "Bmp/GMARBLE.BMP";
-        public const string Os2BitmapArraySkater = "Bmp/SKATER.BMP";
-        public const string Os2BitmapArraySpade = "Bmp/SPADE.BMP";
-        public const string Os2BitmapArraySunflower = "Bmp/SUNFLOW.BMP";
-        public const string Os2BitmapArrayWarpd = "Bmp/WARPD.BMP";
-        public const string Os2BitmapArrayPines = "Bmp/PINES.BMP";
+        public const string Os2BitmapArray9s = "Bmp/9S.bmp";
+        public const string Os2BitmapArrayDiamond = "Bmp/DIAMOND.bmp";
+        public const string Os2BitmapArrayMarble = "Bmp/GMARBLE.bmp";
+        public const string Os2BitmapArraySkater = "Bmp/SKATER.bmp";
+        public const string Os2BitmapArraySpade = "Bmp/SPADE.bmp";
+        public const string Os2BitmapArraySunflower = "Bmp/SUNFLOW.bmp";
+        public const string Os2BitmapArrayWarpd = "Bmp/WARPD.bmp";
+        public const string Os2BitmapArrayPines = "Bmp/PINES.bmp";
         public const string LessThanFullSizedPalette = "Bmp/pal8os2sp.bmp";
         public const string Pal8Offset = "Bmp/pal8offs.bmp";
         public const string OversizedPalette = "Bmp/pal8oversizepal.bmp";
@@ -765,6 +767,10 @@ public static class TestImages
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
         public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";
         public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
+        public const string Calliphora_GrayscaleUncompressed16Bit = "Tiff/Calliphora_grayscale_uncompressed_16bit.tiff";
+        public const string Calliphora_GrayscaleDeflate_Predictor16Bit = "Tiff/Calliphora_gray_deflate_predictor_16bit.tiff";
+        public const string Calliphora_GrayscaleLzw_Predictor16Bit = "Tiff/Calliphora_gray_lzw_predictor_16bit.tiff";
+        public const string Calliphora_GrayscaleDeflate16Bit = "Tiff/Calliphora_gray_deflate_16bit.tiff";
         public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
         public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
         public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
@@ -796,6 +802,7 @@ public static class TestImages
 
         public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
         public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
+        public const string GrayscaleUncompressed16Bit = "Tiff/grayscale_uncompressed_16bit.tiff";
         public const string GrayscaleJpegCompressed = "Tiff/JpegCompressedGray.tiff";
         public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
         public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";

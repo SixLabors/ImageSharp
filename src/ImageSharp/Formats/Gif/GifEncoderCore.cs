@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -93,7 +92,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
         // Quantize the image returning a palette.
-        IndexedImageFrame<TPixel> quantized;
+        IndexedImageFrame<TPixel>? quantized;
         using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
         {
             if (useGlobalTable)
@@ -129,7 +128,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             this.WriteComments(gifMetadata, stream);
 
             // Write application extensions.
-            XmpProfile xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
+            XmpProfile? xmpProfile = image.Metadata.XmpProfile ?? image.Frames.RootFrame.Metadata.XmpProfile;
             this.WriteApplicationExtensions(stream, image.Frames.Count, gifMetadata.RepeatCount, xmpProfile);
         }
 
@@ -152,8 +151,8 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             // Gather the metadata for this frame.
             ImageFrame<TPixel> frame = image.Frames[i];
             ImageFrameMetadata metadata = frame.Metadata;
-            bool hasMetadata = metadata.TryGetGifMetadata(out GifFrameMetadata frameMetadata);
-            bool useLocal = this.colorTableMode == GifColorTableMode.Local || (hasMetadata && frameMetadata.ColorTableMode == GifColorTableMode.Local);
+            bool hasMetadata = metadata.TryGetGifMetadata(out GifFrameMetadata? frameMetadata);
+            bool useLocal = this.colorTableMode == GifColorTableMode.Local || (hasMetadata && frameMetadata!.ColorTableMode == GifColorTableMode.Local);
 
             if (!useLocal && !hasPaletteQuantizer && i > 0)
             {
@@ -164,14 +163,16 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 paletteQuantizer = new(this.configuration, this.quantizer.Options, palette);
             }
 
-            this.EncodeFrame(stream, frame, i, useLocal, frameMetadata, ref quantized, ref paletteQuantizer);
+            this.EncodeFrame(stream, frame, i, useLocal, frameMetadata, ref quantized!, ref paletteQuantizer);
 
             // Clean up for the next run.
             quantized.Dispose();
-            quantized = null;
         }
 
-        paletteQuantizer.Dispose();
+        if (hasPaletteQuantizer)
+        {
+            paletteQuantizer.Dispose();
+        }
     }
 
     private void EncodeFrame<TPixel>(
@@ -179,7 +180,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         ImageFrame<TPixel> frame,
         int frameIndex,
         bool useLocal,
-        GifFrameMetadata metadata,
+        GifFrameMetadata? metadata,
         ref IndexedImageFrame<TPixel> quantized,
         ref PaletteQuantizer<TPixel> paletteQuantizer)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -190,7 +191,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             if (useLocal)
             {
                 // Reassign using the current frame and details.
-                QuantizerOptions options = null;
+                QuantizerOptions? options = null;
                 int colorTableLength = metadata?.ColorTableLength ?? 0;
                 if (colorTableLength > 0)
                 {
@@ -335,7 +336,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// <param name="frameCount">The frame count fo this image.</param>
     /// <param name="repeatCount">The animated image repeat count.</param>
     /// <param name="xmpProfile">The XMP metadata profile. Null if profile is not to be written.</param>
-    private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile xmpProfile)
+    private void WriteApplicationExtensions(Stream stream, int frameCount, ushort repeatCount, XmpProfile? xmpProfile)
     {
         // Application Extension: Loop repeat count.
         if (frameCount > 1 && repeatCount != 1)
@@ -347,7 +348,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         // Application Extension: XMP Profile.
         if (xmpProfile != null)
         {
-            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data);
+            GifXmpApplicationExtension xmpExtension = new(xmpProfile.Data!);
             this.WriteExtension(xmpExtension, stream);
         }
     }
@@ -436,7 +437,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
         where TGifExtension : struct, IGifExtension
     {
-        IMemoryOwner<byte> owner = null;
+        IMemoryOwner<byte>? owner = null;
         Span<byte> extensionBuffer;
         int extensionSize = extension.ContentLength;
 

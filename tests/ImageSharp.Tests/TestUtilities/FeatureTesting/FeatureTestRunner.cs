@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 /// </summary>
 public static class FeatureTestRunner
 {
-    private static readonly char[] SplitChars = new[] { ',', ' ' };
+    private static readonly char[] SplitChars = { ',', ' ' };
 
     /// <summary>
     /// Allows the deserialization of parameters passed to the feature test.
@@ -35,6 +35,7 @@ public static class FeatureTestRunner
     /// Allows the deserialization of types implementing <see cref="IConvertible"/>
     /// passed to the feature test.
     /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
     /// <param name="value">The string value to deserialize.</param>
     /// <returns>The <typeparamref name="T"/> value.</returns>
     public static T Deserialize<T>(string value)
@@ -58,7 +59,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -99,7 +100,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -142,7 +143,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -185,7 +186,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -232,7 +233,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -276,7 +277,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -321,7 +322,7 @@ public static class FeatureTestRunner
 
         foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
         {
-            var processStartInfo = new ProcessStartInfo();
+            ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
                 processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
@@ -347,11 +348,11 @@ public static class FeatureTestRunner
 
     internal static Dictionary<HwIntrinsics, string> ToFeatureKeyValueCollection(this HwIntrinsics intrinsics)
     {
-        // Loop through and translate the given values into COMPlus equivaluents
-        var features = new Dictionary<HwIntrinsics, string>();
+        // Loop through and translate the given values into COMPlus equivalents
+        Dictionary<HwIntrinsics, string> features = new();
         foreach (string intrinsic in intrinsics.ToString("G").Split(SplitChars, StringSplitOptions.RemoveEmptyEntries))
         {
-            var key = (HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic);
+            HwIntrinsics key = (HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic);
             switch (intrinsic)
             {
                 case nameof(HwIntrinsics.AllowAll):
@@ -400,5 +401,11 @@ public enum HwIntrinsics
     DisableBMI1 = 1 << 13,
     DisableBMI2 = 1 << 14,
     DisableLZCNT = 1 << 15,
-    AllowAll = 1 << 16
+    DisableArm64AdvSimd = 1 << 16,
+    DisableArm64Crc32 = 1 << 17,
+    DisableArm64Dp = 1 << 18,
+    DisableArm64Aes = 1 << 19,
+    DisableArm64Sha1 = 1 << 20,
+    DisableArm64Sha256 = 1 << 21,
+    AllowAll = 1 << 22
 }

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
@@ -27,9 +26,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly int maxColors;
     private readonly int bitDepth;
     private readonly Octree octree;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
-    private EuclideanPixelMap<TPixel> pixelMap;
+    private EuclideanPixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
@@ -41,9 +40,6 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     [MethodImpl(InliningOptions.ShortMethod)]
     public OctreeQuantizer(Configuration configuration, QuantizerOptions options)
     {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.NotNull(options, nameof(options));
-
         this.Configuration = configuration;
         this.Options = options;
 
@@ -143,7 +139,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         // pixel and a black one.
         if (this.isDithering || color.Equals(default))
         {
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
@@ -158,8 +154,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         if (!this.isDisposed)
         {
             this.isDisposed = true;
-            this.paletteOwner?.Dispose();
-            this.paletteOwner = null;
+            this.paletteOwner.Dispose();
             this.pixelMap?.Dispose();
             this.pixelMap = null;
         }
@@ -183,7 +178,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         /// <summary>
         /// Store the last node quantized
         /// </summary>
-        private OctreeNode previousNode;
+        private OctreeNode? previousNode;
 
         /// <summary>
         /// Cache the previous color quantized
@@ -221,7 +216,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         /// <summary>
         /// Gets the array of reducible nodes
         /// </summary>
-        private OctreeNode[] ReducibleNodes
+        private OctreeNode?[] ReducibleNodes
         {
             [MethodImpl(InliningOptions.ShortMethod)]
             get;
@@ -311,7 +306,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             }
 
             // Reduce the node most recently added to the list at level 'index'
-            OctreeNode node = this.ReducibleNodes[index];
+            OctreeNode node = this.ReducibleNodes[index]!;
             this.ReducibleNodes[index] = node.NextReducible;
 
             // Decrement the leaf count after reducing the node
@@ -330,7 +325,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             /// <summary>
             /// Pointers to any child nodes
             /// </summary>
-            private readonly OctreeNode[] children;
+            private readonly OctreeNode?[]? children;
 
             /// <summary>
             /// Flag indicating that this is a leaf node
@@ -395,7 +390,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             /// <summary>
             /// Gets the next reducible node
             /// </summary>
-            public OctreeNode NextReducible
+            public OctreeNode? NextReducible
             {
                 [MethodImpl(InliningOptions.ShortMethod)]
                 get;
@@ -423,7 +418,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                     // Go to the next level down in the tree
                     int index = GetColorIndex(ref color, level);
 
-                    OctreeNode child = this.children[index];
+                    OctreeNode? child = this.children![index];
                     if (child is null)
                     {
                         // Create a new child node and store it in the array
@@ -448,7 +443,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                 // Loop through all children and add their information to this node
                 for (int index = 0; index < 8; index++)
                 {
-                    OctreeNode child = this.children[index];
+                    OctreeNode? child = this.children![index];
                     if (child != null)
                     {
                         this.red += child.red;
@@ -495,7 +490,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                     // Loop through children looking for leaves
                     for (int i = 0; i < 8; i++)
                     {
-                        this.children[i]?.ConstructPalette(palette, ref index);
+                        this.children![i]?.ConstructPalette(palette, ref index);
                     }
                 }
             }
@@ -517,7 +512,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                 }
 
                 int colorIndex = GetColorIndex(ref pixel, level);
-                OctreeNode child = this.children[colorIndex];
+                OctreeNode? child = this.children![colorIndex];
 
                 int index = 0;
                 if (child != null)

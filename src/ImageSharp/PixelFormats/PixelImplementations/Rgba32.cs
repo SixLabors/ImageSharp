@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using System.Globalization;
@@ -267,7 +266,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// The <see cref="bool"/>.
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static bool TryParseHex(string hex, out Rgba32 result)
+    public static bool TryParseHex(string? hex, out Rgba32 result)
     {
         result = default;
         if (string.IsNullOrWhiteSpace(hex))
@@ -437,7 +436,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
+    public override readonly bool Equals(object? obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -514,7 +513,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <returns>
     /// A rrggbbaa hex value.
     /// </returns>
-    private static string ToRgbaHex(string hex)
+    private static string? ToRgbaHex(string hex)
     {
         if (hex[0] == '#')
         {

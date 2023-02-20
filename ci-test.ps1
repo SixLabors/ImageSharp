@@ -33,5 +33,5 @@ elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 }
 else {
 
-  dotnet test --no-build -c Release -f $targetFramework
+  dotnet test --no-build -c Release -f $targetFramework --blame --diag .tests\Images\ActualOutput\diaglog.txt
 }

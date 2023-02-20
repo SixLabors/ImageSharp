@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
@@ -14,36 +14,36 @@ public static class BoxBlurExtensions
     /// <summary>
     /// Applies a box blur to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <param name="source">The current image processing context.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BoxBlur(this IImageProcessingContext source)
         => source.ApplyProcessor(new BoxBlurProcessor());
 
     /// <summary>
     /// Applies a box blur to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius)
         => source.ApplyProcessor(new BoxBlurProcessor(radius));
 
     /// <summary>
     /// Applies a box blur to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius, Rectangle rectangle)
         => source.ApplyProcessor(new BoxBlurProcessor(radius), rectangle);
 
     /// <summary>
     /// Applies a box blur to the image.
     /// </summary>
-    /// <param name="source">The image this method extends.</param>
+    /// <param name="source">The current image processing context.</param>
     /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
@@ -54,7 +54,7 @@ public static class BoxBlurExtensions
     /// <param name="borderWrapModeY">
     /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
     /// </param>
-    /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
     {
         var processor = new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY);

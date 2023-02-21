@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class ProjectiveTransformBuilder
 {
-    private readonly List<Func<Size, Matrix4x4>> matrixFactories = new List<Func<Size, Matrix4x4>>();
+    private readonly List<Func<Size, Matrix4x4>> matrixFactories = new();
 
     /// <summary>
     /// Prepends a matrix that performs a tapering projective transform.
@@ -313,7 +313,7 @@ public class ProjectiveTransformBuilder
         Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
         // Translate the origin matrix to cater for source rectangle offsets.
-        var matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
+        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
 
         Size size = sourceRectangle.Size;
 

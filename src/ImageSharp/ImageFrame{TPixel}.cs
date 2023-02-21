@@ -144,7 +144,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     }
 
     /// <inheritdoc/>
-    public Buffer2D<TPixel> PixelBuffer { get; private set; }
+    public Buffer2D<TPixel> PixelBuffer { get; }
 
     /// <summary>
     /// Gets or sets the pixel at the specified position.
@@ -309,6 +309,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
     /// </summary>
     /// <param name="target">The target pixel buffer accessor.</param>
+    /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
         if (this.Size() != target.Size())
@@ -445,14 +446,12 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     }
 
     [MethodImpl(InliningOptions.ColdPath)]
-    private static void ThrowArgumentOutOfRangeException(string paramName)
-    {
-        throw new ArgumentOutOfRangeException(paramName);
-    }
+    private static void ThrowArgumentOutOfRangeException(string paramName) => throw new ArgumentOutOfRangeException(paramName);
 
     /// <summary>
     /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
+    /// <typeparam name="TPixel2">The type of the target pixel format.</typeparam>
     private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
         where TPixel2 : unmanaged, IPixel<TPixel2>
     {

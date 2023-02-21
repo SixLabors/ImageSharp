@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp;
 public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private Buffer2D<byte> pixelBuffer;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly Buffer2D<byte> pixelBuffer;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private bool isDisposed;
 
     /// <summary>

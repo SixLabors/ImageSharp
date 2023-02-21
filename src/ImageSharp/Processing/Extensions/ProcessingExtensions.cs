@@ -134,7 +134,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ArgumentNullException">The operation is null.</exception>
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
-    public static Image? Clone(this Image source, Action<IImageProcessingContext> operation)
+    public static Image Clone(this Image source, Action<IImageProcessingContext> operation)
         => Clone(source, source.GetConfiguration(), operation);
 
     /// <summary>
@@ -149,7 +149,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     /// <returns>The new <see cref="Image"/>.</returns>
-    public static Image? Clone(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
+    public static Image Clone(this Image source, Configuration configuration, Action<IImageProcessingContext> operation)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(source, nameof(source));
@@ -158,7 +158,7 @@ public static partial class ProcessingExtensions
 
         ProcessingVisitor visitor = new(configuration, operation, false);
         source.AcceptVisitor(visitor);
-        return visitor.ResultImage;
+        return visitor.GetResultImage();
     }
 
     /// <summary>
@@ -274,6 +274,8 @@ public static partial class ProcessingExtensions
 
         private readonly bool mutate;
 
+        private Image? resultImage;
+
         public ProcessingVisitor(Configuration configuration, Action<IImageProcessingContext> operation, bool mutate)
         {
             this.configuration = configuration;
@@ -281,7 +283,7 @@ public static partial class ProcessingExtensions
             this.mutate = mutate;
         }
 
-        public Image? ResultImage { get; private set; }
+        public Image GetResultImage() => this.resultImage!;
 
         public void Visit<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -290,7 +292,7 @@ public static partial class ProcessingExtensions
                 this.configuration.ImageOperationsProvider.CreateImageProcessingContext(this.configuration, image, this.mutate);
 
             this.operation(operationsRunner);
-            this.ResultImage = operationsRunner.GetResultImage();
+            this.resultImage = operationsRunner.GetResultImage();
         }
     }
 }

@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static SixLabors.ImageSharp.SimdUtils;
 
 namespace SixLabors.ImageSharp;
 
@@ -26,10 +27,14 @@ internal readonly struct DefaultShuffle3 : IShuffle3
         this.p2 = p2;
         this.p1 = p1;
         this.p0 = p0;
-        this.Control = SimdUtils.Shuffle.MmShuffle(3, p2, p1, p0);
+        this.Control = Shuffle.MmShuffle(3, p2, p1, p0);
     }
 
     public byte Control { get; }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle3Reduce(ref source, ref dest, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)

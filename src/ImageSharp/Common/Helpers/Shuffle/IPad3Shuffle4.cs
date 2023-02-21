@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static SixLabors.ImageSharp.SimdUtils;
 
 namespace SixLabors.ImageSharp;
 
@@ -29,10 +30,14 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
         this.p2 = p2;
         this.p1 = p1;
         this.p0 = p0;
-        this.Control = SimdUtils.Shuffle.MmShuffle(p3, p2, p1, p0);
+        this.Control = Shuffle.MmShuffle(p3, p2, p1, p0);
     }
 
     public byte Control { get; }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -51,7 +56,7 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
 
         for (int i = 0, j = 0; i < source.Length; i += 3, j += 4)
         {
-            ref var s = ref Unsafe.Add(ref sBase, i);
+            ref byte s = ref Unsafe.Add(ref sBase, i);
             tu = Unsafe.As<byte, uint>(ref s) | 0xFF000000;
 
             Unsafe.Add(ref dBase, j) = Unsafe.Add(ref t, p0);
@@ -64,11 +69,9 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
 
 internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(3, 2, 1, 0);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle3210);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)

@@ -9,7 +9,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
 [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
 public class ShuffleFloat4Channel
 {
-    private static readonly byte Control = default(WXYZShuffle4).Control;
     private float[] source;
     private float[] destination;
 
@@ -25,9 +24,7 @@ public class ShuffleFloat4Channel
 
     [Benchmark]
     public void Shuffle4Channel()
-    {
-        SimdUtils.Shuffle4(this.source, this.destination, Control);
-    }
+        => SimdUtils.Shuffle4(this.source, this.destination, SimdUtils.Shuffle.MMShuffle2103);
 }
 
 // 2020-10-29

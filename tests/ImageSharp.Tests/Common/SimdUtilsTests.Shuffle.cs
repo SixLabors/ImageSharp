@@ -16,7 +16,7 @@ public partial class SimdUtilsTests
             // No need to test multiple shuffle controls as the
             // pipeline is always the same.
             int size = FeatureTestRunner.Deserialize<int>(serialized);
-            byte control = default(WZYXShuffle4).Control;
+            const byte control = SimdUtils.Shuffle.MMShuffle0123;
 
             TestShuffleFloat4Channel(
                 size,
@@ -45,39 +45,39 @@ public partial class SimdUtilsTests
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wxyz),
-                wxyz.Control);
+                SimdUtils.Shuffle.MMShuffle2103);
 
             WZYXShuffle4 wzyx = default;
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wzyx),
-                wzyx.Control);
+                SimdUtils.Shuffle.MMShuffle0123);
 
             YZWXShuffle4 yzwx = default;
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yzwx),
-                yzwx.Control);
+                SimdUtils.Shuffle.MMShuffle0321);
 
             ZYXWShuffle4 zyxw = default;
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
-                zyxw.Control);
+                SimdUtils.Shuffle.MMShuffle3012);
 
-            var xwyz = new DefaultShuffle4(2, 1, 3, 0);
+            DefaultShuffle4 xwyz = new(2, 1, 3, 0);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            var yyyy = new DefaultShuffle4(1, 1, 1, 1);
+            DefaultShuffle4 yyyy = new(1, 1, 1, 1);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            var wwww = new DefaultShuffle4(3, 3, 3, 3);
+            DefaultShuffle4 wwww = new(3, 3, 3, 3);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
@@ -101,25 +101,25 @@ public partial class SimdUtilsTests
             // These cannot be expressed as a theory as you cannot
             // use RemoteExecutor within generic methods nor pass
             // IShuffle3 to the generic utils method.
-            var zyx = new DefaultShuffle3(0, 1, 2);
+            DefaultShuffle3 zyx = new(0, 1, 2);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zyx),
                 zyx.Control);
 
-            var xyz = new DefaultShuffle3(2, 1, 0);
+            DefaultShuffle3 xyz = new(2, 1, 0);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, xyz),
                 xyz.Control);
 
-            var yyy = new DefaultShuffle3(1, 1, 1);
+            DefaultShuffle3 yyy = new(1, 1, 1);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, yyy),
                 yyy.Control);
 
-            var zzz = new DefaultShuffle3(2, 2, 2);
+            DefaultShuffle3 zzz = new(2, 2, 2);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zzz),
@@ -147,21 +147,21 @@ public partial class SimdUtilsTests
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xyzw),
-                xyzw.Control);
+                SimdUtils.Shuffle.MMShuffle3210);
 
-            var xwyz = new DefaultPad3Shuffle4(2, 1, 3, 0);
+            DefaultPad3Shuffle4 xwyz = new(2, 1, 3, 0);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            var yyyy = new DefaultPad3Shuffle4(1, 1, 1, 1);
+            DefaultPad3Shuffle4 yyyy = new(1, 1, 1, 1);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            var wwww = new DefaultPad3Shuffle4(3, 3, 3, 3);
+            DefaultPad3Shuffle4 wwww = new(3, 3, 3, 3);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, wwww),
@@ -189,21 +189,21 @@ public partial class SimdUtilsTests
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xyzw),
-                xyzw.Control);
+                SimdUtils.Shuffle.MMShuffle3210);
 
-            var xwyz = new DefaultShuffle4Slice3(2, 1, 3, 0);
+            DefaultShuffle4Slice3 xwyz = new(2, 1, 3, 0);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            var yyyy = new DefaultShuffle4Slice3(1, 1, 1, 1);
+            DefaultShuffle4Slice3 yyyy = new(1, 1, 1, 1);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            var wwww = new DefaultShuffle4Slice3(3, 3, 3, 3);
+            DefaultShuffle4Slice3 wwww = new(3, 3, 3, 3);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, wwww),
@@ -222,7 +222,7 @@ public partial class SimdUtilsTests
         byte control)
     {
         float[] source = new Random(count).GenerateRandomFloatArray(count, 0, 256);
-        var result = new float[count];
+        float[] result = new float[count];
 
         float[] expected = new float[count];
 
@@ -253,7 +253,7 @@ public partial class SimdUtilsTests
     {
         byte[] source = new byte[count];
         new Random(count).NextBytes(source);
-        var result = new byte[count];
+        byte[] result = new byte[count];
 
         byte[] expected = new byte[count];
 
@@ -284,7 +284,7 @@ public partial class SimdUtilsTests
     {
         byte[] source = new byte[count];
         new Random(count).NextBytes(source);
-        var result = new byte[count];
+        byte[] result = new byte[count];
 
         byte[] expected = new byte[count];
 
@@ -315,7 +315,7 @@ public partial class SimdUtilsTests
         byte[] source = new byte[count];
         new Random(count).NextBytes(source);
 
-        var result = new byte[count * 4 / 3];
+        byte[] result = new byte[count * 4 / 3];
 
         byte[] expected = new byte[result.Length];
 
@@ -366,7 +366,7 @@ public partial class SimdUtilsTests
         byte[] source = new byte[count];
         new Random(count).NextBytes(source);
 
-        var result = new byte[count * 3 / 4];
+        byte[] result = new byte[count * 3 / 4];
 
         byte[] expected = new byte[result.Length];
 

@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 // ReSharper disable InconsistentNaming
@@ -26,6 +27,11 @@ internal static class LossyUtils
             return Vp8_Sse16xN_Sse2(a, b, 8);
         }
 
+        if (AdvSimd.IsSupported)
+        {
+            return Vp8_Sse16x16_Neon(a, b);
+        }
+
         return Vp8_SseNxN(a, b, 16, 16);
     }
 
@@ -41,6 +47,11 @@ internal static class LossyUtils
         if (Sse2.IsSupported)
         {
             return Vp8_Sse16xN_Sse2(a, b, 4);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return Vp8_Sse16x8_Neon(a, b);
         }
 
         return Vp8_SseNxN(a, b, 16, 8);
@@ -117,6 +128,11 @@ internal static class LossyUtils
             Vector128<int> sum = Sse2.Add(e0, e1);
 
             return Numerics.ReduceSum(sum);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return Vp8_Sse4x4_Neon(a, b);
         }
 
         return Vp8_SseNxN(a, b, 4, 4);
@@ -197,6 +213,106 @@ internal static class LossyUtils
         }
 
         return Numerics.ReduceSum(sum);
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static unsafe int Vp8_Sse16x16_Neon(Span<byte> a, Span<byte> b)
+    {
+        Vector128<uint> sum = Vector128<uint>.Zero;
+        fixed (byte* aRef = &MemoryMarshal.GetReference(a))
+        {
+            fixed (byte* bRef = &MemoryMarshal.GetReference(b))
+            {
+                for (int y = 0; y < 16; y++)
+                {
+                    sum = AccumulateSSE16Neon(aRef + (y * WebpConstants.Bps), bRef + (y * WebpConstants.Bps), sum);
+                }
+            }
+        }
+
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
+        return Numerics.ReduceSumArm(sum);
+#endif
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static unsafe int Vp8_Sse16x8_Neon(Span<byte> a, Span<byte> b)
+    {
+        Vector128<uint> sum = Vector128<uint>.Zero;
+        fixed (byte* aRef = &MemoryMarshal.GetReference(a))
+        {
+            fixed (byte* bRef = &MemoryMarshal.GetReference(b))
+            {
+                for (int y = 0; y < 8; y++)
+                {
+                    sum = AccumulateSSE16Neon(aRef + (y * WebpConstants.Bps), bRef + (y * WebpConstants.Bps), sum);
+                }
+            }
+        }
+
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
+        return Numerics.ReduceSumArm(sum);
+#endif
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int Vp8_Sse4x4_Neon(Span<byte> a, Span<byte> b)
+    {
+        Vector128<byte> a0 = Load4x4Neon(a).AsByte();
+        Vector128<byte> b0 = Load4x4Neon(b).AsByte();
+        Vector128<byte> absDiff = AdvSimd.AbsoluteDifference(a0, b0);
+        Vector64<byte> absDiffLower = absDiff.GetLower().AsByte();
+        Vector64<byte> absDiffUpper = absDiff.GetUpper().AsByte();
+        Vector128<ushort> prod1 = AdvSimd.MultiplyWideningLower(absDiffLower, absDiffLower);
+        Vector128<ushort> prod2 = AdvSimd.MultiplyWideningLower(absDiffUpper, absDiffUpper);
+
+        // pair-wise adds and widen.
+        Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
+        Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
+
+        Vector128<uint> sum = AdvSimd.Add(sum1, sum2);
+#if NET7_0_OR_GREATER
+        return (int)Vector128.Sum(sum);
+#else
+        return Numerics.ReduceSumArm(sum);
+#endif
+    }
+
+    // Load all 4x4 pixels into a single Vector128<uint>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static unsafe Vector128<uint> Load4x4Neon(Span<byte> src)
+    {
+        fixed (byte* srcRef = &MemoryMarshal.GetReference(src))
+        {
+            Vector128<uint> output = Vector128<uint>.Zero;
+            output = AdvSimd.LoadAndInsertScalar(output, 0, (uint*)srcRef);
+            output = AdvSimd.LoadAndInsertScalar(output, 1, (uint*)(srcRef + WebpConstants.Bps));
+            output = AdvSimd.LoadAndInsertScalar(output, 2, (uint*)(srcRef + (WebpConstants.Bps * 2)));
+            output = AdvSimd.LoadAndInsertScalar(output, 3, (uint*)(srcRef + (WebpConstants.Bps * 3)));
+            return output;
+        }
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static unsafe Vector128<uint> AccumulateSSE16Neon(byte* a, byte* b, Vector128<uint> sum)
+    {
+        Vector128<byte> a0 = AdvSimd.LoadVector128(a);
+        Vector128<byte> b0 = AdvSimd.LoadVector128(b);
+
+        Vector128<byte> absDiff = AdvSimd.AbsoluteDifference(a0, b0);
+        Vector64<byte> absDiffLower = absDiff.GetLower();
+        Vector64<byte> absDiffUpper = absDiff.GetUpper();
+        Vector128<ushort> prod1 = AdvSimd.MultiplyWideningLower(absDiffLower, absDiffLower);
+        Vector128<ushort> prod2 = AdvSimd.MultiplyWideningLower(absDiffUpper, absDiffUpper);
+
+        // pair-wise adds and widen.
+        Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
+        Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
+        return AdvSimd.Add(sum, AdvSimd.Add(sum1, sum2));
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

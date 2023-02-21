@@ -262,6 +262,52 @@ public static class FeatureTestRunner
     /// where the given <paramref name="intrinsics"/> features.
     /// </summary>
     /// <param name="action">The test action to run.</param>
+    /// <param name="intrinsics">The intrinsics features.</param>
+    /// <param name="arg1">The value to pass as a parameter to the test action.</param>
+    /// <param name="arg2">The second value to pass as a parameter to the test action.</param>
+    public static void RunWithHwIntrinsicsFeature<T>(
+        Action<string, string> action,
+        HwIntrinsics intrinsics,
+        T arg1,
+        string arg2)
+        where T : IXunitSerializable
+    {
+        if (!RemoteExecutor.IsSupported)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
+        {
+            ProcessStartInfo processStartInfo = new();
+            if (intrinsic.Key != HwIntrinsics.AllowAll)
+            {
+                processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
+
+                RemoteExecutor.Invoke(
+                    action,
+                    BasicSerializer.Serialize(arg1),
+                    arg2,
+                    new RemoteInvokeOptions
+                    {
+                        StartInfo = processStartInfo
+                    })
+                    .Dispose();
+            }
+            else
+            {
+                // Since we are running using the default architecture there is no
+                // point creating the overhead of running the action in a separate process.
+                action(BasicSerializer.Serialize(arg1), arg2);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs the given test <paramref name="action"/> within an environment
+    /// where the given <paramref name="intrinsics"/> features.
+    /// </summary>
+    /// <param name="action">The test action to run.</param>
     /// <param name="serializable">The value to pass as a parameter to the test action.</param>
     /// <param name="intrinsics">The intrinsics features.</param>
     public static void RunWithHwIntrinsicsFeature<T>(

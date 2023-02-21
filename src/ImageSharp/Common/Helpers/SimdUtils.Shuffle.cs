@@ -145,7 +145,7 @@ internal static partial class SimdUtils
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
         ref float dBase = ref MemoryMarshal.GetReference(dest);
-        Shuffle.InverseMmShuffle(control, out int p3, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(control, out int p3, out int p2, out int p1, out int p0);
 
         for (int i = 0; i < source.Length; i += 4)
         {
@@ -484,13 +484,13 @@ internal static partial class SimdUtils
         public const byte MMShuffle3333 = 0b11111111;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static byte MmShuffle(byte p3, byte p2, byte p1, byte p0)
+        public static byte MMShuffle(byte p3, byte p2, byte p1, byte p0)
             => (byte)((p3 << 6) | (p2 << 4) | (p1 << 2) | p0);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void MmShuffleSpan(ref Span<byte> span, byte control)
+        public static void MMShuffleSpan(ref Span<byte> span, byte control)
         {
-            InverseMmShuffle(
+            InverseMMShuffle(
                  control,
                  out int p3,
                  out int p2,
@@ -509,7 +509,7 @@ internal static partial class SimdUtils
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void InverseMmShuffle(
+        public static void InverseMMShuffle(
             byte control,
             out int p3,
             out int p2,

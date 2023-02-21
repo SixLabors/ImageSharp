@@ -32,7 +32,7 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMmShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
 
         Span<byte> temp = stackalloc byte[4];
         ref byte t = ref MemoryMarshal.GetReference(temp);

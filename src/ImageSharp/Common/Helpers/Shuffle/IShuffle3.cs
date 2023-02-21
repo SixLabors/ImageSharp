@@ -32,7 +32,7 @@ internal readonly struct DefaultShuffle3 : IShuffle3
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMmShuffle(this.Control, out _, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(this.Control, out _, out int p2, out int p1, out int p0);
 
         for (int i = 0; i < source.Length; i += 3)
         {

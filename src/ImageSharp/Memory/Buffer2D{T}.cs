@@ -55,6 +55,8 @@ public sealed class Buffer2D<T> : IDisposable
     /// </remarks>
     internal MemoryGroup<T> FastMemoryGroup { get; private set; }
 
+    internal bool IsDisposed { get; private set; }
+
     /// <summary>
     /// Gets a reference to the element at the specified position.
     /// </summary>
@@ -79,7 +81,11 @@ public sealed class Buffer2D<T> : IDisposable
     /// <summary>
     /// Disposes the <see cref="Buffer2D{T}"/> instance
     /// </summary>
-    public void Dispose() => this.FastMemoryGroup.Dispose();
+    public void Dispose()
+    {
+        this.FastMemoryGroup.Dispose();
+        this.IsDisposed = true;
+    }
 
     /// <summary>
     /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.

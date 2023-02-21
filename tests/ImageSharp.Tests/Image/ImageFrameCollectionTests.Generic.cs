@@ -182,12 +182,12 @@ public abstract partial class ImageFrameCollectionTests
                 new[] { imageFrame1, imageFrame2 });
 
             IPixelSource<Rgba32>[] framesSnapShot = collection.OfType<IPixelSource<Rgba32>>().ToArray();
+
+            Assert.All(framesSnapShot, f => Assert.False(f.PixelBuffer.IsDisposed));
+
             collection.Dispose();
 
-            Assert.All(
-                framesSnapShot,
-                f => // The pixel source of the frame is null after its been disposed.
-                    Assert.Null(f.PixelBuffer));
+            Assert.All(framesSnapShot, f => Assert.True(f.PixelBuffer.IsDisposed));
         }
 
         [Theory]

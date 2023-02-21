@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -110,6 +110,7 @@ internal class AlphaDecoder : IDisposable
     /// <summary>
     /// Gets a value indicating whether the alpha channel uses compression.
     /// </summary>
+    [MemberNotNullWhen(true, nameof(LosslessDecoder))]
     private bool Compressed { get; }
 
     /// <summary>
@@ -120,7 +121,7 @@ internal class AlphaDecoder : IDisposable
     /// <summary>
     /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
     /// </summary>
-    private WebpLosslessDecoder LosslessDecoder { get; }
+    private WebpLosslessDecoder? LosslessDecoder { get; }
 
     /// <summary>
     /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.

@@ -193,7 +193,7 @@ internal class Vp8LBitReader : BitReaderBase
     [MethodImpl(InliningOptions.ShortMethod)]
     private void ShiftBytes()
     {
-        System.Span<byte> dataSpan = this.Data.Memory.Span;
+        System.Span<byte> dataSpan = this.Data!.Memory.Span;
         while (this.bitPos >= 8 && this.pos < this.len)
         {
             this.value >>= 8;

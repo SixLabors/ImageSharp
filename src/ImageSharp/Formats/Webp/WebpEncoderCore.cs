@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -81,7 +80,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private Configuration? configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.

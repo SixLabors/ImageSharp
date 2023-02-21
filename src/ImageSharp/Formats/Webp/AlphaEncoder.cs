@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using SixLabors.ImageSharp.Advanced;
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 internal class AlphaEncoder : IDisposable
 {
-    private IMemoryOwner<byte> alphaData;
+    private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
     /// Encodes the alpha channel data.

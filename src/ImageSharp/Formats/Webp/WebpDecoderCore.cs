@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -44,12 +43,12 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// Gets or sets the alpha data, if an ALPH chunk is present.
     /// </summary>
-    private IMemoryOwner<byte> alphaData;
+    private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
     /// Used for allocating memory during the decoding operations.
@@ -57,19 +56,14 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The stream to decode from.
-    /// </summary>
-    private BufferedReadStream currentStream;
-
-    /// <summary>
     /// The webp specific metadata.
     /// </summary>
-    private WebpMetadata webpMetadata;
+    private WebpMetadata? webpMetadata;
 
     /// <summary>
     /// Information about the webp image.
     /// </summary>
-    private WebpImageInfo webImageInfo;
+    private WebpImageInfo? webImageInfo;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
@@ -88,21 +82,20 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
+    public Size Dimensions => new((int)this.webImageInfo!.Width, (int)this.webImageInfo.Height);
 
     /// <inheritdoc />
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> image = null;
+        Image<TPixel>? image = null;
         try
         {
             this.metadata = new ImageMetadata();
-            this.currentStream = stream;
 
-            uint fileSize = this.ReadImageHeader();
+            uint fileSize = this.ReadImageHeader(stream);
 
-            using (this.webImageInfo = this.ReadVp8Info())
+            using (this.webImageInfo = this.ReadVp8Info(stream))
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
@@ -131,7 +124,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 // There can be optional chunks after the image data, like EXIF and XMP.
                 if (this.webImageInfo.Features != null)
                 {
-                    this.ParseOptionalChunks(this.webImageInfo.Features);
+                    this.ParseOptionalChunks(stream, this.webImageInfo.Features);
                 }
 
                 return image;
@@ -147,10 +140,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <inheritdoc />
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        this.currentStream = stream;
-
-        this.ReadImageHeader();
-        using (this.webImageInfo = this.ReadVp8Info(true))
+        this.ReadImageHeader(stream);
+        using (this.webImageInfo = this.ReadVp8Info(stream, true))
         {
             return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.metadata);
         }
@@ -159,19 +150,20 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads and skips over the image header.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <returns>The file size in bytes.</returns>
-    private uint ReadImageHeader()
+    private uint ReadImageHeader(BufferedReadStream stream)
     {
         // Skip FourCC header, we already know its a RIFF file at this point.
-        this.currentStream.Skip(4);
+        stream.Skip(4);
 
         // Read file size.
         // The size of the file in bytes starting at offset 8.
         // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
-        uint fileSize = WebpChunkParsingUtils.ReadChunkSize(this.currentStream, this.buffer);
+        uint fileSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
 
         // Skip 'WEBP' from the header.
-        this.currentStream.Skip(4);
+        stream.Skip(4);
 
         return fileSize;
     }
@@ -179,42 +171,43 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads information present in the image header, about the image content and how to decode the image.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <param name="ignoreAlpha">For identify, the alpha data should not be read.</param>
     /// <returns>Information about the webp image.</returns>
-    private WebpImageInfo ReadVp8Info(bool ignoreAlpha = false)
+    private WebpImageInfo ReadVp8Info(BufferedReadStream stream, bool ignoreAlpha = false)
     {
         this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetFormatMetadata(WebpFormat.Instance);
 
-        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(this.currentStream, this.buffer);
+        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
 
         var features = new WebpFeatures();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
                 this.webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                return WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, this.currentStream, this.buffer, features);
+                return WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, this.buffer, features);
             case WebpChunkType.Vp8L:
                 this.webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                return WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, this.currentStream, this.buffer, features);
+                return WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, this.buffer, features);
             case WebpChunkType.Vp8X:
-                WebpImageInfo webpInfos = WebpChunkParsingUtils.ReadVp8XHeader(this.currentStream, this.buffer, features);
-                while (this.currentStream.Position < this.currentStream.Length)
+                WebpImageInfo webpInfos = WebpChunkParsingUtils.ReadVp8XHeader(stream, this.buffer, features);
+                while (stream.Position < stream.Length)
                 {
-                    chunkType = WebpChunkParsingUtils.ReadChunkType(this.currentStream, this.buffer);
+                    chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
                     if (chunkType == WebpChunkType.Vp8)
                     {
                         this.webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                        webpInfos = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, this.currentStream, this.buffer, features);
+                        webpInfos = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, this.buffer, features);
                     }
                     else if (chunkType == WebpChunkType.Vp8L)
                     {
                         this.webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                        webpInfos = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, this.currentStream, this.buffer, features);
+                        webpInfos = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, this.buffer, features);
                     }
                     else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                     {
-                        bool isAnimationChunk = this.ParseOptionalExtendedChunks(chunkType, features, ignoreAlpha);
+                        bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, chunkType, features, ignoreAlpha);
                         if (isAnimationChunk)
                         {
                             return webpInfos;
@@ -223,8 +216,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                     else
                     {
                         // Ignore unknown chunks.
-                        uint chunkSize = this.ReadChunkSize();
-                        this.currentStream.Skip((int)chunkSize);
+                        uint chunkSize = this.ReadChunkSize(stream);
+                        stream.Skip((int)chunkSize);
                     }
                 }
 
@@ -239,32 +232,33 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Parses optional VP8X chunks, which can be ICCP, XMP, ANIM or ALPH chunks.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <param name="chunkType">The chunk type.</param>
     /// <param name="features">The webp image features.</param>
     /// <param name="ignoreAlpha">For identify, the alpha data should not be read.</param>
     /// <returns>true, if its a alpha chunk.</returns>
-    private bool ParseOptionalExtendedChunks(WebpChunkType chunkType, WebpFeatures features, bool ignoreAlpha)
+    private bool ParseOptionalExtendedChunks(BufferedReadStream stream, WebpChunkType chunkType, WebpFeatures features, bool ignoreAlpha)
     {
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-                this.ReadIccProfile();
+                this.ReadIccProfile(stream);
                 break;
 
             case WebpChunkType.Exif:
-                this.ReadExifProfile();
+                this.ReadExifProfile(stream);
                 break;
 
             case WebpChunkType.Xmp:
-                this.ReadXmpProfile();
+                this.ReadXmpProfile(stream);
                 break;
 
             case WebpChunkType.AnimationParameter:
-                this.ReadAnimationParameters(features);
+                this.ReadAnimationParameters(stream, features);
                 return true;
 
             case WebpChunkType.Alpha:
-                this.ReadAlphaData(features, ignoreAlpha);
+                this.ReadAlphaData(stream, features, ignoreAlpha);
                 break;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
@@ -277,32 +271,33 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads the optional metadata EXIF of XMP profiles, which can follow the image data.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <param name="features">The webp features.</param>
-    private void ParseOptionalChunks(WebpFeatures features)
+    private void ParseOptionalChunks(BufferedReadStream stream, WebpFeatures features)
     {
         if (this.skipMetadata || (!features.ExifProfile && !features.XmpMetaData))
         {
             return;
         }
 
-        long streamLength = this.currentStream.Length;
-        while (this.currentStream.Position < streamLength)
+        long streamLength = stream.Length;
+        while (stream.Position < streamLength)
         {
             // Read chunk header.
-            WebpChunkType chunkType = this.ReadChunkType();
-            if (chunkType == WebpChunkType.Exif && this.metadata.ExifProfile == null)
+            WebpChunkType chunkType = this.ReadChunkType(stream);
+            if (chunkType == WebpChunkType.Exif && this.metadata!.ExifProfile == null)
             {
-                this.ReadExifProfile();
+                this.ReadExifProfile(stream);
             }
-            else if (chunkType == WebpChunkType.Xmp && this.metadata.XmpProfile == null)
+            else if (chunkType == WebpChunkType.Xmp && this.metadata!.XmpProfile == null)
             {
-                this.ReadXmpProfile();
+                this.ReadXmpProfile(stream);
             }
             else
             {
                 // Skip duplicate XMP or EXIF chunk.
-                uint chunkLength = this.ReadChunkSize();
-                this.currentStream.Skip((int)chunkLength);
+                uint chunkLength = this.ReadChunkSize(stream);
+                stream.Skip((int)chunkLength);
             }
         }
     }
@@ -310,17 +305,18 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads the EXIF profile from the stream.
     /// </summary>
-    private void ReadExifProfile()
+    /// <param name="stream">The stream to decode from.</param>
+    private void ReadExifProfile(BufferedReadStream stream)
     {
-        uint exifChunkSize = this.ReadChunkSize();
+        uint exifChunkSize = this.ReadChunkSize(stream);
         if (this.skipMetadata)
         {
-            this.currentStream.Skip((int)exifChunkSize);
+            stream.Skip((int)exifChunkSize);
         }
         else
         {
             byte[] exifData = new byte[exifChunkSize];
-            int bytesRead = this.currentStream.Read(exifData, 0, (int)exifChunkSize);
+            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
             if (bytesRead != exifChunkSize)
             {
                 // Ignore invalid chunk.
@@ -328,24 +324,25 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             }
 
             var profile = new ExifProfile(exifData);
-            this.metadata.ExifProfile = profile;
+            this.metadata!.ExifProfile = profile;
         }
     }
 
     /// <summary>
     /// Reads the XMP profile the stream.
     /// </summary>
-    private void ReadXmpProfile()
+    /// <param name="stream">The stream to decode from.</param>
+    private void ReadXmpProfile(BufferedReadStream stream)
     {
-        uint xmpChunkSize = this.ReadChunkSize();
+        uint xmpChunkSize = this.ReadChunkSize(stream);
         if (this.skipMetadata)
         {
-            this.currentStream.Skip((int)xmpChunkSize);
+            stream.Skip((int)xmpChunkSize);
         }
         else
         {
             byte[] xmpData = new byte[xmpChunkSize];
-            int bytesRead = this.currentStream.Read(xmpData, 0, (int)xmpChunkSize);
+            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
             if (bytesRead != xmpChunkSize)
             {
                 // Ignore invalid chunk.
@@ -353,24 +350,25 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             }
 
             var profile = new XmpProfile(xmpData);
-            this.metadata.XmpProfile = profile;
+            this.metadata!.XmpProfile = profile;
         }
     }
 
     /// <summary>
     /// Reads the ICCP chunk from the stream.
     /// </summary>
-    private void ReadIccProfile()
+    /// <param name="stream">The stream to decode from.</param>
+    private void ReadIccProfile(BufferedReadStream stream)
     {
-        uint iccpChunkSize = this.ReadChunkSize();
+        uint iccpChunkSize = this.ReadChunkSize(stream);
         if (this.skipMetadata)
         {
-            this.currentStream.Skip((int)iccpChunkSize);
+            stream.Skip((int)iccpChunkSize);
         }
         else
         {
             byte[] iccpData = new byte[iccpChunkSize];
-            int bytesRead = this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
             if (bytesRead != iccpChunkSize)
             {
                 WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
@@ -379,7 +377,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             var profile = new IccProfile(iccpData);
             if (profile.CheckIsValid())
             {
-                this.metadata.IccProfile = profile;
+                this.metadata!.IccProfile = profile;
             }
         }
     }
@@ -387,17 +385,18 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads the animation parameters chunk from the stream.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <param name="features">The webp features.</param>
-    private void ReadAnimationParameters(WebpFeatures features)
+    private void ReadAnimationParameters(BufferedReadStream stream, WebpFeatures features)
     {
         features.Animation = true;
-        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(this.currentStream, this.buffer);
-        byte blue = (byte)this.currentStream.ReadByte();
-        byte green = (byte)this.currentStream.ReadByte();
-        byte red = (byte)this.currentStream.ReadByte();
-        byte alpha = (byte)this.currentStream.ReadByte();
+        uint animationChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
+        byte blue = (byte)stream.ReadByte();
+        byte green = (byte)stream.ReadByte();
+        byte red = (byte)stream.ReadByte();
+        byte alpha = (byte)stream.ReadByte();
         features.AnimationBackgroundColor = new Color(new Rgba32(red, green, blue, alpha));
-        int bytesRead = this.currentStream.Read(this.buffer, 0, 2);
+        int bytesRead = stream.Read(this.buffer, 0, 2);
         if (bytesRead != 2)
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the animation loop count");
@@ -409,22 +408,23 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Reads the alpha data chunk data from the stream.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <param name="features">The features.</param>
     /// <param name="ignoreAlpha">if set to true, skips the chunk data.</param>
-    private void ReadAlphaData(WebpFeatures features, bool ignoreAlpha)
+    private void ReadAlphaData(BufferedReadStream stream, WebpFeatures features, bool ignoreAlpha)
     {
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(this.currentStream, this.buffer);
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
         if (ignoreAlpha)
         {
-            this.currentStream.Skip((int)alphaChunkSize);
+            stream.Skip((int)alphaChunkSize);
             return;
         }
 
-        features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
+        features.AlphaChunkHeader = (byte)stream.ReadByte();
         int alphaDataSize = (int)(alphaChunkSize - 1);
         this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
         Span<byte> alphaData = this.alphaData.GetSpan();
-        int bytesRead = this.currentStream.Read(alphaData, 0, alphaDataSize);
+        int bytesRead = stream.Read(alphaData, 0, alphaDataSize);
         if (bytesRead != alphaDataSize)
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha data from the stream");
@@ -434,12 +434,13 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// Identifies the chunk type from the chunk.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <exception cref="ImageFormatException">
     /// Thrown if the input stream is not valid.
     /// </exception>
-    private WebpChunkType ReadChunkType()
+    private WebpChunkType ReadChunkType(BufferedReadStream stream)
     {
-        if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+        if (stream.Read(this.buffer, 0, 4) == 4)
         {
             var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
             return chunkType;
@@ -452,10 +453,11 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// Reads the chunk size. If Chunk Size is odd, a single padding byte will be added to the payload,
     /// so the chunk size will be increased by 1 in those cases.
     /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
     /// <returns>The chunk size in bytes.</returns>
-    private uint ReadChunkSize()
+    private uint ReadChunkSize(BufferedReadStream stream)
     {
-        if (this.currentStream.Read(this.buffer, 0, 4) == 4)
+        if (stream.Read(this.buffer, 0, 4) == 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
             return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;

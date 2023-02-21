@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitReader;
@@ -17,7 +17,7 @@ internal abstract class BitReaderBase : IDisposable
     /// <summary>
     /// Gets or sets the raw encoded image data.
     /// </summary>
-    public IMemoryOwner<byte> Data { get; set; }
+    public IMemoryOwner<byte>? Data { get; set; }
 
     /// <summary>
     /// Copies the raw encoded image data from the stream into a byte array.
@@ -25,6 +25,7 @@ internal abstract class BitReaderBase : IDisposable
     /// <param name="input">The input stream.</param>
     /// <param name="bytesToRead">Number of bytes to read as indicated from the chunk size.</param>
     /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
+    [MemberNotNull(nameof(Data))]
     protected void ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator memoryAllocator)
     {
         this.Data = memoryAllocator.Allocate<byte>(bytesToRead);

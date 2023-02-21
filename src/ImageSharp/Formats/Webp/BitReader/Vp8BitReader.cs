@@ -186,7 +186,7 @@ internal class Vp8BitReader : BitReaderBase
     {
         if (this.pos < this.bufferMax)
         {
-            ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.Memory.Span.Slice((int)this.pos, 8));
+            ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data!.Memory.Span.Slice((int)this.pos, 8));
             this.pos += BitsCount >> 3;
             ulong bits = ByteSwap64(inBits);
             bits >>= 64 - BitsCount;
@@ -205,7 +205,7 @@ internal class Vp8BitReader : BitReaderBase
         if (this.pos < this.bufferEnd)
         {
             this.bits += 8;
-            this.value = this.Data.Memory.Span[(int)this.pos++] | (this.value << 8);
+            this.value = this.Data!.Memory.Span[(int)this.pos++] | (this.value << 8);
         }
         else if (!this.eof)
         {

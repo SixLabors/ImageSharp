@@ -46,23 +46,10 @@ internal interface IShuffle4 : IComponentShuffle
 
 internal readonly struct DefaultShuffle4 : IShuffle4
 {
-    private readonly byte p3;
-    private readonly byte p2;
-    private readonly byte p1;
-    private readonly byte p0;
-
-    public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
+    public DefaultShuffle4(byte control)
     {
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
-
-        this.p3 = p3;
-        this.p2 = p2;
-        this.p1 = p1;
-        this.p0 = p0;
-        this.Control = Shuffle.MmShuffle(p3, p2, p1, p0);
+        DebugGuard.MustBeBetweenOrEqualTo<byte>(control, 0, 3, nameof(control));
+        this.Control = control;
     }
 
     public byte Control { get; }
@@ -77,10 +64,7 @@ internal readonly struct DefaultShuffle4 : IShuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        int p3 = this.p3;
-        int p2 = this.p2;
-        int p1 = this.p1;
-        int p0 = this.p0;
+        Shuffle.InverseMmShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
 
         for (int i = 0; i < source.Length; i += 4)
         {

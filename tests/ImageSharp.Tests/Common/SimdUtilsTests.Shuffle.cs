@@ -65,19 +65,19 @@ public partial class SimdUtilsTests
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
                 SimdUtils.Shuffle.MMShuffle3012);
 
-            DefaultShuffle4 xwyz = new(2, 1, 3, 0);
+            DefaultShuffle4 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            DefaultShuffle4 yyyy = new(1, 1, 1, 1);
+            DefaultShuffle4 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            DefaultShuffle4 wwww = new(3, 3, 3, 3);
+            DefaultShuffle4 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
             TestShuffleByte4Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
@@ -101,25 +101,25 @@ public partial class SimdUtilsTests
             // These cannot be expressed as a theory as you cannot
             // use RemoteExecutor within generic methods nor pass
             // IShuffle3 to the generic utils method.
-            DefaultShuffle3 zyx = new(0, 1, 2);
+            DefaultShuffle3 zyx = new(SimdUtils.Shuffle.MMShuffle3012);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zyx),
                 zyx.Control);
 
-            DefaultShuffle3 xyz = new(2, 1, 0);
+            DefaultShuffle3 xyz = new(SimdUtils.Shuffle.MMShuffle3210);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, xyz),
                 xyz.Control);
 
-            DefaultShuffle3 yyy = new(1, 1, 1);
+            DefaultShuffle3 yyy = new(SimdUtils.Shuffle.MMShuffle3111);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, yyy),
                 yyy.Control);
 
-            DefaultShuffle3 zzz = new(2, 2, 2);
+            DefaultShuffle3 zzz = new(SimdUtils.Shuffle.MMShuffle3222);
             TestShuffleByte3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zzz),
@@ -149,19 +149,19 @@ public partial class SimdUtilsTests
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xyzw),
                 SimdUtils.Shuffle.MMShuffle3210);
 
-            DefaultPad3Shuffle4 xwyz = new(2, 1, 3, 0);
+            DefaultPad3Shuffle4 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            DefaultPad3Shuffle4 yyyy = new(1, 1, 1, 1);
+            DefaultPad3Shuffle4 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            DefaultPad3Shuffle4 wwww = new(3, 3, 3, 3);
+            DefaultPad3Shuffle4 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
             TestPad3Shuffle4Channel(
                 size,
                 (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, wwww),
@@ -191,19 +191,19 @@ public partial class SimdUtilsTests
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xyzw),
                 SimdUtils.Shuffle.MMShuffle3210);
 
-            DefaultShuffle4Slice3 xwyz = new(2, 1, 3, 0);
+            DefaultShuffle4Slice3 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xwyz),
                 xwyz.Control);
 
-            DefaultShuffle4Slice3 yyyy = new(1, 1, 1, 1);
+            DefaultShuffle4Slice3 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, yyyy),
                 yyyy.Control);
 
-            DefaultShuffle4Slice3 wwww = new(3, 3, 3, 3);
+            DefaultShuffle4Slice3 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
             TestShuffle4Slice3Channel(
                 size,
                 (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, wwww),

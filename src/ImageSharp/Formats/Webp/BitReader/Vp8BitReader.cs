@@ -57,12 +57,12 @@ internal class Vp8BitReader : BitReaderBase
     /// <param name="partitionLength">The partition length.</param>
     /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
     public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, uint partitionLength, int startPos = 0)
+        : base(inputStream, (int)imageDataSize, memoryAllocator)
     {
         Guard.MustBeLessThan(imageDataSize, int.MaxValue, nameof(imageDataSize));
 
         this.ImageDataSize = imageDataSize;
         this.PartitionLength = partitionLength;
-        this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
         this.InitBitreader(partitionLength, startPos);
     }
 
@@ -73,8 +73,8 @@ internal class Vp8BitReader : BitReaderBase
     /// <param name="partitionLength">The partition length.</param>
     /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
     public Vp8BitReader(IMemoryOwner<byte> imageData, uint partitionLength, int startPos = 0)
+        : base(imageData)
     {
-        this.Data = imageData;
         this.ImageDataSize = (uint)imageData.Memory.Length;
         this.PartitionLength = partitionLength;
         this.InitBitreader(partitionLength, startPos);
@@ -186,7 +186,7 @@ internal class Vp8BitReader : BitReaderBase
     {
         if (this.pos < this.bufferMax)
         {
-            ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data!.Memory.Span.Slice((int)this.pos, 8));
+            ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.Memory.Span.Slice((int)this.pos, 8));
             this.pos += BitsCount >> 3;
             ulong bits = ByteSwap64(inBits);
             bits >>= 64 - BitsCount;
@@ -205,7 +205,7 @@ internal class Vp8BitReader : BitReaderBase
         if (this.pos < this.bufferEnd)
         {
             this.bits += 8;
-            this.value = this.Data!.Memory.Span[(int)this.pos++] | (this.value << 8);
+            this.value = this.Data.Memory.Span[(int)this.pos++] | (this.value << 8);
         }
         else if (!this.eof)
         {

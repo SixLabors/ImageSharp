@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitReader;
@@ -14,10 +13,14 @@ internal abstract class BitReaderBase : IDisposable
 {
     private bool isDisposed;
 
+    protected BitReaderBase(IMemoryOwner<byte> data) => this.Data = data;
+
+    protected BitReaderBase(Stream inputStream, int imageDataSize, MemoryAllocator memoryAllocator) => this.Data = ReadImageDataFromStream(inputStream, imageDataSize, memoryAllocator);
+
     /// <summary>
     /// Gets or sets the raw encoded image data.
     /// </summary>
-    public IMemoryOwner<byte>? Data { get; set; }
+    public IMemoryOwner<byte> Data { get; set; }
 
     /// <summary>
     /// Copies the raw encoded image data from the stream into a byte array.
@@ -25,12 +28,13 @@ internal abstract class BitReaderBase : IDisposable
     /// <param name="input">The input stream.</param>
     /// <param name="bytesToRead">Number of bytes to read as indicated from the chunk size.</param>
     /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
-    [MemberNotNull(nameof(Data))]
-    protected void ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator memoryAllocator)
+    protected static IMemoryOwner<byte> ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator memoryAllocator)
     {
-        this.Data = memoryAllocator.Allocate<byte>(bytesToRead);
-        Span<byte> dataSpan = this.Data.Memory.Span;
+        IMemoryOwner<byte> data = memoryAllocator.Allocate<byte>(bytesToRead);
+        Span<byte> dataSpan = data.Memory.Span;
         input.Read(dataSpan[..bytesToRead], 0, bytesToRead);
+
+        return data;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -42,7 +46,7 @@ internal abstract class BitReaderBase : IDisposable
 
         if (disposing)
         {
-            this.Data?.Dispose();
+            this.Data.Dispose();
         }
 
         this.isDisposed = true;

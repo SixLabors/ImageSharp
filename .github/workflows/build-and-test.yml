@@ -196,9 +196,9 @@ jobs:
         shell: pwsh
         run: ./ci-pack.ps1
 
-      - name: MyGet Publish
+      - name: Feedz Publish
         shell: pwsh
         run: |
-          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v2/package
-          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v3/index.json
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/symbols
         # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

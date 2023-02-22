@@ -54,9 +54,9 @@ For more information, see the [.NET Foundation Code of Conduct](https://dotnetfo
 
 Install stable releases via Nuget; development releases are available via MyGet.
 
-| Package Name                   | Release (NuGet) | Nightly (MyGet) |
+| Package Name                   | Release (NuGet) | Nightly (Feedz.io) |
 |--------------------------------|-----------------|-----------------|
-| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/vpre/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
+| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![feedz.io](https://img.shields.io/badge/endpoint.svg?url=https%3A%2F%2Ff.feedz.io%2Fsixlabors%2Fsixlabors%2Fshield%2FSixLabors.ImageSharp%2Flatest)](https://f.feedz.io/sixlabors/sixlabors/nuget/index.json) |
 
 ## Manual build
 

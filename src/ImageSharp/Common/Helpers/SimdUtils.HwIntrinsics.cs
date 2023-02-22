@@ -297,7 +297,7 @@ internal static partial class SimdUtils
                 // shuffle controls to add to the library.
                 // We can add static ROS instances if need be in the future.
                 Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector256<byte> vshuffle = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector256<byte> sourceBase =
@@ -333,7 +333,7 @@ internal static partial class SimdUtils
             {
                 // Ssse3
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -382,7 +382,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -445,7 +445,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -489,7 +489,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =

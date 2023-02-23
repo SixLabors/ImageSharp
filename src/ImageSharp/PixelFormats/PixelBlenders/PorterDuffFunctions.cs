@@ -263,8 +263,8 @@ internal static partial class PorterDuffFunctions
     public static Vector4 Over(Vector4 destination, Vector4 source, Vector4 blend)
     {
         // calculate weights
-        Vector4 sW = PermuteW(source);
-        Vector4 dW = PermuteW(destination);
+        Vector4 sW = Numerics.PermuteW(source);
+        Vector4 dW = Numerics.PermuteW(destination);
 
         Vector4 blendW = sW * dW;
         Vector4 dstW = dW - blendW;
@@ -277,8 +277,8 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (destination * dstW) + (source * srcW) + (blend * blendW);
 
         // unpremultiply
-        color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        return WithW(color, alpha);
+        Numerics.UnPremultiply(ref color, alpha);
+        return color;
     }
 
     /// <summary>
@@ -308,8 +308,7 @@ internal static partial class PorterDuffFunctions
         color = SimdUtils.HwIntrinsics.MultiplyAdd(color, blend, blendW);
 
         // unpremultiply
-        color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
-        return Avx.Blend(color, alpha, BlendAlphaControl);
+        return Numerics.UnPremultiply(color, alpha);
     }
 
     /// <summary>
@@ -323,8 +322,8 @@ internal static partial class PorterDuffFunctions
     public static Vector4 Atop(Vector4 destination, Vector4 source, Vector4 blend)
     {
         // calculate weights
-        Vector4 sW = PermuteW(source);
-        Vector4 dW = PermuteW(destination);
+        Vector4 sW = Numerics.PermuteW(source);
+        Vector4 dW = Numerics.PermuteW(destination);
 
         Vector4 blendW = sW * dW;
         Vector4 dstW = dW - blendW;
@@ -336,8 +335,8 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (destination * dstW) + (blend * blendW);
 
         // unpremultiply
-        color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        return WithW(color, alpha);
+        Numerics.UnPremultiply(ref color, alpha);
+        return color;
     }
 
     /// <summary>
@@ -362,8 +361,7 @@ internal static partial class PorterDuffFunctions
         Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(blend, blendW), destination, dstW);
 
         // unpremultiply
-        color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
-        return Avx.Blend(color, alpha, BlendAlphaControl);
+        return Numerics.UnPremultiply(color, alpha);
     }
 
     /// <summary>
@@ -375,13 +373,13 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 In(Vector4 destination, Vector4 source)
     {
-        Vector4 sW = PermuteW(source);
-        Vector4 dW = PermuteW(destination);
+        Vector4 sW = Numerics.PermuteW(source);
+        Vector4 dW = Numerics.PermuteW(destination);
         Vector4 alpha = dW * sW;
 
-        Vector4 color = source * alpha;                    // premultiply
-        color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
-        return WithW(color, alpha);
+        Vector4 color = source * alpha;            // premultiply
+        Numerics.UnPremultiply(ref color, alpha);  // unpremultiply
+        return color;
     }
 
     /// <summary>
@@ -400,8 +398,7 @@ internal static partial class PorterDuffFunctions
         Vector256<float> color = Avx.Multiply(source, alpha);
 
         // unpremultiply
-        color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
-        return Avx.Blend(color, alpha, BlendAlphaControl);
+        return Numerics.UnPremultiply(color, alpha);
     }
 
     /// <summary>
@@ -413,13 +410,13 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 Out(Vector4 destination, Vector4 source)
     {
-        Vector4 sW = PermuteW(source);
-        Vector4 dW = PermuteW(destination);
+        Vector4 sW = Numerics.PermuteW(source);
+        Vector4 dW = Numerics.PermuteW(destination);
         Vector4 alpha = (Vector4.One - dW) * sW;
 
-        Vector4 color = source * alpha;                    // premultiply
-        color /= Vector4.Max(alpha, new(Constants.Epsilon));   // unpremultiply
-        return WithW(color, alpha);
+        Vector4 color = source * alpha;            // premultiply
+        Numerics.UnPremultiply(ref color, alpha);  // unpremultiply
+        return color;
     }
 
     /// <summary>
@@ -438,8 +435,7 @@ internal static partial class PorterDuffFunctions
         Vector256<float> color = Avx.Multiply(source, alpha);
 
         // unpremultiply
-        color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
-        return Avx.Blend(color, alpha, BlendAlphaControl);
+        return Numerics.UnPremultiply(color, alpha);
     }
 
     /// <summary>
@@ -451,8 +447,8 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 Xor(Vector4 destination, Vector4 source)
     {
-        Vector4 sW = PermuteW(source);
-        Vector4 dW = PermuteW(destination);
+        Vector4 sW = Numerics.PermuteW(source);
+        Vector4 dW = Numerics.PermuteW(destination);
 
         Vector4 srcW = Vector4.One - dW;
         Vector4 dstW = Vector4.One - sW;
@@ -461,8 +457,8 @@ internal static partial class PorterDuffFunctions
         Vector4 color = (sW * source * srcW) + (dW * destination * dstW);
 
         // unpremultiply
-        color /= Vector4.Max(alpha, new(Constants.Epsilon));
-        return WithW(color, alpha);
+        Numerics.UnPremultiply(ref color, alpha);
+        return color;
     }
 
     /// <summary>
@@ -487,8 +483,7 @@ internal static partial class PorterDuffFunctions
         Vector256<float> color = SimdUtils.HwIntrinsics.MultiplyAdd(Avx.Multiply(Avx.Multiply(dW, destination), dstW), Avx.Multiply(sW, source), srcW);
 
         // unpremultiply
-        color = Avx.Divide(color, Avx.Max(alpha, Vector256.Create(Constants.Epsilon)));
-        return Avx.Blend(color, alpha, BlendAlphaControl);
+        return Numerics.UnPremultiply(color, alpha);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -496,35 +491,4 @@ internal static partial class PorterDuffFunctions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<float> Clear(Vector256<float> backdrop, Vector256<float> source) => Vector256<float>.Zero;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector4 WithW(Vector4 value, Vector4 w)
-    {
-        if (Sse41.IsSupported)
-        {
-            return Sse41.Insert(value.AsVector128(), w.AsVector128(), 0b11_11_0000).AsVector4();
-        }
-
-        if (Sse.IsSupported)
-        {
-            // Create tmp as <w[3], w[0], value[2], value[0]>
-            // Then return <value[0], value[1], tmp[2], tmp[0]> (which is <value[0], value[1], value[2], w[3]>)
-            Vector128<float> tmp = Sse.Shuffle(w.AsVector128(), value.AsVector128(), 0b00_10_00_11);
-            return Sse.Shuffle(value.AsVector128(), tmp, 0b00_10_01_00).AsVector4();
-        }
-
-        value.W = w.W;
-        return value;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector4 PermuteW(Vector4 value)
-    {
-        if (Sse.IsSupported)
-        {
-            return Sse.Shuffle(value.AsVector128(), value.AsVector128(), 0b11111111).AsVector4();
-        }
-
-        return new(value.W);
-    }
 }

@@ -57,12 +57,12 @@ internal class Vp8BitReader : BitReaderBase
     /// <param name="partitionLength">The partition length.</param>
     /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
     public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, uint partitionLength, int startPos = 0)
+        : base(inputStream, (int)imageDataSize, memoryAllocator)
     {
         Guard.MustBeLessThan(imageDataSize, int.MaxValue, nameof(imageDataSize));
 
         this.ImageDataSize = imageDataSize;
         this.PartitionLength = partitionLength;
-        this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
         this.InitBitreader(partitionLength, startPos);
     }
 
@@ -73,8 +73,8 @@ internal class Vp8BitReader : BitReaderBase
     /// <param name="partitionLength">The partition length.</param>
     /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
     public Vp8BitReader(IMemoryOwner<byte> imageData, uint partitionLength, int startPos = 0)
+        : base(imageData)
     {
-        this.Data = imageData;
         this.ImageDataSize = (uint)imageData.Memory.Length;
         this.PartitionLength = partitionLength;
         this.InitBitreader(partitionLength, startPos);

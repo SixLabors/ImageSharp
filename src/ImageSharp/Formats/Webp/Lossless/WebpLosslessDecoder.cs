@@ -158,10 +158,9 @@ internal sealed class WebpLosslessDecoder
         // Finish setting up the color-cache.
         if (isColorCachePresent)
         {
-            decoder.Metadata.ColorCache = new ColorCache();
+            decoder.Metadata.ColorCache = new ColorCache(colorCacheBits);
             colorCacheSize = 1 << colorCacheBits;
             decoder.Metadata.ColorCacheSize = colorCacheSize;
-            decoder.Metadata.ColorCache.Init(colorCacheBits);
         }
         else
         {

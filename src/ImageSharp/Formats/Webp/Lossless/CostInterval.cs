@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Diagnostics;
 
@@ -33,7 +32,7 @@ internal class CostInterval
 
     public int Index { get; set; }
 
-    public CostInterval Previous { get; set; }
+    public CostInterval? Previous { get; set; }
 
-    public CostInterval Next { get; set; }
+    public CostInterval? Next { get; set; }
 }

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -81,16 +79,17 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private readonly Configuration configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.
     /// </summary>
     /// <param name="encoder">The encoder with options.</param>
-    /// <param name="memoryAllocator">The memory manager.</param>
-    public WebpEncoderCore(WebpEncoder encoder, MemoryAllocator memoryAllocator)
+    /// <param name="configuration">The global configuration.</param>
+    public WebpEncoderCore(WebpEncoder encoder, Configuration configuration)
     {
-        this.memoryAllocator = memoryAllocator;
+        this.configuration = configuration;
+        this.memoryAllocator = configuration.MemoryAllocator;
         this.alphaCompression = encoder.UseAlphaCompression;
         this.fileFormat = encoder.FileFormat;
         this.quality = encoder.Quality;
@@ -117,7 +116,6 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        this.configuration = image.GetConfiguration();
         bool lossless;
         if (this.fileFormat is not null)
         {

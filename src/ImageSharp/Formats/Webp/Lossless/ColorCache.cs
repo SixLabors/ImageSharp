@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Runtime.CompilerServices;
 
@@ -14,31 +13,31 @@ internal class ColorCache
     private const uint HashMul = 0x1e35a7bdu;
 
     /// <summary>
-    /// Gets the color entries.
-    /// </summary>
-    public uint[] Colors { get; private set; }
-
-    /// <summary>
-    /// Gets the hash shift: 32 - hashBits.
-    /// </summary>
-    public int HashShift { get; private set; }
-
-    /// <summary>
-    /// Gets the hash bits.
-    /// </summary>
-    public int HashBits { get; private set; }
-
-    /// <summary>
-    /// Initializes a new color cache.
+    /// Initializes a new instance of the <see cref="ColorCache"/> class.
     /// </summary>
     /// <param name="hashBits">The hashBits determine the size of cache. It will be 1 left shifted by hashBits.</param>
-    public void Init(int hashBits)
+    public ColorCache(int hashBits)
     {
         int hashSize = 1 << hashBits;
         this.Colors = new uint[hashSize];
         this.HashBits = hashBits;
         this.HashShift = 32 - hashBits;
     }
+
+    /// <summary>
+    /// Gets the color entries.
+    /// </summary>
+    public uint[] Colors { get; }
+
+    /// <summary>
+    /// Gets the hash shift: 32 - hashBits.
+    /// </summary>
+    public int HashShift { get; }
+
+    /// <summary>
+    /// Gets the hash bits.
+    /// </summary>
+    public int HashBits { get; }
 
     /// <summary>
     /// Inserts a new color into the cache.

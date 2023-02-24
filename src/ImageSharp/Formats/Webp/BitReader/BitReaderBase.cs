@@ -13,14 +13,16 @@ internal abstract class BitReaderBase : IDisposable
 {
     private bool isDisposed;
 
-    protected BitReaderBase(IMemoryOwner<byte> data) => this.Data = data;
+    protected BitReaderBase(IMemoryOwner<byte> data)
+        => this.Data = data;
 
-    protected BitReaderBase(Stream inputStream, int imageDataSize, MemoryAllocator memoryAllocator) => this.Data = ReadImageDataFromStream(inputStream, imageDataSize, memoryAllocator);
+    protected BitReaderBase(Stream inputStream, int imageDataSize, MemoryAllocator memoryAllocator)
+        => this.Data = ReadImageDataFromStream(inputStream, imageDataSize, memoryAllocator);
 
     /// <summary>
-    /// Gets or sets the raw encoded image data.
+    /// Gets the raw encoded image data.
     /// </summary>
-    public IMemoryOwner<byte> Data { get; set; }
+    public IMemoryOwner<byte> Data { get; }
 
     /// <summary>
     /// Copies the raw encoded image data from the stream into a byte array.

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -28,17 +27,17 @@ internal class ColorCache
     /// <summary>
     /// Gets the color entries.
     /// </summary>
-    public uint[] Colors { get; private set; }
+    public uint[] Colors { get; }
 
     /// <summary>
     /// Gets the hash shift: 32 - hashBits.
     /// </summary>
-    public int HashShift { get; private set; }
+    public int HashShift { get; }
 
     /// <summary>
     /// Gets the hash bits.
     /// </summary>
-    public int HashBits { get; private set; }
+    public int HashBits { get; }
 
     /// <summary>
     /// Inserts a new color into the cache.

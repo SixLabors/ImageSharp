@@ -20,12 +20,25 @@ public class UnPremultiplyVector4
         for (int i = 0; i < Vectors.Length; i++)
         {
             ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+
             UnPremultiply(ref v);
         }
     }
 
     [Benchmark]
-    public void UnPremultiply() => Numerics.UnPremultiply(Vectors);
+    public void UnPremultiply()
+    {
+        ref Vector4 baseRef = ref MemoryMarshal.GetReference<Vector4>(Vectors);
+
+        for (int i = 0; i < Vectors.Length; i++)
+        {
+            ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+            Numerics.UnPremultiply(ref v);
+        }
+    }
+
+    [Benchmark]
+    public void UnPremultiplyBulk() => Numerics.UnPremultiply(Vectors);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void UnPremultiply(ref Vector4 source)

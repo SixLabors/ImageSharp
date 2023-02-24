@@ -474,8 +474,10 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Premultiply(ref Vector4 source)
     {
-        Vector4 alpha = PermuteW(source);
-        source = WithW(source * alpha, alpha);
+        // Load into a local variable to prevent accessing the source from memory multiple times.
+        Vector4 src = source;
+        Vector4 alpha = PermuteW(src);
+        source = WithW(src * alpha, alpha);
     }
 
     /// <summary>

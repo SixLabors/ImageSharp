@@ -25,7 +25,19 @@ public class PremultiplyVector4
     }
 
     [Benchmark]
-    public void Premultiply() => Numerics.Premultiply(Vectors);
+    public void Premultiply()
+    {
+        ref Vector4 baseRef = ref MemoryMarshal.GetReference<Vector4>(Vectors);
+
+        for (int i = 0; i < Vectors.Length; i++)
+        {
+            ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+            Numerics.Premultiply(ref v);
+        }
+    }
+
+    [Benchmark]
+    public void PremultiplyBulk() => Numerics.Premultiply(Vectors);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void Premultiply(ref Vector4 source)

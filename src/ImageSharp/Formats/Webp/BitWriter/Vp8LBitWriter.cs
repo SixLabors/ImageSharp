@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -138,25 +137,25 @@ internal class Vp8LBitWriter : BitWriterBase
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, IccProfile iccProfile, uint width, uint height, bool hasAlpha)
+    public void WriteEncodedImageToStream(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha)
     {
         bool isVp8X = false;
-        byte[] exifBytes = null;
-        byte[] xmpBytes = null;
-        byte[] iccBytes = null;
+        byte[]? exifBytes = null;
+        byte[]? xmpBytes = null;
+        byte[]? iccBytes = null;
         uint riffSize = 0;
         if (exifProfile != null)
         {
             isVp8X = true;
             exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes);
+            riffSize += MetadataChunkSize(exifBytes!);
         }
 
         if (xmpProfile != null)
         {
             isVp8X = true;
             xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes);
+            riffSize += MetadataChunkSize(xmpBytes!);
         }
 
         if (iccProfile != null)

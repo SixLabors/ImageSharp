@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
@@ -50,7 +49,7 @@ internal static class BackwardReferenceEncoder
         int lz77TypeBest = 0;
         double bitCostBest = -1;
         int cacheBitsInitial = cacheBits;
-        Vp8LHashChain hashChainBox = null;
+        Vp8LHashChain? hashChainBox = null;
         var stats = new Vp8LStreaks();
         var bitsEntropy = new Vp8LBitEntropy();
         for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
@@ -101,7 +100,7 @@ internal static class BackwardReferenceEncoder
         // Improve on simple LZ77 but only for high quality (TraceBackwards is costly).
         if ((lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard || lz77TypeBest == (int)Vp8LLz77Type.Lz77Box) && quality >= 25)
         {
-            Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox;
+            Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox!;
             BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp, best, worst);
             var histo = new Vp8LHistogram(worst, cacheBits);
             double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
@@ -140,8 +139,7 @@ internal static class BackwardReferenceEncoder
         for (int i = 0; i <= WebpConstants.MaxColorCacheBits; i++)
         {
             histos[i] = new Vp8LHistogram(paletteCodeBits: i);
-            colorCache[i] = new ColorCache();
-            colorCache[i].Init(i);
+            colorCache[i] = new ColorCache(i);
         }
 
         // Find the cacheBits giving the lowest entropy.
@@ -274,11 +272,11 @@ internal static class BackwardReferenceEncoder
         double offsetCost = -1;
         int firstOffsetIsConstant = -1;  // initialized with 'impossible' value.
         int reach = 0;
-        var colorCache = new ColorCache();
+        ColorCache? colorCache = null;
 
         if (useColorCache)
         {
-            colorCache.Init(cacheBits);
+            colorCache = new ColorCache(cacheBits);
         }
 
         costModel.Build(xSize, cacheBits, refs);
@@ -375,12 +373,12 @@ internal static class BackwardReferenceEncoder
     private static void BackwardReferencesHashChainFollowChosenPath(ReadOnlySpan<uint> bgra, int cacheBits, Span<ushort> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
     {
         bool useColorCache = cacheBits > 0;
-        var colorCache = new ColorCache();
+        ColorCache? colorCache = null;
         int i = 0;
 
         if (useColorCache)
         {
-            colorCache.Init(cacheBits);
+            colorCache = new ColorCache(cacheBits);
         }
 
         backwardRefs.Refs.Clear();
@@ -396,7 +394,7 @@ internal static class BackwardReferenceEncoder
                 {
                     for (int k = 0; k < len; k++)
                     {
-                        colorCache.Insert(bgra[i + k]);
+                        colorCache!.Insert(bgra[i + k]);
                     }
                 }
 
@@ -405,7 +403,7 @@ internal static class BackwardReferenceEncoder
             else
             {
                 PixOrCopy v;
-                int idx = useColorCache ? colorCache.Contains(bgra[i]) : -1;
+                int idx = useColorCache ? colorCache!.Contains(bgra[i]) : -1;
                 if (idx >= 0)
                 {
                     // useColorCache is true and color cache contains bgra[i]
@@ -416,7 +414,7 @@ internal static class BackwardReferenceEncoder
                 {
                     if (useColorCache)
                     {
-                        colorCache.Insert(bgra[i]);
+                        colorCache!.Insert(bgra[i]);
                     }
 
                     v = PixOrCopy.CreateLiteral(bgra[i]);
@@ -430,7 +428,7 @@ internal static class BackwardReferenceEncoder
 
     private static void AddSingleLiteralWithCostModel(
         ReadOnlySpan<uint> bgra,
-        ColorCache colorCache,
+        ColorCache? colorCache,
         CostModel costModel,
         int idx,
         bool useColorCache,
@@ -440,7 +438,7 @@ internal static class BackwardReferenceEncoder
     {
         double costVal = prevCost;
         uint color = bgra[idx];
-        int ix = useColorCache ? colorCache.Contains(color) : -1;
+        int ix = useColorCache ? colorCache!.Contains(color) : -1;
         if (ix >= 0)
         {
             double mul0 = 0.68;
@@ -451,7 +449,7 @@ internal static class BackwardReferenceEncoder
             double mul1 = 0.82;
             if (useColorCache)
             {
-                colorCache.Insert(color);
+                colorCache!.Insert(color);
             }
 
             costVal += costModel.GetLiteralCost(color) * mul1;
@@ -469,10 +467,10 @@ internal static class BackwardReferenceEncoder
         int iLastCheck = -1;
         bool useColorCache = cacheBits > 0;
         int pixCount = xSize * ySize;
-        var colorCache = new ColorCache();
+        ColorCache? colorCache = null;
         if (useColorCache)
         {
-            colorCache.Init(cacheBits);
+            colorCache = new ColorCache(cacheBits);
         }
 
         refs.Refs.Clear();
@@ -529,7 +527,7 @@ internal static class BackwardReferenceEncoder
                 {
                     for (j = i; j < i + len; j++)
                     {
-                        colorCache.Insert(bgra[j]);
+                        colorCache!.Insert(bgra[j]);
                     }
                 }
             }
@@ -725,11 +723,11 @@ internal static class BackwardReferenceEncoder
     {
         int pixelCount = xSize * ySize;
         bool useColorCache = cacheBits > 0;
-        var colorCache = new ColorCache();
+        ColorCache? colorCache = null;
 
         if (useColorCache)
         {
-            colorCache.Init(cacheBits);
+            colorCache = new ColorCache(cacheBits);
         }
 
         refs.Refs.Clear();
@@ -757,7 +755,7 @@ internal static class BackwardReferenceEncoder
                 {
                     for (int k = 0; k < prevRowLen; ++k)
                     {
-                        colorCache.Insert(bgra[i + k]);
+                        colorCache!.Insert(bgra[i + k]);
                     }
                 }
 
@@ -777,8 +775,7 @@ internal static class BackwardReferenceEncoder
     private static void BackwardRefsWithLocalCache(ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
     {
         int pixelIndex = 0;
-        var colorCache = new ColorCache();
-        colorCache.Init(cacheBits);
+        ColorCache colorCache = new(cacheBits);
         for (int idx = 0; idx < refs.Refs.Count; idx++)
         {
             PixOrCopy v = refs.Refs[idx];
@@ -825,12 +822,12 @@ internal static class BackwardReferenceEncoder
         }
     }
 
-    private static void AddSingleLiteral(uint pixel, bool useColorCache, ColorCache colorCache, Vp8LBackwardRefs refs)
+    private static void AddSingleLiteral(uint pixel, bool useColorCache, ColorCache? colorCache, Vp8LBackwardRefs refs)
     {
         PixOrCopy v;
         if (useColorCache)
         {
-            int key = colorCache.GetIndex(pixel);
+            int key = colorCache!.GetIndex(pixel);
             if (colorCache.Lookup(key) == pixel)
             {
                 v = PixOrCopy.CreateCacheIdx(key);

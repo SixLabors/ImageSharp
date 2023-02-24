@@ -348,12 +348,18 @@ internal class Vp8Encoder : IDisposable
         // Extract and encode alpha channel data, if present.
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
-        using AlphaEncoder alphaEncoder = new();
         Span<byte> alphaData = Span<byte>.Empty;
         if (hasAlpha)
         {
             // TODO: This can potentially run in an separate task.
-            IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.skipMetadata, this.alphaCompression, out alphaDataSize);
+            using IMemoryOwner<byte> encodedAlphaData = AlphaEncoder.EncodeAlpha(
+                image,
+                this.configuration,
+                this.memoryAllocator,
+                this.skipMetadata,
+                this.alphaCompression,
+                out alphaDataSize);
+
             alphaData = encodedAlphaData.GetSpan();
             if (alphaDataSize < pixelCount)
             {

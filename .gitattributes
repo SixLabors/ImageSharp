@@ -64,18 +64,19 @@
 # Set explicit file behavior to:
 #   treat as text
 #   normalize to Unix-style line endings and
-#   use a union merge when resoling conflicts
+#   use a union merge when resolving conflicts
 ###############################################################################
 *.csproj            text        eol=lf          merge=union
 *.dbproj            text        eol=lf          merge=union
 *.fsproj            text        eol=lf          merge=union
 *.ncrunchproject    text        eol=lf          merge=union
 *.vbproj            text        eol=lf          merge=union
+*.shproj            text        eol=lf          merge=union
 ###############################################################################
 # Set explicit file behavior to:
 #   treat as text
 #   normalize to Windows-style line endings and
-#   use a union merge when resoling conflicts
+#   use a union merge when resolving conflicts
 ###############################################################################
 *.sln               text        eol=crlf        merge=union
 ###############################################################################

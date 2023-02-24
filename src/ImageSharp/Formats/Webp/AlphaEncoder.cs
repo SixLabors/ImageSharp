@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using SixLabors.ImageSharp.Advanced;
@@ -13,10 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Methods for encoding the alpha data of a VP8 image.
 /// </summary>
-internal class AlphaEncoder : IDisposable
+internal static class AlphaEncoder
 {
-    private IMemoryOwner<byte> alphaData;
-
     /// <summary>
     /// Encodes the alpha channel data.
     /// Data is either compressed as lossless webp image or uncompressed.
@@ -29,12 +26,18 @@ internal class AlphaEncoder : IDisposable
     /// <param name="compress">Indicates, if the data should be compressed with the lossless webp compression.</param>
     /// <param name="size">The size in bytes of the alpha data.</param>
     /// <returns>The encoded alpha data.</returns>
-    public IMemoryOwner<byte> EncodeAlpha<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, bool skipMetadata, bool compress, out int size)
+    public static IMemoryOwner<byte> EncodeAlpha<TPixel>(
+        Image<TPixel> image,
+        Configuration configuration,
+        MemoryAllocator memoryAllocator,
+        bool skipMetadata,
+        bool compress,
+        out int size)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = image.Width;
         int height = image.Height;
-        this.alphaData = ExtractAlphaChannel(image, configuration, memoryAllocator);
+        IMemoryOwner<byte> alphaData = ExtractAlphaChannel(image, configuration, memoryAllocator);
 
         if (compress)
         {
@@ -55,15 +58,15 @@ internal class AlphaEncoder : IDisposable
             // The transparency information will be stored in the green channel of the ARGB quadruplet.
             // The green channel is allowed extra transformation steps in the specification -- unlike the other channels,
             // that can improve compression.
-            using Image<Rgba32> alphaAsImage = DispatchAlphaToGreen(image, this.alphaData.GetSpan());
+            using Image<Rgba32> alphaAsImage = DispatchAlphaToGreen(image, alphaData.GetSpan());
 
-            size = lossLessEncoder.EncodeAlphaImageData(alphaAsImage, this.alphaData);
+            size = lossLessEncoder.EncodeAlphaImageData(alphaAsImage, alphaData);
 
-            return this.alphaData;
+            return alphaData;
         }
 
         size = width * height;
-        return this.alphaData;
+        return alphaData;
     }
 
     /// <summary>
@@ -128,7 +131,4 @@ internal class AlphaEncoder : IDisposable
 
         return alphaDataBuffer;
     }
-
-    /// <inheritdoc/>
-    public void Dispose() => this.alphaData?.Dispose();
 }

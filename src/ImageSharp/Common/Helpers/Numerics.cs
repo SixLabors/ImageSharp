@@ -538,6 +538,8 @@ internal static class Numerics
             return;
         }
 
+        // Divide source by alpha if alpha is nonzero, otherwise set all components to match the source value
+        // Blend the result with the alpha vector to ensure that the alpha component is unchanged
         source = WithW(source / alpha, alpha);
     }
 

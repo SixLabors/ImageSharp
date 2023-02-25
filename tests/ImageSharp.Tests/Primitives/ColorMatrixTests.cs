@@ -75,11 +75,20 @@ public class ColorMatrixTests
         m.M43 = (value1.M41 * value2.M13) + (value1.M42 * value2.M23) + (value1.M43 * value2.M33) + (value1.M44 * value2.M43);
         m.M44 = (value1.M41 * value2.M14) + (value1.M42 * value2.M24) + (value1.M43 * value2.M34) + (value1.M44 * value2.M44);
 
+#if NET6_0
         // Fifth row
         m.M51 = (value1.M51 * value2.M11) + (value1.M52 * value2.M21) + (value1.M53 * value2.M31) + (value1.M54 * value2.M41) + value2.M51;
         m.M52 = (value1.M51 * value2.M12) + (value1.M52 * value2.M22) + (value1.M53 * value2.M32) + (value1.M54 * value2.M52) + value2.M52;
         m.M53 = (value1.M51 * value2.M13) + (value1.M52 * value2.M23) + (value1.M53 * value2.M33) + (value1.M54 * value2.M53) + value2.M53;
         m.M54 = (value1.M51 * value2.M14) + (value1.M52 * value2.M24) + (value1.M53 * value2.M34) + (value1.M54 * value2.M54) + value2.M54;
+#endif
+#if NET7_0_OR_GREATER
+        // Fifth row
+        m.M51 = (value1.M51 * value2.M11) + (value1.M52 * value2.M21) + (value1.M53 * value2.M31) + (value1.M54 * value2.M41);
+        m.M52 = (value1.M51 * value2.M12) + (value1.M52 * value2.M22) + (value1.M53 * value2.M32) + (value1.M54 * value2.M52);
+        m.M53 = (value1.M51 * value2.M13) + (value1.M52 * value2.M23) + (value1.M53 * value2.M33) + (value1.M54 * value2.M53);
+        m.M54 = (value1.M51 * value2.M14) + (value1.M52 * value2.M24) + (value1.M53 * value2.M34) + (value1.M54 * value2.M54);
+#endif
 
         Assert.Equal(m, value1 * value2, this.approximateFloatComparer);
     }

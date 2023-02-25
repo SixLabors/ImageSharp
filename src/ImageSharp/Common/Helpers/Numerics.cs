@@ -496,8 +496,8 @@ internal static class Numerics
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
                 Vector256<float> source = vectorsBase;
-                Vector256<float> multiply = Avx.Permute(source, ShuffleAlphaControl);
-                vectorsBase = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                Vector256<float> alpha = Avx.Permute(source, ShuffleAlphaControl);
+                vectorsBase = Avx.Blend(Avx.Multiply(source, alpha), source, BlendAlphaControl);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -610,7 +610,7 @@ internal static class Numerics
     {
         if (Sse.IsSupported)
         {
-            return Sse.Shuffle(value.AsVector128(), value.AsVector128(), 0b11111111).AsVector4();
+            return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
         }
 
         return new(value.W);

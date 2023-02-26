@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if NET7_0_OR_GREATER
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -205,5 +204,3 @@ public partial struct ColorMatrix
         public override readonly int GetHashCode() => HashCode.Combine(this.X, this.Y, this.Z, this.W, this.V);
     }
 }
-#endif
-

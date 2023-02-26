@@ -137,6 +137,23 @@ internal static class ColorNumerics
     public static int GetColorCountForBitDepth(int bitDepth)
         => 1 << bitDepth;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector4 Transform(Vector4 vector, in ColorMatrix.Impl matrix)
+    {
+        Vector4 result = matrix.X * vector.X;
+
+        result += matrix.Y * vector.Y;
+        result += matrix.Z * vector.Z;
+        result += matrix.W * vector.W;
+
+        result.X += matrix.V.X;
+        result.Y += matrix.V.Y;
+        result.Z += matrix.V.Z;
+        result.W += matrix.V.W;
+
+        return result;
+    }
+
     /// <summary>
     /// Transforms a vector by the given color matrix.
     /// </summary>
@@ -144,17 +161,7 @@ internal static class ColorNumerics
     /// <param name="matrix">The transformation color matrix.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform(ref Vector4 vector, ref ColorMatrix matrix)
-    {
-        float x = vector.X;
-        float y = vector.Y;
-        float z = vector.Z;
-        float w = vector.W;
-
-        vector.X = (x * matrix.M11) + (y * matrix.M21) + (z * matrix.M31) + (w * matrix.M41) + matrix.M51;
-        vector.Y = (x * matrix.M12) + (y * matrix.M22) + (z * matrix.M32) + (w * matrix.M42) + matrix.M52;
-        vector.Z = (x * matrix.M13) + (y * matrix.M23) + (z * matrix.M33) + (w * matrix.M43) + matrix.M53;
-        vector.W = (x * matrix.M14) + (y * matrix.M24) + (z * matrix.M34) + (w * matrix.M44) + matrix.M54;
-    }
+        => vector = Transform(vector, matrix.AsImpl());
 
     /// <summary>
     /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>.

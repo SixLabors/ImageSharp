@@ -69,7 +69,7 @@ public class TiffFrameMetadata : IDeepCloneable
     /// <returns>The <see cref="TiffFrameMetadata"/>.</returns>
     internal static TiffFrameMetadata Parse(ExifProfile profile)
     {
-        var meta = new TiffFrameMetadata();
+        TiffFrameMetadata meta = new();
         Parse(meta, profile);
         return meta;
     }
@@ -83,12 +83,10 @@ public class TiffFrameMetadata : IDeepCloneable
     {
         if (profile != null)
         {
-            if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue))
+            if (profile.TryGetValue(ExifTag.BitsPerSample, out IExifValue<ushort[]>? bitsPerSampleValue)
+                && TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
             {
-                if (TiffBitsPerSample.TryParse(bitsPerSampleValue.Value, out TiffBitsPerSample bitsPerSample))
-                {
-                    meta.BitsPerSample = bitsPerSample;
-                }
+                meta.BitsPerSample = bitsPerSample;
             }
 
             meta.BitsPerPixel = meta.BitsPerSample?.BitsPerPixel();

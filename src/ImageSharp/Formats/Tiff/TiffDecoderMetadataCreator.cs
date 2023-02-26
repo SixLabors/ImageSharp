@@ -27,8 +27,6 @@ internal static class TiffDecoderMetadataCreator
 
         if (!ignoreMetadata)
         {
-            var tiffMetadata = imageMetaData.GetTiffMetadata();
-            var framesMetadata = new List<TiffFrameMetadata>(frames.Count);
             for (int i = 0; i < frames.Count; i++)
             {
                 ImageFrameMetadata frameMetaData = frames[i];
@@ -46,11 +44,7 @@ internal static class TiffDecoderMetadataCreator
                 {
                     frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                 }
-
-                framesMetadata.Add(frameMetaData.GetTiffMetadata());
             }
-
-            tiffMetadata.Frames = framesMetadata;
         }
 
         return imageMetaData;
@@ -58,7 +52,7 @@ internal static class TiffDecoderMetadataCreator
 
     private static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
     {
-        var imageMetaData = new ImageMetadata();
+        ImageMetadata imageMetaData = new();
         SetResolution(imageMetaData, exifProfile);
 
         TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
@@ -94,7 +88,7 @@ internal static class TiffDecoderMetadataCreator
 
         if (iptc != null)
         {
-            if (iptc.DataType == ExifDataType.Byte || iptc.DataType == ExifDataType.Undefined)
+            if (iptc.DataType is ExifDataType.Byte or ExifDataType.Undefined)
             {
                 iptcBytes = (byte[])iptc.GetValue();
                 return true;

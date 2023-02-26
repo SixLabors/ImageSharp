@@ -152,7 +152,10 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         this.ReadImageHeader();
         using (this.webImageInfo = this.ReadVp8Info(true))
         {
-            return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.metadata);
+            return new ImageInfo(
+                new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
+                new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
+                this.metadata);
         }
     }
 

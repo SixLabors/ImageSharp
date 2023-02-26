@@ -88,7 +88,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
 
         // BlackAndWhite pixels are encoded into a byte.
         int bitsPerPixel = this.componentType == PbmComponentType.Short ? 16 : 8;
-        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.pixelSize.Width, this.pixelSize.Height, this.metadata);
+        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), new(this.pixelSize.Width, this.pixelSize.Height), this.metadata);
     }
 
     /// <summary>

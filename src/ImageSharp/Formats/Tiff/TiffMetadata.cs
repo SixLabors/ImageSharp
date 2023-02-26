@@ -23,15 +23,6 @@ public class TiffMetadata : IDeepCloneable
     {
         this.ByteOrder = other.ByteOrder;
         this.FormatType = other.FormatType;
-
-        var frames = new List<TiffFrameMetadata>(other.Frames.Count);
-        foreach (var otherFrame in other.Frames)
-        {
-            var frame = (TiffFrameMetadata)otherFrame.DeepClone();
-            frames.Add(frame);
-        }
-
-        this.Frames = frames;
     }
 
     /// <summary>
@@ -43,14 +34,6 @@ public class TiffMetadata : IDeepCloneable
     /// Gets or sets the format type.
     /// </summary>
     public TiffFormatType FormatType { get; set; }
-
-    /// <summary>
-    /// Gets or sets the frames.
-    /// </summary>
-    /// <value>
-    /// The frames.
-    /// </value>
-    public IReadOnlyList<TiffFrameMetadata> Frames { get; set; } = Array.Empty<TiffFrameMetadata>();
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new TiffMetadata(this);

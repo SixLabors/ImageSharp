@@ -15,11 +15,13 @@ public class ImageInfo
     /// Initializes a new instance of the <see cref="ImageInfo"/> class.
     /// </summary>
     /// <param name="pixelType">The pixel type information.</param>
-    /// <param name="width">The width of the image in px units.</param>
-    /// <param name="height">The height of the image in px units.</param>
+    /// <param name="size">The size of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
-    public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetadata? metadata)
-        : this(pixelType, new(width, height), metadata)
+    public ImageInfo(
+        PixelTypeInfo pixelType,
+        Size size,
+        ImageMetadata? metadata)
+        : this(pixelType, size, metadata, null)
     {
     }
 
@@ -29,11 +31,17 @@ public class ImageInfo
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="size">The size of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
-    public ImageInfo(PixelTypeInfo pixelType, Size size, ImageMetadata? metadata)
+    /// <param name="frameMetadataCollection">The collection of image frame metadata.</param>
+    public ImageInfo(
+        PixelTypeInfo pixelType,
+        Size size,
+        ImageMetadata? metadata,
+        IReadOnlyList<ImageFrameMetadata>? frameMetadataCollection)
     {
         this.PixelType = pixelType;
-        this.Metadata = metadata ?? new ImageMetadata();
         this.Size = size;
+        this.Metadata = metadata ?? new ImageMetadata();
+        this.FrameMetadataCollection = frameMetadataCollection ?? Array.Empty<ImageFrameMetadata>();
     }
 
     /// <summary>
@@ -52,9 +60,14 @@ public class ImageInfo
     public int Height => this.Size.Height;
 
     /// <summary>
-    /// Gets any metadata associated wit The image.
+    /// Gets any metadata associated with the image.
     /// </summary>
     public ImageMetadata Metadata { get; }
+
+    /// <summary>
+    /// Gets the collection of metadata associated with individual image frames.
+    /// </summary>
+    public IReadOnlyList<ImageFrameMetadata> FrameMetadataCollection { get; }
 
     /// <summary>
     /// Gets the size of the image in px units.

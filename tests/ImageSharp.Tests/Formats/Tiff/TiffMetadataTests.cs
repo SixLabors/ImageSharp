@@ -122,9 +122,14 @@ public class TiffMetadataTests
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
         Assert.NotNull(tiffMetadata);
 
-        Assert.Equal(framesCount, tiffMetadata.Frames.Count);
-        Assert.Equal(photometric, tiffMetadata.Frames[0].PhotometricInterpretation);
-        Assert.Equal(inkSet, tiffMetadata.Frames[0].InkSet);
+        Assert.Equal(framesCount, imageInfo.FrameMetadataCollection.Count);
+
+        foreach (ImageFrameMetadata metadata in imageInfo.FrameMetadataCollection)
+        {
+            TiffFrameMetadata tiffFrameMetadata = metadata.GetTiffMetadata();
+            Assert.Equal(photometric, tiffFrameMetadata.PhotometricInterpretation);
+            Assert.Equal(inkSet, tiffFrameMetadata.InkSet);
+        }
     }
 
     [Theory]

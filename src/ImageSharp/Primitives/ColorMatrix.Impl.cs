@@ -134,10 +134,7 @@ public partial struct ColorMatrix
             result.V += right.Z * left.V.Z;
             result.V += right.W * left.V.W;
 
-            result.V.X += right.V.X;
-            result.V.Y += right.V.Y;
-            result.V.Z += right.V.Z;
-            result.V.W += right.V.W;
+            result.V += right.V;
 
             return result;
         }

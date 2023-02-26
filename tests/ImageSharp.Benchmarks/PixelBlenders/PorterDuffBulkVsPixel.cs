@@ -60,7 +60,7 @@ public class PorterDuffBulkVsPixel
     }
 
     [Benchmark(Description = "ImageSharp BulkVectorConvert")]
-    public static Size BulkVectorConvert()
+    public Size BulkVectorConvert()
     {
         using Image<Rgba32> image = new(800, 800);
         using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);
@@ -77,7 +77,7 @@ public class PorterDuffBulkVsPixel
     }
 
     [Benchmark(Description = "ImageSharp BulkPixelConvert")]
-    public static Size BulkPixelConvert()
+    public Size BulkPixelConvert()
     {
         using Image<Rgba32> image = new(800, 800);
         using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);

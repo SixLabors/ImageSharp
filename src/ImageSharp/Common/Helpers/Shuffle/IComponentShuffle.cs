@@ -47,10 +47,7 @@ internal interface IShuffle4 : IComponentShuffle
 internal readonly struct DefaultShuffle4 : IShuffle4
 {
     public DefaultShuffle4(byte control)
-    {
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(control, 0, 3, nameof(control));
-        this.Control = control;
-    }
+        => this.Control = control;
 
     public byte Control { get; }
 

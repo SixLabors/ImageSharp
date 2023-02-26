@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
-using Iced.Intel;
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
 

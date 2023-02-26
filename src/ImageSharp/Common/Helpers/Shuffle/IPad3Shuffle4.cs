@@ -15,10 +15,7 @@ internal interface IPad3Shuffle4 : IComponentShuffle
 internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
 {
     public DefaultPad3Shuffle4(byte control)
-    {
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(control, 0, 3, nameof(control));
-        this.Control = control;
-    }
+        => this.Control = control;
 
     public byte Control { get; }
 

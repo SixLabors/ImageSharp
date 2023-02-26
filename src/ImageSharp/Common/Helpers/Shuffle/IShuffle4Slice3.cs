@@ -15,10 +15,7 @@ internal interface IShuffle4Slice3 : IComponentShuffle
 internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
 {
     public DefaultShuffle4Slice3(byte control)
-    {
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(control, 0, 3, nameof(control));
-        this.Control = control;
-    }
+        => this.Control = control;
 
     public byte Control { get; }
 

@@ -8,7 +8,6 @@ using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
 
-[Config(typeof(Config.ShortCore31))]
 public class PremultiplyVector4
 {
     private static readonly Vector4[] Vectors = CreateVectors();
@@ -28,8 +27,17 @@ public class PremultiplyVector4
     [Benchmark]
     public void Premultiply()
     {
-        Numerics.Premultiply(Vectors);
+        ref Vector4 baseRef = ref MemoryMarshal.GetReference<Vector4>(Vectors);
+
+        for (int i = 0; i < Vectors.Length; i++)
+        {
+            ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+            Numerics.Premultiply(ref v);
+        }
     }
+
+    [Benchmark]
+    public void PremultiplyBulk() => Numerics.Premultiply(Vectors);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void Premultiply(ref Vector4 source)
@@ -41,13 +49,13 @@ public class PremultiplyVector4
 
     private static Vector4[] CreateVectors()
     {
-        var rnd = new Random(42);
+        Random rnd = new(42);
         return GenerateRandomVectorArray(rnd, 2048, 0, 1);
     }
 
     private static Vector4[] GenerateRandomVectorArray(Random rnd, int length, float minVal, float maxVal)
     {
-        var values = new Vector4[length];
+        Vector4[] values = new Vector4[length];
 
         for (int i = 0; i < length; i++)
         {

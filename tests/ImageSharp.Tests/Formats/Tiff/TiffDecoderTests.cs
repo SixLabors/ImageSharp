@@ -12,6 +12,10 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
+// Several of the tests  in this class comparing images with associated alpha encoding use a high tolerance for comparison.
+// This is due to an issue in the reference decoder where it is not correctly checking for a zero alpha component value
+// before unpremultying the encoded values. This can lead to incorrect values when the rgb channels contain non-zero values.
+// The tests should be manually verified following any changes to the decoder.
 [Trait("Format", "Tiff")]
 [ValidateDisposedMemoryAllocations]
 public class TiffDecoderTests : TiffDecoderBaseTester
@@ -205,8 +209,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
     }
 
     [Theory]
@@ -262,8 +265,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
     }
 
     [Theory]
@@ -289,8 +291,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
     }
 
     [Theory]
@@ -431,8 +432,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
     }
 
     [Theory]
@@ -470,8 +470,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
     }
 
     [Theory]
@@ -500,8 +499,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             return;
         }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
     }
 
     [Theory]

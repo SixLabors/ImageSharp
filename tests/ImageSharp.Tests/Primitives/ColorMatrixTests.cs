@@ -75,20 +75,11 @@ public class ColorMatrixTests
         m.M43 = (value1.M41 * value2.M13) + (value1.M42 * value2.M23) + (value1.M43 * value2.M33) + (value1.M44 * value2.M43);
         m.M44 = (value1.M41 * value2.M14) + (value1.M42 * value2.M24) + (value1.M43 * value2.M34) + (value1.M44 * value2.M44);
 
-#if NET6_0
-        // Fifth row
-        m.M51 = (value1.M51 * value2.M11) + (value1.M52 * value2.M21) + (value1.M53 * value2.M31) + (value1.M54 * value2.M41) + value2.M51;
-        m.M52 = (value1.M51 * value2.M12) + (value1.M52 * value2.M22) + (value1.M53 * value2.M32) + (value1.M54 * value2.M52) + value2.M52;
-        m.M53 = (value1.M51 * value2.M13) + (value1.M52 * value2.M23) + (value1.M53 * value2.M33) + (value1.M54 * value2.M53) + value2.M53;
-        m.M54 = (value1.M51 * value2.M14) + (value1.M52 * value2.M24) + (value1.M53 * value2.M34) + (value1.M54 * value2.M54) + value2.M54;
-#endif
-#if NET7_0_OR_GREATER
         // Fifth row
         m.M51 = (value1.M51 * value2.M11) + (value1.M52 * value2.M21) + (value1.M53 * value2.M31) + (value1.M54 * value2.M41);
         m.M52 = (value1.M51 * value2.M12) + (value1.M52 * value2.M22) + (value1.M53 * value2.M32) + (value1.M54 * value2.M52);
         m.M53 = (value1.M51 * value2.M13) + (value1.M52 * value2.M23) + (value1.M53 * value2.M33) + (value1.M54 * value2.M53);
         m.M54 = (value1.M51 * value2.M14) + (value1.M52 * value2.M24) + (value1.M53 * value2.M34) + (value1.M54 * value2.M54);
-#endif
 
         Assert.Equal(m, value1 * value2, this.approximateFloatComparer);
     }
@@ -128,7 +119,6 @@ public class ColorMatrixTests
 
         HashCode hash = default;
 
-#if NET7_0_OR_GREATER
         Vector4 x = new(m.M11, m.M12, m.M13, m.M14);
         Vector4 y = new(m.M21, m.M22, m.M23, m.M24);
         Vector4 z = new(m.M31, m.M32, m.M33, m.M34);
@@ -140,29 +130,6 @@ public class ColorMatrixTests
         hash.Add(z);
         hash.Add(w);
         hash.Add(v);
-#endif
-#if NET6_0
-        hash.Add(m.M11);
-        hash.Add(m.M12);
-        hash.Add(m.M13);
-        hash.Add(m.M14);
-        hash.Add(m.M21);
-        hash.Add(m.M22);
-        hash.Add(m.M23);
-        hash.Add(m.M24);
-        hash.Add(m.M31);
-        hash.Add(m.M32);
-        hash.Add(m.M33);
-        hash.Add(m.M34);
-        hash.Add(m.M41);
-        hash.Add(m.M42);
-        hash.Add(m.M43);
-        hash.Add(m.M44);
-        hash.Add(m.M51);
-        hash.Add(m.M52);
-        hash.Add(m.M53);
-        hash.Add(m.M54);
-#endif
 
 
         Assert.Equal(hash.ToHashCode(), m.GetHashCode());

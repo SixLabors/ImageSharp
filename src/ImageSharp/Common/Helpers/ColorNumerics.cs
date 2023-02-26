@@ -145,11 +145,7 @@ internal static class ColorNumerics
         result += matrix.Y * vector.Y;
         result += matrix.Z * vector.Z;
         result += matrix.W * vector.W;
-
-        result.X += matrix.V.X;
-        result.Y += matrix.V.Y;
-        result.Z += matrix.V.Z;
-        result.W += matrix.V.W;
+        result += matrix.V;
 
         return result;
     }

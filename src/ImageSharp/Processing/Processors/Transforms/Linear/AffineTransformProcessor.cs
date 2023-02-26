@@ -19,7 +19,7 @@ public class AffineTransformProcessor : CloningImageProcessor
     public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size targetDimensions)
     {
         Guard.NotNull(sampler, nameof(sampler));
-        Guard.MustBeValueType(sampler, nameof(sampler));
+        Guard.MustBeValueType(sampler);
 
         if (TransformUtils.IsDegenerate(matrix))
         {

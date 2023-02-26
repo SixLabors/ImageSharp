@@ -123,7 +123,7 @@ internal abstract class BitWriterBase
     /// <param name="stream">The stream to write to.</param>
     /// <param name="metadataBytes">The metadata profile's bytes.</param>
     /// <param name="chunkType">The chuck type to write.</param>
-    protected void WriteMetadataProfile(Stream stream, byte[] metadataBytes, WebpChunkType chunkType)
+    protected void WriteMetadataProfile(Stream stream, byte[]? metadataBytes, WebpChunkType chunkType)
     {
         DebugGuard.NotNull(metadataBytes, nameof(metadataBytes));
 
@@ -207,7 +207,7 @@ internal abstract class BitWriterBase
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, byte[] iccProfileBytes, uint width, uint height, bool hasAlpha)
+    protected void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, byte[]? iccProfileBytes, uint width, uint height, bool hasAlpha)
     {
         if (width > MaxDimension || height > MaxDimension)
         {

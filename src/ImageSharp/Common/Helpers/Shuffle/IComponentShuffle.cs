@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static SixLabors.ImageSharp.SimdUtils;
 
 // The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
 // and ROTR (Rotate Right) emitting efficient CPU instructions:
@@ -18,9 +19,12 @@ namespace SixLabors.ImageSharp;
 internal interface IComponentShuffle
 {
     /// <summary>
-    /// Gets the shuffle control.
+    /// Shuffles then slices 8-bit integers within 128-bit lanes in <paramref name="source"/>
+    /// using the control and store the results in <paramref name="dest"/>.
     /// </summary>
-    byte Control { get; }
+    /// <param name="source">The source span of bytes.</param>
+    /// <param name="dest">The destination span of bytes.</param>
+    void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest);
 
     /// <summary>
     /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
@@ -42,26 +46,17 @@ internal interface IShuffle4 : IComponentShuffle
 
 internal readonly struct DefaultShuffle4 : IShuffle4
 {
-    private readonly byte p3;
-    private readonly byte p2;
-    private readonly byte p1;
-    private readonly byte p0;
-
-    public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
+    public DefaultShuffle4(byte control)
     {
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
-        DebugGuard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
-
-        this.p3 = p3;
-        this.p2 = p2;
-        this.p1 = p1;
-        this.p0 = p0;
-        this.Control = SimdUtils.Shuffle.MmShuffle(p3, p2, p1, p0);
+        DebugGuard.MustBeBetweenOrEqualTo<byte>(control, 0, 3, nameof(control));
+        this.Control = control;
     }
 
     public byte Control { get; }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -69,10 +64,7 @@ internal readonly struct DefaultShuffle4 : IShuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        int p3 = this.p3;
-        int p2 = this.p2;
-        int p1 = this.p1;
-        int p0 = this.p0;
+        Shuffle.InverseMMShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
 
         for (int i = 0; i < source.Length; i += 4)
         {
@@ -86,11 +78,9 @@ internal readonly struct DefaultShuffle4 : IShuffle4
 
 internal readonly struct WXYZShuffle4 : IShuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle2103);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -112,11 +102,9 @@ internal readonly struct WXYZShuffle4 : IShuffle4
 
 internal readonly struct WZYXShuffle4 : IShuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle0123);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -138,11 +126,9 @@ internal readonly struct WZYXShuffle4 : IShuffle4
 
 internal readonly struct YZWXShuffle4 : IShuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle0321);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -164,11 +150,9 @@ internal readonly struct YZWXShuffle4 : IShuffle4
 
 internal readonly struct ZYXWShuffle4 : IShuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle3012);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -197,11 +181,9 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
 
 internal readonly struct XWZYShuffle4 : IShuffle4
 {
-    public byte Control
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get => SimdUtils.Shuffle.MmShuffle(1, 2, 3, 0);
-    }
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle1230);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)

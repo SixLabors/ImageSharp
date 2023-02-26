@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 /// </summary>
 internal sealed class CostManager : IDisposable
 {
-    private CostInterval head;
+    private CostInterval? head;
 
     private const int FreeIntervalsStartCount = 25;
 
@@ -103,10 +102,10 @@ internal sealed class CostManager : IDisposable
     /// <param name="doCleanIntervals">If 'doCleanIntervals' is true, intervals that end before 'i' will be popped.</param>
     public void UpdateCostAtIndex(int i, bool doCleanIntervals)
     {
-        CostInterval current = this.head;
+        CostInterval? current = this.head;
         while (current != null && current.Start <= i)
         {
-            CostInterval next = current.Next;
+            CostInterval? next = current.Next;
             if (current.End <= i)
             {
                 if (doCleanIntervals)
@@ -155,7 +154,7 @@ internal sealed class CostManager : IDisposable
             return;
         }
 
-        CostInterval interval = this.head;
+        CostInterval? interval = this.head;
         for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; i++)
         {
             // Define the intersection of the ith interval with the new one.
@@ -163,7 +162,7 @@ internal sealed class CostManager : IDisposable
             int end = position + (this.CacheIntervals[i].End > len ? len : this.CacheIntervals[i].End);
             float cost = (float)(distanceCost + this.CacheIntervals[i].Cost);
 
-            CostInterval intervalNext;
+            CostInterval? intervalNext;
             for (; interval != null && interval.Start < end; interval = intervalNext)
             {
                 intervalNext = interval.Next;
@@ -225,7 +224,7 @@ internal sealed class CostManager : IDisposable
     /// Pop an interval from the manager.
     /// </summary>
     /// <param name="interval">The interval to remove.</param>
-    private void PopInterval(CostInterval interval)
+    private void PopInterval(CostInterval? interval)
     {
         if (interval == null)
         {
@@ -240,7 +239,7 @@ internal sealed class CostManager : IDisposable
         this.freeIntervals.Push(interval);
     }
 
-    private void InsertInterval(CostInterval intervalIn, float cost, int position, int start, int end)
+    private void InsertInterval(CostInterval? intervalIn, float cost, int position, int start, int end)
     {
         if (start >= end)
         {
@@ -271,7 +270,7 @@ internal sealed class CostManager : IDisposable
     /// it was orphaned (which can be NULL), set it at the right place in the list
     /// of intervals using the start_ ordering and the previous interval as a hint.
     /// </summary>
-    private void PositionOrphanInterval(CostInterval current, CostInterval previous)
+    private void PositionOrphanInterval(CostInterval current, CostInterval? previous)
     {
         previous ??= this.head;
 
@@ -292,7 +291,7 @@ internal sealed class CostManager : IDisposable
     /// <summary>
     /// Given two intervals, make 'prev' be the previous one of 'next' in 'manager'.
     /// </summary>
-    private void ConnectIntervals(CostInterval prev, CostInterval next)
+    private void ConnectIntervals(CostInterval? prev, CostInterval? next)
     {
         if (prev != null)
         {

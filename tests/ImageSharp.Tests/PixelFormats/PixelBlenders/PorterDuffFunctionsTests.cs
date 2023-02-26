@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -9,7 +10,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders;
 
 public class PorterDuffFunctionsTests
 {
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    private static readonly ApproximateFloatComparer FloatComparer = new(.000001F);
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) }
@@ -23,7 +26,19 @@ public class PorterDuffFunctionsTests
         Assert.Equal(expected, actual);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> MultiplyFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(NormalBlendFunctionData))]
+    public void NormalBlendFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.NormalSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> MultiplyFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) },
@@ -38,22 +53,46 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> AddFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(MultiplyFunctionData))]
+    public void MultiplyFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.MultiplySrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> AddFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
-        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(.6f, .6f, .6f, 1f) },
-        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2075676f, .2075676f, .2075676f, .37f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(0.24324325f, 0.24324325f, 0.24324325f, .37f) }
     };
 
     [Theory]
     [MemberData(nameof(AddFunctionData))]
     public void AddFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
-        Vector4 actual = PorterDuffFunctions.MultiplySrcOver((Vector4)back, source, amount);
+        Vector4 actual = PorterDuffFunctions.AddSrcOver((Vector4)back, source, amount);
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(AddFunctionData))]
+    public void AddFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.AddSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(0, 0, 0, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -68,7 +107,19 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> ScreenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(SubtractFunctionData))]
+    public void SubtractFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.SubtractSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> ScreenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -83,7 +134,19 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> DarkenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(ScreenFunctionData))]
+    public void ScreenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.ScreenSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> DarkenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(.6f, .6f, .6f, 1f) },
@@ -98,7 +161,19 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> LightenFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(DarkenFunctionData))]
+    public void DarkenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.DarkenSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> LightenFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -113,7 +188,19 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> OverlayFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(LightenFunctionData))]
+    public void LightenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.LightenSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> OverlayFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
@@ -128,7 +215,19 @@ public class PorterDuffFunctionsTests
         VectorAssert.Equal(expected, actual, 5);
     }
 
-    public static TheoryData<TestVector4, TestVector4, float, TestVector4> HardLightFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>
+    [Theory]
+    [MemberData(nameof(OverlayFunctionData))]
+    public void OverlayFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.OverlaySrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
+    }
+
+    public static TheoryData<TestVector4, TestVector4, float, TestVector4> HardLightFunctionData { get; } = new()
     {
         { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
         { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1f) },
@@ -141,5 +240,17 @@ public class PorterDuffFunctionsTests
     {
         Vector4 actual = PorterDuffFunctions.HardLightSrcOver((Vector4)back, source, amount);
         VectorAssert.Equal(expected, actual, 5);
+    }
+
+    [Theory]
+    [MemberData(nameof(HardLightFunctionData))]
+    public void HardLightFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
+    {
+        Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
+        Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
+
+        Vector256<float> expected256 = Vector256.Create(expected.X, expected.Y, expected.Z, expected.W, expected.X, expected.Y, expected.Z, expected.W);
+        Vector256<float> actual = PorterDuffFunctions.HardLightSrcOver(back256, source256, Vector256.Create(amount));
+        Assert.Equal(expected256, actual, FloatComparer);
     }
 }

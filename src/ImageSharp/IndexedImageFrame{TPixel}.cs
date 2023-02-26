@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -18,8 +17,8 @@ namespace SixLabors.ImageSharp;
 public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private Buffer2D<byte> pixelBuffer;
-    private IMemoryOwner<TPixel> paletteOwner;
+    private readonly Buffer2D<byte> pixelBuffer;
+    private readonly IMemoryOwner<TPixel> paletteOwner;
     private bool isDisposed;
 
     /// <summary>
@@ -109,8 +108,6 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
             this.isDisposed = true;
             this.pixelBuffer.Dispose();
             this.paletteOwner.Dispose();
-            this.pixelBuffer = null;
-            this.paletteOwner = null;
         }
     }
 }

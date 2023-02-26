@@ -297,7 +297,7 @@ internal static partial class SimdUtils
                 // shuffle controls to add to the library.
                 // We can add static ROS instances if need be in the future.
                 Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector256<byte> vshuffle = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector256<byte> sourceBase =
@@ -333,7 +333,7 @@ internal static partial class SimdUtils
             {
                 // Ssse3
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -382,7 +382,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -445,7 +445,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -489,7 +489,7 @@ internal static partial class SimdUtils
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MmShuffleSpan(ref bytes, control);
+                Shuffle.MMShuffleSpan(ref bytes, control);
                 Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                 ref Vector128<byte> sourceBase =
@@ -532,7 +532,8 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
-        /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
+        /// Performs a multiplication and an addition of the <see cref="Vector256{Single}"/>.
+        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
         /// </summary>
         /// <remarks>ret = (vm0 * vm1) + va</remarks>
         /// <param name="va">The vector to add to the intermediate result.</param>
@@ -549,22 +550,21 @@ internal static partial class SimdUtils
             {
                 return Fma.MultiplyAdd(vm1, vm0, va);
             }
-            else
-            {
-                return Avx.Add(Avx.Multiply(vm0, vm1), va);
-            }
+
+            return Avx.Add(Avx.Multiply(vm0, vm1), va);
         }
 
         /// <summary>
-        /// Performs a multiplication and a substraction of the <see cref="Vector256{T}"/>.
+        /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
+        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
         /// </summary>
         /// <remarks>ret = (vm0 * vm1) - vs</remarks>
-        /// <param name="vs">The vector to substract from the intermediate result.</param>
+        /// <param name="vs">The vector to subtract from the intermediate result.</param>
         /// <param name="vm0">The first vector to multiply.</param>
         /// <param name="vm1">The second vector to multiply.</param>
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector256<float> MultiplySubstract(
+        public static Vector256<float> MultiplySubtract(
             in Vector256<float> vs,
             in Vector256<float> vm0,
             in Vector256<float> vm1)
@@ -573,10 +573,30 @@ internal static partial class SimdUtils
             {
                 return Fma.MultiplySubtract(vm1, vm0, vs);
             }
-            else
+
+            return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
+        }
+
+        /// <summary>
+        /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
+        /// </summary>
+        /// <remarks>ret = c - (a * b)</remarks>
+        /// <param name="a">The first vector to multiply.</param>
+        /// <param name="b">The second vector to multiply.</param>
+        /// <param name="c">The vector to add negated to the intermediate result.</param>
+        /// <returns>The <see cref="Vector256{T}"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Vector256<float> MultiplyAddNegated(
+            in Vector256<float> a,
+            in Vector256<float> b,
+            in Vector256<float> c)
+        {
+            if (Fma.IsSupported)
             {
-                return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
+                return Fma.MultiplyAddNegated(a, b, c);
             }
+
+            return Avx.Subtract(c, Avx.Multiply(a, b));
         }
 
         /// <summary>

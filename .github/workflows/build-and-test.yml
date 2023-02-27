@@ -201,4 +201,10 @@ jobs:
         run: |
           dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json
           dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/symbols
-        # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+
+      - name: NuGet Publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        shell: pwsh
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json

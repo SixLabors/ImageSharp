@@ -57,7 +57,7 @@
 |Separated (TIFF Extension) |       |   Y   |                                                |
 |YCbCr (TIFF Extension)     |       |   Y   |                                                |
 |CieLab (TIFF Extension)    |       |   Y   |                                                |
-|IccLab (TechNote 1)        |       |   Y   |                                                |
+|IccLab (TechNote 1)        |       |       |                                                |
 |CMYK                       |       |   Y   |                                                |
 |Tiled Images               |       |   Y   |                                                |
 

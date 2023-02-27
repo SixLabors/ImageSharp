@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp;
 
@@ -17,7 +16,7 @@ internal static class ColorNumerics
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>
-    private static readonly Vector4 Bt709 = new Vector4(.2126f, .7152f, .0722f, 0.0f);
+    private static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
 
     /// <summary>
     /// Convert a pixel value to grayscale using ITU-R Recommendation BT.709.
@@ -167,11 +166,9 @@ internal static class ColorNumerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform(Span<Vector4> vectors, ref ColorMatrix matrix)
     {
-        ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
         for (int i = 0; i < vectors.Length; i++)
         {
-            ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+            ref Vector4 v = ref vectors[i];
             Transform(ref v, ref matrix);
         }
     }

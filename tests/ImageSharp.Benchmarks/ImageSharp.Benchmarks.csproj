@@ -11,7 +11,13 @@
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release</Configurations>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
-    <!--<SignAssembly>false</SignAssembly>-->
+    <!--<SignAssembly>false</SignAssembly>-->    
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--BenchmarkDotNet cannot run static benchmarks-->
+    <!--Mark members as static-->
+    <NoWarn>CA1822</NoWarn>
   </PropertyGroup>
 
   <Choose>
@@ -53,7 +59,7 @@
     <Compile Remove="Codecs\Jpeg\BlockOperations\**" />
     <Compile Remove="Codecs\Jpeg\YCbCrColorConversion.cs" />
     <Compile Remove="Codecs\Jpeg\DecodeJpegParseStreamOnly.cs" />
-    <Compile Remove="Color\Bulk\**" />
+    <Compile Remove="Bulk\**" />
     <Compile Remove="Color\RgbToYCbCr.cs" />
     <Compile Remove="Color\YCbCrToRgb.cs" />
     <Compile Remove="General\Vectorization\**" />

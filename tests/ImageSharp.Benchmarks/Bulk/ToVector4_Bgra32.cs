@@ -6,7 +6,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 [Config(typeof(Config.ShortMultiFramework))]
 public class ToVector4_Bgra32 : ToVector4<Bgra32>

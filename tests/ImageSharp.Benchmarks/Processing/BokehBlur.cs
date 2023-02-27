@@ -13,7 +13,7 @@ public class BokehBlur
     [Benchmark]
     public void Blur()
     {
-        using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.White);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.White);
         image.Mutate(c => c.BokehBlur());
     }
 }

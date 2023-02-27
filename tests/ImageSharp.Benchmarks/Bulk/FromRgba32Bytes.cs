@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 public abstract class FromRgba32Bytes<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
@@ -64,7 +64,7 @@ public abstract class FromRgba32Bytes<TPixel>
     [Benchmark]
     public void OptimizedBulk()
     {
-       PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
+        PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
     }
 }
 

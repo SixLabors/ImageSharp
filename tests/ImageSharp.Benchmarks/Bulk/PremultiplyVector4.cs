@@ -6,11 +6,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 public class PremultiplyVector4
 {
-    private static readonly Vector4[] Vectors = CreateVectors();
+    private static readonly Vector4[] Vectors = Vector4Factory.CreateVectors();
 
     [Benchmark(Baseline = true)]
     public void PremultiplyBaseline()
@@ -46,29 +46,4 @@ public class PremultiplyVector4
         source *= w;
         source.W = w;
     }
-
-    private static Vector4[] CreateVectors()
-    {
-        Random rnd = new(42);
-        return GenerateRandomVectorArray(rnd, 2048, 0, 1);
-    }
-
-    private static Vector4[] GenerateRandomVectorArray(Random rnd, int length, float minVal, float maxVal)
-    {
-        Vector4[] values = new Vector4[length];
-
-        for (int i = 0; i < length; i++)
-        {
-            ref Vector4 v = ref values[i];
-            v.X = GetRandomFloat(rnd, minVal, maxVal);
-            v.Y = GetRandomFloat(rnd, minVal, maxVal);
-            v.Z = GetRandomFloat(rnd, minVal, maxVal);
-            v.W = GetRandomFloat(rnd, minVal, maxVal);
-        }
-
-        return values;
-    }
-
-    private static float GetRandomFloat(Random rnd, float minVal, float maxVal)
-        => ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
 }

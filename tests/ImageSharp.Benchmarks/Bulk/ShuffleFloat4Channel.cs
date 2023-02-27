@@ -4,7 +4,7 @@
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Tests;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
 public class ShuffleFloat4Channel

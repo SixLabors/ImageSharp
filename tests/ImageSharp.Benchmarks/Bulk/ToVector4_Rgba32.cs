@@ -9,7 +9,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 [Config(typeof(Config.ShortCore31))]
 public class ToVector4_Rgba32 : ToVector4<Rgba32>

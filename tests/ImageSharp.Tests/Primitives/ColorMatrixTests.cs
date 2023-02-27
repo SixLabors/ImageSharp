@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Globalization;
+using System.Numerics;
 using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.Primitives;
@@ -115,27 +116,21 @@ public class ColorMatrixTests
     public void ColorMatrixHashCode()
     {
         ColorMatrix m = KnownFilterMatrices.CreateBrightnessFilter(.5F);
+
         HashCode hash = default;
-        hash.Add(m.M11);
-        hash.Add(m.M12);
-        hash.Add(m.M13);
-        hash.Add(m.M14);
-        hash.Add(m.M21);
-        hash.Add(m.M22);
-        hash.Add(m.M23);
-        hash.Add(m.M24);
-        hash.Add(m.M31);
-        hash.Add(m.M32);
-        hash.Add(m.M33);
-        hash.Add(m.M34);
-        hash.Add(m.M41);
-        hash.Add(m.M42);
-        hash.Add(m.M43);
-        hash.Add(m.M44);
-        hash.Add(m.M51);
-        hash.Add(m.M52);
-        hash.Add(m.M53);
-        hash.Add(m.M54);
+
+        Vector4 x = new(m.M11, m.M12, m.M13, m.M14);
+        Vector4 y = new(m.M21, m.M22, m.M23, m.M24);
+        Vector4 z = new(m.M31, m.M32, m.M33, m.M34);
+        Vector4 w = new(m.M41, m.M42, m.M43, m.M44);
+        Vector4 v = new(m.M51, m.M52, m.M53, m.M54);
+
+        hash.Add(x);
+        hash.Add(y);
+        hash.Add(z);
+        hash.Add(w);
+        hash.Add(v);
+
 
         Assert.Equal(hash.ToHashCode(), m.GetHashCode());
     }

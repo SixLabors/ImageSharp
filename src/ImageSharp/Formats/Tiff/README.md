@@ -57,7 +57,7 @@
 |Separated (TIFF Extension) |       |   Y   |                                                |
 |YCbCr (TIFF Extension)     |       |   Y   |                                                |
 |CieLab (TIFF Extension)    |       |   Y   |                                                |
-|IccLab (TechNote 1)        |       |       |                                                |
+|IccLab (TechNote 1)        |       |   Y   |                                                |
 |CMYK                       |       |   Y   |                                                |
 |Tiled Images               |       |   Y   |                                                |
 
@@ -127,9 +127,9 @@
 |CleanFaxData               |       |       |                          |
 |ConsecutiveBadFaxLines     |       |       |                          |
 |SubIFDs                    |       |   -   |                          |
-|InkSet                     |       |       |                          |
-|InkNames                   |       |       |                          |
-|NumberOfInks               |       |       |                          |
+|InkSet                     |       |   Y   |  CMYK                    |
+|InkNames                   |       |   -   |                          |
+|NumberOfInks               |       |   -   |                          |
 |DotRange                   |       |       |                          |
 |TargetPrinter              |       |       |                          |
 |SampleFormat               |       |   -   |                          |

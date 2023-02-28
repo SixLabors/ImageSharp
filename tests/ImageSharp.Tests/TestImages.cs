@@ -762,7 +762,6 @@ public static class TestImages
         public const string Benchmark_RgbLzw = "medium_rgb_lzw.tiff";
         public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
         public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
-        public const string Benchmark_CmykUncompressed = "medium_cmyk_uncompressed.tiff";
 
         public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";

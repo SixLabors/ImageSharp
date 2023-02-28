@@ -71,6 +71,11 @@ public enum TiffBitsPerPixel
     Bit30 = 30,
 
     /// <summary>
+    /// 32 bits per pixel. One byte for each color channel.
+    /// </summary>
+    Bit32 = 32,
+
+    /// <summary>
     /// 36 bits per pixel. 12 bit for each color channel.
     ///
     /// Note: The TiffEncoder does not yet support 12 bits per color channel and will default to 24 bits per pixel instead.

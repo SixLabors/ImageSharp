@@ -110,8 +110,10 @@ public class TiffMetadataTests
     }
 
     [Theory]
-    [InlineData(Cmyk, 1, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
-    public void Identify_Frames(string imagePath, int framesCount, TiffPhotometricInterpretation photometric, TiffInkSet? inkSet)
+    [InlineData(Cmyk, 1, TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    [InlineData(Cmyk64BitDeflate, 1, 64, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    [InlineData(YCbCrJpegCompressed, 1, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.YCbCr, null)]
+    public void Identify_Frames(string imagePath, int framesCount, TiffBitsPerPixel bitsPerPixel, TiffPhotometricInterpretation photometric, TiffInkSet? inkSet)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -127,6 +129,7 @@ public class TiffMetadataTests
         foreach (ImageFrameMetadata metadata in imageInfo.FrameMetadataCollection)
         {
             TiffFrameMetadata tiffFrameMetadata = metadata.GetTiffMetadata();
+            Assert.Equal(bitsPerPixel, tiffFrameMetadata.BitsPerPixel);
             Assert.Equal(photometric, tiffFrameMetadata.PhotometricInterpretation);
             Assert.Equal(inkSet, tiffFrameMetadata.InkSet);
         }

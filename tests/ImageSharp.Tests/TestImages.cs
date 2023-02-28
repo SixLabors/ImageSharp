@@ -762,6 +762,7 @@ public static class TestImages
         public const string Benchmark_RgbLzw = "medium_rgb_lzw.tiff";
         public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
         public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
+        public const string Benchmark_CmykUncompressed = "medium_cmyk_uncompressed.tiff";
 
         public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
         public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
@@ -957,6 +958,7 @@ public static class TestImages
         public const string CieLabLzwPredictor = "Tiff/CieLab_lzwcompressed_predictor.tiff";
 
         public const string Cmyk = "Tiff/Cmyk.tiff";
+        public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
 
         public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";

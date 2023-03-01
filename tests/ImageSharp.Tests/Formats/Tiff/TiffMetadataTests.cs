@@ -111,7 +111,7 @@ public class TiffMetadataTests
 
     [Theory]
     [InlineData(Cmyk, 1, TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
-    [InlineData(Cmyk64BitDeflate, 1, 64, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    [InlineData(Cmyk64BitDeflate, 1, TiffBitsPerPixel.Bit64, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
     [InlineData(YCbCrJpegCompressed, 1, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.YCbCr, null)]
     public void Identify_Frames(string imagePath, int framesCount, TiffBitsPerPixel bitsPerPixel, TiffPhotometricInterpretation photometric, TiffInkSet? inkSet)
     {

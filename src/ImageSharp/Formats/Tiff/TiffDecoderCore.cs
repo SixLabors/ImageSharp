@@ -163,13 +163,14 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var frames = new List<ImageFrame<TPixel>>();
+        List<ImageFrame<TPixel>> frames = new();
+        List<ImageFrameMetadata> framesMetadata = new();
         try
         {
             this.inputStream = stream;
-            var reader = new DirectoryReader(stream, this.configuration.MemoryAllocator);
+            DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
 
-            IEnumerable<ExifProfile> directories = reader.Read();
+            IList<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
             this.isBigTiff = reader.IsBigTiff;
 
@@ -179,6 +180,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 cancellationToken.ThrowIfCancellationRequested();
                 ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, cancellationToken);
                 frames.Add(frame);
+                framesMetadata.Add(frame.Metadata);
 
                 if (++frameCount == this.maxFrames)
                 {
@@ -186,7 +188,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                 }
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(frames, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
             // TODO: Tiff frames can have different sizes.
             ImageFrame<TPixel> root = frames[0];
@@ -217,16 +219,22 @@ internal class TiffDecoderCore : IImageDecoderInternals
     {
         this.inputStream = stream;
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
-        IEnumerable<ExifProfile> directories = reader.Read();
+        IList<ExifProfile> directories = reader.Read();
 
-        ExifProfile rootFrameExifProfile = directories.First();
-        TiffFrameMetadata rootMetadata = TiffFrameMetadata.Parse(rootFrameExifProfile);
+        List<ImageFrameMetadata> framesMetadata = new();
+        foreach (ExifProfile dir in directories)
+        {
+            framesMetadata.Add(this.CreateFrameMetadata(dir));
+        }
 
-        ImageMetadata metadata = TiffDecoderMetadataCreator.Create(reader.ByteOrder, reader.IsBigTiff, rootFrameExifProfile);
+        ExifProfile rootFrameExifProfile = directories[0];
+
+        ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
+
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 
-        return new ImageInfo(new PixelTypeInfo((int)rootMetadata.BitsPerPixel), width, height, metadata);
+        return new ImageInfo(new PixelTypeInfo((int)framesMetadata[0].GetTiffMetadata().BitsPerPixel), new(width, height), metadata, framesMetadata);
     }
 
     /// <summary>
@@ -239,16 +247,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
     private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrameMetadata imageFrameMetaData = new();
-        if (!this.skipMetadata)
-        {
-            imageFrameMetaData.ExifProfile = tags;
-        }
-
-        TiffFrameMetadata tiffFrameMetaData = imageFrameMetaData.GetTiffMetadata();
-        TiffFrameMetadata.Parse(tiffFrameMetaData, tags);
-
-        bool isTiled = this.VerifyAndParse(tags, tiffFrameMetaData);
+        ImageFrameMetadata imageFrameMetaData = this.CreateFrameMetadata(tags);
+        bool isTiled = this.VerifyAndParse(tags, imageFrameMetaData.GetTiffMetadata());
 
         int width = GetImageWidth(tags);
         int height = GetImageHeight(tags);
@@ -264,6 +264,19 @@ internal class TiffDecoderCore : IImageDecoderInternals
         }
 
         return frame;
+    }
+
+    private ImageFrameMetadata CreateFrameMetadata(ExifProfile tags)
+    {
+        ImageFrameMetadata imageFrameMetaData = new();
+        if (!this.skipMetadata)
+        {
+            imageFrameMetaData.ExifProfile = tags;
+        }
+
+        TiffFrameMetadata.Parse(imageFrameMetaData.GetTiffMetadata(), tags);
+
+        return imageFrameMetaData;
     }
 
     /// <summary>
@@ -772,7 +785,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
                     bitsPerPixel = this.BitsPerSample.Channel2;
                     break;
                 case 3:
-                    bitsPerPixel = this.BitsPerSample.Channel2;
+                    bitsPerPixel = this.BitsPerSample.Channel3;
                     break;
                 default:
                     TiffThrowHelper.ThrowNotSupported("More then 4 color channels are not supported");

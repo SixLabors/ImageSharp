@@ -19,9 +19,8 @@ public enum TiffBitsPerPixel
     Bit4 = 4,
 
     /// <summary>
-    /// 6 bits per pixel. 2 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 2 bits per color channel and will default to 24 bits per pixel instead.
+    /// <para>6 bits per pixel. 2 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 2 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit6 = 6,
 
@@ -31,30 +30,26 @@ public enum TiffBitsPerPixel
     Bit8 = 8,
 
     /// <summary>
-    /// 10 bits per pixel, for gray images.
-    ///
-    /// Note: The TiffEncoder does not yet support 10 bits per pixel and will default to 24 bits per pixel instead.
+    /// <para>10 bits per pixel, for gray images.</para>
+    /// <para>Note: The TiffEncoder does not yet support 10 bits per pixel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit10 = 10,
 
     /// <summary>
-    /// 12 bits per pixel. 4 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 4 bits per color channel and will default to 24 bits per pixel instead.
+    /// <para>12 bits per pixel. 4 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 4 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit12 = 12,
 
     /// <summary>
-    /// 14 bits per pixel, for gray images.
-    ///
-    /// Note: The TiffEncoder does not yet support 14 bits per pixel images and will default to 24 bits per pixel instead.
+    /// <para>14 bits per pixel, for gray images.</para>
+    /// <para>Note: The TiffEncoder does not yet support 14 bits per pixel images and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit14 = 14,
 
     /// <summary>
-    /// 16 bits per pixel, for gray images.
-    ///
-    /// Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 16 bits grayscale instead.
+    /// <para>16 bits per pixel, for gray images.</para>
+    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 16 bits grayscale instead.</para>
     /// </summary>
     Bit16 = 16,
 
@@ -64,30 +59,37 @@ public enum TiffBitsPerPixel
     Bit24 = 24,
 
     /// <summary>
-    /// 30 bits per pixel. 10 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 10 bits per color channel and will default to 24 bits per pixel instead.
+    /// <para>30 bits per pixel. 10 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 10 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit30 = 30,
 
     /// <summary>
-    /// 36 bits per pixel. 12 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 12 bits per color channel and will default to 24 bits per pixel instead.
+    /// 32 bits per pixel. One byte for each color channel.
+    /// </summary>
+    Bit32 = 32,
+
+    /// <summary>
+    /// <para>36 bits per pixel. 12 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 12 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit36 = 36,
 
     /// <summary>
-    /// 42 bits per pixel. 14 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 14 bits per color channel and will default to 24 bits per pixel instead.
+    /// <para>42 bits per pixel. 14 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 14 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit42 = 42,
 
     /// <summary>
-    /// 48 bits per pixel. 16 bit for each color channel.
-    ///
-    /// Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 24 bits per pixel instead.
+    /// <para>48 bits per pixel. 16 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 24 bits per pixel instead.</para>
     /// </summary>
     Bit48 = 48,
+
+    /// <summary>
+    /// <para>64 bits per pixel. 16 bit for each color channel.</para>
+    /// <para>Note: The TiffEncoder does not yet support 16 bits per color channel and will default to 32 bits per pixel instead.</para>
+    /// </summary>
+    Bit64 = 64,
 }

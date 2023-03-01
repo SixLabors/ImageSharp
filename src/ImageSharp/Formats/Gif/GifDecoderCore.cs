@@ -172,6 +172,9 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <inheritdoc />
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        uint frameCount = 0;
+        ImageFrameMetadata? previousFrame = null;
+        List<ImageFrameMetadata> framesMetadata = new();
         try
         {
             this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
@@ -182,14 +185,23 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 if (nextFlag == GifConstants.ImageLabel)
                 {
-                    this.ReadImageDescriptor(stream);
+                    if (previousFrame != null && ++frameCount == this.maxFrames)
+                    {
+                        break;
+                    }
+
+                    this.ReadFrameMetadata(stream, framesMetadata, ref previousFrame);
+
+                    // Reset per-frame state.
+                    this.imageDescriptor = default;
+                    this.graphicsControlExtension = default;
                 }
                 else if (nextFlag == GifConstants.ExtensionIntroducer)
                 {
                     switch (stream.ReadByte())
                     {
                         case GifConstants.GraphicControlLabel:
-                            SkipBlock(stream); // Skip graphic control extension block
+                            this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
                             this.ReadComments(stream);
@@ -226,9 +238,9 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
         return new ImageInfo(
             new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
-            this.logicalScreenDescriptor.Width,
-            this.logicalScreenDescriptor.Height,
-            this.metadata);
+            new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
+            this.metadata,
+            framesMetadata);
     }
 
     /// <summary>
@@ -486,7 +498,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
             }
 
-            this.SetFrameMetadata(image.Frames.RootFrame.Metadata, true);
+            this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
 
             imageFrame = image.Frames.RootFrame;
         }
@@ -499,7 +511,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
             currentFrame = image!.Frames.CreateFrame();
 
-            this.SetFrameMetadata(currentFrame.Metadata, false);
+            this.SetFrameMetadata(currentFrame.Metadata);
 
             imageFrame = currentFrame;
 
@@ -607,6 +619,37 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
+    /// Reads the frames metadata.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="frameMetadata">The collection of frame metadata.</param>
+    /// <param name="previousFrame">The previous frame metadata.</param>
+    private void ReadFrameMetadata(BufferedReadStream stream, List<ImageFrameMetadata> frameMetadata, ref ImageFrameMetadata? previousFrame)
+    {
+        this.ReadImageDescriptor(stream);
+
+        // Skip the color table for this frame if local.
+        if (this.imageDescriptor.LocalColorTableFlag)
+        {
+            stream.Skip(this.imageDescriptor.LocalColorTableSize * 3);
+        }
+
+        // Skip the frame indices. Pixels length + mincode size.
+        // The gif format does not tell us the length of the compressed data beforehand.
+        int minCodeSize = stream.ReadByte();
+        using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream);
+        lzwDecoder.SkipIndices(minCodeSize, this.imageDescriptor.Width * this.imageDescriptor.Height);
+
+        ImageFrameMetadata currentFrame = new();
+        frameMetadata.Add(currentFrame);
+        this.SetFrameMetadata(currentFrame);
+        previousFrame = currentFrame;
+
+        // Skip any remaining blocks
+        SkipBlock(stream);
+    }
+
+    /// <summary>
     /// Restores the current frame area to the background.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -627,18 +670,17 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
-    /// Sets the frames metadata.
+    /// Sets the metadata for the image frame.
     /// </summary>
-    /// <param name="meta">The metadata.</param>
-    /// <param name="isRoot">Whether the metadata represents the root frame.</param>
+    /// <param name="metadata">The metadata.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetFrameMetadata(ImageFrameMetadata meta, bool isRoot)
+    private void SetFrameMetadata(ImageFrameMetadata metadata)
     {
         // Frames can either use the global table or their own local table.
-        if (isRoot && this.logicalScreenDescriptor.GlobalColorTableFlag
+        if (this.logicalScreenDescriptor.GlobalColorTableFlag
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
-            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.ColorTableMode = GifColorTableMode.Global;
             gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
         }
@@ -646,7 +688,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
-            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.ColorTableMode = GifColorTableMode.Local;
             gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
         }
@@ -654,7 +696,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         // Graphics control extensions is optional.
         if (this.graphicsControlExtension != default)
         {
-            GifFrameMetadata gifMeta = meta.GetGifMetadata();
+            GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
             gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
         }

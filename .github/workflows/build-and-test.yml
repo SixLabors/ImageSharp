@@ -198,10 +198,14 @@ jobs:
 
       - name: Feedz Publish
         shell: pwsh
-        run: dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json -ss https://f.feedz.io/sixlabors/sixlabors/symbols --skip-duplicate
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/symbols --skip-duplicate
 
       - name: NuGet Publish
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
-        run: dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
 

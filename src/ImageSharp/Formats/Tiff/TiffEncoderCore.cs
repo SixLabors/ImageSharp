@@ -391,6 +391,10 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                     // Encoding not yet supported bits per pixel will default to 24 bits.
                     this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
                     break;
+                case TiffBitsPerPixel.Bit64:
+                    // Encoding not yet supported bits per pixel will default to 32 bits.
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
+                    break;
                 default:
                     this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);
                     break;

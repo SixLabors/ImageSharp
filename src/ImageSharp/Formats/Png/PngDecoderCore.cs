@@ -370,7 +370,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 PngThrowHelper.ThrowNoHeader();
             }
 
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
+            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata);
         }
         finally
         {

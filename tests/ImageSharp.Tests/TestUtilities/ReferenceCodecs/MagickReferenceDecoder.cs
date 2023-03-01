@@ -75,7 +75,7 @@ public class MagickReferenceDecoder : ImageDecoder
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         using Image<Rgba32> image = this.Decode<Rgba32>(options, stream, cancellationToken);
-        return new(image.PixelType, image.Width, image.Height, image.Metadata);
+        return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
     }
 
     private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)

@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -203,7 +204,9 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             Image<TestPixelForAgnosticDecode> image =
                 this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+            ImageFrameCollection<TestPixelForAgnosticDecode> m = image.Frames;
+
+            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
         }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)

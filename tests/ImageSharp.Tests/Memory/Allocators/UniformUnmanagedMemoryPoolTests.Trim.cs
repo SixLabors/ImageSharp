@@ -53,11 +53,12 @@ public partial class UniformUnmanagedMemoryPoolTests
         [Collection(nameof(NonParallelCollection))]
         public class NonParallel
         {
-            public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
+            // public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
             // TODO: Investigate failures on macOS. All handles are released after GC.
             // (It seems to happen more consistently on .NET 6.)
-            [ConditionalFact(nameof(IsNotMacOS))]
+            // [ConditionalFact(nameof(IsNotMacOS))]
+            [Fact]
             public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
             {
                 if (!TestEnvironment.RunsOnCI)

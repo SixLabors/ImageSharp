@@ -204,6 +204,7 @@ dotnet_separate_import_directive_groups = false
 # Dotnet namespace options
 dotnet_style_namespace_match_folder = true:suggestion
 dotnet_diagnostic.IDE0130.severity = suggestion
+dotnet_diagnostic.RS0041.severity = none
 
 # C# formatting rules
 # https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#c-formatting-rules

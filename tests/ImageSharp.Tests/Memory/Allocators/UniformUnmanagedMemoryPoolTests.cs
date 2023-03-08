@@ -238,10 +238,10 @@ public partial class UniformUnmanagedMemoryPoolTests
         cleanup.Register(b1);
     }
 
-    // public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
+    public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
     // TODO: Investigate macOS failures
-    // [ConditionalTheory(nameof(IsNotMacOS))]
+    [ConditionalTheory(nameof(IsNotMacOS))]
     [InlineData(false)]
     [InlineData(true)]
     public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)

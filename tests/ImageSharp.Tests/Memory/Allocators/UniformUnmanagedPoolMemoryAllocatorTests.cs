@@ -255,11 +255,11 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
     public void AllocateMemoryGroup_Finalization_ReturnsToPool(int length)
     {
-        // if (TestEnvironment.IsMacOS)
-        // {
-        //     // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
-        //     return;
-        // }
+        if (TestEnvironment.IsMacOS)
+        {
+            // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
+            return;
+        }
 
         if (TestEnvironment.OSArchitecture == Architecture.Arm64)
         {
@@ -267,12 +267,12 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             return;
         }
 
-        // if (!TestEnvironment.RunsOnCI)
-        // {
-        //     // This may fail in local runs resulting in high memory load.
-        //     // Remove the condition for local debugging!
-        //     return;
-        // }
+        if (!TestEnvironment.RunsOnCI)
+        {
+            // This may fail in local runs resulting in high memory load.
+            // Remove the condition for local debugging!
+            return;
+        }
 
         // RunTest(length.ToString());
         RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
@@ -323,18 +323,24 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
     public void AllocateSingleMemoryOwner_Finalization_ReturnsToPool(int length)
     {
+        if (TestEnvironment.IsMacOS)
+        {
+            // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
+            return;
+        }
+
         if (TestEnvironment.OSArchitecture == Architecture.Arm64)
         {
             // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
             return;
         }
 
-        // if (!TestEnvironment.RunsOnCI)
-        // {
-        //     // This may fail in local runs resulting in high memory load.
-        //     // Remove the condition for local debugging!
-        //     return;
-        // }
+        if (!TestEnvironment.RunsOnCI)
+        {
+            // This may fail in local runs resulting in high memory load.
+            // Remove the condition for local debugging!
+            return;
+        }
 
         // RunTest(length.ToString());
         RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();

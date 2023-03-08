@@ -270,13 +270,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // if (TestEnvironment.IsMacOS)
-        // {
-        //     // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-        //     using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-        //     image.DebugSave(provider);
-        //     return;
-        // }
 
         TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
     }

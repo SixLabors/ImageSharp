@@ -3,6 +3,8 @@
 
 using System.Numerics;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+using Castle.Components.DictionaryAdapter;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -84,6 +86,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(AddFunctionData))]
     public void AddFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -111,6 +118,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(SubtractFunctionData))]
     public void SubtractFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -138,6 +150,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(ScreenFunctionData))]
     public void ScreenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -165,6 +182,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(DarkenFunctionData))]
     public void DarkenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -192,6 +214,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(LightenFunctionData))]
     public void LightenFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -219,6 +246,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(OverlayFunctionData))]
     public void OverlayFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -246,6 +278,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(HardLightFunctionData))]
     public void HardLightFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 

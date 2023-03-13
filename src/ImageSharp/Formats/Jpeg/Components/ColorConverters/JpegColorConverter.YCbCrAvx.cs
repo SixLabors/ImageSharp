@@ -38,7 +38,7 @@ internal abstract partial class JpegColorConverterBase
             var bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
 
             // Walking 8 elements at one step:
-            nint n = values.Component0.Length / Vector256<float>.Count;
+            nint n = (nint)(uint)values.Component0.Length / Vector256<float>.Count;
             for (nint i = 0; i < n; i++)
             {
                 // y = yVals[i];
@@ -98,7 +98,7 @@ internal abstract partial class JpegColorConverterBase
             var fn0081312F = Vector256.Create(-0.081312F);
             var f05 = Vector256.Create(0.5f);
 
-            nint n = values.Component0.Length / Vector256<float>.Count;
+            nint n = (nint)(uint)values.Component0.Length / Vector256<float>.Count;
             for (nint i = 0; i < n; i++)
             {
                 Vector256<float> r = Unsafe.Add(ref srcR, i);

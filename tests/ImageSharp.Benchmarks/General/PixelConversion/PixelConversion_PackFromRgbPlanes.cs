@@ -205,14 +205,14 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Vector256<float> bBase = ref Unsafe.As<float, Vector256<float>>(ref this.bFloat[0]);
         ref Vector256<float> resultBase = ref Unsafe.As<float, Vector256<float>>(ref this.rgbaFloat[0]);
 
-        int count = this.Count / Vector256<float>.Count;
+        nint count = (nint)(uint)this.Count / Vector256<float>.Count;
 
         ref byte control = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
         Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
 
         var va = Vector256.Create(1F);
 
-        for (int i = 0; i < count; i++)
+        for (nint i = 0; i < count; i++)
         {
             Vector256<float> r = Unsafe.Add(ref rBase, i);
             Vector256<float> g = Unsafe.Add(ref gBase, i);

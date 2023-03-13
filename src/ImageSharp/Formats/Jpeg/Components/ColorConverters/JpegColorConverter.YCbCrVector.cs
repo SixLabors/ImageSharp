@@ -35,7 +35,7 @@ internal abstract partial class JpegColorConverterBase
             var gCrMult = new Vector<float>(-YCbCrScalar.GCrMult);
             var bCbMult = new Vector<float>(YCbCrScalar.BCbMult);
 
-            nint n = values.Component0.Length / Vector<float>.Count;
+            nint n = (nint)(uint)values.Component0.Length / Vector<float>.Count;
             for (nint i = 0; i < n; i++)
             {
                 // y = yVals[i];
@@ -103,7 +103,7 @@ internal abstract partial class JpegColorConverterBase
             var gCrMult = new Vector<float>(0.418688f);
             var bCrMult = new Vector<float>(0.081312f);
 
-            nint n = values.Component0.Length / Vector<float>.Count;
+            nint n = (nint)(uint)values.Component0.Length / Vector<float>.Count;
             for (nint i = 0; i < n; i++)
             {
                 Vector<float> r = Unsafe.Add(ref srcR, i);

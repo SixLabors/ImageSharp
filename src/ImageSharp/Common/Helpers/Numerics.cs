@@ -56,6 +56,12 @@ internal static class Numerics
     public static int Modulo4(int x) => x & 3;
 
     /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo4(nint x) => x & 3;
+
+    /// <summary>
     /// Calculates <paramref name="x"/> % 8
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -430,9 +436,9 @@ internal static class Numerics
         var vmin = new Vector<T>(min);
         var vmax = new Vector<T>(max);
 
-        int n = span.Length / Vector<T>.Count;
-        int m = Modulo4(n);
-        int u = n - m;
+        nint n = (nint)(uint)span.Length / Vector<T>.Count;
+        nint m = Modulo4(n);
+        nint u = n - m;
 
         ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
         ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);

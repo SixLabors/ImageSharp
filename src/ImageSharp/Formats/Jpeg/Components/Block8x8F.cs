@@ -425,7 +425,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             Vector256<int> targetVector = Vector256.Create(value);
             ref Vector256<float> blockStride = ref this.V0;
 
-            for (int i = 0; i < RowCount; i++)
+            for (nint i = 0; i < RowCount; i++)
             {
                 Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
                 if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
@@ -439,7 +439,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
 
         ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
 
-        for (int i = 0; i < Size; i++)
+        for (nint i = 0; i < Size; i++)
         {
             if ((int)Unsafe.Add(ref scalars, i) != value)
             {

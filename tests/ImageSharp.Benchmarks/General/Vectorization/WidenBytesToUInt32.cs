@@ -42,12 +42,12 @@ public class WidenBytesToUInt32
     [Benchmark]
     public void Simd()
     {
-        int n = Count / Vector<byte>.Count;
+        nint n = Count / Vector<byte>.Count;
 
         ref Vector<byte> sBase = ref Unsafe.As<byte, Vector<byte>>(ref this.source[0]);
         ref Vector<uint> dBase = ref Unsafe.As<uint, Vector<uint>>(ref this.dest[0]);
 
-        for (int i = 0; i < n; i++)
+        for (nint i = 0; i < n; i++)
         {
             Vector<byte> b = Unsafe.Add(ref sBase, i);
 

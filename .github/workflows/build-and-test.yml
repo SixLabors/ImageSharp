@@ -56,11 +56,6 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
         exclude:
           - isARM: false
             options:

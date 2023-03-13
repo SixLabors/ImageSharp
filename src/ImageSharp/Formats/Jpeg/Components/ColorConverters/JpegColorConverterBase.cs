@@ -214,6 +214,11 @@ internal abstract partial class JpegColorConverterBase
             return new RgbAvx(precision);
         }
 
+        if (JpegColorConverterArm.IsSupported)
+        {
+            return new RgbArm(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new RgbScalar(precision);

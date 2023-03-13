@@ -35,7 +35,7 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: buildjet-8vcpu-ubuntu-2204-arm
+          - os: buildjet-4vcpu-ubuntu-2204-arm
             framework: net7.0
             sdk: 7.0.x
             sdk-preview: true
@@ -59,7 +59,7 @@ jobs:
         exclude:
           - isARM: false
             options:
-              os: buildjet-8vcpu-ubuntu-2204-arm
+              os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{matrix.options.os}}
 

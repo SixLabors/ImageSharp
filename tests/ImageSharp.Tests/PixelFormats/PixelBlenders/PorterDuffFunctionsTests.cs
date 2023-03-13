@@ -32,6 +32,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(NormalBlendFunctionData))]
     public void NormalBlendFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 
@@ -59,6 +64,11 @@ public class PorterDuffFunctionsTests
     [MemberData(nameof(MultiplyFunctionData))]
     public void MultiplyFunction256(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
     {
+        if (!Avx.IsSupported)
+        {
+            return;
+        }
+
         Vector256<float> back256 = Vector256.Create(back.X, back.Y, back.Z, back.W, back.X, back.Y, back.Z, back.W);
         Vector256<float> source256 = Vector256.Create(source.X, source.Y, source.Z, source.W, source.X, source.Y, source.Z, source.W);
 

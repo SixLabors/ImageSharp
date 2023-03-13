@@ -179,7 +179,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
             ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)sourceBuffer.Length);
-            ref float kernelBase = ref this.kernel[0];
+            ref float kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref float kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
@@ -243,7 +243,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
             ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)sourceBuffer.Length);
-            ref float kernelBase = ref this.kernel[0];
+            ref float kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref float kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
@@ -341,7 +341,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             targetBuffer.Clear();
 
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-            ref float kernelStart = ref this.kernel[0];
+            ref float kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref float kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             Span<TPixel> sourceRow;
@@ -406,7 +406,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             targetBuffer.Clear();
 
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-            ref float kernelStart = ref this.kernel[0];
+            ref float kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref float kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             Span<TPixel> sourceRow;

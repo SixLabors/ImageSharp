@@ -192,7 +192,7 @@ internal static class BokehBlurKernelDataProvider
         {
             ref Complex64[] kernelRef = ref Unsafe.Add(ref baseKernelsRef, (uint)i);
             int length = kernelRef.Length;
-            ref Complex64 valueRef = ref kernelRef[0];
+            ref Complex64 valueRef = ref MemoryMarshal.GetArrayDataReference(kernelRef);
             ref Vector4 paramsRef = ref Unsafe.Add(ref baseParamsRef, (uint)i);
 
             for (int j = 0; j < length; j++)
@@ -214,7 +214,7 @@ internal static class BokehBlurKernelDataProvider
         {
             ref Complex64[] kernelsRef = ref Unsafe.Add(ref baseKernelsRef, (uint)i);
             int length = kernelsRef.Length;
-            ref Complex64 valueRef = ref kernelsRef[0];
+            ref Complex64 valueRef = ref MemoryMarshal.GetArrayDataReference(kernelsRef);
 
             for (int j = 0; j < length; j++)
             {

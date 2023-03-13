@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 internal class ArithmeticStatistics
@@ -18,7 +20,7 @@ internal class ArithmeticStatistics
 
     public int Identifier { get; private set; }
 
-    public ref byte GetReference() => ref this.statistics[0];
+    public ref byte GetReference() => ref MemoryMarshal.GetArrayDataReference(this.statistics);
 
     public ref byte GetReference(int offset) => ref this.statistics[offset];
 

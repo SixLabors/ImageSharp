@@ -53,7 +53,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private ArithmeticDecodingTable[] acDecodingTables;
 
-    private readonly byte[] fixedBin = { 113, 0, 0, 0 };
+    // Use C#'s optimization to refer to assembly's data segment, no allocation occurs.
+    private ReadOnlySpan<byte> fixedBin => new byte[] { 113, 0, 0, 0 };
 
     private readonly CancellationToken cancellationToken;
 
@@ -231,7 +232,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private ref byte GetFixedBinReference() => ref this.fixedBin[0];
+    private ref byte GetFixedBinReference() => ref MemoryMarshal.GetReference(fixedBin);
 
     /// <summary>
     /// Decodes the entropy coded data.

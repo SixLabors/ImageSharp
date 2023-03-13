@@ -133,7 +133,7 @@ public sealed class BokehBlurProcessor : IImageProcessor
             // The target buffer is zeroed initially and then it accumulates the results
             // of each partial convolution, so we don't have to clear it here as well
             ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
-            ref Complex64 kernelStart = ref this.kernel[0];
+            ref Complex64 kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))

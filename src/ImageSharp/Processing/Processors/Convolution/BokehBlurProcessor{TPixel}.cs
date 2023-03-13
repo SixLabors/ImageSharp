@@ -244,7 +244,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
             ref ComplexVector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
             ref ComplexVector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)span.Length);
-            ref Complex64 kernelBase = ref this.kernel[0];
+            ref Complex64 kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
             ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 

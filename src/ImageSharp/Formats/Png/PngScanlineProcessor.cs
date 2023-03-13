@@ -255,7 +255,7 @@ internal static class PngScanlineProcessor
             // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
             // channel and we should try to read it.
             Rgba32 rgba = default;
-            ref byte paletteAlphaRef = ref paletteAlpha[0];
+            ref byte paletteAlphaRef = ref MemoryMarshal.GetArrayDataReference(paletteAlpha);
 
             for (int x = 0; x < header.Width; x++)
             {
@@ -301,7 +301,7 @@ internal static class PngScanlineProcessor
             // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
             // channel and we should try to read it.
             Rgba32 rgba = default;
-            ref byte paletteAlphaRef = ref paletteAlpha[0];
+            ref byte paletteAlphaRef = ref MemoryMarshal.GetArrayDataReference(paletteAlpha);
             for (int x = pixelOffset, o = 0; x < header.Width; x += increment, o++)
             {
                 int index = Unsafe.Add(ref scanlineSpanRef, (uint)o);

@@ -206,8 +206,8 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                 int lc = Lcode(litlen);
                 this.literalTree.WriteSymbol(pendingBuffer, lc);
 
-                int bits = (lc - 261) / 4;
-                if (bits > 0 && bits <= 5)
+                int bits = (int)(((uint)lc - 261) / 4);
+                if (bits is > 0 and <= 5)
                 {
                     this.Pending.WriteBits(litlen & ((1 << bits) - 1), bits);
                 }
@@ -364,7 +364,7 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
         this.literalTree.Frequencies[lc]++;
         if (lc >= 265 && lc < 285)
         {
-            this.extraBits += (lc - 261) / 4;
+            this.extraBits += (int)(((uint)lc - 261) / 4);
         }
 
         int dc = Dcode(distance - 1);

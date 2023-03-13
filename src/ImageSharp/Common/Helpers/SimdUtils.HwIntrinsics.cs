@@ -159,7 +159,7 @@ internal static partial class SimdUtils
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
                 int sourceCount = source.Length - remainder;
-                int destCount = sourceCount * 4 / 3;
+                int destCount = (int)((uint)sourceCount * 4 / 3);
 
                 if (sourceCount > 0)
                 {
@@ -192,7 +192,7 @@ internal static partial class SimdUtils
                 int remainder = source.Length % (Vector128<byte>.Count * 4);
 
                 int sourceCount = source.Length - remainder;
-                int destCount = sourceCount * 3 / 4;
+                int destCount = (int)((uint)sourceCount * 3 / 4);
 
                 if (sourceCount > 0)
                 {

@@ -100,7 +100,7 @@ internal static class HuffmanUtils
                     uint k;
 
                     // The stride must end, collapse what we have, if we have enough (4).
-                    uint count = (uint)((sum + (stride / 2)) / stride);
+                    uint count = (sum + ((uint)stride / 2)) / (uint)stride;
                     if (count < 1)
                     {
                         count = 1;
@@ -144,7 +144,7 @@ internal static class HuffmanUtils
                 sum += counts[i];
                 if (stride >= 4)
                 {
-                    limit = (uint)((sum + (stride / 2)) / stride);
+                    limit = (sum + ((uint)stride / 2)) / (uint)stride;
                 }
             }
         }

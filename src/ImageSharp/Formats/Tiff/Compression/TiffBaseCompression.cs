@@ -16,7 +16,7 @@ internal abstract class TiffBaseCompression : IDisposable
         this.Width = width;
         this.BitsPerPixel = bitsPerPixel;
         this.Predictor = predictor;
-        this.BytesPerRow = ((width * bitsPerPixel) + 7) / 8;
+        this.BytesPerRow = (int)(((uint)(width * bitsPerPixel) + 7) / 8);
     }
 
     /// <summary>

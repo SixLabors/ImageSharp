@@ -963,7 +963,7 @@ internal class Vp8LEncoder : IDisposable
             else
             {
                 int nBits = BitOperations.Log2((uint)trimmedLength - 2);
-                int nBitPairs = (nBits / 2) + 1;
+                int nBitPairs = (int)(((uint)nBits / 2) + 1);
                 this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
                 this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);
             }
@@ -1820,7 +1820,7 @@ internal class Vp8LEncoder : IDisposable
     {
         // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
         // pixel in each, plus 2 regular scanlines of bytes.
-        int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
+        int bgraScratchSize = this.UsePredictorTransform ? (int)((((uint)width + 1) * 2) + ((((uint)width * 2) + 4 - 1) / 4)) : 0;
         int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
 
         this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);

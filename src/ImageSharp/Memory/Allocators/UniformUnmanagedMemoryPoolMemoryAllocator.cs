@@ -156,7 +156,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             // Workaround for https://github.com/dotnet/runtime/issues/65466
             if (total > 0)
             {
-                return total / 8;
+                return (long)((ulong)total / 8);
             }
         }
 

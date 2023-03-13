@@ -59,7 +59,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
         int tileWidth = source.Width / this.Tiles;
         int tileHeight = tileWidth;
         int pixelInTile = tileWidth * tileHeight;
-        int halfTileHeight = tileHeight / 2;
+        int halfTileHeight = (int)((uint)tileHeight / 2);
         int halfTileWidth = halfTileHeight;
         SlidingWindowInfos slidingWindowInfos = new(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 

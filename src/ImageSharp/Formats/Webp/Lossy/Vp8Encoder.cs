@@ -683,7 +683,7 @@ internal class Vp8Encoder : IDisposable
             {
                 if (accum[n] != 0)
                 {
-                    int newCenter = (distAccum[n] + (accum[n] / 2)) / accum[n];
+                    int newCenter = (distAccum[n] + (accum[n] >> 1)) / accum[n];    // >> 1 is bit-hack for / 2
                     displaced += Math.Abs(centers[n] - newCenter);
                     centers[n] = newCenter;
                     weightedAverage += newCenter * accum[n];
@@ -691,7 +691,7 @@ internal class Vp8Encoder : IDisposable
                 }
             }
 
-            weightedAverage = (weightedAverage + (totalWeight / 2)) / totalWeight;
+            weightedAverage = (weightedAverage + (totalWeight >> 1)) / totalWeight; // >> 1 is bit-hack for / 2
             if (displaced < 5)
             {
                 break;   // no need to keep on looping...
@@ -1177,6 +1177,6 @@ internal class Vp8Encoder : IDisposable
     {
         int total = a + b;
         return total == 0 ? 255 // that's the default probability.
-            : ((255 * a) + (total / 2)) / total;  // rounded proba
+            : ((255 * a) + (int)((uint)total / 2)) / total;  // rounded proba
     }
 }

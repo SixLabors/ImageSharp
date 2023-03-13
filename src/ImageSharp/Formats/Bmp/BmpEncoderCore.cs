@@ -124,7 +124,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
 
         short bpp = (short)this.bitsPerPixel;
-        int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
+        int bytesPerLine = (int)(4 * ((((uint)image.Width * (ushort)bpp) + 31) / 32));
         this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
         int colorPaletteSize = this.bitsPerPixel switch

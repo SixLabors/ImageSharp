@@ -316,7 +316,7 @@ internal class HistogramEncoder
         int triesWithNoSuccess = 0;
         int numUsed = histograms.Count(h => h != null);
         int outerIters = numUsed;
-        int numTriesNoSuccess = outerIters / 2;
+        int numTriesNoSuccess = (int)((uint)outerIters / 2);
         var stats = new Vp8LStreaks();
         var bitsEntropy = new Vp8LBitEntropy();
 
@@ -346,7 +346,7 @@ internal class HistogramEncoder
         for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
         {
             double bestCost = histoPriorityList.Count == 0 ? 0.0d : histoPriorityList[0].CostDiff;
-            int numTries = numUsed / 2;
+            int numTries = (int)((uint)numUsed / 2);
             uint randRange = (uint)((numUsed - 1) * numUsed);
 
             // Pick random samples.

@@ -26,7 +26,7 @@ internal abstract partial class JpegColorConverterBase
         this.ColorSpace = colorSpace;
         this.Precision = precision;
         this.MaximumValue = MathF.Pow(2, precision) - 1;
-        this.HalfValue = MathF.Ceiling(this.MaximumValue / 2);
+        this.HalfValue = MathF.Ceiling(this.MaximumValue * 0.5F);   // /2
     }
 
     /// <summary>

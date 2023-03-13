@@ -25,7 +25,7 @@ internal sealed class DownScalingComponentProcessor4 : ComponentProcessor
         Buffer2D<Block8x8> spectralBuffer = this.Component.SpectralBlocks;
 
         float maximumValue = this.Frame.MaxColorChannelValue;
-        float normalizationValue = MathF.Ceiling(maximumValue / 2);
+        float normalizationValue = MathF.Ceiling(maximumValue * 0.5F);  // /2
 
         int destAreaStride = this.ColorBuffer.Width;
 

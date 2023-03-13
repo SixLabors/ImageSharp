@@ -71,7 +71,7 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, 4);
 
-            int count = dest.Length / 4;
+            int count = (int)((uint)dest.Length / 4);
             if (count == 0)
             {
                 return;
@@ -105,7 +105,7 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, 4);
 
-            int count = source.Length / 4;
+            int count = (int)((uint)source.Length / 4);
             if (count == 0)
             {
                 return;

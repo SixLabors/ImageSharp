@@ -123,7 +123,7 @@ internal class HuffmanScanEncoder
     private bool IsStreamFlushNeeded
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => this.emitWriteIndex < (uint)this.emitBuffer.Length / 2;
+        get => this.emitWriteIndex < (int)((uint)this.emitBuffer.Length / 2);
     }
 
     public void BuildHuffmanTable(JpegHuffmanTableConfig tableConfig)

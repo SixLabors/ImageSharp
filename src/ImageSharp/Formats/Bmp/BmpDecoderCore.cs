@@ -489,7 +489,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // If the second byte > 2, we are in 'absolute mode'.
                         // The second byte contains the number of color indexes that follow.
                         int max = cmd[1];
-                        int bytesToRead = (max + 1) / 2;
+                        int bytesToRead = (int)(((uint)max + 1) / 2);
 
                         byte[] run = new byte[bytesToRead];
 

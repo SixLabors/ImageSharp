@@ -59,7 +59,7 @@ internal sealed class Vp8LHashChain : IDisposable
     public void Fill(ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize, bool lowEffort)
     {
         int size = xSize * ySize;
-        int iterMax = GetMaxItersForQuality(quality);
+        int iterMax = GetMaxItersForQuality((uint)quality);
         int windowSize = GetWindowSizeForHashChain(quality, xSize);
         int pos;
 
@@ -272,7 +272,7 @@ internal sealed class Vp8LHashChain : IDisposable
     /// <param name="quality">The quality.</param>
     /// <returns>Number of hash chain lookups.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int GetMaxItersForQuality(int quality) => 8 + (quality * quality / 128);
+    private static int GetMaxItersForQuality(uint quality) => (int)(8 + (quality * quality / 128));
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int GetWindowSizeForHashChain(int quality, int xSize)

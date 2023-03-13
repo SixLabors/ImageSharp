@@ -286,13 +286,13 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
         int static_len = this.extraBits;
         ref byte staticLLengthRef = ref MemoryMarshal.GetReference(StaticLLength);
-        for (int i = 0; i < LiteralNumber; i++)
+        for (nint i = 0; i < LiteralNumber; i++)
         {
             static_len += this.literalTree.Frequencies[i] * Unsafe.Add(ref staticLLengthRef, i);
         }
 
         ref byte staticDLengthRef = ref MemoryMarshal.GetReference(StaticDLength);
-        for (int i = 0; i < DistanceNumber; i++)
+        for (nint i = 0; i < DistanceNumber; i++)
         {
             static_len += this.distTree.Frequencies[i] * Unsafe.Add(ref staticDLengthRef, i);
         }
@@ -405,10 +405,10 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
         ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
 
-        return (short)(Unsafe.Add(ref bit4ReverseRef, toReverse & 0xF) << 12
-                       | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 4) & 0xF) << 8
-                       | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 8) & 0xF) << 4
-                       | Unsafe.Add(ref bit4ReverseRef, toReverseRightShiftBy12));
+        return (short)((Unsafe.Add(ref bit4ReverseRef, (uint)toReverse & 0xF) << 12)
+                       | (Unsafe.Add(ref bit4ReverseRef, (uint)(toReverse >> 4) & 0xF) << 8)
+                       | (Unsafe.Add(ref bit4ReverseRef, (uint)(toReverse >> 8) & 0xF) << 4)
+                       | Unsafe.Add(ref bit4ReverseRef, (uint)toReverseRightShiftBy12));
     }
 
     /// <inheritdoc/>
@@ -551,8 +551,8 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
             int code = 0;
             for (int bits = 0; bits < this.maxLength; bits++)
             {
-                Unsafe.Add(ref nextCodeRef, bits) = code;
-                code += Unsafe.Add(ref bitLengthCountsRef, bits) << (15 - bits);
+                Unsafe.Add(ref nextCodeRef, (uint)bits) = code;
+                code += Unsafe.Add(ref bitLengthCountsRef, (uint)bits) << (15 - bits);
             }
 
             for (int i = 0; i < this.NumCodes; i++)
@@ -560,8 +560,8 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                 int bits = this.Length[i];
                 if (bits > 0)
                 {
-                    this.codes[i] = BitReverse(Unsafe.Add(ref nextCodeRef, bits - 1));
-                    Unsafe.Add(ref nextCodeRef, bits - 1) += 1 << (16 - bits);
+                    this.codes[i] = BitReverse(Unsafe.Add(ref nextCodeRef, (uint)(bits - 1)));
+                    Unsafe.Add(ref nextCodeRef, (uint)(bits - 1)) += 1 << (16 - bits);
                 }
             }
         }
@@ -593,13 +593,13 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                         // Insert n into heap
                         int pos = heapLen++;
                         int ppos;
-                        while (pos > 0 && this.Frequencies[Unsafe.Add(ref heapRef, ppos = (pos - 1) >> 1)] > freq)
+                        while (pos > 0 && this.Frequencies[Unsafe.Add(ref heapRef, (uint)(ppos = (pos - 1) >> 1))] > freq)
                         {
-                            Unsafe.Add(ref heapRef, pos) = Unsafe.Add(ref heapRef, ppos);
+                            Unsafe.Add(ref heapRef, pos) = Unsafe.Add(ref heapRef, (uint)ppos);
                             pos = ppos;
                         }
 
-                        Unsafe.Add(ref heapRef, pos) = n;
+                        Unsafe.Add(ref heapRef, (uint)pos) = n;
 
                         maxCode = n;
                     }
@@ -611,7 +611,7 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                 // this case, both literals get a 1 bit code.
                 while (heapLen < 2)
                 {
-                    Unsafe.Add(ref heapRef, heapLen++) = maxCode < 2 ? ++maxCode : 0;
+                    Unsafe.Add(ref heapRef, (uint)heapLen++) = maxCode < 2 ? ++maxCode : 0;
                 }
 
                 this.NumCodes = Math.Max(maxCode + 1, this.minNumCodes);
@@ -625,14 +625,14 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                     ref int valuesRef = ref MemoryMarshal.GetReference(valuesMemoryOwner.Memory.Span);
                     int numNodes = numLeafs;
 
-                    for (int i = 0; i < heapLen; i++)
+                    for (nint i = 0; i < (uint)heapLen; i++)
                     {
                         int node = Unsafe.Add(ref heapRef, i);
-                        int i2 = 2 * i;
+                        nint i2 = 2 * i;
                         Unsafe.Add(ref childrenRef, i2) = node;
                         Unsafe.Add(ref childrenRef, i2 + 1) = -1;
                         Unsafe.Add(ref valuesRef, i) = this.Frequencies[node] << 8;
-                        Unsafe.Add(ref heapRef, i) = i;
+                        Unsafe.Add(ref heapRef, i) = (int)i;
                     }
 
                     // Construct the Huffman tree by repeatedly combining the least two
@@ -640,7 +640,7 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                     do
                     {
                         int first = Unsafe.Add(ref heapRef, 0);
-                        int last = Unsafe.Add(ref heapRef, --heapLen);
+                        int last = Unsafe.Add(ref heapRef, (uint)--heapLen);
 
                         // Propagate the hole to the leafs of the heap
                         int ppos = 0;
@@ -648,35 +648,35 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
                         while (path < heapLen)
                         {
-                            if (path + 1 < heapLen && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path)) > Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path + 1)))
+                            if (path + 1 < heapLen && Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)path)) > Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)(path + 1))))
                             {
                                 path++;
                             }
 
-                            Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
+                            Unsafe.Add(ref heapRef, (uint)ppos) = Unsafe.Add(ref heapRef, (uint)path);
                             ppos = path;
                             path = (path * 2) + 1;
                         }
 
                         // Now propagate the last element down along path.  Normally
                         // it shouldn't go too deep.
-                        int lastVal = Unsafe.Add(ref valuesRef, last);
+                        int lastVal = Unsafe.Add(ref valuesRef, (uint)last);
                         while ((path = ppos) > 0
-                                && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, ppos = (path - 1) >> 1)) > lastVal)
+                                && Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)(ppos = (path - 1) >> 1))) > lastVal)
                         {
-                            Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
+                            Unsafe.Add(ref heapRef, (uint)path) = Unsafe.Add(ref heapRef, (uint)ppos);
                         }
 
-                        Unsafe.Add(ref heapRef, path) = last;
+                        Unsafe.Add(ref heapRef, (uint)path) = last;
 
                         int second = Unsafe.Add(ref heapRef, 0);
 
                         // Create a new node father of first and second
                         last = numNodes++;
-                        Unsafe.Add(ref childrenRef, 2 * last) = first;
-                        Unsafe.Add(ref childrenRef, (2 * last) + 1) = second;
-                        int mindepth = Math.Min(Unsafe.Add(ref valuesRef, first) & 0xFF, Unsafe.Add(ref valuesRef, second) & 0xFF);
-                        Unsafe.Add(ref valuesRef, last) = lastVal = Unsafe.Add(ref valuesRef, first) + Unsafe.Add(ref valuesRef, second) - mindepth + 1;
+                        Unsafe.Add(ref childrenRef, (uint)(2 * last)) = first;
+                        Unsafe.Add(ref childrenRef, (uint)((2 * last) + 1)) = second;
+                        int mindepth = Math.Min(Unsafe.Add(ref valuesRef, (uint)first) & 0xFF, Unsafe.Add(ref valuesRef, (uint)second) & 0xFF);
+                        Unsafe.Add(ref valuesRef, (uint)last) = lastVal = Unsafe.Add(ref valuesRef, (uint)first) + Unsafe.Add(ref valuesRef, (uint)second) - mindepth + 1;
 
                         // Again, propagate the hole to the leafs
                         ppos = 0;
@@ -685,23 +685,23 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                         while (path < heapLen)
                         {
                             if (path + 1 < heapLen
-                                && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path)) > Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, path + 1)))
+                                && Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)path)) > Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)(path + 1))))
                             {
                                 path++;
                             }
 
-                            Unsafe.Add(ref heapRef, ppos) = Unsafe.Add(ref heapRef, path);
+                            Unsafe.Add(ref heapRef, (uint)ppos) = Unsafe.Add(ref heapRef, (uint)path);
                             ppos = path;
                             path = (ppos * 2) + 1;
                         }
 
                         // Now propagate the new element down along path
-                        while ((path = ppos) > 0 && Unsafe.Add(ref valuesRef, Unsafe.Add(ref heapRef, ppos = (path - 1) >> 1)) > lastVal)
+                        while ((path = ppos) > 0 && Unsafe.Add(ref valuesRef, (uint)Unsafe.Add(ref heapRef, (uint)(ppos = (path - 1) >> 1))) > lastVal)
                         {
-                            Unsafe.Add(ref heapRef, path) = Unsafe.Add(ref heapRef, ppos);
+                            Unsafe.Add(ref heapRef, (uint)path) = Unsafe.Add(ref heapRef, (uint)ppos);
                         }
 
-                        Unsafe.Add(ref heapRef, path) = last;
+                        Unsafe.Add(ref heapRef, (uint)path) = last;
                     }
                     while (heapLen > 1);
 
@@ -886,21 +886,21 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                 {
                     if (children[(2 * i) + 1] != -1)
                     {
-                        int bitLength = Unsafe.Add(ref lengthsRef, i) + 1;
+                        int bitLength = Unsafe.Add(ref lengthsRef, (uint)i) + 1;
                         if (bitLength > maxLen)
                         {
                             bitLength = maxLen;
                             overflow++;
                         }
 
-                        Unsafe.Add(ref lengthsRef, Unsafe.Add(ref childrenRef, 2 * i)) = Unsafe.Add(ref lengthsRef, Unsafe.Add(ref childrenRef, (2 * i) + 1)) = bitLength;
+                        Unsafe.Add(ref lengthsRef, (uint)Unsafe.Add(ref childrenRef, (uint)(2 * i))) = Unsafe.Add(ref lengthsRef, (uint)Unsafe.Add(ref childrenRef, (uint)((2 * i) + 1))) = bitLength;
                     }
                     else
                     {
                         // A leaf node
-                        int bitLength = Unsafe.Add(ref lengthsRef, i);
-                        Unsafe.Add(ref bitLengthCountsRef, bitLength - 1)++;
-                        lengthPtr[Unsafe.Add(ref childrenRef, 2 * i)] = (byte)Unsafe.Add(ref lengthsRef, i);
+                        int bitLength = Unsafe.Add(ref lengthsRef, (uint)i);
+                        Unsafe.Add(ref bitLengthCountsRef, (uint)(bitLength - 1))++;
+                        lengthPtr[Unsafe.Add(ref childrenRef, (uint)(2 * i))] = (byte)Unsafe.Add(ref lengthsRef, (uint)i);
                     }
                 }
             }
@@ -914,7 +914,7 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
             do
             {
                 // Find the first bit length which could increase:
-                while (Unsafe.Add(ref bitLengthCountsRef, --incrBitLen) == 0)
+                while (Unsafe.Add(ref bitLengthCountsRef, (uint)--incrBitLen) == 0)
                 {
                 }
 
@@ -922,8 +922,8 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                 // number of overflow nodes.
                 do
                 {
-                    Unsafe.Add(ref bitLengthCountsRef, incrBitLen)--;
-                    Unsafe.Add(ref bitLengthCountsRef, ++incrBitLen)++;
+                    Unsafe.Add(ref bitLengthCountsRef, (uint)incrBitLen)--;
+                    Unsafe.Add(ref bitLengthCountsRef, (uint)++incrBitLen)++;
                     overflow -= 1 << (maxLen - 1 - incrBitLen);
                 }
                 while (overflow > 0 && incrBitLen < maxLen - 1);
@@ -932,8 +932,8 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
             // We may have overshot above.  Move some nodes from maxLength to
             // maxLength-1 in that case.
-            Unsafe.Add(ref bitLengthCountsRef, maxLen - 1) += overflow;
-            Unsafe.Add(ref bitLengthCountsRef, maxLen - 2) -= overflow;
+            Unsafe.Add(ref bitLengthCountsRef, (uint)(maxLen - 1)) += overflow;
+            Unsafe.Add(ref bitLengthCountsRef, (uint)(maxLen - 2)) -= overflow;
 
             // Now recompute all bit lengths, scanning in increasing
             // frequency.  It is simpler to reconstruct all lengths instead of
@@ -945,14 +945,14 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
             int nodeIndex = 2 * numLeafs;
             for (int bits = maxLen; bits != 0; bits--)
             {
-                int n = Unsafe.Add(ref bitLengthCountsRef, bits - 1);
+                int n = Unsafe.Add(ref bitLengthCountsRef, (uint)(bits - 1));
                 while (n > 0)
                 {
-                    int childIndex = 2 * Unsafe.Add(ref childrenRef, nodeIndex++);
-                    if (Unsafe.Add(ref childrenRef, childIndex + 1) == -1)
+                    int childIndex = 2 * Unsafe.Add(ref childrenRef, (uint)nodeIndex++);
+                    if (Unsafe.Add(ref childrenRef, (uint)(childIndex + 1)) == -1)
                     {
                         // We found another leaf
-                        lengthPtr[Unsafe.Add(ref childrenRef, childIndex)] = (byte)bits;
+                        lengthPtr[Unsafe.Add(ref childrenRef, (uint)childIndex)] = (byte)bits;
                         n--;
                     }
                 }

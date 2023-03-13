@@ -254,7 +254,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         for (int i = rgbaSpan.Length - 1; i >= 0; i--)
         {
-            if (Unsafe.Add(ref rgbaSpanRef, i).Equals(default))
+            if (Unsafe.Add(ref rgbaSpanRef, (uint)i).Equals(default))
             {
                 index = i;
             }

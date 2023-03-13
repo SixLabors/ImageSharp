@@ -66,7 +66,7 @@ internal static class UpFilter
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -96,7 +96,7 @@ internal static class UpFilter
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -127,7 +127,7 @@ internal static class UpFilter
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -143,7 +143,7 @@ internal static class UpFilter
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
         // Up(x) + Prior(x)
-        for (nint x = 1; x < scanline.Length; x++)
+        for (nint x = 1; x < (uint)scanline.Length; x++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -179,7 +179,7 @@ internal static class UpFilter
             Vector256<byte> zero = Vector256<byte>.Zero;
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-            for (; x <= scanline.Length - Vector256<byte>.Count;)
+            for (; x <= (nint)(uint)(scanline.Length - Vector256<byte>.Count);)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
@@ -197,7 +197,7 @@ internal static class UpFilter
         {
             Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-            for (; x <= scanline.Length - Vector<byte>.Count;)
+            for (; x <= (nint)(uint)(scanline.Length - Vector<byte>.Count);)
             {
                 Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
@@ -215,7 +215,7 @@ internal static class UpFilter
             }
         }
 
-        for (; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+        for (; x < (nint)(uint)scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);

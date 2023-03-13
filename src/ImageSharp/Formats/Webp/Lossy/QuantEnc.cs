@@ -789,7 +789,7 @@ internal static unsafe class QuantEnc
     {
         int score = 0;
         ref short levelsRef = ref MemoryMarshal.GetReference(levels);
-        int offset = 0;
+        nint offset = 0;
         while (numBlocks-- > 0)
         {
             for (nint i = 1; i < 16; i++)

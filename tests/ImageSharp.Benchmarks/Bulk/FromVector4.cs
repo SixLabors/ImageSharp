@@ -47,7 +47,7 @@ public abstract class FromVector4<TPixel>
     {
         ref Vector4 s = ref MemoryMarshal.GetReference(this.source.GetSpan());
         ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
-        for (int i = 0; i < this.Count; i++)
+        for (nint i = 0; i < (uint)this.Count; i++)
         {
             Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));
         }

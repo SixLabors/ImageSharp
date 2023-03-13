@@ -24,11 +24,11 @@ internal class WhiteIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         colorBlack.FromRgba32(Color.Black);
         colorWhite.FromRgba32(Color.White);
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
-        for (nint y = top; y < top + height; y++)
+        for (nint y = top; y < (nint)(uint)(top + height); y++)
         {
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)y);
             ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
-            for (nint x = left; x < left + width; x += 8)
+            for (nint x = left; x < (nint)(uint)(left + width); x += 8)
             {
                 byte b = Unsafe.Add(ref dataRef, offset++);
                 nint maxShift = Math.Min(left + width - x, 8);
@@ -73,7 +73,7 @@ internal class WhiteIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     {
                         int bit = (b >> (7 - shift)) & 1;
 
-                        ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
+                        ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + (nint)(uint)shift);
                         pixel = bit == 0 ? colorWhite : colorBlack;
                     }
                 }

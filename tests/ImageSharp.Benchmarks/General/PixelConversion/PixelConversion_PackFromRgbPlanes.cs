@@ -92,7 +92,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref byte b = ref this.rBuf[0];
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
-        for (int i = 0; i < this.Count; i++)
+        for (nint i = 0; i < (uint)this.Count; i++)
         {
             ref Rgb24 d = ref Unsafe.Add(ref rgb, i);
             d.R = Unsafe.Add(ref r, i);
@@ -110,7 +110,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
         int count = this.Count / 8;
-        for (int i = 0; i < count; i++)
+        for (nint i = 0; i < (uint)count; i++)
         {
             ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 8);
             ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);
@@ -168,7 +168,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
         int count = this.Count / 4;
-        for (int i = 0; i < count; i++)
+        for (nint i = 0; i < (uint)count; i++)
         {
             ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 4);
             ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);

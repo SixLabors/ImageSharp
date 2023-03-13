@@ -75,7 +75,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
             return this.GetClosestColorSlow(rgba, ref paletteRef, out match);
         }
 
-        match = Unsafe.Add(ref paletteRef, index);
+        match = Unsafe.Add(ref paletteRef, (ushort)index);
         return index;
     }
 
@@ -119,7 +119,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
 
         // Now I have the index, pop it into the cache for next time
         this.cache.Add(rgba, (byte)index);
-        match = Unsafe.Add(ref paletteRef, index);
+        match = Unsafe.Add(ref paletteRef, (uint)index);
         return index;
     }
 

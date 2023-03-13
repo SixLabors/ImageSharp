@@ -210,7 +210,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref L8 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref L8 dp = ref Unsafe.Add(ref destRef, i);
@@ -231,7 +231,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref L16 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref L16 dp = ref Unsafe.Add(ref destRef, i);
@@ -252,7 +252,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref La16 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref La16 dp = ref Unsafe.Add(ref destRef, i);
@@ -273,7 +273,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref La32 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref La32 dp = ref Unsafe.Add(ref destRef, i);
@@ -294,7 +294,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgb48 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
@@ -315,7 +315,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Rgba64 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
@@ -336,7 +336,7 @@ public partial struct Bgra32
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Bgra5551 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);

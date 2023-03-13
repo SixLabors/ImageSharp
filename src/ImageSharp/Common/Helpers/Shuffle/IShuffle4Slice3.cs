@@ -31,11 +31,11 @@ internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
 
         Shuffle.InverseMMShuffle(this.Control, out _, out int p2, out int p1, out int p0);
 
-        for (int i = 0, j = 0; i < dest.Length; i += 3, j += 4)
+        for (nint i = 0, j = 0; i < (uint)dest.Length; i += 3, j += 4)
         {
-            Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + j);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, (nint)(uint)p0 + j);
+            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, (nint)(uint)p1 + j);
+            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, (nint)(uint)p2 + j);
         }
     }
 }
@@ -52,9 +52,9 @@ internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
 
-        int n = source.Length / 4;
-        int m = Numerics.Modulo4(n);
-        int u = n - m;
+        nint n = (nint)(uint)source.Length / 4;
+        nint m = Numerics.Modulo4(n);
+        nint u = n - m;
 
         ref uint sLoopEnd = ref Unsafe.Add(ref sBase, u);
         ref uint sEnd = ref Unsafe.Add(ref sBase, n);

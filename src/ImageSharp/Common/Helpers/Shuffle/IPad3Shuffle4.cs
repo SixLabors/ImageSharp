@@ -35,15 +35,15 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
         ref byte t = ref MemoryMarshal.GetReference(temp);
         ref uint tu = ref Unsafe.As<byte, uint>(ref t);
 
-        for (int i = 0, j = 0; i < source.Length; i += 3, j += 4)
+        for (nint i = 0, j = 0; i < (uint)source.Length; i += 3, j += 4)
         {
             ref byte s = ref Unsafe.Add(ref sBase, i);
             tu = Unsafe.As<byte, uint>(ref s) | 0xFF000000;
 
-            Unsafe.Add(ref dBase, j) = Unsafe.Add(ref t, p0);
-            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, p1);
-            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, p2);
-            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, p3);
+            Unsafe.Add(ref dBase, j + 0) = Unsafe.Add(ref t, (uint)p0);
+            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, (uint)p1);
+            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, (uint)p2);
+            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, (uint)p3);
         }
     }
 }
@@ -60,7 +60,7 @@ internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        ref byte sEnd = ref Unsafe.Add(ref sBase, source.Length);
+        ref byte sEnd = ref Unsafe.Add(ref sBase, (uint)source.Length);
         ref byte sLoopEnd = ref Unsafe.Subtract(ref sEnd, 4);
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))

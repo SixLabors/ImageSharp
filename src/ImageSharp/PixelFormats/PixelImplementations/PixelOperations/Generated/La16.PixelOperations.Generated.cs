@@ -50,7 +50,7 @@ public partial struct La16
             ref La16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Argb32 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
@@ -71,7 +71,7 @@ public partial struct La16
             ref La16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Abgr32 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Abgr32 dp = ref Unsafe.Add(ref destRef, i);
@@ -92,7 +92,7 @@ public partial struct La16
             ref La16 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref Bgr24 destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref La16 sp = ref Unsafe.Add(ref sourceRef, i);
                 ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);

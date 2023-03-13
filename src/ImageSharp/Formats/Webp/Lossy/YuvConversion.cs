@@ -138,8 +138,8 @@ internal static class YuvConversion
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
+                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
+                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
                 ConvertYuvToBgrWithBottomYSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
             }
         }
@@ -147,8 +147,8 @@ internal static class YuvConversion
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, uvPos), ref Unsafe.Add(ref curURef, uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, uvPos), ref Unsafe.Add(ref curVRef, uvPos), rv);
+                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
+                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
                 ConvertYuvToBgrSse41(topY, topDst, ru, rv, pos, xStep);
             }
         }

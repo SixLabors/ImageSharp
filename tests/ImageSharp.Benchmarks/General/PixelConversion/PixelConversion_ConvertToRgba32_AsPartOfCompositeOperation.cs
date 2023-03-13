@@ -33,7 +33,7 @@ public class PixelConversion_ConvertToRgba32_AsPartOfCompositeOperation
 
             Rgba32 temp;
 
-            for (int i = 0; i < count; i++)
+            for (nint i = 0; i < (uint)count; i++)
             {
                 temp = Unsafe.Add(ref sourceBaseRef, i).ToRgba32();
 
@@ -54,7 +54,7 @@ public class PixelConversion_ConvertToRgba32_AsPartOfCompositeOperation
 
             Rgba32 temp = default;
 
-            for (int i = 0; i < count; i++)
+            for (nint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref sourceBaseRef, i).CopyToRgba32(ref temp);
 

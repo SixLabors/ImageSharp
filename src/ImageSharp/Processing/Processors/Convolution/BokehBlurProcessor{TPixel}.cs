@@ -157,8 +157,8 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         for (int i = 0; i < this.kernels.Length; i++)
         {
             // Compute the resulting complex buffer for the current component
-            Complex64[] kernel = Unsafe.Add(ref baseRef, i);
-            Vector4 parameters = Unsafe.Add(ref paramsRef, i);
+            Complex64[] kernel = Unsafe.Add(ref baseRef, (uint)i);
+            Vector4 parameters = Unsafe.Add(ref paramsRef, (uint)i);
 
             // Horizontal convolution
             var horizontalOperation = new FirstPassConvolutionRowOperation(
@@ -243,9 +243,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
             ref ComplexVector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
-            ref ComplexVector4 targetEnd = ref Unsafe.Add(ref targetStart, span.Length);
+            ref ComplexVector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)span.Length);
             ref Complex64 kernelBase = ref this.kernel[0];
-            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
+            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
             while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
@@ -255,7 +255,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
                 while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
-                    Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)(sampleColumnStart - boundsX));
 
                     targetStart.Sum(kernelStart * sample);
 
@@ -265,7 +265,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
                 // Shift the base column sampling reference by one row at the end of each outer
                 // iteration so that the inner tight loop indexing can skip the multiplication
-                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
+                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
                 targetStart = ref Unsafe.Add(ref targetStart, 1);
             }
         }
@@ -309,7 +309,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, (uint)x);
                 v.X = MathF.Pow(v.X, this.gamma);
                 v.Y = MathF.Pow(v.Y, this.gamma);
                 v.Z = MathF.Pow(v.Z, this.gamma);
@@ -399,7 +399,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
+                ref Vector4 v = ref Unsafe.Add(ref sourceRef, (uint)x);
                 Vector4 clamp = Numerics.Clamp(v, low, high);
                 v.X = MathF.Pow(clamp.X, this.inverseGamma);
                 v.Y = MathF.Pow(clamp.Y, this.inverseGamma);

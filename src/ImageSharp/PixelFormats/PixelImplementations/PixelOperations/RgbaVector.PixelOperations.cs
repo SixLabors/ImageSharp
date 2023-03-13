@@ -72,7 +72,7 @@ public partial struct RgbaVector
             ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
             ref L8 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (int i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -91,7 +91,7 @@ public partial struct RgbaVector
             ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
             ref L16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (int i = 0; i < sourcePixels.Length; i++)
+            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);

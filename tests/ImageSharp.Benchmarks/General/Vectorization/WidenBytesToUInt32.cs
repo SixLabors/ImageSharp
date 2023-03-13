@@ -33,7 +33,7 @@ public class WidenBytesToUInt32
         ref Octet<byte> sBase = ref Unsafe.As<byte, Octet<byte>>(ref this.source[0]);
         ref Octet<uint> dBase = ref Unsafe.As<uint, Octet<uint>>(ref this.dest[0]);
 
-        for (int i = 0; i < N; i++)
+        for (nint i = 0; i < N; i++)
         {
             Unsafe.Add(ref dBase, i).LoadFrom(ref Unsafe.Add(ref sBase, i));
         }

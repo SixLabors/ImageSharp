@@ -29,7 +29,7 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         {
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)y);
             ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
-            for (nint x = left; x < left + width; x += 8)
+            for (nint x = (nint)(uint)left; x < (nint)(uint)(left + width); x += 8)
             {
                 byte b = Unsafe.Add(ref dataRef, offset++);
                 nint maxShift = Math.Min(left + width - x, 8);
@@ -70,9 +70,9 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
                 else
                 {
-                    for (int shift = 0; shift < maxShift; shift++)
+                    for (nint shift = 0; shift < maxShift; shift++)
                     {
-                        int bit = (b >> (7 - shift)) & 1;
+                        int bit = (b >> (7 - (int)shift)) & 1;
 
                         ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
                         pixel = bit == 0 ? colorBlack : colorWhite;

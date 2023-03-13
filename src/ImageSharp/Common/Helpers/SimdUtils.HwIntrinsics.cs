@@ -995,9 +995,9 @@ internal static partial class SimdUtils
 
             const int bytesPerRgbStride = 24;
             int count = (int)((uint)source.Length / 8);
-            for (int i = 0; i < count; i++)
+            for (nint i = 0; i < (uint)count; i++)
             {
-                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
+                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (uint)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
 
                 rgb = Avx2.Shuffle(rgb, extractRgbMask);
 

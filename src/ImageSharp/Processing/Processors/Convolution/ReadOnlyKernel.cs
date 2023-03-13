@@ -41,7 +41,7 @@ internal readonly ref struct ReadOnlyKernel
         {
             this.CheckCoordinates(row, column);
             ref float vBase = ref MemoryMarshal.GetReference(this.values);
-            return Unsafe.Add(ref vBase, (row * this.Columns) + column);
+            return Unsafe.Add(ref vBase, (uint)((row * this.Columns) + column));
         }
     }
 

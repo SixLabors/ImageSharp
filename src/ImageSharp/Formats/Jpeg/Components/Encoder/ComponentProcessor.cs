@@ -141,7 +141,7 @@ internal class ComponentProcessor : IDisposable
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
                 ref float sourceRef = ref MemoryMarshal.GetReference(source);
-                for (nint i = count * Vector<float>.Count; i < source.Length; i++)
+                for (nint i = count * Vector<float>.Count; i < (uint)source.Length; i++)
                 {
                     Unsafe.Add(ref targetRef, i) += Unsafe.Add(ref sourceRef, i);
                 }
@@ -166,16 +166,16 @@ internal class ComponentProcessor : IDisposable
                 source = source.Slice(touchedCount);
                 target = target.Slice(touchedCount / factor);
 
-                uint length = (uint)touchedCount / (uint)Vector256<float>.Count;
+                nint length = (nint)(uint)touchedCount / Vector256<float>.Count;
 
                 for (int i = 0; i < haddIterationsCount; i++)
                 {
                     length /= 2;
 
-                    for (nuint j = 0; j < length; j++)
+                    for (nint j = 0; j < length; j++)
                     {
-                        nuint indexLeft = j * 2;
-                        nuint indexRight = indexLeft + 1;
+                        nint indexLeft = j * 2;
+                        nint indexRight = indexLeft + 1;
                         Vector256<float> sum = Avx.HorizontalAdd(Unsafe.Add(ref targetRef, indexLeft), Unsafe.Add(ref targetRef, indexRight));
                         Unsafe.Add(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
                     }
@@ -219,7 +219,7 @@ internal class ComponentProcessor : IDisposable
                 }
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
-                for (nint i = count * Vector<float>.Count; i < target.Length; i++)
+                for (nint i = count * Vector<float>.Count; i < (uint)target.Length; i++)
                 {
                     Unsafe.Add(ref targetRef, i) *= multiplier;
                 }

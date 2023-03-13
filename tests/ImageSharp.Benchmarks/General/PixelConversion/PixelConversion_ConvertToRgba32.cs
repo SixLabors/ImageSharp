@@ -38,7 +38,7 @@ public class PixelConversion_ConvertToRgba32
             ref T sourceBaseRef = ref this.source[0];
             ref Rgba32 destBaseRef = ref this.dest[0];
 
-            for (int i = 0; i < count; i++)
+            for (nint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref destBaseRef, i) = Unsafe.Add(ref sourceBaseRef, i).ToRgba32();
             }
@@ -52,7 +52,7 @@ public class PixelConversion_ConvertToRgba32
             ref T sourceBaseRef = ref this.source[0];
             ref Rgba32 destBaseRef = ref this.dest[0];
 
-            for (int i = 0; i < count; i++)
+            for (nint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref sourceBaseRef, i).CopyToRgba32(ref Unsafe.Add(ref destBaseRef, i));
             }

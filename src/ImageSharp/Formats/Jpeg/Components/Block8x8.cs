@@ -47,7 +47,7 @@ internal unsafe partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            return Unsafe.Add(ref selfRef, idx);
+            return Unsafe.Add(ref selfRef, (uint)idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -56,7 +56,7 @@ internal unsafe partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            Unsafe.Add(ref selfRef, idx) = value;
+            Unsafe.Add(ref selfRef, (uint)idx) = value;
         }
     }
 
@@ -207,12 +207,12 @@ internal unsafe partial struct Block8x8
 
                     // Given mask is not actually suitable for lzcnt as 1's represent zero elements and 0's represent non-zero elements
                     // So we need to invert it
-                    int lzcnt = BitOperations.LeadingZeroCount(~(uint)areEqual);
+                    uint lzcnt = (uint)BitOperations.LeadingZeroCount(~(uint)areEqual);
 
                     // As input number is represented by 2 bits in the mask, we need to divide lzcnt result by 2
                     // to get the exact number of zero elements in the stride
-                    int strideRelativeIndex = 15 - (lzcnt / 2);
-                    return (i * 16) + strideRelativeIndex;
+                    uint strideRelativeIndex = 15 - (lzcnt / 2);
+                    return (i * 16) + (nint)strideRelativeIndex;
                 }
             }
 

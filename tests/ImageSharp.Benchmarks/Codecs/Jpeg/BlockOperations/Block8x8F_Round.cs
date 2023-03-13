@@ -54,7 +54,7 @@ public unsafe class Block8x8F_Round
     {
         ref float b = ref Unsafe.As<Block8x8F, float>(ref this.block);
 
-        for (int i = 0; i < Block8x8F.Size; i++)
+        for (nint i = 0; i < Block8x8F.Size; i++)
         {
             ref float v = ref Unsafe.Add(ref b, i);
             v = (float)Math.Round(v);
@@ -178,7 +178,7 @@ public unsafe class Block8x8F_Round
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
         p = Sse41.RoundToNearestInteger(p);
-        var offset = (IntPtr)sizeof(Vector128<float>);
+        nint offset = sizeof(Vector128<float>);
         p = Sse41.RoundToNearestInteger(p);
 
         p = ref Unsafe.AddByteOffset(ref p, offset);
@@ -218,7 +218,7 @@ public unsafe class Block8x8F_Round
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
         p = Sse41.RoundToNearestInteger(p);
-        var offset = (IntPtr)sizeof(Vector128<float>);
+        nint offset = sizeof(Vector128<float>);
 
         for (int i = 0; i < 15; i++)
         {
@@ -231,7 +231,7 @@ public unsafe class Block8x8F_Round
     public unsafe void Sse41_V4()
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
-        var offset = (IntPtr)sizeof(Vector128<float>);
+        nint offset = sizeof(Vector128<float>);
 
         ref Vector128<float> a = ref p;
         ref Vector128<float> b = ref Unsafe.AddByteOffset(ref a, offset);

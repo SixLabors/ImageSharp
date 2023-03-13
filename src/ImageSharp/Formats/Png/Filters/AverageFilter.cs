@@ -42,7 +42,7 @@ internal static class AverageFilter
         }
         else
         {
-            DecodeScalar(scanline, previousScanline, bytesPerPixel);
+            DecodeScalar(scanline, previousScanline, (nint)(uint)bytesPerPixel);
         }
     }
 
@@ -88,7 +88,7 @@ internal static class AverageFilter
         Vector64<byte> d = Vector64<byte>.Zero;
 
         int rb = scanline.Length;
-        int offset = 1;
+        nint offset = 1;
         const int bytesPerBatch = 4;
         while (rb >= bytesPerBatch)
         {
@@ -108,7 +108,7 @@ internal static class AverageFilter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
+    private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, nint bytesPerPixel)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
@@ -121,7 +121,7 @@ internal static class AverageFilter
             scan = (byte)(scan + (above >> 1));
         }
 
-        for (; x < scanline.Length; ++x)
+        for (; x < (uint)scanline.Length; ++x)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
@@ -153,7 +153,7 @@ internal static class AverageFilter
         resultBaseRef = (byte)FilterType.Average;
 
         nint x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        for (; x < (uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -169,7 +169,7 @@ internal static class AverageFilter
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
             Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-            for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector256<byte>.Count; xLeft += Vector256<byte>.Count)
+            for (nint xLeft = x - (nint)(uint)bytesPerPixel; x <= (uint)scanline.Length - Vector256<byte>.Count; xLeft += Vector256<byte>.Count)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -192,7 +192,7 @@ internal static class AverageFilter
             Vector128<int> sumAccumulator = Vector128<int>.Zero;
             Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-            for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector128<byte>.Count; xLeft += Vector128<byte>.Count)
+            for (nint xLeft = x - (nint)(uint)bytesPerPixel; x <= (uint)scanline.Length - Vector128<byte>.Count; xLeft += Vector128<byte>.Count)
             {
                 Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -221,7 +221,7 @@ internal static class AverageFilter
             sum += Numerics.EvenReduceSum(sumAccumulator);
         }
 
-        for (nint xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nint xLeft = x - (nint)(uint)bytesPerPixel; x < (uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, xLeft);

@@ -17,7 +17,7 @@ public class UnPremultiplyVector4
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference<Vector4>(Vectors);
 
-        for (int i = 0; i < Vectors.Length; i++)
+        for (nint i = 0; i < (uint)Vectors.Length; i++)
         {
             ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
 
@@ -30,7 +30,7 @@ public class UnPremultiplyVector4
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference<Vector4>(Vectors);
 
-        for (int i = 0; i < Vectors.Length; i++)
+        for (nint i = 0; i < (uint)Vectors.Length; i++)
         {
             ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
             Numerics.UnPremultiply(ref v);

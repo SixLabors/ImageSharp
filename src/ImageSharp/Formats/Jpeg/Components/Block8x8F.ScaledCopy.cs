@@ -98,11 +98,11 @@ internal partial struct Block8x8F
                 int xx = x * horizontalScale;
 
                 float value = this[y8 + x];
-                nint baseIdx = (yy * areaStride) + xx;
+                nint baseIdx = (nint)(uint)((yy * areaStride) + xx);
 
                 for (nint i = 0; i < verticalScale; i++, baseIdx += areaStride)
                 {
-                    for (nint j = 0; j < horizontalScale; j++)
+                    for (nint j = 0; j < (uint)horizontalScale; j++)
                     {
                         // area[xx + j, yy + i] = value;
                         Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
@@ -128,8 +128,8 @@ internal partial struct Block8x8F
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void CopyRowImpl(ref byte origin, ref byte dest, int destStride, int row)
         {
-            origin = ref Unsafe.Add(ref origin, row * 8 * sizeof(float));
-            dest = ref Unsafe.Add(ref dest, row * destStride);
+            origin = ref Unsafe.Add(ref origin, (uint)row * 8 * sizeof(float));
+            dest = ref Unsafe.Add(ref dest, (uint)(row * destStride));
             Unsafe.CopyBlock(ref dest, ref origin, 8 * sizeof(float));
         }
     }
@@ -150,8 +150,8 @@ internal partial struct Block8x8F
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void CopyRowImpl(ref byte origin, ref byte dest, int sourceStride, int row)
         {
-            origin = ref Unsafe.Add(ref origin, row * sourceStride);
-            dest = ref Unsafe.Add(ref dest, row * 8 * sizeof(float));
+            origin = ref Unsafe.Add(ref origin, (uint)(row * sourceStride));
+            dest = ref Unsafe.Add(ref dest, (uint)row * 8 * sizeof(float));
             Unsafe.CopyBlock(ref dest, ref origin, 8 * sizeof(float));
         }
     }

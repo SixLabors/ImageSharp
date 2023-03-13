@@ -31,11 +31,11 @@ internal readonly struct DefaultShuffle3 : IShuffle3
 
         Shuffle.InverseMMShuffle(this.Control, out _, out int p2, out int p1, out int p0);
 
-        for (int i = 0; i < source.Length; i += 3)
+        for (nint i = 0; i < (uint)source.Length; i += 3)
         {
-            Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, (nint)(uint)p0 + i);
+            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, (nint)(uint)p1 + i);
+            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, (nint)(uint)p2 + i);
         }
     }
 }

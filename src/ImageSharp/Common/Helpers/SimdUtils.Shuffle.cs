@@ -147,12 +147,12 @@ internal static partial class SimdUtils
         ref float dBase = ref MemoryMarshal.GetReference(dest);
         Shuffle.InverseMMShuffle(control, out int p3, out int p2, out int p1, out int p0);
 
-        for (int i = 0; i < source.Length; i += 4)
+        for (nint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, (nint)(uint)p0 + i);
+            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, (nint)(uint)p1 + i);
+            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, (nint)(uint)p2 + i);
+            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, (nint)(uint)p3 + i);
         }
     }
 
@@ -501,10 +501,10 @@ internal static partial class SimdUtils
 
             for (int i = 0; i < span.Length; i += 4)
             {
-                Unsafe.Add(ref spanBase, i) = (byte)(p0 + i);
-                Unsafe.Add(ref spanBase, i + 1) = (byte)(p1 + i);
-                Unsafe.Add(ref spanBase, i + 2) = (byte)(p2 + i);
-                Unsafe.Add(ref spanBase, i + 3) = (byte)(p3 + i);
+                Unsafe.Add(ref spanBase, (uint)(i + 0)) = (byte)(p0 + i);
+                Unsafe.Add(ref spanBase, (uint)(i + 1)) = (byte)(p1 + i);
+                Unsafe.Add(ref spanBase, (uint)(i + 2)) = (byte)(p2 + i);
+                Unsafe.Add(ref spanBase, (uint)(i + 3)) = (byte)(p3 + i);
             }
         }
 

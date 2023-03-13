@@ -1184,7 +1184,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             get
             {
                 ref byte self = ref Unsafe.As<OctetBytes, byte>(ref this);
-                return Unsafe.Add(ref self, idx);
+                return Unsafe.Add(ref self, (uint)idx);
             }
         }
     }

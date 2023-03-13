@@ -86,8 +86,8 @@ internal static partial class SimdUtils
         ref ByteTuple4 b = ref Unsafe.As<byte, ByteTuple4>(ref MemoryMarshal.GetReference(blueChannel));
         ref Rgb24 rgb = ref MemoryMarshal.GetReference(destination);
 
-        int count = redChannel.Length / 4;
-        for (int i = 0; i < count; i++)
+        uint count = (uint)redChannel.Length / 4;
+        for (nint i = 0; i < count; i++)
         {
             ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 4);
             ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);
@@ -115,7 +115,7 @@ internal static partial class SimdUtils
             d3.B = bb.V3;
         }
 
-        int finished = count * 4;
+        int finished = (int)(count * 4);
         redChannel = redChannel[finished..];
         greenChannel = greenChannel[finished..];
         blueChannel = blueChannel[finished..];
@@ -133,9 +133,9 @@ internal static partial class SimdUtils
         ref ByteTuple4 b = ref Unsafe.As<byte, ByteTuple4>(ref MemoryMarshal.GetReference(blueChannel));
         ref Rgba32 rgb = ref MemoryMarshal.GetReference(destination);
 
-        int count = redChannel.Length / 4;
+        uint count = (uint)redChannel.Length / 4;
         destination.Fill(new Rgba32(0, 0, 0, 255));
-        for (int i = 0; i < count; i++)
+        for (nint i = 0; i < count; i++)
         {
             ref Rgba32 d0 = ref Unsafe.Add(ref rgb, i * 4);
             ref Rgba32 d1 = ref Unsafe.Add(ref d0, 1);
@@ -163,7 +163,7 @@ internal static partial class SimdUtils
             d3.B = bb.V3;
         }
 
-        int finished = count * 4;
+        int finished = (int)(count * 4);
         redChannel = redChannel[finished..];
         greenChannel = greenChannel[finished..];
         blueChannel = blueChannel[finished..];
@@ -181,7 +181,7 @@ internal static partial class SimdUtils
         ref byte b = ref MemoryMarshal.GetReference(blueChannel);
         ref Rgb24 rgb = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < destination.Length; i++)
+        for (nint i = 0; i < (uint)destination.Length; i++)
         {
             ref Rgb24 d = ref Unsafe.Add(ref rgb, i);
             d.R = Unsafe.Add(ref r, i);
@@ -201,7 +201,7 @@ internal static partial class SimdUtils
         ref byte b = ref MemoryMarshal.GetReference(blueChannel);
         ref Rgba32 rgba = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < destination.Length; i++)
+        for (nint i = 0; i < (uint)destination.Length; i++)
         {
             ref Rgba32 d = ref Unsafe.Add(ref rgba, i);
             d.R = Unsafe.Add(ref r, i);
@@ -226,7 +226,7 @@ internal static partial class SimdUtils
         ref float b = ref MemoryMarshal.GetReference(blueChannel);
         ref Rgb24 rgb = ref MemoryMarshal.GetReference(source);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgb24 src = ref Unsafe.Add(ref rgb, i);
             Unsafe.Add(ref r, i) = src.R;

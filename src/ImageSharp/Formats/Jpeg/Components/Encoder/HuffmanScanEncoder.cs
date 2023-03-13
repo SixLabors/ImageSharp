@@ -180,7 +180,7 @@ internal class HuffmanScanEncoder
             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-            for (nint k = 0; k < w; k++)
+            for (nint k = 0; k < (uint)w; k++)
             {
                 this.WriteBlock(
                     component,
@@ -219,7 +219,7 @@ internal class HuffmanScanEncoder
             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-            for (nint k = 0; k < w; k++)
+            for (nint k = 0; k < (uint)w; k++)
             {
                 this.WriteBlock(
                     component,

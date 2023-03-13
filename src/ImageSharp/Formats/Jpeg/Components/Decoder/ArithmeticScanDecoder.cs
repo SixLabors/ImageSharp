@@ -705,7 +705,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
             // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-            ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+            ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), (uint)component.DcContext);
 
             // Figure F.19: Decode_DC_DIFF
             if (this.DecodeBinaryDecision(ref reader, ref st) == 0)
@@ -955,7 +955,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
         // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-        ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+        ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), (uint)component.DcContext);
 
         /* Figure F.19: Decode_DC_DIFF */
         if (this.DecodeBinaryDecision(ref reader, ref st) == 0)

@@ -134,7 +134,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
             for (nint x = 0; x < (right - left); x++)
             {
-                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * this.workerHeight);
+                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * (nint)(uint)this.workerHeight);
 
                 // Destination color components
                 Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
@@ -186,13 +186,13 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
             ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
-            for (nint x = left, z = 0; x < right; x++, z++)
+            for (nint x = left, z = 0; x < (nint)(uint)right; x++, z++)
             {
                 ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
 
                 // optimization for:
                 // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                Unsafe.Add(ref firstPassBaseRef, z * this.workerHeight) = kernel.Convolve(tempRowSpan);
+                Unsafe.Add(ref firstPassBaseRef, z * (nint)(uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
             }
         }
     }

@@ -123,8 +123,8 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
             for (int x = this.minX; x < this.maxX; x++)
             {
                 // Grab the max components of the two pixels
-                ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);
-                ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, x);
+                ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, (uint)x);
+                ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, (uint)x);
 
                 var pixelValue = Vector4.Max(currentPassPixel.ToVector4(), currentTargetPixel.ToVector4());
 

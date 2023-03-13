@@ -34,8 +34,8 @@ internal static partial class ReferenceImplementations
         // Paeth(x) = Raw(x) - PaethPredictor(Raw(x-bpp), Prior(x), Prior(x - bpp))
         resultBaseRef = 4;
 
-        int x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        nint x = 0;
+        for (; x < (nint)(uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -45,7 +45,7 @@ internal static partial class ReferenceImplementations
             sum += Numerics.Abs(unchecked((sbyte)res));
         }
 
-        for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nint xLeft = x - (nint)(uint)bytesPerPixel; x < (nint)(uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, xLeft);
@@ -77,8 +77,8 @@ internal static partial class ReferenceImplementations
         // Sub(x) = Raw(x) - Raw(x-bpp)
         resultBaseRef = 1;
 
-        int x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        nint x = 0;
+        for (; x < (nint)(uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             ++x;
@@ -87,7 +87,7 @@ internal static partial class ReferenceImplementations
             sum += Numerics.Abs(unchecked((sbyte)res));
         }
 
-        for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nint xLeft = x - (nint)(uint)bytesPerPixel; x < (nint)(uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte prev = Unsafe.Add(ref scanBaseRef, xLeft);
@@ -119,9 +119,9 @@ internal static partial class ReferenceImplementations
         // Up(x) = Raw(x) - Prior(x)
         resultBaseRef = 2;
 
-        int x = 0;
+        nint x = 0;
 
-        for (; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+        for (; x < (nint)(uint)scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -154,8 +154,8 @@ internal static partial class ReferenceImplementations
         // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
         resultBaseRef = 3;
 
-        int x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        nint x = 0;
+        for (; x < (nint)(uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -165,7 +165,7 @@ internal static partial class ReferenceImplementations
             sum += Numerics.Abs(unchecked((sbyte)res));
         }
 
-        for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nint xLeft = x - (nint)(uint)bytesPerPixel; x < (nint)(uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, xLeft);

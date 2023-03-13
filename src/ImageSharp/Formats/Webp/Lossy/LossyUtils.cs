@@ -1553,7 +1553,7 @@ internal static class LossyUtils
             Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset - (3 * stride)))) = p2.AsInt32();
             Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset - (2 * stride)))) = p1.AsInt32();
             Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset - stride))) = p0.AsInt32();
-            Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset))) = q0.AsInt32();
+            Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)offset)) = q0.AsInt32();
             Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset + stride))) = q1.AsInt32();
             Unsafe.As<byte, Vector128<int>>(ref Unsafe.Add(ref outputRef, (uint)(offset + (2 * stride)))) = q2.AsInt32();
         }
@@ -1599,7 +1599,7 @@ internal static class LossyUtils
         if (Sse2.IsSupported)
         {
             ref byte pRef = ref MemoryMarshal.GetReference(p);
-            Vector128<byte> p3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, (uint)(offset)));
+            Vector128<byte> p3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, (uint)offset));
             Vector128<byte> p2 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, (uint)(offset + stride)));
             Vector128<byte> p1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, (uint)(offset + (2 * stride))));
             Vector128<byte> p0 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref pRef, (uint)(offset + (3 * stride))));

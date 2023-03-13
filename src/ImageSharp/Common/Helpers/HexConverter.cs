@@ -16,12 +16,12 @@ internal static class HexConverter
     /// <returns>The number of bytes written to <paramref name="bytes"/>.</returns>
     public static int HexStringToBytes(ReadOnlySpan<char> chars, Span<byte> bytes)
     {
-        if ((chars.Length & 1) != 0)    // bit-hack for % 2
+        if ((chars.Length & 1 /* bit-hack for % 2 */) != 0)
         {
             throw new ArgumentException("Input string length must be a multiple of 2", nameof(chars));
         }
 
-        if ((bytes.Length << 1) < chars.Length) // bit-hack for * 2
+        if ((bytes.Length << 1 /* bit-hack for * 2 */) < chars.Length)
         {
             throw new ArgumentException("Output span must be at least half the length of the input string");
         }

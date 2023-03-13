@@ -376,7 +376,7 @@ internal class AlphaDecoder : IDisposable
                 Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
             }
 
-            for (; i < (uint)   width; i++)
+            for (; i < (uint)width; i++)
             {
                 dst[(int)i] = (byte)(prev[(int)i] + input[(int)i]);
             }

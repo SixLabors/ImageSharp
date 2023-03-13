@@ -53,9 +53,6 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private ArithmeticDecodingTable[] acDecodingTables;
 
-    // Use C#'s optimization to refer to assembly's data segment, no allocation occurs.
-    private ReadOnlySpan<byte> fixedBin => new byte[] { 113, 0, 0, 0 };
-
     private readonly CancellationToken cancellationToken;
 
     private static readonly int[] ArithmeticTable =
@@ -232,7 +229,13 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private ref byte GetFixedBinReference() => ref MemoryMarshal.GetReference(fixedBin);
+    private static ref byte GetFixedBinReference()
+    {
+        // This uses C#'s optimization to refer to the static data segment of the assembly.
+        // No allocation occurs.
+        ReadOnlySpan<byte> fixedBin = new byte[] { 113, 0, 0, 0 };
+        return ref MemoryMarshal.GetReference(fixedBin);
+    }
 
     /// <summary>
     /// Decodes the entropy coded data.
@@ -776,7 +779,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         else
         {
             // Refinement scan.
-            ref byte st = ref this.GetFixedBinReference();
+            ref byte st = ref GetFixedBinReference();
 
             blockDataRef |= (short)(this.DecodeBinaryDecision(ref reader, ref st) << this.SuccessiveLow);
         }
@@ -822,7 +825,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                 // Figure F.21: Decoding nonzero value v.
                 // Figure F.22: Decoding the sign of v.
-                int sign = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference());
+                int sign = this.DecodeBinaryDecision(ref reader, ref GetFixedBinReference());
                 st = ref Unsafe.Add(ref st, 2);
 
                 // Figure F.23: Decoding the magnitude category of v.
@@ -918,7 +921,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                 if (this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1)) != 0)
                 {
-                    bool flag = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference()) != 0;
+                    bool flag = this.DecodeBinaryDecision(ref reader, ref GetFixedBinReference()) != 0;
                     coef = (short)(coef + (flag ? m1 : p1));
 
                     break;
@@ -1048,7 +1051,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
             // Figure F.21: Decoding nonzero value v.
             // Figure F.22: Decoding the sign of v.
-            int sign = this.DecodeBinaryDecision(ref reader, ref this.GetFixedBinReference());
+            int sign = this.DecodeBinaryDecision(ref reader, ref GetFixedBinReference());
             st = ref Unsafe.Add(ref st, 2);
 
             // Figure F.23: Decoding the magnitude category of v.

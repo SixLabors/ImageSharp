@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class CmykArm64 : JpegColorConverterArm
+    internal sealed class CmykArm64 : JpegColorConverterArm64
     {
         public CmykArm64(int precision)
             : base(JpegColorSpace.Cmyk, precision)
@@ -80,7 +80,7 @@ internal abstract partial class JpegColorConverterBase
                 Vector128<float> ytmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcB, i));
                 Vector128<float> ktmp = AdvSimd.Min(ctmp, AdvSimd.Min(mtmp, ytmp));
 
-                Vector128<float> kMask = AdvSimd.Negate(AdvSimd.CompareEqual(ktmp, scale));
+                Vector128<float> kMask = AdvSimd.Not(AdvSimd.CompareEqual(ktmp, scale));
 
                 ctmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(ctmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
                 mtmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(mtmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);

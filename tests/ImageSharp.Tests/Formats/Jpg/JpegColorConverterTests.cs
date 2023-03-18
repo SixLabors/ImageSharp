@@ -246,8 +246,18 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromRgbToYCbCrAvx2(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrAvx(8), 3, seed, new JpegColorConverterBase.YCbCrScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromCmykAvx2(int seed) =>
         this.TestConversionToRgb(new JpegColorConverterBase.CmykAvx(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToCmykAvx2(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.CmykAvx(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
@@ -256,8 +266,18 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromRgbToCmykArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.CmykArm64(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromGrayscaleAvx2(int seed) =>
         this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed, new JpegColorConverterBase.GrayscaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayscaleAvx2(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed, new JpegColorConverterBase.GrayscaleScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
@@ -274,6 +294,11 @@ public class JpegColorConverterTests
     public void FromYccKAvx2(int seed) =>
         this.TestConversionToRgb( new JpegColorConverterBase.YccKAvx(8), 4, seed, new JpegColorConverterBase.YccKScalar(8));
 
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYccKAvx2(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YccKAvx(8), 4, seed, new JpegColorConverterBase.YccKScalar(8));
+
     private void TestConversionToRgb(
         JpegColorConverterBase converter,
         int componentCount,
@@ -288,6 +313,26 @@ public class JpegColorConverterTests
         }
 
         ValidateConversionToRgb(
+            converter,
+            componentCount,
+            seed,
+            baseLineConverter);
+    }
+
+    private void TestConversionFromRgb(
+        JpegColorConverterBase converter,
+        int componentCount,
+        int seed,
+        JpegColorConverterBase baseLineConverter)
+    {
+        if (!converter.IsAvailable)
+        {
+            this.Output.WriteLine(
+                $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
+            return;
+        }
+
+        ValidateConversionFromRgb(
             converter,
             componentCount,
             seed,
@@ -318,6 +363,18 @@ public class JpegColorConverterTests
         }
 
         return new JpegColorConverterBase.ComponentValues(buffers, 0);
+    }
+
+    private static float[] CreateRandomValues(int length, Random rnd)
+    {
+        float[] values = new float[length];
+
+        for (int j = 0; j < values.Length; j++)
+        {
+            values[j] = (float)rnd.NextDouble() * MaxColorChannelValue;
+        }
+
+        return values;
     }
 
     private static void ValidateConversionToRgb(
@@ -370,6 +427,46 @@ public class JpegColorConverterTests
             {
                 Assert.True(expected.Component3.SequenceEqual(actual.Component3));
             }
+        }
+    }
+
+    private static void ValidateConversionFromRgb(
+        JpegColorConverterBase converter,
+        int componentCount,
+        int seed,
+        JpegColorConverterBase baseLineConverter)
+    {
+        // arrange 
+        JpegColorConverterBase.ComponentValues actual = CreateRandomValues(TestBufferLength, componentCount, seed);
+        JpegColorConverterBase.ComponentValues expected = CreateRandomValues(TestBufferLength, componentCount, seed);
+        Random rnd = new(seed);
+        float[] rLane = CreateRandomValues(TestBufferLength, rnd);
+        float[] gLane = CreateRandomValues(TestBufferLength, rnd);
+        float[] bLane = CreateRandomValues(TestBufferLength, rnd);
+
+        // act
+        converter.ConvertFromRgb(actual, rLane, gLane, bLane);
+        baseLineConverter.ConvertFromRgb(expected, rLane, gLane, bLane);
+
+        // assert
+        if (componentCount == 1)
+        {
+            Assert.True(expected.Component0.SequenceEqual(actual.Component0));
+        }
+
+        if (componentCount == 2)
+        {
+            Assert.True(expected.Component1.SequenceEqual(actual.Component1));
+        }
+
+        if (componentCount == 3)
+        {
+            Assert.True(expected.Component2.SequenceEqual(actual.Component2));
+        }
+
+        if (componentCount == 4)
+        {
+            Assert.True(expected.Component3.SequenceEqual(actual.Component3));
         }
     }
 

@@ -20,7 +20,7 @@ public class JpegColorConverterTests
 
     private const int TestBufferLength = 40;
 
-    private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2;
 
     private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 

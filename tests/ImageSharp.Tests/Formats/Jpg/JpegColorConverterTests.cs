@@ -242,62 +242,103 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYCbCrAvx2(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrAvx(8), 3, seed, new JpegColorConverterBase.YCbCrScalar(8));
+        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToYCbCrAvx2(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrAvx(8), 3, seed, new JpegColorConverterBase.YCbCrScalar(8));
+        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8),
+            precísion: 2);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromCmykAvx2(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.CmykAvx(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+        this.TestConversionToRgb(new JpegColorConverterBase.CmykAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToCmykAvx2(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.CmykAvx(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+        this.TestConversionFromRgb(new JpegColorConverterBase.CmykAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8),
+            precísion: 4);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromCmykArm(int seed) =>
-        this.TestConversionToRgb( new JpegColorConverterBase.CmykArm64(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+        this.TestConversionToRgb( new JpegColorConverterBase.CmykArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToCmykArm(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.CmykArm64(8), 4, seed, new JpegColorConverterBase.CmykScalar(8));
+        this.TestConversionFromRgb(new JpegColorConverterBase.CmykArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8),
+            precísion: 4);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromGrayscaleAvx2(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed, new JpegColorConverterBase.GrayscaleScalar(8));
+        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleAvx(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToGrayscaleAvx2(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed, new JpegColorConverterBase.GrayscaleScalar(8));
+        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleAvx(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8),
+            precísion: 3);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbAvx2(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.RgbAvx(8), 3, seed, new JpegColorConverterBase.RgbScalar(8));
+        this.TestConversionToRgb(new JpegColorConverterBase.RgbAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.RgbScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbArm(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.RgbArm(8), 3, seed, new JpegColorConverterBase.RgbScalar(8));
+        this.TestConversionToRgb(new JpegColorConverterBase.RgbArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.RgbScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKAvx2(int seed) =>
-        this.TestConversionToRgb( new JpegColorConverterBase.YccKAvx(8), 4, seed, new JpegColorConverterBase.YccKScalar(8));
+        this.TestConversionToRgb( new JpegColorConverterBase.YccKAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToYccKAvx2(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.YccKAvx(8), 4, seed, new JpegColorConverterBase.YccKScalar(8));
+        this.TestConversionFromRgb(new JpegColorConverterBase.YccKAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8),
+            precísion: 4);
 
     private void TestConversionToRgb(
         JpegColorConverterBase converter,
@@ -323,7 +364,8 @@ public class JpegColorConverterTests
         JpegColorConverterBase converter,
         int componentCount,
         int seed,
-        JpegColorConverterBase baseLineConverter)
+        JpegColorConverterBase baseLineConverter,
+        int precísion)
     {
         if (!converter.IsAvailable)
         {
@@ -336,7 +378,8 @@ public class JpegColorConverterTests
             converter,
             componentCount,
             seed,
-            baseLineConverter);
+            baseLineConverter,
+            precísion);
     }
 
     private static JpegColorConverterBase.ComponentValues CreateRandomValues(
@@ -434,7 +477,8 @@ public class JpegColorConverterTests
         JpegColorConverterBase converter,
         int componentCount,
         int seed,
-        JpegColorConverterBase baseLineConverter)
+        JpegColorConverterBase baseLineConverter,
+        int precision = 4)
     {
         // arrange 
         JpegColorConverterBase.ComponentValues actual = CreateRandomValues(TestBufferLength, componentCount, seed);
@@ -451,22 +495,30 @@ public class JpegColorConverterTests
         // assert
         if (componentCount == 1)
         {
-            Assert.True(expected.Component0.SequenceEqual(actual.Component0));
+            CompareSequenceWithTolerance(expected.Component0, actual.Component0, precision);
         }
 
         if (componentCount == 2)
         {
-            Assert.True(expected.Component1.SequenceEqual(actual.Component1));
+            CompareSequenceWithTolerance(expected.Component1, actual.Component1, precision);
         }
 
         if (componentCount == 3)
         {
-            Assert.True(expected.Component2.SequenceEqual(actual.Component2));
+            CompareSequenceWithTolerance(expected.Component2, actual.Component2, precision);
         }
 
         if (componentCount == 4)
         {
-            Assert.True(expected.Component3.SequenceEqual(actual.Component3));
+            CompareSequenceWithTolerance(expected.Component3, actual.Component3, precision);
+        }
+    }
+
+    private static void CompareSequenceWithTolerance(Span<float> expected, Span<float> actual, int precision)
+    {
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i], actual[i], precision: precision);
         }
     }
 

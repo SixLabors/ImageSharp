@@ -246,6 +246,11 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromCmykArm(int seed) =>
+        this.TestConverter(new JpegColorConverterBase.CmykArm64(8), 4, seed);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromGrayscaleAvx2(int seed) =>
         this.TestConverter(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed);
 
@@ -253,6 +258,11 @@ public class JpegColorConverterTests
     [MemberData(nameof(Seeds))]
     public void FromRgbAvx2(int seed) =>
         this.TestConverter(new JpegColorConverterBase.RgbAvx(8), 3, seed);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbArm(int seed) =>
+        this.TestConverter(new JpegColorConverterBase.RgbArm(8), 3, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]

@@ -100,7 +100,7 @@ public abstract partial class PixelConverterTests
             if (typeof(TDestinationPixel) == typeof(L16))
             {
                 ref L16 l16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, L16>(destinationPixels));
-                for (nint i = 0; i < (uint)count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref L16 dp = ref Unsafe.Add(ref l16Ref, i);
@@ -113,7 +113,7 @@ public abstract partial class PixelConverterTests
             if (typeof(TDestinationPixel) == typeof(L8))
             {
                 ref L8 l8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, L8>(destinationPixels));
-                for (nint i = 0; i < (uint)count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref L8 dp = ref Unsafe.Add(ref l8Ref, i);
@@ -125,7 +125,7 @@ public abstract partial class PixelConverterTests
 
             // Normal conversion
             ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationPixels);
-            for (nint i = 0; i < (uint)count; i++)
+            for (int i = 0; i < count; i++)
             {
                 ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);

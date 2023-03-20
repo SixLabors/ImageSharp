@@ -25,14 +25,14 @@ public class UInt32ToSingle
     {
         ref Vector<float> b = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
-        nint n = Count / Vector<float>.Count;
+        nuint n = (uint)(Count / Vector<float>.Count);
 
         var bVec = new Vector<float>(256.0f / 255.0f);
         var magicFloat = new Vector<float>(32768.0f);
         var magicInt = new Vector<uint>(1191182336); // reinterpreted value of 32768.0f
         var mask = new Vector<uint>(255);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             ref Vector<float> df = ref Unsafe.Add(ref b, i);
 
@@ -50,14 +50,14 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimd()
     {
-        nint n = Count / Vector<float>.Count;
+        nuint n = (uint)(Count / Vector<float>.Count);
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<uint> bu = ref Unsafe.As<Vector<float>, Vector<uint>>(ref bf);
 
         var scale = new Vector<float>(1f / 255f);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             Vector<uint> u = Unsafe.Add(ref bu, i);
             Vector<float> v = Vector.ConvertToSingle(u);
@@ -69,14 +69,14 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimdFromInt()
     {
-        nint n = Count / Vector<float>.Count;
+        nuint n = (uint)(Count / Vector<float>.Count);
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<int> bu = ref Unsafe.As<Vector<float>, Vector<int>>(ref bf);
 
         var scale = new Vector<float>(1f / 255f);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             Vector<int> u = Unsafe.Add(ref bu, i);
             Vector<float> v = Vector.ConvertToSingle(u);
@@ -88,12 +88,12 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimdFromInt_RefCast()
     {
-        nint n = Count / Vector<float>.Count;
+        nuint n = (uint)(Count / Vector<float>.Count);
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         var scale = new Vector<float>(1f / 255f);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             ref Vector<float> fRef = ref Unsafe.Add(ref bf, i);
 

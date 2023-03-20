@@ -92,7 +92,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref byte b = ref this.rBuf[0];
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
-        for (nint i = 0; i < (uint)this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             ref Rgb24 d = ref Unsafe.Add(ref rgb, i);
             d.R = Unsafe.Add(ref r, i);
@@ -110,7 +110,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
         int count = this.Count / 8;
-        for (nint i = 0; i < (uint)count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 8);
             ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);
@@ -168,7 +168,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Rgb24 rgb = ref this.rgbBuf[0];
 
         int count = this.Count / 4;
-        for (nint i = 0; i < (uint)count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 4);
             ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);
@@ -205,14 +205,14 @@ public unsafe class PixelConversion_PackFromRgbPlanes
         ref Vector256<float> bBase = ref Unsafe.As<float, Vector256<float>>(ref this.bFloat[0]);
         ref Vector256<float> resultBase = ref Unsafe.As<float, Vector256<float>>(ref this.rgbaFloat[0]);
 
-        nint count = (nint)(uint)this.Count / Vector256<float>.Count;
+        nuint count = (uint)(this.Count / Vector256<float>.Count);
 
         ref byte control = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
         Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
 
         var va = Vector256.Create(1F);
 
-        for (nint i = 0; i < count; i++)
+        for (nuint i = 0; i < count; i++)
         {
             Vector256<float> r = Unsafe.Add(ref rBase, i);
             Vector256<float> g = Unsafe.Add(ref gBase, i);

@@ -32,7 +32,7 @@ public class PixelConversion_ConvertToVector4_AsPartOfCompositeOperation
 
             Vector4 temp;
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 temp = Unsafe.Add(ref sourceBaseRef, i).ToVector4();
 
@@ -53,7 +53,7 @@ public class PixelConversion_ConvertToVector4_AsPartOfCompositeOperation
 
             Vector4 temp = default;
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref sourceBaseRef, i).CopyToVector4(ref temp);
 

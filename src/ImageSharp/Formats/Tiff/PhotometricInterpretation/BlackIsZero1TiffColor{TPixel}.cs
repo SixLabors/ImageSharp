@@ -18,21 +18,21 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        nint offset = 0;
-        var colorBlack = default(TPixel);
-        var colorWhite = default(TPixel);
+        nuint offset = 0;
+        TPixel colorBlack = default;
+        TPixel colorWhite = default;
 
         colorBlack.FromRgba32(Color.Black);
         colorWhite.FromRgba32(Color.White);
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
-        for (nint y = top; y < top + height; y++)
+        for (nuint y = (uint)top; y < (uint)(top + height); y++)
         {
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)y);
             ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
-            for (nint x = (nint)(uint)left; x < (nint)(uint)(left + width); x += 8)
+            for (nuint x = (uint)left; x < (uint)(left + width); x += 8)
             {
                 byte b = Unsafe.Add(ref dataRef, offset++);
-                nint maxShift = Math.Min(left + width - x, 8);
+                nuint maxShift = Math.Min((uint)(left + width) - x, 8);
 
                 if (maxShift == 8)
                 {
@@ -70,7 +70,7 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 }
                 else
                 {
-                    for (nint shift = 0; shift < maxShift; shift++)
+                    for (nuint shift = 0; shift < maxShift; shift++)
                     {
                         int bit = (b >> (7 - (int)shift)) & 1;
 

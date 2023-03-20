@@ -82,7 +82,7 @@ public unsafe class Block8x8F_CopyTo1x1
     {
         ref Block8x8F s = ref this.block;
         ref float origin = ref Unsafe.AsRef<float>(this.bufferPtr);
-        nint stride = (nint)(uint)Width;
+        nuint stride = (uint)Width;
 
         ref Vector<float> d0 = ref Unsafe.As<float, Vector<float>>(ref origin);
         ref Vector<float> d1 = ref Unsafe.As<float, Vector<float>>(ref Unsafe.Add(ref origin, stride));
@@ -117,7 +117,7 @@ public unsafe class Block8x8F_CopyTo1x1
     {
         ref Block8x8F s = ref this.block;
         ref float origin = ref Unsafe.AsRef<float>(this.bufferPtr);
-        nint stride = (nint)(uint)Width;
+        nuint stride = (uint)Width;
 
         ref Vector<float> d0 = ref Unsafe.As<float, Vector<float>>(ref origin);
         ref Vector<float> d1 = ref Unsafe.As<float, Vector<float>>(ref Unsafe.Add(ref origin, stride));
@@ -141,7 +141,7 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector8_V3()
     {
-        nint stride = (nint)(uint)Width * sizeof(float);
+        nuint stride = (uint)Width * sizeof(float);
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector<float> s = ref Unsafe.As<Block8x8F, Vector<float>>(ref this.block);
 
@@ -254,7 +254,7 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector256_Avx2_Variant3_RefCast()
     {
-        nint stride = (nint)(uint)Width;
+        nuint stride = (uint)Width;
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector256<float> s = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this.block);
 
@@ -282,7 +282,7 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector256_Avx2_Variant3_RefCast_Mod()
     {
-        nint stride = (nint)(uint)Width * sizeof(float);
+        nuint stride = (uint)Width * sizeof(float);
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector256<float> s = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this.block);
 

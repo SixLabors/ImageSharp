@@ -145,14 +145,14 @@ internal static partial class SimdUtils
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
         ref float dBase = ref MemoryMarshal.GetReference(dest);
-        Shuffle.InverseMMShuffle(control, out int p3, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(control, out uint p3, out uint p2, out uint p1, out uint p0);
 
-        for (nint i = 0; i < (uint)source.Length; i += 4)
+        for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, (nint)(uint)p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, (nint)(uint)p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, (nint)(uint)p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, (nint)(uint)p3 + i);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
+            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
+            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
+            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
         }
     }
 
@@ -492,34 +492,34 @@ internal static partial class SimdUtils
         {
             InverseMMShuffle(
                  control,
-                 out int p3,
-                 out int p2,
-                 out int p1,
-                 out int p0);
+                 out uint p3,
+                 out uint p2,
+                 out uint p1,
+                 out uint p0);
 
             ref byte spanBase = ref MemoryMarshal.GetReference(span);
 
-            for (int i = 0; i < span.Length; i += 4)
+            for (nuint i = 0; i < (uint)span.Length; i += 4)
             {
-                Unsafe.Add(ref spanBase, (uint)(i + 0)) = (byte)(p0 + i);
-                Unsafe.Add(ref spanBase, (uint)(i + 1)) = (byte)(p1 + i);
-                Unsafe.Add(ref spanBase, (uint)(i + 2)) = (byte)(p2 + i);
-                Unsafe.Add(ref spanBase, (uint)(i + 3)) = (byte)(p3 + i);
+                Unsafe.Add(ref spanBase, i + 0) = (byte)(p0 + i);
+                Unsafe.Add(ref spanBase, i + 1) = (byte)(p1 + i);
+                Unsafe.Add(ref spanBase, i + 2) = (byte)(p2 + i);
+                Unsafe.Add(ref spanBase, i + 3) = (byte)(p3 + i);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void InverseMMShuffle(
             byte control,
-            out int p3,
-            out int p2,
-            out int p1,
-            out int p0)
+            out uint p3,
+            out uint p2,
+            out uint p1,
+            out uint p0)
         {
-            p3 = (control >> 6) & 0x3;
-            p2 = (control >> 4) & 0x3;
-            p1 = (control >> 2) & 0x3;
-            p0 = (control >> 0) & 0x3;
+            p3 = (uint)((control >> 6) & 0x3);
+            p2 = (uint)((control >> 4) & 0x3);
+            p1 = (uint)((control >> 2) & 0x3);
+            p0 = (uint)((control >> 0) & 0x3);
         }
     }
 }

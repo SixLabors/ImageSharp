@@ -67,20 +67,20 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
         {
             destRef = value;
             Unsafe.Add(ref destRef, 1) = value;
-            Unsafe.Add(ref destRef, 0 + (nint)(uint)destStrideWidth) = value;
-            Unsafe.Add(ref destRef, 1 + (nint)(uint)destStrideWidth) = value;
+            Unsafe.Add(ref destRef, 0 + (uint)destStrideWidth) = value;
+            Unsafe.Add(ref destRef, 1 + (uint)destStrideWidth) = value;
             return;
         }
 
         // TODO: Optimize: implement all cases with scale-specific, loopless code!
-        for (int y = 0; y < verticalScale; y++)
+        for (nuint y = 0; y < (uint)verticalScale; y++)
         {
-            for (int x = 0; x < horizontalScale; x++)
+            for (nuint x = 0; x < (uint)horizontalScale; x++)
             {
-                Unsafe.Add(ref destRef, (nint)(uint)x) = value;
+                Unsafe.Add(ref destRef, x) = value;
             }
 
-            destRef = ref Unsafe.Add(ref destRef, (nint)(uint)destStrideWidth);
+            destRef = ref Unsafe.Add(ref destRef, (uint)destStrideWidth);
         }
     }
 }

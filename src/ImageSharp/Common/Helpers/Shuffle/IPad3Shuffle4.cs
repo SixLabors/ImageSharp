@@ -29,21 +29,21 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMMShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
         Span<byte> temp = stackalloc byte[4];
         ref byte t = ref MemoryMarshal.GetReference(temp);
         ref uint tu = ref Unsafe.As<byte, uint>(ref t);
 
-        for (nint i = 0, j = 0; i < (uint)source.Length; i += 3, j += 4)
+        for (nuint i = 0, j = 0; i < (uint)source.Length; i += 3, j += 4)
         {
             ref byte s = ref Unsafe.Add(ref sBase, i);
             tu = Unsafe.As<byte, uint>(ref s) | 0xFF000000;
 
-            Unsafe.Add(ref dBase, j + 0) = Unsafe.Add(ref t, (uint)p0);
-            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, (uint)p1);
-            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, (uint)p2);
-            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, (uint)p3);
+            Unsafe.Add(ref dBase, j + 0) = Unsafe.Add(ref t, p0);
+            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, p1);
+            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, p2);
+            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, p3);
         }
     }
 }

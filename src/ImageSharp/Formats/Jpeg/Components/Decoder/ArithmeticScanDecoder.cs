@@ -470,7 +470,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockBaseline(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref acDecodingTable,
                                 ref dcDecodingTable);
                         }
@@ -521,7 +521,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockRef, (nint)(uint)k),
+                        ref Unsafe.Add(ref blockRef, (uint)k),
                         ref acDecodingTable,
                         ref dcDecodingTable);
 
@@ -560,7 +560,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                 this.DecodeBlockBaseline(
                     component,
-                    ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                    ref Unsafe.Add(ref blockRef, (uint)i),
                     ref acDecodingTable,
                     ref dcDecodingTable);
 
@@ -611,7 +611,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockProgressiveDc(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref dcDecodingTable);
                         }
                     }
@@ -653,7 +653,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveDc(
                         component,
-                        ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                        ref Unsafe.Add(ref blockRef, (uint)i),
                         ref dcDecodingTable);
 
                     this.HandleRestart();
@@ -680,7 +680,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveAc(
                             component,
-                            ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                            ref Unsafe.Add(ref blockRef, (uint)i),
                             ref acDecodingTable);
 
                     this.HandleRestart();
@@ -717,7 +717,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 // Figure F.21: Decoding nonzero value v.
                 // Figure F.22: Decoding the sign of v.
                 int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-                st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
+                st = ref Unsafe.Add(ref st, (uint)(2 + sign));
 
                 // Figure F.23: Decoding the magnitude category of v.
                 int m = this.DecodeBinaryDecision(ref reader, ref st);
@@ -967,7 +967,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Figure F.21: Decoding nonzero value v
             // Figure F.22: Decoding the sign of v
             int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-            st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
+            st = ref Unsafe.Add(ref st, (uint)(2 + sign));
 
             // Figure F.23: Decoding the magnitude category of v.
             int m = this.DecodeBinaryDecision(ref reader, ref st);

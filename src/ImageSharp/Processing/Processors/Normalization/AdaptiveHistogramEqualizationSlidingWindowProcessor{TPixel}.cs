@@ -254,9 +254,9 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void AddPixelsToHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
     {
-        for (nint idx = 0; idx < length; idx++)
+        for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, (uint)idx), luminanceLevels);
+            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)++;
         }
     }
@@ -271,9 +271,9 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void RemovePixelsFromHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
     {
-        for (int idx = 0; idx < length; idx++)
+        for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, (uint)idx), luminanceLevels);
+            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)--;
         }
     }

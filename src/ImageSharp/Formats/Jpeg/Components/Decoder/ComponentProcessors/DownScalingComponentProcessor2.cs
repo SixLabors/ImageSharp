@@ -67,30 +67,30 @@ internal sealed class DownScalingComponentProcessor2 : ComponentProcessor
     public static void ScaledCopyTo(ref Block8x8F block, ref float destRef, int destStrideWidth, int horizontalScale, int verticalScale)
     {
         // TODO: Optimize: implement all cases with scale-specific, loopless code!
-        CopyArbitraryScale(ref block, ref destRef, destStrideWidth, horizontalScale, verticalScale);
+        CopyArbitraryScale(ref block, ref destRef, (uint)destStrideWidth, (uint)horizontalScale, (uint)verticalScale);
 
         [MethodImpl(InliningOptions.ColdPath)]
-        static void CopyArbitraryScale(ref Block8x8F block, ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
+        static void CopyArbitraryScale(ref Block8x8F block, ref float areaOrigin, uint areaStride, uint horizontalScale, uint verticalScale)
         {
-            for (int y = 0; y < 4; y++)
+            for (nuint y = 0; y < 4; y++)
             {
-                int yy = y * verticalScale;
-                int y8 = y * 8;
+                nuint yy = y * verticalScale;
+                nuint y8 = y * 8;
 
-                for (int x = 0; x < 4; x++)
+                for (nuint x = 0; x < 4; x++)
                 {
-                    int xx = x * horizontalScale;
+                    nuint xx = x * horizontalScale;
 
                     float value = block[y8 + x];
 
-                    for (int i = 0; i < verticalScale; i++)
+                    for (nuint i = 0; i < verticalScale; i++)
                     {
-                        int baseIdx = ((yy + i) * areaStride) + xx;
+                        nuint baseIdx = ((yy + i) * areaStride) + xx;
 
-                        for (int j = 0; j < horizontalScale; j++)
+                        for (nuint j = 0; j < horizontalScale; j++)
                         {
                             // area[xx + j, yy + i] = value;
-                            Unsafe.Add(ref areaOrigin, (nint)(uint)(baseIdx + j)) = value;
+                            Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
                         }
                     }
                 }

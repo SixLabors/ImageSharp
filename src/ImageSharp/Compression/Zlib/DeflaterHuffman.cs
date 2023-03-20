@@ -286,13 +286,13 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
 
         int static_len = this.extraBits;
         ref byte staticLLengthRef = ref MemoryMarshal.GetReference(StaticLLength);
-        for (nint i = 0; i < LiteralNumber; i++)
+        for (nuint i = 0; i < LiteralNumber; i++)
         {
             static_len += this.literalTree.Frequencies[i] * Unsafe.Add(ref staticLLengthRef, i);
         }
 
         ref byte staticDLengthRef = ref MemoryMarshal.GetReference(StaticDLength);
-        for (nint i = 0; i < DistanceNumber; i++)
+        for (nuint i = 0; i < DistanceNumber; i++)
         {
             static_len += this.distTree.Frequencies[i] * Unsafe.Add(ref staticDLengthRef, i);
         }
@@ -625,10 +625,10 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
                     ref int valuesRef = ref MemoryMarshal.GetReference(valuesMemoryOwner.Memory.Span);
                     int numNodes = numLeafs;
 
-                    for (nint i = 0; i < (uint)heapLen; i++)
+                    for (nuint i = 0; i < (uint)heapLen; i++)
                     {
                         int node = Unsafe.Add(ref heapRef, i);
-                        nint i2 = 2 * i;
+                        nuint i2 = 2 * i;
                         Unsafe.Add(ref childrenRef, i2) = node;
                         Unsafe.Add(ref childrenRef, i2 + 1) = -1;
                         Unsafe.Add(ref valuesRef, i) = this.Frequencies[node] << 8;

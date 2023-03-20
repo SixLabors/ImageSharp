@@ -103,7 +103,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             ref <#=fromPixelType#> sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
             ref <#=toPixelType#> destRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-            for (nint i = 0; i < (uint)sourcePixels.Length; i++)
+            for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
                 ref <#=fromPixelType#> sp = ref Unsafe.Add(ref sourceRef, i);
                 ref <#=toPixelType#> dp = ref Unsafe.Add(ref destRef, i);

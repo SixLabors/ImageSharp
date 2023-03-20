@@ -319,7 +319,7 @@ internal class AlphaDecoder : IDisposable
                 return;
             }
 
-            nint i;
+            nuint i;
             Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
             ref byte srcRef = ref MemoryMarshal.GetReference(input);
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
@@ -365,20 +365,24 @@ internal class AlphaDecoder : IDisposable
         }
         else if (Avx2.IsSupported)
         {
-            nint i;
+            ref byte inputRef = ref MemoryMarshal.GetReference(input);
+            ref byte prevRef = ref MemoryMarshal.GetReference(prev);
+            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+
+            nuint i;
             int maxPos = width & ~31;
             for (i = 0; i < (uint)maxPos; i += 32)
             {
-                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(input), i));
-                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(prev), i));
+                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
+                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
                 Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
-                ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
                 Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
             }
 
             for (; i < (uint)width; i++)
             {
-                dst[(int)i] = (byte)(prev[(int)i] + input[(int)i]);
+                Unsafe.Add(ref dstRef, i) = (byte)(Unsafe.Add(ref prevRef, i) + Unsafe.Add(ref inputRef, i));
             }
         }
         else

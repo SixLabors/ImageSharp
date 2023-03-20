@@ -73,7 +73,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         int cdfMin = 0;
         bool cdfMinFound = false;
 
-        for (nint i = 0; i <= (uint)maxIdx; i++)
+        for (nuint i = 0; i <= (uint)maxIdx; i++)
         {
             histSum += Unsafe.Add(ref histogramBase, i);
             if (!cdfMinFound && histSum != 0)
@@ -101,7 +101,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         int sumOverClip = 0;
         ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
 
-        for (nint i = 0; i < (uint)histogram.Length; i++)
+        for (nuint i = 0; i < (uint)histogram.Length; i++)
         {
             ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
             if (histogramLevel > clipLimit)
@@ -115,7 +115,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         int addToEachBin = sumOverClip > 0 ? (int)MathF.Floor(sumOverClip / this.luminanceLevelsFloat) : 0;
         if (addToEachBin > 0)
         {
-            for (nint i = 0; i < (uint)histogram.Length; i++)
+            for (nuint i = 0; i < (uint)histogram.Length; i++)
             {
                 Unsafe.Add(ref histogramBase, i) += addToEachBin;
             }
@@ -124,8 +124,8 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         int residual = sumOverClip - (addToEachBin * this.LuminanceLevels);
         if (residual != 0)
         {
-            int residualStep = Math.Max(this.LuminanceLevels / residual, 1);
-            for (nint i = 0; i < (uint)this.LuminanceLevels && residual > 0; i += residualStep, residual--)
+            uint residualStep = (uint)Math.Max(this.LuminanceLevels / residual, 1);
+            for (nuint i = 0; i < (uint)this.LuminanceLevels && residual > 0; i += residualStep, residual--)
             {
                 ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
                 histogramLevel++;

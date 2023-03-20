@@ -30,8 +30,8 @@ internal abstract partial class JpegColorConverterBase
 
             var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
 
-            nint n = (nint)(uint)values.Component0.Length / Vector<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = (uint)(values.Component0.Length / Vector<float>.Count);
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector<float> c = ref Unsafe.Add(ref cBase, i);
                 ref Vector<float> m = ref Unsafe.Add(ref mBase, i);
@@ -78,8 +78,8 @@ internal abstract partial class JpegColorConverterBase
             // Used for the color conversion
             var scale = new Vector<float>(maxValue);
 
-            nint n = (nint)(uint)values.Component0.Length / Vector<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = (uint)(values.Component0.Length / Vector<float>.Count);
+            for (nuint i = 0; i < n; i++)
             {
                 Vector<float> ctmp = scale - Unsafe.Add(ref srcR, i);
                 Vector<float> mtmp = scale - Unsafe.Add(ref srcG, i);

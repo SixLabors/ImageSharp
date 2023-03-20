@@ -180,7 +180,7 @@ internal class HuffmanScanEncoder
             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: 0);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-            for (nint k = 0; k < (uint)w; k++)
+            for (nuint k = 0; k < (uint)w; k++)
             {
                 this.WriteBlock(
                     component,
@@ -219,7 +219,7 @@ internal class HuffmanScanEncoder
             Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-            for (nint k = 0; k < (uint)w; k++)
+            for (nuint k = 0; k < (uint)w; k++)
             {
                 this.WriteBlock(
                     component,
@@ -246,9 +246,9 @@ internal class HuffmanScanEncoder
     private void EncodeScanBaselineInterleaved<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        nint mcu = 0;
-        nint mcusPerColumn = frame.McusPerColumn;
-        nint mcusPerLine = frame.McusPerLine;
+        int mcu = 0;
+        int mcusPerColumn = frame.McusPerColumn;
+        int mcusPerLine = frame.McusPerLine;
 
         for (int j = 0; j < mcusPerColumn; j++)
         {
@@ -258,21 +258,21 @@ internal class HuffmanScanEncoder
             converter.ConvertStrideBaseline();
 
             // Encode spectral to binary
-            for (nint i = 0; i < mcusPerLine; i++)
+            for (int i = 0; i < mcusPerLine; i++)
             {
                 // Scan an interleaved mcu... process components in order
-                nint mcuCol = mcu % mcusPerLine;
-                for (nint k = 0; k < frame.Components.Length; k++)
+                int mcuCol = mcu % mcusPerLine;
+                for (int k = 0; k < frame.Components.Length; k++)
                 {
                     Component component = frame.Components[k];
 
                     ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
-                    nint h = component.HorizontalSamplingFactor;
+                    int h = component.HorizontalSamplingFactor;
                     int v = component.VerticalSamplingFactor;
 
-                    nint blockColBase = mcuCol * h;
+                    nuint blockColBase = (uint)(mcuCol * h);
 
                     // Scan out an mcu's worth of this component; that's just determined
                     // by the basic H and V specified for the component
@@ -281,9 +281,9 @@ internal class HuffmanScanEncoder
                         Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y);
                         ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
-                        for (nint x = 0; x < h; x++)
+                        for (nuint x = 0; x < (uint)h; x++)
                         {
-                            nint blockCol = blockColBase + x;
+                            nuint blockCol = blockColBase + x;
 
                             this.WriteBlock(
                                 component,
@@ -315,8 +315,8 @@ internal class HuffmanScanEncoder
     private void EncodeThreeComponentBaselineInterleavedScanNoSubsampling<TPixel>(JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        nint mcusPerColumn = frame.McusPerColumn;
-        nint mcusPerLine = frame.McusPerLine;
+        nuint mcusPerColumn = (uint)frame.McusPerColumn;
+        nuint mcusPerLine = (uint)frame.McusPerLine;
 
         Component c2 = frame.Components[2];
         Component c1 = frame.Components[1];
@@ -333,7 +333,7 @@ internal class HuffmanScanEncoder
         ref Block8x8 c1BlockRef = ref MemoryMarshal.GetReference(c1.SpectralBlocks.DangerousGetRowSpan(y: 0));
         ref Block8x8 c2BlockRef = ref MemoryMarshal.GetReference(c2.SpectralBlocks.DangerousGetRowSpan(y: 0));
 
-        for (nint j = 0; j < mcusPerColumn; j++)
+        for (nuint j = 0; j < mcusPerColumn; j++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -341,7 +341,7 @@ internal class HuffmanScanEncoder
             converter.ConvertStrideBaseline();
 
             // Encode spectral to binary
-            for (nint i = 0; i < mcusPerLine; i++)
+            for (nuint i = 0; i < mcusPerLine; i++)
             {
                 this.WriteBlock(
                     c0,

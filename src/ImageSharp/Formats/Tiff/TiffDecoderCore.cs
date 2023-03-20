@@ -793,7 +793,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             }
         }
 
-        int bytesPerRow = (int)(((uint)(width * bitsPerPixel) + 7) / 8);
+        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
         return bytesPerRow * height;
     }
 

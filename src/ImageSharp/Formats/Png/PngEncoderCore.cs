@@ -455,7 +455,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 break;
 
             case PngFilterMethod.Average:
-                AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, (uint)this.bytesPerPixel, out int _);
                 break;
 
             case PngFilterMethod.Paeth:
@@ -547,7 +547,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             RuntimeUtility.Swap(ref filter, ref attempt);
         }
 
-        AverageFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
+        AverageFilter.Encode(current, previous, attempt, (uint)this.bytesPerPixel, out sum);
         if (sum < min)
         {
             min = sum;

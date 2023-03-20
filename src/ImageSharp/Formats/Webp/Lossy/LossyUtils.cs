@@ -161,7 +161,7 @@ internal static class LossyUtils
     private static int Vp8_Sse16xN_Sse2(Span<byte> a, Span<byte> b, int numPairs)
     {
         Vector128<int> sum = Vector128<int>.Zero;
-        nint offset = 0;
+        nuint offset = 0;
         ref byte aRef = ref MemoryMarshal.GetReference(a);
         ref byte bRef = ref MemoryMarshal.GetReference(b);
         for (int i = 0; i < numPairs; i++)
@@ -186,7 +186,7 @@ internal static class LossyUtils
     private static int Vp8_Sse16xN_Avx2(Span<byte> a, Span<byte> b, int numPairs)
     {
         Vector256<int> sum = Vector256<int>.Zero;
-        nint offset = 0;
+        nuint offset = 0;
         ref byte aRef = ref MemoryMarshal.GetReference(a);
         ref byte bRef = ref MemoryMarshal.GetReference(b);
         for (int i = 0; i < numPairs; i++)
@@ -2278,8 +2278,8 @@ internal static class LossyUtils
         // q0 = 73 63 53 43 33 23 13 03 72 62 52 42 32 22 12 02
         // p0 = f1 e1 d1 c1 b1 a1 91 81 f0 e0 d0 c0 b0 a0 90 80
         // q1 = f3 e3 d3 c3 b3 a3 93 83 f2 e2 d2 c2 b2 a2 92 82
-        Load8x4(ref r0, (nint)(uint)stride, out Vector128<byte> t1, out Vector128<byte> t2);
-        Load8x4(ref r8, (nint)(uint)stride, out p0, out q1);
+        Load8x4(ref r0, (uint)stride, out Vector128<byte> t1, out Vector128<byte> t2);
+        Load8x4(ref r8, (uint)stride, out p0, out q1);
 
         // p1 = f0 e0 d0 c0 b0 a0 90 80 70 60 50 40 30 20 10 00
         // p0 = f1 e1 d1 c1 b1 a1 91 81 71 61 51 41 31 21 11 01
@@ -2292,7 +2292,7 @@ internal static class LossyUtils
     }
 
     // Reads 8 rows across a vertical edge.
-    private static void Load8x4(ref byte bRef, nint stride, out Vector128<byte> p, out Vector128<byte> q)
+    private static void Load8x4(ref byte bRef, nuint stride, out Vector128<byte> p, out Vector128<byte> q)
     {
         // A0 = 63 62 61 60 23 22 21 20 43 42 41 40 03 02 01 00
         // A1 = 73 72 71 70 33 32 31 30 53 52 51 50 13 12 11 10

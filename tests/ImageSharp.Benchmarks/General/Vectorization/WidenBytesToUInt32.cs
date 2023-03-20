@@ -33,7 +33,7 @@ public class WidenBytesToUInt32
         ref Octet<byte> sBase = ref Unsafe.As<byte, Octet<byte>>(ref this.source[0]);
         ref Octet<uint> dBase = ref Unsafe.As<uint, Octet<uint>>(ref this.dest[0]);
 
-        for (nint i = 0; i < N; i++)
+        for (nuint i = 0; i < N; i++)
         {
             Unsafe.Add(ref dBase, i).LoadFrom(ref Unsafe.Add(ref sBase, i));
         }
@@ -42,12 +42,12 @@ public class WidenBytesToUInt32
     [Benchmark]
     public void Simd()
     {
-        nint n = Count / Vector<byte>.Count;
+        nuint n = (uint)(Count / Vector<byte>.Count);
 
         ref Vector<byte> sBase = ref Unsafe.As<byte, Vector<byte>>(ref this.source[0]);
         ref Vector<uint> dBase = ref Unsafe.As<uint, Vector<uint>>(ref this.dest[0]);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             Vector<byte> b = Unsafe.Add(ref sBase, i);
 

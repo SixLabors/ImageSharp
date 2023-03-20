@@ -16,7 +16,7 @@ internal partial struct Block8x8F
     {
         var CMin4 = new Vector4(0F);
         var CMax4 = new Vector4(maximum);
-        var COff4 = new Vector4(MathF.Ceiling(maximum * 0.5F));    // /2
+        var COff4 = new Vector4(MathF.Ceiling(maximum * 0.5F));
 
         this.V0L = Numerics.Clamp(this.V0L + COff4, CMin4, CMax4);
         this.V0R = Numerics.Clamp(this.V0R + COff4, CMin4, CMax4);
@@ -42,7 +42,7 @@ internal partial struct Block8x8F
     [MethodImpl(InliningOptions.ShortMethod)]
     public void NormalizeColorsAndRoundInPlaceVector8(float maximum)
     {
-        var off = new Vector<float>(MathF.Ceiling(maximum * 0.5F));    // /2
+        var off = new Vector<float>(MathF.Ceiling(maximum * 0.5F));
         var max = new Vector<float>(maximum);
         
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);

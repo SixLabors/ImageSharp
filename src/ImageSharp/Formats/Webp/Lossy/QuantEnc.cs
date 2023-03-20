@@ -770,7 +770,7 @@ internal static unsafe class QuantEnc
     {
         uint v = src[0] * 0x01010101u;
         Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
-        for (nint i = 0; i < 16; i++)
+        for (nuint i = 0; i < 16; i++)
         {
             if (!src[..4].SequenceEqual(vSpan) || !src.Slice(4, 4).SequenceEqual(vSpan) ||
                 !src.Slice(8, 4).SequenceEqual(vSpan) || !src.Slice(12, 4).SequenceEqual(vSpan))
@@ -789,10 +789,10 @@ internal static unsafe class QuantEnc
     {
         int score = 0;
         ref short levelsRef = ref MemoryMarshal.GetReference(levels);
-        nint offset = 0;
+        nuint offset = 0;
         while (numBlocks-- > 0)
         {
-            for (nint i = 1; i < 16; i++)
+            for (nuint i = 1; i < 16; i++)
             {
                 // omit DC, we're only interested in AC
                 score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;

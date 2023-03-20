@@ -34,7 +34,7 @@ public abstract class PixelConversion_ConvertFromRgba32
             ref T destBaseRef = ref this.Dest[0];
             ref Rgba32 sourceBaseRef = ref this.Source[0];
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref destBaseRef, i).FromRgba32(ref Unsafe.Add(ref sourceBaseRef, i));
             }
@@ -48,7 +48,7 @@ public abstract class PixelConversion_ConvertFromRgba32
             ref T destBaseRef = ref this.Dest[0];
             ref Rgba32 sourceBaseRef = ref this.Source[0];
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref destBaseRef, i).FromRgba32(Unsafe.Add(ref sourceBaseRef, i));
             }
@@ -62,7 +62,7 @@ public abstract class PixelConversion_ConvertFromRgba32
             ref T destBaseRef = ref this.Dest[0];
             ref Rgba32 sourceBaseRef = ref this.Source[0];
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 ref Rgba32 s = ref Unsafe.Add(ref sourceBaseRef, i);
                 Unsafe.Add(ref destBaseRef, i).FromBytes(s.R, s.G, s.B, s.A);
@@ -111,7 +111,7 @@ public class PixelConversion_ConvertFromRgba32_Compatible : PixelConversion_Conv
         ref Rgba32 sBase = ref this.CompatibleMemLayoutRunner.Source[0];
         ref Rgba32 dBase = ref Unsafe.As<TestRgba, Rgba32>(ref this.CompatibleMemLayoutRunner.Dest[0]);
 
-        for (nint i = 0; i < (uint)this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, i);
         }
@@ -151,7 +151,7 @@ public class PixelConversion_ConvertFromRgba32_Permuted_RgbaToArgb : PixelConver
         ref Rgba32 sBase = ref this.PermutedRunnerRgbaToArgb.Source[0];
         ref TestArgb dBase = ref this.PermutedRunnerRgbaToArgb.Dest[0];
 
-        for (nint i = 0; i < (uint)this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             Rgba32 s = Unsafe.Add(ref sBase, i);
             ref TestArgb d = ref Unsafe.Add(ref dBase, i);

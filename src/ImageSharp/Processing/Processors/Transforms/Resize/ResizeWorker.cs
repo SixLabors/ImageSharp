@@ -119,7 +119,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         for (int y = rowInterval.Min; y < rowInterval.Max; y++)
         {
             // Ensure offsets are normalized for cropping and padding.
-            ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - this.targetOrigin.Y);
+            ResizeKernel kernel = this.verticalKernelMap.GetKernel((uint)(y - this.targetOrigin.Y));
 
             while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
             {
@@ -132,9 +132,9 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
             ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
 
-            for (nint x = 0; x < (right - left); x++)
+            for (nuint x = 0; x < (uint)(right - left); x++)
             {
-                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * (nint)(uint)this.workerHeight);
+                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * (uint)this.workerHeight);
 
                 // Destination color components
                 Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
@@ -169,9 +169,9 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
         Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
-        int left = this.targetWorkingRect.Left;
-        int right = this.targetWorkingRect.Right;
-        int targetOriginX = this.targetOrigin.X;
+        nuint left = (uint)this.targetWorkingRect.Left;
+        nuint right = (uint)this.targetWorkingRect.Right;
+        nuint targetOriginX = (uint)this.targetOrigin.X;
         for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
         {
             Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
@@ -186,13 +186,13 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
             ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
-            for (nint x = left, z = 0; x < (nint)(uint)right; x++, z++)
+            for (nuint x = left, z = 0; x < right; x++, z++)
             {
                 ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
 
                 // optimization for:
                 // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                Unsafe.Add(ref firstPassBaseRef, z * (nint)(uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
+                Unsafe.Add(ref firstPassBaseRef, z * (uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
             }
         }
     }

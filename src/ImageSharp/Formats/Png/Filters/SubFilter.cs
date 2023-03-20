@@ -36,7 +36,7 @@ internal static class SubFilter
         }
         else
         {
-            DecodeScalar(scanline, (nint)(uint)bytesPerPixel);
+            DecodeScalar(scanline, (uint)bytesPerPixel);
         }
     }
 
@@ -47,7 +47,7 @@ internal static class SubFilter
         Vector128<byte> d = Vector128<byte>.Zero;
 
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         while (rb >= 4)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
@@ -70,7 +70,7 @@ internal static class SubFilter
         Vector64<byte> d = Vector64<byte>.Zero;
 
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         const int bytesPerBatch = 4;
         while (rb >= bytesPerBatch)
         {
@@ -87,14 +87,14 @@ internal static class SubFilter
         }
     }
 
-    private static void DecodeScalar(Span<byte> scanline, nint bytesPerPixel)
+    private static void DecodeScalar(Span<byte> scanline, nuint bytesPerPixel)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
 
         // Sub(x) + Raw(x-bpp)
-        nint x = bytesPerPixel + 1;
+        nuint x = bytesPerPixel + 1;
         Unsafe.Add(ref scanBaseRef, x);
-        for (; x < scanline.Length; ++x)
+        for (; x < (uint)scanline.Length; ++x)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
             byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
@@ -121,8 +121,8 @@ internal static class SubFilter
         // Sub(x) = Raw(x) - Raw(x-bpp)
         resultBaseRef = (byte)FilterType.Sub;
 
-        nint x = 0;
-        for (; x < (nint)(uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        nuint x = 0;
+        for (; x < (uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             ++x;
@@ -136,14 +136,14 @@ internal static class SubFilter
             Vector256<byte> zero = Vector256<byte>.Zero;
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-            for (nint xLeft = x - (nint)(uint)bytesPerPixel; x <= (nint)(uint)scanline.Length - Vector256<byte>.Count; xLeft += Vector256<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
 
                 Vector256<byte> res = Avx2.Subtract(scan, prev);
                 Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector256<byte>.Count;
+                x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
             }
@@ -154,14 +154,14 @@ internal static class SubFilter
         {
             Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-            for (nint xLeft = x - (nint)(uint)bytesPerPixel; x <= (nint)(uint)scanline.Length - Vector<byte>.Count; xLeft += Vector<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector<byte>.Count); xLeft += (uint)Vector<byte>.Count)
             {
                 Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
 
                 Vector<byte> res = scan - prev;
                 Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector<byte>.Count;
+                x += (uint)Vector<byte>.Count;
 
                 Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
             }
@@ -172,7 +172,7 @@ internal static class SubFilter
             }
         }
 
-        for (nint xLeft = x - (nint)(uint)bytesPerPixel; x < (nint)(uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nuint xLeft = x - (uint)bytesPerPixel; x < (uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte prev = Unsafe.Add(ref scanBaseRef, xLeft);

@@ -83,7 +83,7 @@ internal static partial class SimdUtils
             const float scale = 1f / 255f;
             Vector4 d = default;
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 ref ByteVector4 s = ref Unsafe.Add(ref sBase, i);
                 d.X = s.X;
@@ -117,7 +117,7 @@ internal static partial class SimdUtils
             var half = new Vector4(0.5f);
             var maxBytes = new Vector4(255f);
 
-            for (nint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Vector4 s = Unsafe.Add(ref sBase, i);
                 s *= maxBytes;

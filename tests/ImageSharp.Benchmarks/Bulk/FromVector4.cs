@@ -47,7 +47,7 @@ public abstract class FromVector4<TPixel>
     {
         ref Vector4 s = ref MemoryMarshal.GetReference(this.source.GetSpan());
         ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
-        for (nint i = 0; i < (uint)this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));
         }
@@ -103,7 +103,7 @@ public class FromVector4Rgba32 : FromVector4<Rgba32>
         Span<float> src = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
         Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-        nint n = (nint)(uint)dest.Length / Vector<byte>.Count;
+        nuint n = (uint)(dest.Length / Vector<byte>.Count);
 
         ref Vector256<float> sourceBase =
             ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(src));
@@ -114,7 +114,7 @@ public class FromVector4Rgba32 : FromVector4<Rgba32>
 
         var maxBytes = Vector256.Create(255f);
 
-        for (nint i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 

@@ -40,7 +40,7 @@ internal static class ScaledFloatingPointDCT
     public static void AdjustToIDCT(ref Block8x8F quantTable)
     {
         ref float tableRef = ref Unsafe.As<Block8x8F, float>(ref quantTable);
-        for (nint i = 0; i < Block8x8F.Size; i++)
+        for (nuint i = 0; i < Block8x8F.Size; i++)
         {
             ref float elemRef = ref Unsafe.Add(ref tableRef, i);
             elemRef = 0.125f * elemRef;

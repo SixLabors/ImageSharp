@@ -29,13 +29,13 @@ internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMMShuffle(this.Control, out _, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
 
-        for (nint i = 0, j = 0; i < (uint)dest.Length; i += 3, j += 4)
+        for (nuint i = 0, j = 0; i < (uint)dest.Length; i += 3, j += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, (nint)(uint)p0 + j);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, (nint)(uint)p1 + j);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, (nint)(uint)p2 + j);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + j);
+            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
+            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
         }
     }
 }

@@ -30,13 +30,13 @@ internal partial struct Block8x8F
         }
 
         // TODO: Optimize: implement all cases with scale-specific, loopless code!
-        this.CopyArbitraryScale(ref areaOrigin, areaStride, horizontalScale, verticalScale);
+        this.CopyArbitraryScale(ref areaOrigin, (uint)areaStride, (uint)horizontalScale, (uint)verticalScale);
     }
 
     private void CopyTo2x2Scale(ref float areaOrigin, int areaStride)
     {
         ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref areaOrigin);
-        int destStride = (int)((uint)areaStride / 2);
+        nuint destStride = (uint)areaStride / 2;
 
         WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 0, destStride);
         WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 1, destStride);
@@ -48,12 +48,12 @@ internal partial struct Block8x8F
         WidenCopyRowImpl2x2(ref this.V0L, ref destBase, 7, destStride);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void WidenCopyRowImpl2x2(ref Vector4 selfBase, ref Vector2 destBase, nint row, nint destStride)
+        static void WidenCopyRowImpl2x2(ref Vector4 selfBase, ref Vector2 destBase, nuint row, nuint destStride)
         {
             ref Vector4 sLeft = ref Unsafe.Add(ref selfBase, 2 * row);
             ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-            nint offset = 2 * row * destStride;
+            nuint offset = 2 * row * destStride;
             ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
             ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
@@ -86,23 +86,23 @@ internal partial struct Block8x8F
     }
 
     [MethodImpl(InliningOptions.ColdPath)]
-    private void CopyArbitraryScale(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
+    private void CopyArbitraryScale(ref float areaOrigin, uint areaStride, uint horizontalScale, uint verticalScale)
     {
-        for (int y = 0; y < 8; y++)
+        for (nuint y = 0; y < 8; y++)
         {
-            int yy = y * verticalScale;
-            int y8 = y * 8;
+            nuint yy = y * verticalScale;
+            nuint y8 = y * 8;
 
-            for (int x = 0; x < 8; x++)
+            for (nuint x = 0; x < 8; x++)
             {
-                int xx = x * horizontalScale;
+                nuint xx = x * horizontalScale;
 
-                float value = this[y8 + x];
-                nint baseIdx = (nint)(uint)((yy * areaStride) + xx);
+                float value = this[(int)(y8 + x)];
+                nuint baseIdx = (uint)((yy * areaStride) + xx);
 
-                for (nint i = 0; i < verticalScale; i++, baseIdx += areaStride)
+                for (nuint i = 0; i < verticalScale; i++, baseIdx += areaStride)
                 {
-                    for (nint j = 0; j < (uint)horizontalScale; j++)
+                    for (nuint j = 0; j < horizontalScale; j++)
                     {
                         // area[xx + j, yy + i] = value;
                         Unsafe.Add(ref areaOrigin, baseIdx + j) = value;

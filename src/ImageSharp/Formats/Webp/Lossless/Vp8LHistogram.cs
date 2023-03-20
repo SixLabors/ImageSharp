@@ -518,9 +518,9 @@ internal sealed class Vp8LHistogram : IDeepCloneable
             ref uint aRef = ref MemoryMarshal.GetReference(a);
             ref uint bRef = ref MemoryMarshal.GetReference(b);
             ref uint outputRef = ref MemoryMarshal.GetReference(output);
-            nint idx;
+            nuint idx;
 
-            for (idx = 0; idx <= (nint)(uint)count - 32; idx += 32)
+            for (idx = 0; idx <= (uint)count - 32; idx += 32)
             {
                 // Load values.
                 Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx));

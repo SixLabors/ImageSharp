@@ -183,8 +183,8 @@ internal static class ScaledFloatingPointDCT
             // temporal result is saved to +2 shifted indices
             // because result is saved into the top left 2x2 region of the
             // input block
-            block[(ctr * 8) + 2] = (tmp10 + tmp0) * 0.25F;  // /4
-            block[(ctr * 8) + 3] = (tmp10 - tmp0) * 0.25F;  // /4
+            block[(ctr * 8) + 2] = (tmp10 + tmp0) * 0.25F;
+            block[(ctr * 8) + 3] = (tmp10 - tmp0) * 0.25F;
         }
 
         for (int ctr = 0; ctr < 2; ctr++)

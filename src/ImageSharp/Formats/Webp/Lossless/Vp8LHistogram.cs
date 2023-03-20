@@ -513,14 +513,14 @@ internal sealed class Vp8LHistogram : IDeepCloneable
         DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
         DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
 
-        if (Avx2.IsSupported)
+        if (Avx2.IsSupported && count >= 32)
         {
             ref uint aRef = ref MemoryMarshal.GetReference(a);
             ref uint bRef = ref MemoryMarshal.GetReference(b);
             ref uint outputRef = ref MemoryMarshal.GetReference(output);
-            nuint idx;
 
-            for (idx = 0; idx <= (uint)count - 32; idx += 32)
+            nuint idx = 0;
+            do
             {
                 // Load values.
                 Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx));
@@ -538,7 +538,9 @@ internal sealed class Vp8LHistogram : IDeepCloneable
                 Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 8)) = Avx2.Add(a1, b1);
                 Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 16)) = Avx2.Add(a2, b2);
                 Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 24)) = Avx2.Add(a3, b3);
+                idx += 32;
             }
+            while (idx <= (uint)count - 32);
 
             int i = (int)idx;
             for (; i < count; i++)

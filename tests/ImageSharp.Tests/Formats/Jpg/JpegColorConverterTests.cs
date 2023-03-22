@@ -258,6 +258,23 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromYCbCrArm(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYCbCrArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8),
+            precísion: 2);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromCmykAvx2(int seed) =>
         this.TestConversionToRgb(new JpegColorConverterBase.CmykAvx(8),
             4,

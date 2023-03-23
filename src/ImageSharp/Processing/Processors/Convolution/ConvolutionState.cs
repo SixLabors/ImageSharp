@@ -13,16 +13,16 @@ internal readonly ref struct ConvolutionState
 {
     private readonly Span<int> rowOffsetMap;
     private readonly Span<int> columnOffsetMap;
-    private readonly int kernelHeight;
-    private readonly int kernelWidth;
+    private readonly uint kernelHeight;
+    private readonly uint kernelWidth;
 
     public ConvolutionState(
         in DenseMatrix<float> kernel,
         KernelSamplingMap map)
     {
         this.Kernel = new ReadOnlyKernel(kernel);
-        this.kernelHeight = kernel.Rows;
-        this.kernelWidth = kernel.Columns;
+        this.kernelHeight = (uint)kernel.Rows;
+        this.kernelWidth = (uint)kernel.Columns;
         this.rowOffsetMap = map.GetRowOffsetSpan();
         this.columnOffsetMap = map.GetColumnOffsetSpan();
     }
@@ -34,10 +34,10 @@ internal readonly ref struct ConvolutionState
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ref int GetSampleRow(int row)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), (uint)(row * this.kernelHeight));
+    public readonly ref int GetSampleRow(uint row)
+        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), row * this.kernelHeight);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ref int GetSampleColumn(int column)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), (uint)(column * this.kernelWidth));
+    public readonly ref int GetSampleColumn(uint column)
+        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), column * this.kernelWidth);
 }

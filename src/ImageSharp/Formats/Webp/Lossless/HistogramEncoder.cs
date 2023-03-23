@@ -27,7 +27,7 @@ internal class HistogramEncoder
 
     private const ushort InvalidHistogramSymbol = ushort.MaxValue;
 
-    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, int quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
+    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, uint quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(xSize, histoBits) : 1;
         int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
@@ -660,7 +660,7 @@ internal class HistogramEncoder
         output.TrivialSymbol = a.TrivialSymbol == b.TrivialSymbol ? a.TrivialSymbol : NonTrivialSym;
     }
 
-    private static double GetCombineCostFactor(int histoSize, int quality)
+    private static double GetCombineCostFactor(int histoSize, uint quality)
     {
         double combineCostFactor = 0.16d;
         if (quality < 90)

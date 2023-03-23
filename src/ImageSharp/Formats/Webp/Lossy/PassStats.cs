@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class PassStats
 {
-    public PassStats(long targetSize, float targetPsnr, int qMin, int qMax, int quality)
+    public PassStats(long targetSize, float targetPsnr, int qMin, int qMax, uint quality)
     {
         bool doSizeSearch = targetSize != 0;
 

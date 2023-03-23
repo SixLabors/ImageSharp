@@ -1361,7 +1361,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             this.metadata.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
         }
 
-        short bitsPerPixel = this.infoHeader.BitsPerPixel;
+        ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
         this.bmpMetadata = this.metadata.GetBmpMetadata();
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;

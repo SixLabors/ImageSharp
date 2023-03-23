@@ -123,7 +123,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
             var state = new ConvolutionState(in this.kernel, this.map);
             int row = y - this.bounds.Y;
-            ref int sampleRowBase = ref state.GetSampleRow(row);
+            ref int sampleRowBase = ref state.GetSampleRow((uint)row);
 
             if (this.preserveAlpha)
             {
@@ -132,23 +132,23 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
                 Span<TPixel> sourceRow;
-                for (int kY = 0; kY < state.Kernel.Rows; kY++)
+                for (uint kY = 0; kY < state.Kernel.Rows; kY++)
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
-                    int offsetY = Unsafe.Add(ref sampleRowBase, (uint)kY);
+                    int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
-                    for (int x = 0; x < sourceBuffer.Length; x++)
+                    for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
                     {
                         ref int sampleColumnBase = ref state.GetSampleColumn(x);
-                        ref Vector4 target = ref Unsafe.Add(ref targetBase, (uint)x);
+                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
 
-                        for (int kX = 0; kX < state.Kernel.Columns; kX++)
+                        for (uint kX = 0; kX < state.Kernel.Columns; kX++)
                         {
-                            int offsetX = Unsafe.Add(ref sampleColumnBase, (uint)kX) - boundsX;
+                            int offsetX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
                             Vector4 sample = Unsafe.Add(ref sourceBase, (uint)offsetX);
                             target += state.Kernel[kY, kX] * sample;
                         }
@@ -159,10 +159,10 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                 sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
-                for (int x = 0; x < sourceRow.Length; x++)
+                for (nuint x = 0; x < (uint)sourceRow.Length; x++)
                 {
-                    ref Vector4 target = ref Unsafe.Add(ref targetBase, (uint)x);
-                    target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), (uint)x).W;
+                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                    target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
                 }
             }
             else
@@ -171,24 +171,24 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                 targetBuffer.Clear();
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
-                for (int kY = 0; kY < state.Kernel.Rows; kY++)
+                for (uint kY = 0; kY < state.Kernel.Rows; kY++)
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
-                    int offsetY = Unsafe.Add(ref sampleRowBase, (uint)kY);
+                    int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                     Numerics.Premultiply(sourceBuffer);
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
-                    for (int x = 0; x < sourceBuffer.Length; x++)
+                    for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
                     {
                         ref int sampleColumnBase = ref state.GetSampleColumn(x);
-                        ref Vector4 target = ref Unsafe.Add(ref targetBase, (uint)x);
+                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
 
-                        for (int kX = 0; kX < state.Kernel.Columns; kX++)
+                        for (uint kX = 0; kX < state.Kernel.Columns; kX++)
                         {
-                            int offsetX = Unsafe.Add(ref sampleColumnBase, (uint)kX) - boundsX;
+                            int offsetX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
                             Vector4 sample = Unsafe.Add(ref sourceBase, (uint)offsetX);
                             target += state.Kernel[kY, kX] * sample;
                         }

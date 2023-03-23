@@ -157,7 +157,7 @@ internal class ComponentProcessor : IDisposable
 
                 // Ideally we need to use log2: Numerics.Log2((uint)factor)
                 // but division by 2 works just fine in this case
-                int haddIterationsCount = (int)((uint)factor / 2);
+                uint haddIterationsCount = (uint)factor / 2;
 
                 // Transform spans so that it only contains 'remainder'
                 // values for the scalar fallback code
@@ -168,7 +168,7 @@ internal class ComponentProcessor : IDisposable
 
                 nuint length = (uint)(touchedCount / Vector256<float>.Count);
 
-                for (int i = 0; i < haddIterationsCount; i++)
+                for (uint i = 0; i < haddIterationsCount; i++)
                 {
                     length /= 2;
 

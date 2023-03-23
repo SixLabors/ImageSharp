@@ -57,7 +57,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// The quality, that will be used to encode the image.
     /// </summary>
-    private readonly int quality;
+    private readonly uint quality;
 
     /// <summary>
     /// Quality/speed trade-off (0=fast, 6=slower-better).
@@ -110,7 +110,7 @@ internal class Vp8LEncoder : IDisposable
         Configuration configuration,
         int width,
         int height,
-        int quality,
+        uint quality,
         bool skipMetadata,
         WebpEncodingMethod method,
         WebpTransparentColorMode transparentColorMode,
@@ -122,7 +122,7 @@ internal class Vp8LEncoder : IDisposable
 
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
-        this.quality = Numerics.Clamp(quality, 0, 100);
+        this.quality = Math.Min(quality, 100u);
         this.skipMetadata = skipMetadata;
         this.method = method;
         this.transparentColorMode = transparentColorMode;
@@ -772,7 +772,7 @@ internal class Vp8LEncoder : IDisposable
         this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
     }
 
-    private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality, bool lowEffort)
+    private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, uint quality, bool lowEffort)
     {
         int cacheBits = 0;
         ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
@@ -1820,7 +1820,7 @@ internal class Vp8LEncoder : IDisposable
     {
         // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
         // pixel in each, plus 2 regular scanlines of bytes.
-        int bgraScratchSize = this.UsePredictorTransform ? (int)((((uint)width + 1) * 2) + ((((uint)width * 2) + 4 - 1) / 4)) : 0;
+        int bgraScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
         int transformDataSize = this.UsePredictorTransform || this.UseCrossColorTransform ? LosslessUtils.SubSampleSize(width, this.TransformBits) * LosslessUtils.SubSampleSize(height, this.TransformBits) : 0;
 
         this.BgraScratch = this.memoryAllocator.Allocate<uint>(bgraScratchSize);

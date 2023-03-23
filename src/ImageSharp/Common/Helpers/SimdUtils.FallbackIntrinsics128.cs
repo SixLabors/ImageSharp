@@ -71,7 +71,7 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, 4);
 
-            int count = (int)((uint)dest.Length / 4);
+            uint count = (uint)dest.Length / 4;
             if (count == 0)
             {
                 return;
@@ -83,7 +83,7 @@ internal static partial class SimdUtils
             const float scale = 1f / 255f;
             Vector4 d = default;
 
-            for (nuint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < count; i++)
             {
                 ref ByteVector4 s = ref Unsafe.Add(ref sBase, i);
                 d.X = s.X;
@@ -105,7 +105,7 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, 4);
 
-            int count = (int)((uint)source.Length / 4);
+            uint count = (uint)source.Length / 4;
             if (count == 0)
             {
                 return;
@@ -117,7 +117,7 @@ internal static partial class SimdUtils
             var half = new Vector4(0.5f);
             var maxBytes = new Vector4(255f);
 
-            for (nuint i = 0; i < (uint)count; i++)
+            for (nuint i = 0; i < count; i++)
             {
                 Vector4 s = Unsafe.Add(ref sBase, i);
                 s *= maxBytes;

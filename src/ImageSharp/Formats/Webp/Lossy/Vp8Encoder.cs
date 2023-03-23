@@ -31,7 +31,7 @@ internal class Vp8Encoder : IDisposable
     /// <summary>
     /// The quality, that will be used to encode the image.
     /// </summary>
-    private readonly int quality;
+    private readonly uint quality;
 
     /// <summary>
     /// Quality/speed trade-off (0=fast, 6=slower-better).
@@ -113,7 +113,7 @@ internal class Vp8Encoder : IDisposable
         Configuration configuration,
         int width,
         int height,
-        int quality,
+        uint quality,
         bool skipMetadata,
         WebpEncodingMethod method,
         int entropyPasses,
@@ -125,7 +125,7 @@ internal class Vp8Encoder : IDisposable
         this.configuration = configuration;
         this.Width = width;
         this.Height = height;
-        this.quality = Numerics.Clamp(quality, 0, 100);
+        this.quality = Math.Min(quality, 100);
         this.skipMetadata = skipMetadata;
         this.method = method;
         this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
@@ -1177,6 +1177,6 @@ internal class Vp8Encoder : IDisposable
     {
         int total = a + b;
         return total == 0 ? 255 // that's the default probability.
-            : ((255 * a) + (int)((uint)total / 2)) / total;  // rounded proba
+            : ((255 * a) + (total >> 1)) / total;  // rounded proba
     }
 }

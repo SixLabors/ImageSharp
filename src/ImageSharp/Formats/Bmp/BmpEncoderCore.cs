@@ -212,7 +212,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             width: width,
             height: height,
             planes: 1,
-            bitsPerPixel: (short)bpp,
+            bitsPerPixel: bpp,
             imageSize: height * bytesPerLine,
             xPelsPerMeter: hResolution,
             yPelsPerMeter: vResolution,

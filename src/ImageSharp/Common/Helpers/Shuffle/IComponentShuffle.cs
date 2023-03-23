@@ -84,9 +84,9 @@ internal readonly struct WXYZShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = (int)((uint)source.Length / 4);
+        uint n = (uint)source.Length / 4;
 
-        for (nuint i = 0; i < (uint)n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -108,9 +108,9 @@ internal readonly struct WZYXShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = (int)((uint)source.Length / 4);
+        uint n = (uint)source.Length / 4;
 
-        for (nuint i = 0; i < (uint)n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -132,9 +132,9 @@ internal readonly struct YZWXShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = (int)((uint)source.Length / 4);
+        uint n = (uint)source.Length / 4;
 
-        for (nuint i = 0; i < (uint)n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -156,9 +156,9 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = (int)((uint)source.Length / 4);
+        uint n = (uint)source.Length / 4;
 
-        for (nuint i = 0; i < (uint)n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -187,9 +187,9 @@ internal readonly struct XWZYShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = (int)((uint)source.Length / 4);
+        uint n = (uint)source.Length / 4;
 
-        for (nuint i = 0; i < (uint)n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 

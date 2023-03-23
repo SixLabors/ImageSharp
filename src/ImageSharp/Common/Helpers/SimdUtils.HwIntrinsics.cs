@@ -566,9 +566,9 @@ internal static partial class SimdUtils
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(InliningOptions.AlwaysInline)]
         public static Vector128<float> MultiplyAdd(
-            in Vector128<float> va,
-            in Vector128<float> vm0,
-            in Vector128<float> vm1)
+            Vector128<float> va,
+            Vector128<float> vm0,
+            Vector128<float> vm1)
         {
             if (Fma.IsSupported)
             {

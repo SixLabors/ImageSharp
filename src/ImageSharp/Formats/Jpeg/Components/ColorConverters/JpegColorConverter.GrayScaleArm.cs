@@ -27,8 +27,8 @@ internal abstract partial class JpegColorConverterBase
             // Used for the color conversion
             var scale = Vector128.Create(1 / this.MaximumValue);
 
-            nint n = values.Component0.Length / Vector128<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = (uint)values.Component0.Length / (uint)Vector128<float>.Count;
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector128<float> c0 = ref Unsafe.Add(ref c0Base, i);
                 c0 = AdvSimd.Multiply(c0, scale);
@@ -53,8 +53,8 @@ internal abstract partial class JpegColorConverterBase
             var f0587 = Vector128.Create(0.587f);
             var f0114 = Vector128.Create(0.114f);
 
-            nint n = values.Component0.Length / Vector128<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = (uint)values.Component0.Length / (uint)Vector128<float>.Count;
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector128<float> r = ref Unsafe.Add(ref srcRed, i);
                 ref Vector128<float> g = ref Unsafe.Add(ref srcGreen, i);

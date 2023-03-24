@@ -103,10 +103,9 @@ public class FromVector4Rgba32 : FromVector4<Rgba32>
         Span<float> src = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
         Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-        nuint n = (uint)(dest.Length / Vector<byte>.Count);
+        nuint n = (uint)dest.Length / (uint)Vector<byte>.Count;
 
-        ref Vector256<float> sourceBase =
-            ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(src));
+        ref Vector256<float> sourceBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(src));
         ref Vector256<byte> destBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
         ref byte maskBase = ref MemoryMarshal.GetReference(PermuteMaskDeinterleave8x32);

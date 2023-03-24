@@ -63,7 +63,7 @@ public class VectorFetching
         var v = new Vector<float>(this.testValue);
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
-        nuint n = (uint)(this.InputSize / Vector<uint>.Count);
+        nuint n = (uint)this.InputSize / (uint)Vector<uint>.Count;
 
         for (nuint i = 0; i < n; i++)
         {
@@ -82,7 +82,7 @@ public class VectorFetching
         var v = new Vector<float>(this.testValue);
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
-        nuint n = (uint)(this.InputSize / Vector<uint>.Count);
+        nuint n = (uint)this.InputSize / (uint)Vector<uint>.Count;
 
         for (nuint i = 0; i < n; i++)
         {
@@ -100,7 +100,7 @@ public class VectorFetching
 
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(span));
 
-        nuint n = (uint)(this.InputSize / Vector<uint>.Count);
+        nuint n = (uint)this.InputSize / (uint)Vector<uint>.Count;
 
         for (nuint i = 0; i < n; i++)
         {

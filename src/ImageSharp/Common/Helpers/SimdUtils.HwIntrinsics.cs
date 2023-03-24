@@ -391,7 +391,7 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                nuint n = (uint)(source.Length / Vector128<byte>.Count);
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
                 for (nuint i = 0; i < n; i += 3)
                 {
@@ -454,7 +454,7 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                nuint n = (uint)(source.Length / Vector128<byte>.Count);
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
                 for (nuint i = 0, j = 0; i < n; i += 3, j += 4)
                 {
@@ -498,7 +498,7 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                nuint n = (uint)(source.Length / Vector128<byte>.Count);
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
                 for (nuint i = 0, j = 0; i < n; i += 4, j += 3)
                 {
@@ -650,7 +650,7 @@ internal static partial class SimdUtils
                 {
                     VerifySpanInput(source, dest, Vector256<byte>.Count);
 
-                    nuint n = (uint)(dest.Length / Vector256<byte>.Count);
+                    nuint n = (uint)dest.Length / (uint)Vector256<byte>.Count;
 
                     ref Vector256<float> destBase =
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
@@ -683,7 +683,7 @@ internal static partial class SimdUtils
                     // Sse
                     VerifySpanInput(source, dest, Vector128<byte>.Count);
 
-                    nuint n = (uint)(dest.Length / Vector128<byte>.Count);
+                    nuint n = (uint)dest.Length / (uint)Vector128<byte>.Count;
 
                     ref Vector128<float> destBase =
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
@@ -782,7 +782,7 @@ internal static partial class SimdUtils
             {
                 VerifySpanInput(source, dest, Vector256<byte>.Count);
 
-                nuint n = (uint)(dest.Length / Vector256<byte>.Count);
+                nuint n = (uint)dest.Length / (uint)Vector256<byte>.Count;
 
                 ref Vector256<float> sourceBase =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -821,7 +821,7 @@ internal static partial class SimdUtils
                 // Sse
                 VerifySpanInput(source, dest, Vector128<byte>.Count);
 
-                nuint n = (uint)(dest.Length / Vector128<byte>.Count);
+                nuint n = (uint)dest.Length / (uint)Vector128<byte>.Count;
 
                 ref Vector128<float> sourceBase =
                     ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
@@ -864,7 +864,7 @@ internal static partial class SimdUtils
             ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
             ref byte dBase = ref Unsafe.As<Rgb24, byte>(ref MemoryMarshal.GetReference(destination));
 
-            nuint count = (uint)(redChannel.Length / Vector256<byte>.Count);
+            nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
 
             ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
             Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
@@ -936,7 +936,7 @@ internal static partial class SimdUtils
             ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
             ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
-            nuint count = (uint)(redChannel.Length / Vector256<byte>.Count);
+            nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
             ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
             Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
             var a = Vector256.Create((byte)255);

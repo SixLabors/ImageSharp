@@ -32,7 +32,7 @@ internal abstract partial class JpegColorConverterBase
             // Used for the color conversion
             var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
 
-            nuint n = (uint)(values.Component0.Length / Vector256<float>.Count);
+            nuint n = (uint)values.Component0.Length / (uint)Vector256<float>.Count;
             for (nuint i = 0; i < n; i++)
             {
                 ref Vector256<float> c = ref Unsafe.Add(ref c0Base, i);
@@ -71,7 +71,7 @@ internal abstract partial class JpegColorConverterBase
 
             var scale = Vector256.Create(maxValue);
 
-            nuint n = (uint)(values.Component0.Length / Vector256<float>.Count);
+            nuint n = (uint)values.Component0.Length / (uint)Vector256<float>.Count;
             for (nuint i = 0; i < n; i++)
             {
                 Vector256<float> ctmp = Avx.Subtract(scale, Unsafe.Add(ref srcR, i));

@@ -12,7 +12,7 @@ public class UInt32ToSingle
 {
     private float[] data;
 
-    private const int Count = 32;
+    private const uint Count = 32;
 
     [GlobalSetup]
     public void Setup()
@@ -25,7 +25,7 @@ public class UInt32ToSingle
     {
         ref Vector<float> b = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
-        nuint n = (uint)(Count / Vector<float>.Count);
+        nuint n = Count / (uint)Vector<float>.Count;
 
         var bVec = new Vector<float>(256.0f / 255.0f);
         var magicFloat = new Vector<float>(32768.0f);
@@ -50,7 +50,7 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimd()
     {
-        nuint n = (uint)(Count / Vector<float>.Count);
+        nuint n = Count / (uint)Vector<float>.Count;
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<uint> bu = ref Unsafe.As<Vector<float>, Vector<uint>>(ref bf);
@@ -69,7 +69,7 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimdFromInt()
     {
-        nuint n = (uint)(Count / Vector<float>.Count);
+        nuint n = Count / (uint)Vector<float>.Count;
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<int> bu = ref Unsafe.As<Vector<float>, Vector<int>>(ref bf);
@@ -88,7 +88,7 @@ public class UInt32ToSingle
     [Benchmark]
     public void StandardSimdFromInt_RefCast()
     {
-        nuint n = (uint)(Count / Vector<float>.Count);
+        nuint n = Count / (uint)Vector<float>.Count;
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         var scale = new Vector<float>(1f / 255f);

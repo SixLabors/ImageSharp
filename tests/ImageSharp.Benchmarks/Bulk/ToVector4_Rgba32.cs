@@ -54,7 +54,7 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
         Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
         Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-        nuint n = (uint)(dFloats.Length / Vector<byte>.Count);
+        nuint n = (uint)dFloats.Length / (uint)Vector<byte>.Count;
 
         ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
         ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dFloats));
@@ -96,7 +96,7 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
         Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
         Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-        nuint n = (uint)(dFloats.Length / Vector<byte>.Count);
+        nuint n = (uint)dFloats.Length / (uint)Vector<byte>.Count;
 
         ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
         ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dFloats));

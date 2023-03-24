@@ -98,7 +98,7 @@ internal partial struct Block8x8F
                 nuint xx = x * horizontalScale;
 
                 float value = this[(int)(y8 + x)];
-                nuint baseIdx = (uint)((yy * areaStride) + xx);
+                nuint baseIdx = (yy * areaStride) + xx;
 
                 for (nuint i = 0; i < verticalScale; i++, baseIdx += areaStride)
                 {

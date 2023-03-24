@@ -345,29 +345,6 @@ internal class Vp8Encoder : IDisposable
         int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
         this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
-        // Extract and encode alpha channel data, if present.
-        int alphaDataSize = 0;
-        bool alphaCompressionSucceeded = false;
-        Span<byte> alphaData = Span<byte>.Empty;
-        if (hasAlpha)
-        {
-            // TODO: This can potentially run in an separate task.
-            using IMemoryOwner<byte> encodedAlphaData = AlphaEncoder.EncodeAlpha(
-                image,
-                this.configuration,
-                this.memoryAllocator,
-                this.skipMetadata,
-                this.alphaCompression,
-                out alphaDataSize);
-
-            alphaData = encodedAlphaData.GetSpan();
-            if (alphaDataSize < pixelCount)
-            {
-                // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
-                alphaCompressionSucceeded = true;
-            }
-        }
-
         // Stats-collection loop.
         this.StatLoop(width, height, yStride, uvStride);
         it.Init();
@@ -405,16 +382,47 @@ internal class Vp8Encoder : IDisposable
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        this.bitWriter.WriteEncodedImageToStream(
-            stream,
-            exifProfile,
-            xmpProfile,
-            metadata.IccProfile,
-            (uint)width,
-            (uint)height,
-            hasAlpha,
-            alphaData[..alphaDataSize],
-            this.alphaCompression && alphaCompressionSucceeded);
+        // Extract and encode alpha channel data, if present.
+        int alphaDataSize = 0;
+        bool alphaCompressionSucceeded = false;
+        Span<byte> alphaData = Span<byte>.Empty;
+        IMemoryOwner<byte> encodedAlphaData = null;
+        try
+        {
+            if (hasAlpha)
+            {
+                // TODO: This can potentially run in an separate task.
+                encodedAlphaData = AlphaEncoder.EncodeAlpha(
+                    image,
+                    this.configuration,
+                    this.memoryAllocator,
+                    this.skipMetadata,
+                    this.alphaCompression,
+                    out alphaDataSize);
+
+                alphaData = encodedAlphaData.GetSpan();
+                if (alphaDataSize < pixelCount)
+                {
+                    // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
+                    alphaCompressionSucceeded = true;
+                }
+            }
+
+            this.bitWriter.WriteEncodedImageToStream(
+                stream,
+                exifProfile,
+                xmpProfile,
+                metadata.IccProfile,
+                (uint)width,
+                (uint)height,
+                hasAlpha,
+                alphaData[..alphaDataSize],
+                this.alphaCompression && alphaCompressionSucceeded);
+        }
+        finally
+        {
+            encodedAlphaData?.Dispose();
+        }
     }
 
     /// <inheritdoc/>

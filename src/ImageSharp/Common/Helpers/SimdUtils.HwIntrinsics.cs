@@ -580,7 +580,7 @@ internal static partial class SimdUtils
                 return AdvSimd.Add(AdvSimd.Multiply(vm0, vm1), va);
             }
 
-            return Avx.Add(Avx.Multiply(vm0, vm1), va);
+            return Sse.Add(Sse.Multiply(vm0, vm1), va);
         }
 
         /// <summary>

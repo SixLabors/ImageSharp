@@ -128,19 +128,19 @@ public sealed class BokehBlurProcessor : IImageProcessor
             int boundsWidth = this.bounds.Width;
             int kernelSize = this.kernel.Length;
 
-            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
+            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
 
             // The target buffer is zeroed initially and then it accumulates the results
             // of each partial convolution, so we don't have to clear it here as well
             ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
-            ref Complex64 kernelStart = ref this.kernel[0];
-            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
+            ref Complex64 kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
+            ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
             {
                 // Get the precalculated source sample row for this kernel row and copy to our buffer
                 ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleRowBase);
-                ref ComplexVector4 sourceEnd = ref Unsafe.Add(ref sourceBase, boundsWidth);
+                ref ComplexVector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)boundsWidth);
                 ref Vector4 targetStart = ref targetBase;
                 Complex64 factor = kernelStart;
 

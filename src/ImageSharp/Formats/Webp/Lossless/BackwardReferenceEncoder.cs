@@ -38,7 +38,7 @@ internal static class BackwardReferenceEncoder
         int width,
         int height,
         ReadOnlySpan<uint> bgra,
-        int quality,
+        uint quality,
         int lz77TypesToTry,
         ref int cacheBits,
         MemoryAllocator memoryAllocator,
@@ -123,7 +123,7 @@ internal static class BackwardReferenceEncoder
     /// The local color cache is also disabled for the lower (smaller then 25) quality.
     /// </summary>
     /// <returns>Best cache size.</returns>
-    private static int CalculateBestCacheSize(ReadOnlySpan<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
+    private static int CalculateBestCacheSize(ReadOnlySpan<uint> bgra, uint quality, Vp8LBackwardRefs refs, int bestCacheBits)
     {
         int cacheBitsMax = quality <= 25 ? 0 : bestCacheBits;
         if (cacheBitsMax == 0)

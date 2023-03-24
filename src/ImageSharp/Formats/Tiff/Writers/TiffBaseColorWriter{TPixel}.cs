@@ -29,7 +29,7 @@ internal abstract class TiffBaseColorWriter<TPixel> : IDisposable
     /// <summary>
     /// Gets the bytes per row.
     /// </summary>
-    public int BytesPerRow => ((this.Image.Width * this.BitsPerPixel) + 7) / 8;
+    public int BytesPerRow => (int)(((uint)(this.Image.Width * this.BitsPerPixel) + 7) / 8);
 
     protected ImageFrame<TPixel> Image { get; }
 

@@ -58,7 +58,7 @@ public class PorterDuffBulkVsSingleVector
         Vector256<float> result = default;
         Vector256<float> opacity = Vector256.Create(.5F);
         int count = this.backdrop.Length / 2;
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             result = PorterDuffFunctions.NormalSrcOver(Unsafe.Add(ref backdrop, i), Unsafe.Add(ref source, i), opacity);
         }

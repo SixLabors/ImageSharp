@@ -105,11 +105,11 @@ internal static class ResizeHelper
             switch (options.Position)
             {
                 case AnchorPositionMode.Left:
-                    targetY = (height - sourceHeight) / 2;
+                    targetY = (int)((uint)(height - sourceHeight) / 2);
                     targetX = 0;
                     break;
                 case AnchorPositionMode.Right:
-                    targetY = (height - sourceHeight) / 2;
+                    targetY = (int)((uint)(height - sourceHeight) / 2);
                     targetX = width - sourceWidth;
                     break;
                 case AnchorPositionMode.TopRight:
@@ -118,7 +118,7 @@ internal static class ResizeHelper
                     break;
                 case AnchorPositionMode.Top:
                     targetY = 0;
-                    targetX = (width - sourceWidth) / 2;
+                    targetX = (int)((uint)(width - sourceWidth) / 2);
                     break;
                 case AnchorPositionMode.TopLeft:
                     targetY = 0;
@@ -130,15 +130,15 @@ internal static class ResizeHelper
                     break;
                 case AnchorPositionMode.Bottom:
                     targetY = height - sourceHeight;
-                    targetX = (width - sourceWidth) / 2;
+                    targetX = (int)((uint)(width - sourceWidth) / 2);
                     break;
                 case AnchorPositionMode.BottomLeft:
                     targetY = height - sourceHeight;
                     targetX = 0;
                     break;
                 default:
-                    targetY = (height - sourceHeight) / 2;
-                    targetX = (width - sourceWidth) / 2;
+                    targetY = (int)((uint)(height - sourceHeight) / 2);
+                    targetX = (int)((uint)(width - sourceWidth) / 2);
                     break;
             }
 

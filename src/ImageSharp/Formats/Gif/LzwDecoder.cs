@@ -115,7 +115,7 @@ internal sealed class LzwDecoder : IDisposable
 
         for (code = 0; code < clearCode; code++)
         {
-            Unsafe.Add(ref suffixRef, code) = (byte)code;
+            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
         }
 
         Span<byte> buffer = stackalloc byte[byte.MaxValue];
@@ -182,7 +182,7 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
                     oldCode = code;
                     first = code;
                     continue;
@@ -191,27 +191,27 @@ internal sealed class LzwDecoder : IDisposable
                 int inCode = code;
                 if (code == availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = (byte)first;
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
 
                     code = oldCode;
                 }
 
                 while (code > clearCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
-                    code = Unsafe.Add(ref prefixRef, code);
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
+                    code = Unsafe.Add(ref prefixRef, (uint)code);
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, code);
+                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
                 first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, top++) = suffixCode;
+                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
 
                 // Fix for Gifs that have "deferred clear code" as per here :
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                 if (availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, availableCode) = first;
+                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
+                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
                     availableCode++;
                     if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                     {
@@ -228,7 +228,7 @@ internal sealed class LzwDecoder : IDisposable
 
             // Clear missing pixels
             xyz++;
-            Unsafe.Add(ref pixelsRowRef, x++) = (byte)Unsafe.Add(ref pixelStackRef, top);
+            Unsafe.Add(ref pixelsRowRef, (uint)x++) = (byte)Unsafe.Add(ref pixelStackRef, (uint)top);
         }
     }
 
@@ -282,7 +282,7 @@ internal sealed class LzwDecoder : IDisposable
 
         for (code = 0; code < clearCode; code++)
         {
-            Unsafe.Add(ref suffixRef, code) = (byte)code;
+            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
         }
 
         Span<byte> buffer = stackalloc byte[byte.MaxValue];
@@ -336,7 +336,7 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
                     oldCode = code;
                     first = code;
                     continue;
@@ -345,27 +345,27 @@ internal sealed class LzwDecoder : IDisposable
                 int inCode = code;
                 if (code == availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = (byte)first;
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
 
                     code = oldCode;
                 }
 
                 while (code > clearCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
-                    code = Unsafe.Add(ref prefixRef, code);
+                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
+                    code = Unsafe.Add(ref prefixRef, (uint)code);
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, code);
+                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
                 first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, top++) = suffixCode;
+                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
 
                 // Fix for Gifs that have "deferred clear code" as per here :
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                 if (availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, availableCode) = first;
+                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
+                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
                     availableCode++;
                     if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                     {

@@ -160,7 +160,7 @@ internal static partial class SimdUtils
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
                 int sourceCount = source.Length - remainder;
-                int destCount = sourceCount * 4 / 3;
+                int destCount = (int)((uint)sourceCount * 4 / 3);
 
                 if (sourceCount > 0)
                 {
@@ -193,7 +193,7 @@ internal static partial class SimdUtils
                 int remainder = source.Length % (Vector128<byte>.Count * 4);
 
                 int sourceCount = source.Length - remainder;
-                int destCount = sourceCount * 3 / 4;
+                int destCount = (int)((uint)sourceCount * 3 / 4);
 
                 if (sourceCount > 0)
                 {
@@ -222,11 +222,11 @@ internal static partial class SimdUtils
                 ref Vector256<float> destBase =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = dest.Length / Vector256<float>.Count;
-                int m = Numerics.Modulo4(n);
-                int u = n - m;
+                nint n = (nint)(uint)(dest.Length / Vector256<float>.Count);
+                nint m = Numerics.Modulo4(n);
+                nint u = n - m;
 
-                for (int i = 0; i < u; i += 4)
+                for (nint i = 0; i < u; i += 4)
                 {
                     ref Vector256<float> vd0 = ref Unsafe.Add(ref destBase, i);
                     ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
@@ -239,7 +239,7 @@ internal static partial class SimdUtils
 
                 if (m > 0)
                 {
-                    for (int i = u; i < n; i++)
+                    for (nint i = u; i < n; i++)
                     {
                         Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
                     }
@@ -254,11 +254,11 @@ internal static partial class SimdUtils
                 ref Vector128<float> destBase =
                     ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = dest.Length / Vector128<float>.Count;
-                int m = Numerics.Modulo4(n);
-                int u = n - m;
+                nint n = (nint)(uint)dest.Length / Vector128<float>.Count;
+                nint m = Numerics.Modulo4(n);
+                nint u = n - m;
 
-                for (int i = 0; i < u; i += 4)
+                for (nint i = 0; i < u; i += 4)
                 {
                     ref Vector128<float> vd0 = ref Unsafe.Add(ref destBase, i);
                     ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
@@ -277,7 +277,7 @@ internal static partial class SimdUtils
 
                 if (m > 0)
                 {
-                    for (int i = u; i < n; i++)
+                    for (nint i = u; i < n; i++)
                     {
                         Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
                         Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
@@ -307,11 +307,11 @@ internal static partial class SimdUtils
                 ref Vector256<byte> destBase =
                     ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = dest.Length / Vector256<byte>.Count;
-                int m = Numerics.Modulo4(n);
-                int u = n - m;
+                nint n = (nint)(uint)dest.Length / Vector256<byte>.Count;
+                nint m = Numerics.Modulo4(n);
+                nint u = n - m;
 
-                for (int i = 0; i < u; i += 4)
+                for (nint i = 0; i < u; i += 4)
                 {
                     ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector256<byte> vd0 = ref Unsafe.Add(ref destBase, i);
@@ -324,7 +324,7 @@ internal static partial class SimdUtils
 
                 if (m > 0)
                 {
-                    for (int i = u; i < n; i++)
+                    for (nint i = u; i < n; i++)
                     {
                         Unsafe.Add(ref destBase, i) = Avx2.Shuffle(Unsafe.Add(ref sourceBase, i), vshuffle);
                     }
@@ -343,11 +343,11 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = dest.Length / Vector128<byte>.Count;
-                int m = Numerics.Modulo4(n);
-                int u = n - m;
+                nint n = (nint)(uint)dest.Length / Vector128<byte>.Count;
+                nint m = Numerics.Modulo4(n);
+                nint u = n - m;
 
-                for (int i = 0; i < u; i += 4)
+                for (nint i = 0; i < u; i += 4)
                 {
                     ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector128<byte> vd0 = ref Unsafe.Add(ref destBase, i);
@@ -360,7 +360,7 @@ internal static partial class SimdUtils
 
                 if (m > 0)
                 {
-                    for (int i = u; i < n; i++)
+                    for (nint i = u; i < n; i++)
                     {
                         Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(Unsafe.Add(ref sourceBase, i), vshuffle);
                     }
@@ -392,9 +392,9 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = source.Length / Vector128<byte>.Count;
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
-                for (int i = 0; i < n; i += 3)
+                for (nuint i = 0; i < n; i += 3)
                 {
                     ref Vector128<byte> vs = ref Unsafe.Add(ref sourceBase, i);
 
@@ -455,9 +455,9 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = source.Length / Vector128<byte>.Count;
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
-                for (int i = 0, j = 0; i < n; i += 3, j += 4)
+                for (nuint i = 0, j = 0; i < n; i += 3, j += 4)
                 {
                     ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
                     Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
@@ -499,9 +499,9 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                int n = source.Length / Vector128<byte>.Count;
+                nuint n = (uint)source.Length / (uint)Vector128<byte>.Count;
 
-                for (int i = 0, j = 0; i < n; i += 4, j += 3)
+                for (nuint i = 0, j = 0; i < n; i += 4, j += 3)
                 {
                     ref Vector128<byte> vs = ref Unsafe.Add(ref sourceBase, i);
 
@@ -679,16 +679,16 @@ internal static partial class SimdUtils
                 {
                     VerifySpanInput(source, dest, Vector256<byte>.Count);
 
-                    int n = dest.Length / Vector256<byte>.Count;
+                    nuint n = (uint)dest.Length / (uint)Vector256<byte>.Count;
 
                     ref Vector256<float> destBase =
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
                     var scale = Vector256.Create(1 / (float)byte.MaxValue);
 
-                    for (int i = 0; i < n; i++)
+                    for (nuint i = 0; i < n; i++)
                     {
-                        int si = Vector256<byte>.Count * i;
+                        nuint si = (uint)Vector256<byte>.Count * i;
                         Vector256<int> i0 = Avx2.ConvertToVector256Int32(sourceBase + si);
                         Vector256<int> i1 = Avx2.ConvertToVector256Int32(sourceBase + si + Vector256<int>.Count);
                         Vector256<int> i2 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 2));
@@ -712,7 +712,7 @@ internal static partial class SimdUtils
                     // Sse
                     VerifySpanInput(source, dest, Vector128<byte>.Count);
 
-                    int n = dest.Length / Vector128<byte>.Count;
+                    nuint n = (uint)dest.Length / (uint)Vector128<byte>.Count;
 
                     ref Vector128<float> destBase =
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
@@ -720,9 +720,9 @@ internal static partial class SimdUtils
                     var scale = Vector128.Create(1 / (float)byte.MaxValue);
                     Vector128<byte> zero = Vector128<byte>.Zero;
 
-                    for (int i = 0; i < n; i++)
+                    for (nuint i = 0; i < n; i++)
                     {
-                        int si = Vector128<byte>.Count * i;
+                        nuint si = (uint)Vector128<byte>.Count * i;
 
                         Vector128<int> i0, i1, i2, i3;
                         if (Sse41.IsSupported)
@@ -811,7 +811,7 @@ internal static partial class SimdUtils
             {
                 VerifySpanInput(source, dest, Vector256<byte>.Count);
 
-                int n = dest.Length / Vector256<byte>.Count;
+                nuint n = (uint)dest.Length / (uint)Vector256<byte>.Count;
 
                 ref Vector256<float> sourceBase =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -823,7 +823,7 @@ internal static partial class SimdUtils
                 ref byte maskBase = ref MemoryMarshal.GetReference(PermuteMaskDeinterleave8x32);
                 Vector256<int> mask = Unsafe.As<byte, Vector256<int>>(ref maskBase);
 
-                for (int i = 0; i < n; i++)
+                for (nuint i = 0; i < n; i++)
                 {
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
@@ -850,7 +850,7 @@ internal static partial class SimdUtils
                 // Sse
                 VerifySpanInput(source, dest, Vector128<byte>.Count);
 
-                int n = dest.Length / Vector128<byte>.Count;
+                nuint n = (uint)dest.Length / (uint)Vector128<byte>.Count;
 
                 ref Vector128<float> sourceBase =
                     ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
@@ -860,7 +860,7 @@ internal static partial class SimdUtils
 
                 var scale = Vector128.Create((float)byte.MaxValue);
 
-                for (int i = 0; i < n; i++)
+                for (nuint i = 0; i < n; i++)
                 {
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
@@ -893,7 +893,7 @@ internal static partial class SimdUtils
             ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
             ref byte dBase = ref Unsafe.As<Rgb24, byte>(ref MemoryMarshal.GetReference(destination));
 
-            int count = redChannel.Length / Vector256<byte>.Count;
+            nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
 
             ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
             Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
@@ -904,7 +904,7 @@ internal static partial class SimdUtils
 
             Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
 
-            for (int i = 0; i < count; i++)
+            for (nuint i = 0; i < count; i++)
             {
                 Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
                 Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
@@ -947,7 +947,7 @@ internal static partial class SimdUtils
                 Unsafe.As<byte, Vector256<byte>>(ref d4) = rgb4;
             }
 
-            int slice = count * Vector256<byte>.Count;
+            int slice = (int)count * Vector256<byte>.Count;
             redChannel = redChannel[slice..];
             greenChannel = greenChannel[slice..];
             blueChannel = blueChannel[slice..];
@@ -965,12 +965,12 @@ internal static partial class SimdUtils
             ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
             ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
-            int count = redChannel.Length / Vector256<byte>.Count;
+            nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
             ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
             Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
             var a = Vector256.Create((byte)255);
 
-            for (int i = 0; i < count; i++)
+            for (nuint i = 0; i < count; i++)
             {
                 Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
                 Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
@@ -999,7 +999,7 @@ internal static partial class SimdUtils
                 Unsafe.Add(ref d0, 3) = rgb4;
             }
 
-            int slice = count * Vector256<byte>.Count;
+            int slice = (int)count * Vector256<byte>.Count;
             redChannel = redChannel[slice..];
             greenChannel = greenChannel[slice..];
             blueChannel = blueChannel[slice..];
@@ -1023,10 +1023,10 @@ internal static partial class SimdUtils
             Vector256<float> r, g, b;
 
             const int bytesPerRgbStride = 24;
-            int count = (int)((uint)source.Length / 8);
-            for (int i = 0; i < count; i++)
+            nuint count = (uint)source.Length / 8;
+            for (nuint i = 0; i < count; i++)
             {
-                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (IntPtr)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
+                rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (uint)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
 
                 rgb = Avx2.Shuffle(rgb, extractRgbMask);
 
@@ -1042,7 +1042,7 @@ internal static partial class SimdUtils
                 Unsafe.Add(ref destBRef, i) = b;
             }
 
-            int sliceCount = count * 8;
+            int sliceCount = (int)(count * 8);
             redChannel = redChannel.Slice(sliceCount);
             greenChannel = greenChannel.Slice(sliceCount);
             blueChannel = blueChannel.Slice(sliceCount);

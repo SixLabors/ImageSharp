@@ -300,7 +300,7 @@ internal static partial class Crc32
 
         for (int i = 0; i < buffer.Length; i++)
         {
-            crc = Unsafe.Add(ref crcTableRef, (int)((crc ^ Unsafe.Add(ref bufferRef, i)) & 0xFF)) ^ (crc >> 8);
+            crc = Unsafe.Add(ref crcTableRef, (crc ^ Unsafe.Add(ref bufferRef, i)) & 0xFF) ^ (crc >> 8);
         }
 
         return crc;

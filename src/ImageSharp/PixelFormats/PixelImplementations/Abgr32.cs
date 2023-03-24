@@ -216,7 +216,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     {
         // We can assign the Bgr24 value directly to last three bytes of this instance.
         ref byte thisRef = ref Unsafe.As<Abgr32, byte>(ref this);
-        ref byte thisRefFromB = ref Unsafe.AddByteOffset(ref thisRef, new IntPtr(1));
+        ref byte thisRefFromB = ref Unsafe.AddByteOffset(ref thisRef, 1);
         Unsafe.As<byte, Bgr24>(ref thisRefFromB) = source;
         this.A = byte.MaxValue;
     }

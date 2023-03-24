@@ -457,7 +457,7 @@ internal class Vp8BitWriter : BitWriterBase
         this.Finish();
         uint numBytes = (uint)this.NumBytes();
         int mbSize = this.enc.Mbw * this.enc.Mbh;
-        int expectedSize = mbSize * 7 / 8;
+        int expectedSize = (int)((uint)mbSize * 7 / 8);
 
         Vp8BitWriter bitWriterPartZero = new(expectedSize, this.enc);
 

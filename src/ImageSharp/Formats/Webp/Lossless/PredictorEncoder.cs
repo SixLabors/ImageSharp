@@ -113,7 +113,7 @@ internal static unsafe class PredictorEncoder
             lowEffort);
     }
 
-    public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image, Span<int> scratch)
+    public static void ColorSpaceTransform(int width, int height, int bits, uint quality, Span<uint> bgra, Span<uint> image, Span<int> scratch)
     {
         int maxTileSize = 1 << bits;
         int tileXSize = LosslessUtils.SubSampleSize(width, bits);
@@ -837,7 +837,7 @@ internal static unsafe class PredictorEncoder
         int bits,
         Vp8LMultipliers prevX,
         Vp8LMultipliers prevY,
-        int quality,
+        uint quality,
         int xSize,
         int ySize,
         int[] accumulatedRedHisto,
@@ -871,14 +871,14 @@ internal static unsafe class PredictorEncoder
         int tileHeight,
         Vp8LMultipliers prevX,
         Vp8LMultipliers prevY,
-        int quality,
+        uint quality,
         int[] accumulatedRedHisto,
         ref Vp8LMultipliers bestTx)
     {
-        int maxIters = 4 + ((7 * quality) >> 8);  // in range [4..6]
+        uint maxIters = 4 + ((7 * quality) / 256);  // in range [4..6]
         int greenToRedBest = 0;
         double bestDiff = GetPredictionCostCrossColorRed(argb, stride, scratch, tileWidth, tileHeight, prevX, prevY, greenToRedBest, accumulatedRedHisto);
-        for (int iter = 0; iter < maxIters; iter++)
+        for (int iter = 0; iter < (int)maxIters; iter++)
         {
             // ColorTransformDelta is a 3.5 bit fixed point, so 32 is equal to
             // one in color computation. Having initial delta here as 1 is sufficient
@@ -901,7 +901,7 @@ internal static unsafe class PredictorEncoder
         bestTx.GreenToRed = (byte)(greenToRedBest & 0xff);
     }
 
-    private static void GetBestGreenRedToBlue(Span<uint> argb, int stride, Span<int> scratch, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int[] accumulatedBlueHisto, ref Vp8LMultipliers bestTx)
+    private static void GetBestGreenRedToBlue(Span<uint> argb, int stride, Span<int> scratch, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, uint quality, int[] accumulatedBlueHisto, ref Vp8LMultipliers bestTx)
     {
         int iters = (quality < 25) ? 1 : (quality > 50) ? GreenRedToBlueMaxIters : 4;
         int greenToBlueBest = 0;

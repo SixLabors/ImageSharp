@@ -190,7 +190,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     {
         // We can assign this instances value directly to last three bytes of the Abgr32.
         ref byte sourceRef = ref Unsafe.As<Abgr32, byte>(ref source);
-        ref byte sourceRefFromB = ref Unsafe.AddByteOffset(ref sourceRef, new IntPtr(1));
+        ref byte sourceRefFromB = ref Unsafe.AddByteOffset(ref sourceRef, 1);
         this = Unsafe.As<byte, Bgr24>(ref sourceRefFromB);
     }
 

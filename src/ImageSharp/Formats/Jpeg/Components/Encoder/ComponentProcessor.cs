@@ -122,8 +122,8 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> sourceVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                nint count = source.Length / Vector256<float>.Count;
-                for (nint i = 0; i < count; i++)
+                nuint count = (uint)source.Length / (uint)Vector256<float>.Count;
+                for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
                 }
@@ -133,15 +133,15 @@ internal class ComponentProcessor : IDisposable
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
                 ref Vector<float> sourceVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
 
-                nint count = source.Length / Vector<float>.Count;
-                for (nint i = 0; i < count; i++)
+                nuint count = (uint)source.Length / (uint)Vector<float>.Count;
+                for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) += Unsafe.Add(ref sourceVectorRef, i);
                 }
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
                 ref float sourceRef = ref MemoryMarshal.GetReference(source);
-                for (nint i = count * Vector<float>.Count; i < source.Length; i++)
+                for (nuint i = count * (uint)Vector<float>.Count; i < (uint)source.Length; i++)
                 {
                     Unsafe.Add(ref targetRef, i) += Unsafe.Add(ref sourceRef, i);
                 }
@@ -157,7 +157,7 @@ internal class ComponentProcessor : IDisposable
 
                 // Ideally we need to use log2: Numerics.Log2((uint)factor)
                 // but division by 2 works just fine in this case
-                int haddIterationsCount = (int)((uint)factor / 2);
+                uint haddIterationsCount = (uint)factor / 2;
 
                 // Transform spans so that it only contains 'remainder'
                 // values for the scalar fallback code
@@ -166,9 +166,9 @@ internal class ComponentProcessor : IDisposable
                 source = source.Slice(touchedCount);
                 target = target.Slice(touchedCount / factor);
 
-                uint length = (uint)touchedCount / (uint)Vector256<float>.Count;
+                nuint length = (uint)touchedCount / (uint)Vector256<float>.Count;
 
-                for (int i = 0; i < haddIterationsCount; i++)
+                for (uint i = 0; i < haddIterationsCount; i++)
                 {
                     length /= 2;
 
@@ -200,9 +200,9 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                nint count = target.Length / Vector256<float>.Count;
+                nuint count = (uint)target.Length / (uint)Vector256<float>.Count;
                 var multiplierVector = Vector256.Create(multiplier);
-                for (nint i = 0; i < count; i++)
+                for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) = Avx.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
                 }
@@ -211,15 +211,15 @@ internal class ComponentProcessor : IDisposable
             {
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
 
-                nint count = target.Length / Vector<float>.Count;
+                nuint count = (uint)target.Length / (uint)Vector<float>.Count;
                 var multiplierVector = new Vector<float>(multiplier);
-                for (nint i = 0; i < count; i++)
+                for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) *= multiplierVector;
                 }
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
-                for (nint i = count * Vector<float>.Count; i < target.Length; i++)
+                for (nuint i = count * (uint)Vector<float>.Count; i < (uint)target.Length; i++)
                 {
                     Unsafe.Add(ref targetRef, i) *= multiplier;
                 }

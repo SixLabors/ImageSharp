@@ -347,12 +347,12 @@ internal class Vp8EncIterator
         }
     }
 
-    public int FastMbAnalyze(int quality)
+    public int FastMbAnalyze(uint quality)
     {
         // Empirical cut-off value, should be around 16 (~=block size). We use the
         // [8-17] range and favor intra4 at high quality, intra16 for low quality.
-        int q = quality;
-        int kThreshold = 8 + ((17 - 8) * q / 100);
+        uint q = quality;
+        uint kThreshold = 8 + ((17 - 8) * q / 100);
         int k;
         Span<uint> dc = stackalloc uint[16];
         uint m;

@@ -547,7 +547,7 @@ internal sealed class ChunkedMemoryStream : Stream
 #pragma warning disable IDE1006 // Naming Styles
         const int _128K = 1 << 17;
         const int _4M = 1 << 22;
-        return i < 16 ? _128K * (1 << (i / 4)) : _4M;
+        return i < 16 ? _128K * (1 << (int)((uint)i / 4)) : _4M;
 #pragma warning restore IDE1006 // Naming Styles
     }
 

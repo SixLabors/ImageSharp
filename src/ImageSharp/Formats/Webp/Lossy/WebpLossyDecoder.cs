@@ -731,7 +731,7 @@ internal sealed class WebpLossyDecoder
         Span<byte> dst = buf[dstStartIdx..];
         int yEnd = io.MbY + io.MbH;
         int mbw = io.MbW;
-        int uvw = (mbw + 1) / 2;
+        int uvw = (mbw + 1) >> 1;   // >> 1 is bit-hack for / 2
         int y = io.MbY;
         byte[] uvBuffer = new byte[(14 * 32) + 15];
 

@@ -31,7 +31,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref Rgba32 sBase = ref this.source[0];
         ref Argb32 dBase = ref this.dest[0];
 
-        for (int i = 0; i < this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             Rgba32 s = Unsafe.Add(ref sBase, i);
             Unsafe.Add(ref dBase, i).FromRgba32(s);
@@ -45,7 +45,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
         ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             Rgba32 s = Unsafe.Add(ref sBase, i);
             Unsafe.Add(ref dBase, i).FromRgba32(s);
@@ -64,7 +64,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref Rgba32 sBase = ref this.source[0];
         ref Argb32 dBase = ref this.dest[0];
 
-        for (int i = 0; i < this.Count; i += 2)
+        for (nuint i = 0; i < (uint)this.Count; i += 2)
         {
             ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
             Rgba32 s1 = Unsafe.Add(ref s0, 1);
@@ -81,7 +81,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref Rgba32 sBase = ref this.source[0];
         ref Argb32 dBase = ref this.dest[0];
 
-        for (int i = 0; i < this.Count; i += 4)
+        for (nuint i = 0; i < (uint)this.Count; i += 4)
         {
             ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
             ref Rgba32 s1 = ref Unsafe.Add(ref s0, 1);
@@ -105,7 +105,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref uint sBase = ref Unsafe.As<Rgba32, uint>(ref this.source[0]);
         ref uint dBase = ref Unsafe.As<Argb32, uint>(ref this.dest[0]);
 
-        for (int i = 0; i < this.Count; i++)
+        for (nuint i = 0; i < (uint)this.Count; i++)
         {
             uint s = Unsafe.Add(ref sBase, i);
             Unsafe.Add(ref dBase, i) = FromRgba32.ToArgb32(s);
@@ -118,7 +118,7 @@ public class PixelConversion_Rgba32_To_Argb32
         ref ulong sBase = ref Unsafe.As<Rgba32, ulong>(ref this.source[0]);
         ref ulong dBase = ref Unsafe.As<Argb32, ulong>(ref this.dest[0]);
 
-        for (int i = 0; i < this.Count / 2; i++)
+        for (nuint i = 0; i < (uint)this.Count / 2; i++)
         {
             ulong s = Unsafe.Add(ref sBase, i);
             uint lo = (uint)s;

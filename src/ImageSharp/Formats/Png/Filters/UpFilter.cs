@@ -52,7 +52,7 @@ internal static class UpFilter
 
         // Up(x) + Prior(x)
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         while (rb >= Vector256<byte>.Count)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
@@ -61,12 +61,12 @@ internal static class UpFilter
 
             Unsafe.As<byte, Vector256<byte>>(ref scanRef) = Avx2.Add(up, prior);
 
-            offset += Vector256<byte>.Count;
+            offset += (uint)Vector256<byte>.Count;
             rb -= Vector256<byte>.Count;
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -82,7 +82,7 @@ internal static class UpFilter
 
         // Up(x) + Prior(x)
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         while (rb >= Vector128<byte>.Count)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
@@ -91,12 +91,12 @@ internal static class UpFilter
 
             Unsafe.As<byte, Vector128<byte>>(ref scanRef) = Sse2.Add(up, prior);
 
-            offset += Vector128<byte>.Count;
+            offset += (uint)Vector128<byte>.Count;
             rb -= Vector128<byte>.Count;
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -112,7 +112,7 @@ internal static class UpFilter
 
         // Up(x) + Prior(x)
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         const int bytesPerBatch = 16;
         while (rb >= bytesPerBatch)
         {
@@ -127,7 +127,7 @@ internal static class UpFilter
         }
 
         // Handle left over.
-        for (nint i = offset; i < scanline.Length; i++)
+        for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
             byte above = Unsafe.Add(ref prevBaseRef, offset);
@@ -143,7 +143,7 @@ internal static class UpFilter
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
         // Up(x) + Prior(x)
-        for (nint x = 1; x < scanline.Length; x++)
+        for (nuint x = 1; x < (uint)scanline.Length; x++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -172,21 +172,21 @@ internal static class UpFilter
         // Up(x) = Raw(x) - Prior(x)
         resultBaseRef = (byte)FilterType.Up;
 
-        nint x = 0;
+        nuint x = 0;
 
         if (Avx2.IsSupported)
         {
             Vector256<byte> zero = Vector256<byte>.Zero;
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-            for (; x <= scanline.Length - Vector256<byte>.Count;)
+            for (; x <= (uint)(scanline.Length - Vector256<byte>.Count);)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
 
                 Vector256<byte> res = Avx2.Subtract(scan, above);
                 Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector256<byte>.Count;
+                x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
             }
@@ -197,14 +197,14 @@ internal static class UpFilter
         {
             Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-            for (; x <= scanline.Length - Vector<byte>.Count;)
+            for (; x <= (uint)(scanline.Length - Vector<byte>.Count);)
             {
                 Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
 
                 Vector<byte> res = scan - above;
                 Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector<byte>.Count;
+                x += (uint)Vector<byte>.Count;
 
                 Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
             }
@@ -215,7 +215,7 @@ internal static class UpFilter
             }
         }
 
-        for (; x < scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
+        for (; x < (uint)scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);

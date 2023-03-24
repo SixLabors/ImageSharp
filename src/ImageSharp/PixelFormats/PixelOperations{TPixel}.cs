@@ -187,7 +187,7 @@ public partial class PixelOperations<TPixel>
         ref byte b = ref MemoryMarshal.GetReference(blueChannel);
         ref TPixel d = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             rgb24.R = Unsafe.Add(ref r, i);
             rgb24.G = Unsafe.Add(ref g, i);
@@ -218,7 +218,7 @@ public partial class PixelOperations<TPixel>
         ref float g = ref MemoryMarshal.GetReference(greenChannel);
         ref float b = ref MemoryMarshal.GetReference(blueChannel);
         ref TPixel src = ref MemoryMarshal.GetReference(source);
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             Unsafe.Add(ref src, i).ToRgba32(ref rgba32);
             Unsafe.Add(ref r, i) = rgba32.R;

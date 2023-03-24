@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -429,11 +430,11 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
                     if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                     {
-                        color.FromLa16(Unsafe.As<byte, La16>(ref this.scratchBuffer[0]));
+                        color.FromLa16(Unsafe.As<byte, La16>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
                     }
                     else
                     {
-                        color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.scratchBuffer[0]));
+                        color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
                     }
 
                     pixelSpan[x] = color;
@@ -695,7 +696,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgr pixel");
         }
 
-        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.scratchBuffer[0]));
+        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
         pixelSpan[x] = color;
     }
 

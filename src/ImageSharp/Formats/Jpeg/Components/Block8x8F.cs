@@ -72,27 +72,33 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <returns>The float value at the specified index</returns>
     public float this[int idx]
     {
+        get => this[(uint)idx];
+        set => this[(uint)idx] = value;
+    }
+
+    internal float this[nuint idx]
+    {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
+            DebugGuard.MustBeBetweenOrEqualTo((int)idx, 0, Size - 1, nameof(idx));
             ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-            return Unsafe.Add(ref selfRef, (nint)(uint)idx);
+            return Unsafe.Add(ref selfRef, idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
+            DebugGuard.MustBeBetweenOrEqualTo((int)idx, 0, Size - 1, nameof(idx));
             ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-            Unsafe.Add(ref selfRef, (nint)(uint)idx) = value;
+            Unsafe.Add(ref selfRef, idx) = value;
         }
     }
 
     public float this[int x, int y]
     {
-        get => this[(y * 8) + x];
-        set => this[(y * 8) + x] = value;
+        get => this[((uint)y * 8) + (uint)x];
+        set => this[((uint)y * 8) + (uint)x] = value;
     }
 
     public static Block8x8F Load(Span<float> data)
@@ -425,7 +431,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             Vector256<int> targetVector = Vector256.Create(value);
             ref Vector256<float> blockStride = ref this.V0;
 
-            for (int i = 0; i < RowCount; i++)
+            for (nuint i = 0; i < RowCount; i++)
             {
                 Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
                 if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
@@ -439,7 +445,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
 
         ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
 
-        for (int i = 0; i < Size; i++)
+        for (nuint i = 0; i < Size; i++)
         {
             if ((int)Unsafe.Add(ref scalars, i) != value)
             {

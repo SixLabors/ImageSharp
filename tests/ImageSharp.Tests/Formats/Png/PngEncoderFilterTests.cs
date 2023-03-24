@@ -287,7 +287,7 @@ public class PngEncoderFilterTests : MeasureFixture
                     break;
 
                 case PngFilterMethod.Average:
-                    AverageFilter.Encode(this.previousScanline, this.scanline, this.resultBuffer, this.bpp, out sum);
+                    AverageFilter.Encode(this.previousScanline, this.scanline, this.resultBuffer, (uint)this.bpp, out sum);
                     break;
 
                 case PngFilterMethod.Paeth:

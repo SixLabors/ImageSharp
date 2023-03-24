@@ -178,9 +178,9 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
-            ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, sourceBuffer.Length);
-            ref float kernelBase = ref this.kernel[0];
-            ref float kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
+            ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)sourceBuffer.Length);
+            ref float kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
+            ref float kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
             while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
@@ -190,7 +190,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
                 while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
-                    Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)(sampleColumnStart - boundsX));
 
                     targetStart += kernelStart * sample;
 
@@ -199,7 +199,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 }
 
                 targetStart = ref Unsafe.Add(ref targetStart, 1);
-                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
+                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
             }
 
             // Now we need to copy the original alpha values from the source row.
@@ -242,9 +242,9 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
-            ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, sourceBuffer.Length);
-            ref float kernelBase = ref this.kernel[0];
-            ref float kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
+            ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, (uint)sourceBuffer.Length);
+            ref float kernelBase = ref MemoryMarshal.GetArrayDataReference(this.kernel);
+            ref float kernelEnd = ref Unsafe.Add(ref kernelBase, (uint)kernelSize);
             ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
             while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
@@ -254,7 +254,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
                 while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
-                    Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)(sampleColumnStart - boundsX));
 
                     targetStart += kernelStart * sample;
 
@@ -263,7 +263,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 }
 
                 targetStart = ref Unsafe.Add(ref targetStart, 1);
-                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
+                sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
             }
 
             Numerics.UnPremultiply(targetBuffer);
@@ -335,14 +335,14 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceBuffer = span[..this.bounds.Width];
             Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
-            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
+            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
 
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-            ref float kernelStart = ref this.kernel[0];
-            ref float kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
+            ref float kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
+            ref float kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             Span<TPixel> sourceRow;
             while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
@@ -353,7 +353,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
                 ref Vector4 targetStart = ref targetBase;
                 float factor = kernelStart;
 
@@ -374,7 +374,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
             {
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
 
                 while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                 {
@@ -400,14 +400,14 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceBuffer = span[..this.bounds.Width];
             Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
-            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
+            ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
 
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-            ref float kernelStart = ref this.kernel[0];
-            ref float kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
+            ref float kernelStart = ref MemoryMarshal.GetArrayDataReference(this.kernel);
+            ref float kernelEnd = ref Unsafe.Add(ref kernelStart, (uint)kernelSize);
 
             Span<TPixel> sourceRow;
             while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
@@ -420,7 +420,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 Numerics.Premultiply(sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
                 ref Vector4 targetStart = ref targetBase;
                 float factor = kernelStart;
 

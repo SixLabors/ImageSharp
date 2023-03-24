@@ -578,8 +578,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 // #403 The left + width value can be larger than the image width
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
+                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);
                 }
@@ -588,7 +588,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int rawIndex = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
+                    int rawIndex = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
 
                     // Treat any out of bounds values as transparent.
                     if (rawIndex > colorTableMaxIdx || rawIndex == transIndex)
@@ -597,7 +597,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     }
 
                     int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);
                 }

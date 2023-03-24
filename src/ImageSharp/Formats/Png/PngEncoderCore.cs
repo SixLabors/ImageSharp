@@ -266,7 +266,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 // Can't map directly to byte array as it's big-endian.
                 for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
                 {
-                    L16 luminance = Unsafe.Add(ref luminanceRef, x);
+                    L16 luminance = Unsafe.Add(ref luminanceRef, (uint)x);
                     BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
                 }
             }
@@ -306,7 +306,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             // Can't map directly to byte array as it's big endian.
             for (int x = 0, o = 0; x < laSpan.Length; x++, o += 4)
             {
-                La32 la = Unsafe.Add(ref laRef, x);
+                La32 la = Unsafe.Add(ref laRef, (uint)x);
                 BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), la.L);
                 BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), la.A);
             }
@@ -366,7 +366,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                     // Can't map directly to byte array as it's big endian.
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
                     {
-                        Rgba64 rgba = Unsafe.Add(ref rgbaRef, x);
+                        Rgba64 rgba = Unsafe.Add(ref rgbaRef, (uint)x);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
@@ -388,7 +388,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                     // Can't map directly to byte array as it's big endian.
                     for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
                     {
-                        Rgb48 rgb = Unsafe.Add(ref rgbRef, x);
+                        Rgb48 rgb = Unsafe.Add(ref rgbRef, (uint)x);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
                         BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
@@ -455,7 +455,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 break;
 
             case PngFilterMethod.Average:
-                AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, this.bytesPerPixel, out int _);
+                AverageFilter.Encode(this.currentScanline.GetSpan(), this.previousScanline.GetSpan(), filter, (uint)this.bytesPerPixel, out int _);
                 break;
 
             case PngFilterMethod.Paeth:
@@ -547,7 +547,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             RuntimeUtility.Swap(ref filter, ref attempt);
         }
 
-        AverageFilter.Encode(current, previous, attempt, this.bytesPerPixel, out sum);
+        AverageFilter.Encode(current, previous, attempt, (uint)this.bytesPerPixel, out sum);
         if (sum < min)
         {
             min = sum;
@@ -617,17 +617,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         // Loop, assign, and extract alpha values from the palette.
         for (int i = 0; i < paletteLength; i++)
         {
-            Rgba32 rgba = Unsafe.Add(ref rgbaPaletteRef, i);
+            Rgba32 rgba = Unsafe.Add(ref rgbaPaletteRef, (uint)i);
             byte alpha = rgba.A;
 
-            Unsafe.Add(ref colorTableRef, i) = rgba.Rgb;
+            Unsafe.Add(ref colorTableRef, (uint)i) = rgba.Rgb;
             if (alpha > this.encoder.Threshold)
             {
                 alpha = byte.MaxValue;
             }
 
             hasAlpha = hasAlpha || alpha < byte.MaxValue;
-            Unsafe.Add(ref alphaTableRef, i) = alpha;
+            Unsafe.Add(ref alphaTableRef, (uint)i) = alpha;
         }
 
         this.WriteChunk(stream, PngChunkType.Palette, colorTable.GetSpan(), 0, colorTableLength);

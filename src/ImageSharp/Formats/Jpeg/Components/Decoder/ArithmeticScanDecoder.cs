@@ -231,7 +231,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private ref byte GetFixedBinReference() => ref this.fixedBin[0];
+    private ref byte GetFixedBinReference() => ref MemoryMarshal.GetArrayDataReference(this.fixedBin);
 
     /// <summary>
     /// Decodes the entropy coded data.
@@ -470,7 +470,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockBaseline(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref acDecodingTable,
                                 ref dcDecodingTable);
                         }
@@ -521,7 +521,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockRef, (nint)(uint)k),
+                        ref Unsafe.Add(ref blockRef, (uint)k),
                         ref acDecodingTable,
                         ref dcDecodingTable);
 
@@ -560,7 +560,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                 this.DecodeBlockBaseline(
                     component,
-                    ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                    ref Unsafe.Add(ref blockRef, (uint)i),
                     ref acDecodingTable,
                     ref dcDecodingTable);
 
@@ -611,7 +611,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockProgressiveDc(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (nint)(uint)blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref dcDecodingTable);
                         }
                     }
@@ -653,7 +653,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveDc(
                         component,
-                        ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                        ref Unsafe.Add(ref blockRef, (uint)i),
                         ref dcDecodingTable);
 
                     this.HandleRestart();
@@ -680,7 +680,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveAc(
                             component,
-                            ref Unsafe.Add(ref blockRef, (nint)(uint)i),
+                            ref Unsafe.Add(ref blockRef, (uint)i),
                             ref acDecodingTable);
 
                     this.HandleRestart();
@@ -705,7 +705,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
             // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-            ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+            ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), (uint)component.DcContext);
 
             // Figure F.19: Decode_DC_DIFF
             if (this.DecodeBinaryDecision(ref reader, ref st) == 0)
@@ -717,7 +717,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 // Figure F.21: Decoding nonzero value v.
                 // Figure F.22: Decoding the sign of v.
                 int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-                st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
+                st = ref Unsafe.Add(ref st, (uint)(2 + sign));
 
                 // Figure F.23: Decoding the magnitude category of v.
                 int m = this.DecodeBinaryDecision(ref reader, ref st);
@@ -761,7 +761,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     }
                 }
 
-                v += 1;
+                v++;
                 if (sign != 0)
                 {
                     v = -v;
@@ -856,7 +856,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     }
                 }
 
-                v += 1;
+                v++;
                 if (sign != 0)
                 {
                     v = -v;
@@ -955,7 +955,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         // Sections F.2.4.1 & F.1.4.4.1: Decoding of DC coefficients.
 
         // Table F.4: Point to statistics bin S0 for DC coefficient coding.
-        ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), component.DcContext);
+        ref byte st = ref Unsafe.Add(ref component.DcStatistics.GetReference(), (uint)component.DcContext);
 
         /* Figure F.19: Decode_DC_DIFF */
         if (this.DecodeBinaryDecision(ref reader, ref st) == 0)
@@ -967,7 +967,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             // Figure F.21: Decoding nonzero value v
             // Figure F.22: Decoding the sign of v
             int sign = this.DecodeBinaryDecision(ref reader, ref Unsafe.Add(ref st, 1));
-            st = ref Unsafe.Add(ref st, (nint)(uint)(2 + sign));
+            st = ref Unsafe.Add(ref st, (uint)(2 + sign));
 
             // Figure F.23: Decoding the magnitude category of v.
             int m = this.DecodeBinaryDecision(ref reader, ref st);
@@ -1012,7 +1012,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 }
             }
 
-            v += 1;
+            v++;
             if (sign != 0)
             {
                 v = -v;
@@ -1082,7 +1082,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                 }
             }
 
-            v += 1;
+            v++;
             if (sign != 0)
             {
                 v = -v;

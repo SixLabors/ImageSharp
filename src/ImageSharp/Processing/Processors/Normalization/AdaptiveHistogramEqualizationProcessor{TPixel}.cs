@@ -59,8 +59,8 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int tileWidth = (int)MathF.Ceiling(sourceWidth / (float)this.Tiles);
         int tileHeight = (int)MathF.Ceiling(sourceHeight / (float)this.Tiles);
         int tileCount = this.Tiles;
-        int halfTileWidth = tileWidth / 2;
-        int halfTileHeight = tileHeight / 2;
+        int halfTileWidth = (int)((uint)tileWidth / 2);
+        int halfTileHeight = (int)((uint)tileHeight / 2);
         int luminanceLevels = this.LuminanceLevels;
 
         // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
@@ -176,7 +176,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int xEnd,
         int luminanceLevels)
     {
-        int halfTileHeight = tileHeight / 2;
+        int halfTileHeight = (int)((uint)tileHeight / 2);
 
         int cdfY = 0;
         int y = halfTileHeight;
@@ -228,7 +228,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int yEnd,
         int luminanceLevels)
     {
-        int halfTileWidth = tileWidth / 2;
+        int halfTileWidth = (int)((uint)tileWidth / 2);
 
         int cdfX = 0;
         int x = halfTileWidth;

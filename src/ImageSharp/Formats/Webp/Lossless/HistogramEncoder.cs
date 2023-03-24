@@ -27,7 +27,7 @@ internal class HistogramEncoder
 
     private const ushort InvalidHistogramSymbol = ushort.MaxValue;
 
-    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, int quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
+    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, uint quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(xSize, histoBits) : 1;
         int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
@@ -316,7 +316,7 @@ internal class HistogramEncoder
         int triesWithNoSuccess = 0;
         int numUsed = histograms.Count(h => h != null);
         int outerIters = numUsed;
-        int numTriesNoSuccess = outerIters / 2;
+        int numTriesNoSuccess = (int)((uint)outerIters / 2);
         var stats = new Vp8LStreaks();
         var bitsEntropy = new Vp8LBitEntropy();
 
@@ -346,7 +346,7 @@ internal class HistogramEncoder
         for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
         {
             double bestCost = histoPriorityList.Count == 0 ? 0.0d : histoPriorityList[0].CostDiff;
-            int numTries = numUsed / 2;
+            int numTries = (int)((uint)numUsed / 2);
             uint randRange = (uint)((numUsed - 1) * numUsed);
 
             // Pick random samples.
@@ -660,7 +660,7 @@ internal class HistogramEncoder
         output.TrivialSymbol = a.TrivialSymbol == b.TrivialSymbol ? a.TrivialSymbol : NonTrivialSym;
     }
 
-    private static double GetCombineCostFactor(int histoSize, int quality)
+    private static double GetCombineCostFactor(int histoSize, uint quality)
     {
         double combineCostFactor = 0.16d;
         if (quality < 90)

@@ -27,7 +27,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Compression quality. Between 0 and 100.
     /// </summary>
-    private readonly int quality;
+    private readonly uint quality;
 
     /// <summary>
     /// Quality/speed trade-off (0=fast, 6=slower-better).
@@ -92,7 +92,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         this.memoryAllocator = configuration.MemoryAllocator;
         this.alphaCompression = encoder.UseAlphaCompression;
         this.fileFormat = encoder.FileFormat;
-        this.quality = encoder.Quality;
+        this.quality = (uint)encoder.Quality;
         this.method = encoder.Method;
         this.entropyPasses = encoder.EntropyPasses;
         this.spatialNoiseShaping = encoder.SpatialNoiseShaping;

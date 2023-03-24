@@ -414,11 +414,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         for (int i = 0; i < bytesPerScanline; i++)
         {
-            byte b = Unsafe.Add(ref sourceRef, i);
+            byte b = Unsafe.Add(ref sourceRef, (uint)i);
             for (int shift = 0; shift < 8; shift += bits)
             {
                 int colorIndex = (b >> (8 - bits - shift)) & mask;
-                Unsafe.Add(ref resultRef, resultOffset) = (byte)colorIndex;
+                Unsafe.Add(ref resultRef, (uint)resultOffset) = (byte)colorIndex;
                 resultOffset++;
             }
         }
@@ -777,8 +777,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        (uint)this.bytesPerPixel,
+                        (uint)this.bytesPerSample);
 
                     break;
 
@@ -858,8 +858,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pixelOffset,
-                        increment,
+                        (uint)pixelOffset,
+                        (uint)increment,
                         pngMetadata.HasTransparency,
                         pngMetadata.TransparentL16.GetValueOrDefault(),
                         pngMetadata.TransparentL8.GetValueOrDefault());
@@ -871,10 +871,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pixelOffset,
-                        increment,
-                        this.bytesPerPixel,
-                        this.bytesPerSample);
+                        (uint)pixelOffset,
+                        (uint)increment,
+                        (uint)this.bytesPerPixel,
+                        (uint)this.bytesPerSample);
 
                     break;
 
@@ -883,8 +883,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pixelOffset,
-                        increment,
+                        (uint)pixelOffset,
+                        (uint)increment,
                         this.palette,
                         this.paletteAlpha);
 
@@ -895,8 +895,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pixelOffset,
-                        increment,
+                        (uint)pixelOffset,
+                        (uint)increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
                         pngMetadata.HasTransparency,
@@ -910,8 +910,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         this.header,
                         scanlineSpan,
                         rowSpan,
-                        pixelOffset,
-                        increment,
+                        (uint)pixelOffset,
+                        (uint)increment,
                         this.bytesPerPixel,
                         this.bytesPerSample);
 

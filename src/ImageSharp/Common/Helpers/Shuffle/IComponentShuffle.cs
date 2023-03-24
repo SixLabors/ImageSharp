@@ -61,11 +61,11 @@ internal readonly struct DefaultShuffle4 : IShuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMMShuffle(this.Control, out int p3, out int p2, out int p1, out int p0);
+        Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
-        for (int i = 0; i < source.Length; i += 4)
+        for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + i);
+            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
             Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
             Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
             Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
@@ -84,9 +84,9 @@ internal readonly struct WXYZShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = source.Length / 4;
+        uint n = (uint)source.Length / 4;
 
-        for (int i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -108,9 +108,9 @@ internal readonly struct WZYXShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = source.Length / 4;
+        uint n = (uint)source.Length / 4;
 
-        for (int i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -132,9 +132,9 @@ internal readonly struct YZWXShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = source.Length / 4;
+        uint n = (uint)source.Length / 4;
 
-        for (int i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -156,9 +156,9 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = source.Length / 4;
+        uint n = (uint)source.Length / 4;
 
-        for (int i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 
@@ -187,9 +187,9 @@ internal readonly struct XWZYShuffle4 : IShuffle4
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
         ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
-        int n = source.Length / 4;
+        uint n = (uint)source.Length / 4;
 
-        for (int i = 0; i < n; i++)
+        for (nuint i = 0; i < n; i++)
         {
             uint packed = Unsafe.Add(ref sBase, i);
 

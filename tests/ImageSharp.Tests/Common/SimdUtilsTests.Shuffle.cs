@@ -493,10 +493,10 @@ public partial class SimdUtilsTests
 
         SimdUtils.Shuffle.InverseMMShuffle(
             control,
-            out int p3,
-            out int p2,
-            out int p1,
-            out int p0);
+            out uint p3,
+            out uint p2,
+            out uint p1,
+            out uint p0);
 
         for (int i = 0; i < expected.Length; i += 4)
         {
@@ -524,10 +524,10 @@ public partial class SimdUtilsTests
 
         SimdUtils.Shuffle.InverseMMShuffle(
             control,
-            out int p3,
-            out int p2,
-            out int p1,
-            out int p0);
+            out uint p3,
+            out uint p2,
+            out uint p1,
+            out uint p0);
 
         for (int i = 0; i < expected.Length; i += 4)
         {
@@ -555,10 +555,10 @@ public partial class SimdUtilsTests
 
         SimdUtils.Shuffle.InverseMMShuffle(
             control,
-            out int _,
-            out int p2,
-            out int p1,
-            out int p0);
+            out uint _,
+            out uint p2,
+            out uint p1,
+            out uint p0);
 
         for (int i = 0; i < expected.Length; i += 3)
         {
@@ -586,10 +586,10 @@ public partial class SimdUtilsTests
 
         SimdUtils.Shuffle.InverseMMShuffle(
             control,
-            out int p3,
-            out int p2,
-            out int p1,
-            out int p0);
+            out uint p3,
+            out uint p2,
+            out uint p1,
+            out uint p0);
 
         for (int i = 0, j = 0; i < expected.Length; i += 4, j += 3)
         {
@@ -607,10 +607,10 @@ public partial class SimdUtilsTests
             temp[2] = source[j + 2];
             temp[3] = byte.MaxValue;
 
-            expected[i] = temp[p0];
-            expected[i + 1] = temp[p1];
-            expected[i + 2] = temp[p2];
-            expected[i + 3] = temp[p3];
+            expected[i] = temp[(int)p0];
+            expected[i + 1] = temp[(int)p1];
+            expected[i + 2] = temp[(int)p2];
+            expected[i + 3] = temp[(int)p3];
         }
 
         convert(source, result);
@@ -637,10 +637,10 @@ public partial class SimdUtilsTests
 
         SimdUtils.Shuffle.InverseMMShuffle(
             control,
-            out int _,
-            out int p2,
-            out int p1,
-            out int p0);
+            out uint _,
+            out uint p2,
+            out uint p1,
+            out uint p0);
 
         for (int i = 0, j = 0; i < expected.Length; i += 3, j += 4)
         {

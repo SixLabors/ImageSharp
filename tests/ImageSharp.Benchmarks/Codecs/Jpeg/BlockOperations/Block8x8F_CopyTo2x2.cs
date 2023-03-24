@@ -47,9 +47,9 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2(ref Block8x8F src, ref float destBase, int row, int destStride)
     {
-        ref Vector4 selfLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 selfLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 selfRight = ref Unsafe.Add(ref selfLeft, 1);
-        ref float destLocalOrigo = ref Unsafe.Add(ref destBase, row * 2 * destStride);
+        ref float destLocalOrigo = ref Unsafe.Add(ref destBase, (uint)(row * 2 * destStride));
 
         Unsafe.Add(ref destLocalOrigo, 0) = selfLeft.X;
         Unsafe.Add(ref destLocalOrigo, 1) = selfLeft.X;
@@ -69,23 +69,23 @@ public class Block8x8F_CopyTo2x2
         Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, 8), 6) = selfRight.W;
         Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, 8), 7) = selfRight.W;
 
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 0) = selfLeft.X;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 1) = selfLeft.X;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 2) = selfLeft.Y;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 3) = selfLeft.Y;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 4) = selfLeft.Z;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 5) = selfLeft.Z;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 6) = selfLeft.W;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride), 7) = selfLeft.W;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 0) = selfLeft.X;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 1) = selfLeft.X;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 2) = selfLeft.Y;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 3) = selfLeft.Y;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 4) = selfLeft.Z;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 5) = selfLeft.Z;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 6) = selfLeft.W;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride), 7) = selfLeft.W;
 
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 0) = selfRight.X;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 1) = selfRight.X;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 2) = selfRight.Y;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 3) = selfRight.Y;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 4) = selfRight.Z;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 5) = selfRight.Z;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 6) = selfRight.W;
-        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, destStride + 8), 7) = selfRight.W;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 0) = selfRight.X;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 1) = selfRight.X;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 2) = selfRight.Y;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 3) = selfRight.Y;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 4) = selfRight.Z;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 5) = selfRight.Z;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 6) = selfRight.W;
+        Unsafe.Add(ref Unsafe.Add(ref destLocalOrigo, (uint)destStride + 8), 7) = selfRight.W;
     }
 
     [Benchmark]
@@ -109,9 +109,9 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2_V2(ref Block8x8F src, ref float destBase, int row, int destStride)
     {
-        ref Vector4 selfLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 selfLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 selfRight = ref Unsafe.Add(ref selfLeft, 1);
-        ref float dest0 = ref Unsafe.Add(ref destBase, row * 2 * destStride);
+        ref float dest0 = ref Unsafe.Add(ref destBase, (uint)(row * 2 * destStride));
 
         Unsafe.Add(ref dest0, 0) = selfLeft.X;
         Unsafe.Add(ref dest0, 1) = selfLeft.X;
@@ -133,7 +133,7 @@ public class Block8x8F_CopyTo2x2
         Unsafe.Add(ref dest1, 6) = selfRight.W;
         Unsafe.Add(ref dest1, 7) = selfRight.W;
 
-        ref float dest2 = ref Unsafe.Add(ref dest0, destStride);
+        ref float dest2 = ref Unsafe.Add(ref dest0, (uint)destStride);
 
         Unsafe.Add(ref dest2, 0) = selfLeft.X;
         Unsafe.Add(ref dest2, 1) = selfLeft.X;
@@ -177,12 +177,12 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2_Vector2(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
     {
-        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
+        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, (uint)(2 * row * destStride));
         ref Vector2 dTopRight = ref Unsafe.Add(ref dTopLeft, 4);
-        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
+        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
         ref Vector2 dBottomRight = ref Unsafe.Add(ref dBottomLeft, 4);
 
         var xLeft = new Vector2(sLeft.X);
@@ -237,12 +237,12 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2_Vector4(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
     {
-        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
+        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, (uint)(2 * row * destStride));
         ref Vector2 dTopRight = ref Unsafe.Add(ref dTopLeft, 4);
-        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
+        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
         ref Vector2 dBottomRight = ref Unsafe.Add(ref dBottomLeft, 4);
 
         var xLeft = new Vector4(sLeft.X);
@@ -297,11 +297,11 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2_Vector4_SafeRightCorner(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
     {
-        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
-        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, 2 * row * destStride);
-        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, destStride);
+        ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, (uint)(2 * row * destStride));
+        ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
 
         var xLeft = new Vector4(sLeft.X);
         var yLeft = new Vector4(sLeft.Y);
@@ -355,12 +355,12 @@ public class Block8x8F_CopyTo2x2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WidenCopyImpl2x2_Vector4_V2(ref Block8x8F src, ref Vector2 destBase, int row, int destStride)
     {
-        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * row);
+        ref Vector4 sLeft = ref Unsafe.Add(ref src.V0L, 2 * (uint)row);
         ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
 
         int offset = 2 * row * destStride;
-        ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
-        ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
+        ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, (uint)offset));
+        ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, (uint)(offset + destStride)));
 
         var xyLeft = new Vector4(sLeft.X)
         {

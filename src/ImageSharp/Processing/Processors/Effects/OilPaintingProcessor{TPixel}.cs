@@ -107,9 +107,9 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref float binsRef = ref bins.GetReference();
             ref int intensityBinRef = ref Unsafe.As<float, int>(ref binsRef);
-            ref float redBinRef = ref Unsafe.Add(ref binsRef, this.levels);
-            ref float blueBinRef = ref Unsafe.Add(ref redBinRef, this.levels);
-            ref float greenBinRef = ref Unsafe.Add(ref blueBinRef, this.levels);
+            ref float redBinRef = ref Unsafe.Add(ref binsRef, (uint)this.levels);
+            ref float blueBinRef = ref Unsafe.Add(ref redBinRef, (uint)this.levels);
+            ref float greenBinRef = ref Unsafe.Add(ref blueBinRef, (uint)this.levels);
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
@@ -148,21 +148,21 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                             int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (this.levels - 1));
 
-                            Unsafe.Add(ref intensityBinRef, currentIntensity)++;
-                            Unsafe.Add(ref redBinRef, currentIntensity) += sourceRed;
-                            Unsafe.Add(ref blueBinRef, currentIntensity) += sourceBlue;
-                            Unsafe.Add(ref greenBinRef, currentIntensity) += sourceGreen;
+                            Unsafe.Add(ref intensityBinRef, (uint)currentIntensity)++;
+                            Unsafe.Add(ref redBinRef, (uint)currentIntensity) += sourceRed;
+                            Unsafe.Add(ref blueBinRef, (uint)currentIntensity) += sourceBlue;
+                            Unsafe.Add(ref greenBinRef, (uint)currentIntensity) += sourceGreen;
 
-                            if (Unsafe.Add(ref intensityBinRef, currentIntensity) > maxIntensity)
+                            if (Unsafe.Add(ref intensityBinRef, (uint)currentIntensity) > maxIntensity)
                             {
-                                maxIntensity = Unsafe.Add(ref intensityBinRef, currentIntensity);
+                                maxIntensity = Unsafe.Add(ref intensityBinRef, (uint)currentIntensity);
                                 maxIndex = currentIntensity;
                             }
                         }
 
-                        float red = MathF.Abs(Unsafe.Add(ref redBinRef, maxIndex) / maxIntensity);
-                        float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, maxIndex) / maxIntensity);
-                        float green = MathF.Abs(Unsafe.Add(ref greenBinRef, maxIndex) / maxIntensity);
+                        float red = MathF.Abs(Unsafe.Add(ref redBinRef, (uint)maxIndex) / maxIntensity);
+                        float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, (uint)maxIndex) / maxIntensity);
+                        float green = MathF.Abs(Unsafe.Add(ref greenBinRef, (uint)maxIndex) / maxIntensity);
                         float alpha = sourceRowVector4Span[x].W;
 
                         targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);

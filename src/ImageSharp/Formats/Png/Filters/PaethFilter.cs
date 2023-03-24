@@ -45,7 +45,7 @@ internal static class PaethFilter
         }
         else
         {
-            DecodeScalar(scanline, previousScanline, bytesPerPixel);
+            DecodeScalar(scanline, previousScanline, (uint)bytesPerPixel);
         }
     }
 
@@ -59,7 +59,7 @@ internal static class PaethFilter
         Vector128<byte> d = Vector128<byte>.Zero;
 
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         while (rb >= 4)
         {
             ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
@@ -113,7 +113,7 @@ internal static class PaethFilter
         Vector128<byte> d = Vector128<byte>.Zero;
 
         int rb = scanline.Length;
-        nint offset = 1;
+        nuint offset = 1;
         const int bytesPerBatch = 4;
         while (rb >= bytesPerBatch)
         {
@@ -179,14 +179,14 @@ internal static class PaethFilter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, int bytesPerPixel)
+    private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, uint bytesPerPixel)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
         // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
-        int offset = bytesPerPixel + 1; // Add one because x starts at one.
-        nint x = 1;
+        nuint offset = bytesPerPixel + 1; // Add one because x starts at one.
+        nuint x = 1;
         for (; x < offset; x++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
@@ -194,7 +194,7 @@ internal static class PaethFilter
             scan = (byte)(scan + above);
         }
 
-        for (; x < scanline.Length; x++)
+        for (; x < (uint)scanline.Length; x++)
         {
             ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
@@ -226,8 +226,8 @@ internal static class PaethFilter
         // Paeth(x) = Raw(x) - PaethPredictor(Raw(x-bpp), Prior(x), Prior(x - bpp))
         resultBaseRef = (byte)FilterType.Paeth;
 
-        nint x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
+        nuint x = 0;
+        for (; x < (uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte above = Unsafe.Add(ref prevBaseRef, x);
@@ -242,7 +242,7 @@ internal static class PaethFilter
             Vector256<byte> zero = Vector256<byte>.Zero;
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-            for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector256<byte>.Count; xLeft += Vector256<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; (int)x <= scanline.Length - Vector256<byte>.Count; xLeft += (uint)Vector256<byte>.Count)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -251,7 +251,7 @@ internal static class PaethFilter
 
                 Vector256<byte> res = Avx2.Subtract(scan, PaethPredictor(left, above, upperLeft));
                 Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector256<byte>.Count;
+                x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
             }
@@ -262,7 +262,7 @@ internal static class PaethFilter
         {
             Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-            for (nint xLeft = x - bytesPerPixel; x <= scanline.Length - Vector<byte>.Count; xLeft += Vector<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; (int)x <= scanline.Length - Vector<byte>.Count; xLeft += (uint)Vector<byte>.Count)
             {
                 Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector<byte> left = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -271,7 +271,7 @@ internal static class PaethFilter
 
                 Vector<byte> res = scan - PaethPredictor(left, above, upperLeft);
                 Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += Vector<byte>.Count;
+                x += (uint)Vector<byte>.Count;
 
                 Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
             }
@@ -282,7 +282,7 @@ internal static class PaethFilter
             }
         }
 
-        for (nint xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
+        for (nuint xLeft = x - (uint)bytesPerPixel; (int)x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
             byte scan = Unsafe.Add(ref scanBaseRef, x);
             byte left = Unsafe.Add(ref scanBaseRef, xLeft);

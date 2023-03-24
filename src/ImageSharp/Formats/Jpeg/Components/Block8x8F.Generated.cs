@@ -16,7 +16,7 @@ internal partial struct Block8x8F
     {
         var CMin4 = new Vector4(0F);
         var CMax4 = new Vector4(maximum);
-        var COff4 = new Vector4(MathF.Ceiling(maximum / 2));
+        var COff4 = new Vector4(MathF.Ceiling(maximum * 0.5F));
 
         this.V0L = Numerics.Clamp(this.V0L + COff4, CMin4, CMax4);
         this.V0R = Numerics.Clamp(this.V0R + COff4, CMin4, CMax4);
@@ -42,33 +42,33 @@ internal partial struct Block8x8F
     [MethodImpl(InliningOptions.ShortMethod)]
     public void NormalizeColorsAndRoundInPlaceVector8(float maximum)
     {
-        var off = new Vector<float>(MathF.Ceiling(maximum / 2));
+        var off = new Vector<float>(MathF.Ceiling(maximum * 0.5F));
         var max = new Vector<float>(maximum);
-
+        
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
         row0 = NormalizeAndRound(row0, off, max);
-
+            
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
         row1 = NormalizeAndRound(row1, off, max);
-
+            
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
         row2 = NormalizeAndRound(row2, off, max);
-
+            
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
         row3 = NormalizeAndRound(row3, off, max);
-
+            
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
         row4 = NormalizeAndRound(row4, off, max);
-
+            
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
         row5 = NormalizeAndRound(row5, off, max);
-
+            
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
         row6 = NormalizeAndRound(row6, off, max);
-
+            
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
         row7 = NormalizeAndRound(row7, off, max);
-
+            
     }
 
     /// <summary>

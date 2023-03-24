@@ -349,10 +349,11 @@ internal class Vp8Encoder : IDisposable
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
         Span<byte> alphaData = Span<byte>.Empty;
+        IMemoryOwner<byte> encodedAlphaData = null;
         if (hasAlpha)
         {
             // TODO: This can potentially run in an separate task.
-            using IMemoryOwner<byte> encodedAlphaData = AlphaEncoder.EncodeAlpha(
+            encodedAlphaData = AlphaEncoder.EncodeAlpha(
                 image,
                 this.configuration,
                 this.memoryAllocator,
@@ -405,16 +406,23 @@ internal class Vp8Encoder : IDisposable
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        this.bitWriter.WriteEncodedImageToStream(
-            stream,
-            exifProfile,
-            xmpProfile,
-            metadata.IccProfile,
-            (uint)width,
-            (uint)height,
-            hasAlpha,
-            alphaData[..alphaDataSize],
-            this.alphaCompression && alphaCompressionSucceeded);
+        try
+        {
+            this.bitWriter.WriteEncodedImageToStream(
+                stream,
+                exifProfile,
+                xmpProfile,
+                metadata.IccProfile,
+                (uint)width,
+                (uint)height,
+                hasAlpha,
+                alphaData[..alphaDataSize],
+                this.alphaCompression && alphaCompressionSucceeded);
+        }
+        finally
+        {
+            encodedAlphaData?.Dispose();
+        }
     }
 
     /// <inheritdoc/>

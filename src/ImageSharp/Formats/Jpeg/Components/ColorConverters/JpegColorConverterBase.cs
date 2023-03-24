@@ -176,6 +176,11 @@ internal abstract partial class JpegColorConverterBase
             return new CmykAvx(precision);
         }
 
+        if (JpegColorConverterArm64.IsSupported)
+        {
+            return new CmykArm64(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new CmykVector(precision);

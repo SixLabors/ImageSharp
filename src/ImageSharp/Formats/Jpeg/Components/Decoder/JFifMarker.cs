@@ -69,7 +69,7 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
     /// </summary>
     /// <param name="bytes">The byte array containing metadata to parse.</param>
     /// <param name="marker">The marker to return.</param>
-    public static bool TryParse(byte[] bytes, out JFifMarker marker)
+    public static bool TryParse(ReadOnlySpan<byte> bytes, out JFifMarker marker)
     {
         if (ProfileResolver.IsProfile(bytes, ProfileResolver.JFifMarker))
         {

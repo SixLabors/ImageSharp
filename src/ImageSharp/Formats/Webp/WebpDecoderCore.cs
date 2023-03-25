@@ -228,7 +228,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <param name="chunkType">The chunk type.</param>
     /// <param name="features">The webp image features.</param>
     /// <param name="ignoreAlpha">For identify, the alpha data should not be read.</param>
-    /// <param name="buffer">Temporary buffer.</param></param>
+    /// <param name="buffer">Temporary buffer.</param>
     /// <returns>true, if its a alpha chunk.</returns>
     private bool ParseOptionalExtendedChunks(
         BufferedReadStream stream,

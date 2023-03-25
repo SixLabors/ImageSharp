@@ -361,6 +361,9 @@ internal sealed class WebpLossyDecoder
             }
         }
 
+        Span<int> scratch = stackalloc int[16];
+        Span<byte> scratchBytes = stackalloc byte[4];
+
         // Reconstruct one row.
         for (int mbx = 0; mbx < dec.MbWidth; mbx++)
         {
@@ -398,9 +401,6 @@ internal sealed class WebpLossyDecoder
                 topYuv.U.CopyTo(yuv[(uOff - WebpConstants.Bps)..]);
                 topYuv.V.CopyTo(yuv[(vOff - WebpConstants.Bps)..]);
             }
-
-            Span<int> scratch = stackalloc int[16];
-            Span<byte> scratchBytes = stackalloc byte[4];
 
             // Predict and add residuals.
             if (block.IsI4x4)

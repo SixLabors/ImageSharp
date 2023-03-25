@@ -125,7 +125,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     }
 
     /// <summary>
-    /// The only supported precision
+    /// Gets the only supported precisions
     /// </summary>
     // Refers to assembly's static data segment, no allocation occurs.
     private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };

@@ -18,11 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 internal class WebpAnimationDecoder : IDisposable
 {
     /// <summary>
-    /// Reusable buffer.
-    /// </summary>
-    private readonly byte[] buffer = new byte[4];
-
-    /// <summary>
     /// Used for allocating memory during the decoding operations.
     /// </summary>
     private readonly MemoryAllocator memoryAllocator;
@@ -89,11 +84,12 @@ internal class WebpAnimationDecoder : IDisposable
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.AnimationLoopCount = features.AnimationLoopCount;
 
+        Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
         while (remainingBytes > 0)
         {
-            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             remainingBytes -= 4;
             switch (chunkType)
             {
@@ -103,7 +99,7 @@ internal class WebpAnimationDecoder : IDisposable
                     break;
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, false, this.buffer);
+                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, false, buffer);
                     break;
                 default:
                     WebpThrowHelper.ThrowImageFormatException("Read unexpected webp chunk data");
@@ -134,15 +130,16 @@ internal class WebpAnimationDecoder : IDisposable
     {
         AnimationFrameData frameData = this.ReadFrameHeader(stream);
         long streamStartPosition = stream.Position;
+        Span<byte> buffer = stackalloc byte[4];
 
-        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
         bool hasAlpha = false;
         byte alphaChunkHeader = 0;
         if (chunkType is WebpChunkType.Alpha)
         {
             alphaChunkHeader = this.ReadAlphaData(stream);
             hasAlpha = true;
-            chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+            chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
         }
 
         WebpImageInfo? webpInfo = null;
@@ -150,12 +147,12 @@ internal class WebpAnimationDecoder : IDisposable
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
-                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, this.buffer, features);
+                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                 features.Alpha = hasAlpha;
                 features.AlphaChunkHeader = alphaChunkHeader;
                 break;
             case WebpChunkType.Vp8L:
-                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, this.buffer, features);
+                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                 break;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Read unexpected chunk type, should be VP8 or VP8L");
@@ -226,7 +223,7 @@ internal class WebpAnimationDecoder : IDisposable
     {
         this.alphaData?.Dispose();
 
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, stackalloc byte[4]);
         int alphaDataSize = (int)(alphaChunkSize - 1);
         this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
 
@@ -353,24 +350,26 @@ internal class WebpAnimationDecoder : IDisposable
     /// <returns>Animation frame data.</returns>
     private AnimationFrameData ReadFrameHeader(BufferedReadStream stream)
     {
+        Span<byte> buffer = stackalloc byte[4];
+
         AnimationFrameData data = new()
         {
-            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer),
+            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
 
             // 3 bytes for the X coordinate of the upper left corner of the frame.
-            X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+            X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
 
             // 3 bytes for the Y coordinate of the upper left corner of the frame.
-            Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+            Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
 
             // Frame width Minus One.
-            Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+            Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
 
             // Frame height Minus One.
-            Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+            Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
 
             // Frame duration.
-            Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer)
+            Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer)
         };
 
         byte flags = (byte)stream.ReadByte();

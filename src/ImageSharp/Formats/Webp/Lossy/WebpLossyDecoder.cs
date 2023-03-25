@@ -35,16 +35,6 @@ internal sealed class WebpLossyDecoder
     private readonly Configuration configuration;
 
     /// <summary>
-    /// Scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly int[] scratch = new int[16];
-
-    /// <summary>
-    /// Another scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] scratchBytes = new byte[4];
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="WebpLossyDecoder"/> class.
     /// </summary>
     /// <param name="bitReader">Bitreader to read from the stream.</param>
@@ -409,6 +399,9 @@ internal sealed class WebpLossyDecoder
                 topYuv.V.CopyTo(yuv[(vOff - WebpConstants.Bps)..]);
             }
 
+            Span<int> scratch = stackalloc int[16];
+            Span<byte> scratchBytes = stackalloc byte[4];
+
             // Predict and add residuals.
             if (block.IsI4x4)
             {
@@ -448,7 +441,7 @@ internal sealed class WebpLossyDecoder
                             LossyUtils.TM4(dst, yuv, offset);
                             break;
                         case 2:
-                            LossyUtils.VE4(dst, yuv, offset, this.scratchBytes);
+                            LossyUtils.VE4(dst, yuv, offset, scratchBytes);
                             break;
                         case 3:
                             LossyUtils.HE4(dst, yuv, offset);
@@ -473,7 +466,7 @@ internal sealed class WebpLossyDecoder
                             break;
                     }
 
-                    DoTransform(bits, coeffs.AsSpan(n * 16), dst, this.scratch);
+                    DoTransform(bits, coeffs.AsSpan(n * 16), dst, scratch);
                 }
             }
             else
@@ -508,7 +501,7 @@ internal sealed class WebpLossyDecoder
                 {
                     for (int n = 0; n < 16; ++n, bits <<= 2)
                     {
-                        DoTransform(bits, coeffs.AsSpan(n * 16), yDst[WebpConstants.Scan[n]..], this.scratch);
+                        DoTransform(bits, coeffs.AsSpan(n * 16), yDst[WebpConstants.Scan[n]..], scratch);
                     }
                 }
             }
@@ -547,8 +540,8 @@ internal sealed class WebpLossyDecoder
                     break;
             }
 
-            DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst, this.scratch);
-            DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst, this.scratch);
+            DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst, scratch);
+            DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst, scratch);
 
             // Stash away top samples for next block.
             if (mby < dec.MbHeight - 1)
@@ -875,14 +868,14 @@ internal sealed class WebpLossyDecoder
         else
         {
             // Parse DC
-            short[] dc = new short[16];
+            Span<short> dc = stackalloc short[16];
             int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
             int nz = GetCoeffs(br, bands[1], ctx, q.Y2Mat, 0, dc);
             mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
             if (nz > 1)
             {
                 // More than just the DC -> perform the full transform.
-                LossyUtils.TransformWht(dc, dst, this.scratch);
+                LossyUtils.TransformWht(dc, dst, stackalloc int[16]);
             }
             else
             {

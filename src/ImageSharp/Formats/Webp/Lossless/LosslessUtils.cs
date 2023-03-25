@@ -1456,7 +1456,7 @@ internal static unsafe class LosslessUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int AddSubtractComponentHalf(int a, int b) => (int)Clip255((uint)(a + ((a - b) >> 1)));  // >> 1 is bit-hack for / 2
+    private static int AddSubtractComponentHalf(int a, int b) => (int)Clip255((uint)(a + ((a - b) / 2)));
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int AddSubtractComponentFull(int a, int b, int c) => (int)Clip255((uint)(a + b - c));

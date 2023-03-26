@@ -569,7 +569,7 @@ internal static unsafe class LosslessUtils
         Span<uint> pixelData,
         Span<uint> outputSpan)
     {
-        fixed (uint* inputFixed = pixelData)
+        fixed (uint* inputFixed = &MemoryMarshal.GetReference(pixelData))
         {
             fixed (uint* outputFixed = outputSpan)
             {
@@ -1474,8 +1474,7 @@ internal static unsafe class LosslessUtils
     {
         if (Sse2.IsSupported)
         {
-            Span<short> output = scratch;
-            fixed (short* p = output)
+            fixed (short* ptr = &MemoryMarshal.GetReference(scratch))
             {
                 Vector128<byte> a0 = Sse2.ConvertScalarToVector128UInt32(a).AsByte();
                 Vector128<byte> b0 = Sse2.ConvertScalarToVector128UInt32(b).AsByte();
@@ -1489,8 +1488,8 @@ internal static unsafe class LosslessUtils
                 Vector128<byte> pa = Sse2.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|
                 Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
                 Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
-                Sse2.Store((ushort*)p, diff);
-                int paMinusPb = output[3] + output[2] + output[1] + output[0];
+                Sse2.Store((ushort*)ptr, diff);
+                int paMinusPb = ptr[3] + ptr[2] + ptr[1] + ptr[0];
                 return (paMinusPb <= 0) ? a : b;
             }
         }

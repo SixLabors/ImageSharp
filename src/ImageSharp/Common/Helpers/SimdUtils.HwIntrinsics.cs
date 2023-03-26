@@ -644,7 +644,7 @@ internal static partial class SimdUtils
             ReadOnlySpan<byte> source,
             Span<float> dest)
         {
-            fixed (byte* sourceBase = source)
+            fixed (byte* sourceBase = &MemoryMarshal.GetReference(source))
             {
                 if (Avx2.IsSupported)
                 {

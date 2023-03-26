@@ -81,7 +81,7 @@ internal static partial class Crc32
         int chunksize = buffer.Length & ~ChunksizeMask;
         int length = chunksize;
 
-        fixed (byte* bufferPtr = buffer)
+        fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
         {
             fixed (ulong* k05PolyPtr = K05Poly)
             {
@@ -201,7 +201,7 @@ internal static partial class Crc32
     [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
     private static unsafe uint CalculateArm(uint crc, ReadOnlySpan<byte> buffer)
     {
-        fixed (byte* bufferPtr = buffer)
+        fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
         {
             byte* localBufferPtr = bufferPtr;
             int len = buffer.Length;
@@ -248,7 +248,7 @@ internal static partial class Crc32
     [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
     private static unsafe uint CalculateArm64(uint crc, ReadOnlySpan<byte> buffer)
     {
-        fixed (byte* bufferPtr = buffer)
+        fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
         {
             byte* localBufferPtr = bufferPtr;
             int len = buffer.Length;

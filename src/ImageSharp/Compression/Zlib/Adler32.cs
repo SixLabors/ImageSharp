@@ -387,7 +387,7 @@ internal static class Adler32
         uint s1 = adler & 0xFFFF;
         uint s2 = (adler >> 16) & 0xFFFF;
 
-        fixed (byte* bufferPtr = buffer)
+        fixed (byte* bufferPtr = &MemoryMarshal.GetReference(buffer))
         {
             byte* localBufferPtr = bufferPtr;
             uint length = (uint)buffer.Length;

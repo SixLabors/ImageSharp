@@ -13,33 +13,38 @@ internal static partial class SimdUtils
 {
     public static class HwIntrinsics
     {
-        public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] // too much IL for JIT to inline, so give a hint
+        public static Vector256<int> PermuteMaskDeinterleave8x32() => Vector256.Create(0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0).AsInt32();
 
-        public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> PermuteMaskEvenOdd8x32() => Vector256.Create(0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
 
-        public static ReadOnlySpan<byte> PermuteMaskSwitchInnerDWords8x32 => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> PermuteMaskSwitchInnerDWords8x32() => Vector256.Create(0, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
 
-        private static ReadOnlySpan<byte> MoveFirst24BytesToSeparateLanes => new byte[] { 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector256<uint> MoveFirst24BytesToSeparateLanes() => Vector256.Create(0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
 
-        internal static ReadOnlySpan<byte> ExtractRgb => new byte[] { 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector256<byte> ExtractRgb() => Vector256.Create(0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF, 0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 0xFF, 0xFF, 0xFF, 0xFF);
 
-        private static ReadOnlySpan<byte> ShuffleMaskPad4Nx16 => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<byte> ShuffleMaskPad4Nx16() => Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
 
-        private static ReadOnlySpan<byte> ShuffleMaskSlice4Nx16 => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<byte> ShuffleMaskSlice4Nx16() => Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
 
-        private static ReadOnlySpan<byte> ShuffleMaskShiftAlpha =>
-            new byte[]
-            {
-                0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
-                0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15
-            };
+#pragma warning disable SA1003, SA1116, SA1117 // Parameters should be on same line or separate lines
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector256<byte> ShuffleMaskShiftAlpha() => Vector256.Create((byte)
+            0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
+            0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
 
-        public static ReadOnlySpan<byte> PermuteMaskShiftAlpha8x32 =>
-            new byte[]
-            {
-                0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0,
-                5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0
-            };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<uint> PermuteMaskShiftAlpha8x32() => Vector256.Create(
+            0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0,
+            5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
+#pragma warning restore SA1003, SA1116, SA1117 // Parameters should be on same line or separate lines
 
         /// <summary>
         /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
@@ -189,7 +194,7 @@ internal static partial class SimdUtils
         {
             if (Ssse3.IsSupported)
             {
-                int remainder = source.Length % (Vector128<byte>.Count * 4);
+                int remainder = source.Length & (Vector128<byte>.Count * 4 - 1);    // bit-hack for modulo
 
                 int sourceCount = source.Length - remainder;
                 int destCount = (int)((uint)sourceCount * 3 / 4);
@@ -221,7 +226,7 @@ internal static partial class SimdUtils
                 ref Vector256<float> destBase =
                     ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
-                nint n = (nint)(uint)(dest.Length / Vector256<float>.Count);
+                nint n = (nint)((uint)dest.Length / (uint)Vector256<float>.Count);
                 nint m = Numerics.Modulo4(n);
                 nint u = n - m;
 
@@ -253,7 +258,7 @@ internal static partial class SimdUtils
                 ref Vector128<float> destBase =
                     ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
 
-                nint n = (nint)(uint)dest.Length / Vector128<float>.Count;
+                nint n = (nint)((uint)dest.Length / (uint)Vector128<float>.Count);
                 nint m = Numerics.Modulo4(n);
                 nint u = n - m;
 
@@ -306,7 +311,7 @@ internal static partial class SimdUtils
                 ref Vector256<byte> destBase =
                     ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                nint n = (nint)(uint)dest.Length / Vector256<byte>.Count;
+                nint n = (nint)((uint)dest.Length / (uint)Vector256<byte>.Count);
                 nint m = Numerics.Modulo4(n);
                 nint u = n - m;
 
@@ -342,7 +347,7 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                nint n = (nint)(uint)dest.Length / Vector128<byte>.Count;
+                nint n = (nint)((uint)dest.Length / (uint)Vector128<byte>.Count);
                 nint m = Numerics.Modulo4(n);
                 nint u = n - m;
 
@@ -375,10 +380,8 @@ internal static partial class SimdUtils
         {
             if (Ssse3.IsSupported)
             {
-                ref byte vmaskBase = ref MemoryMarshal.GetReference(ShuffleMaskPad4Nx16);
-                Vector128<byte> vmask = Unsafe.As<byte, Vector128<byte>>(ref vmaskBase);
-                ref byte vmaskoBase = ref MemoryMarshal.GetReference(ShuffleMaskSlice4Nx16);
-                Vector128<byte> vmasko = Unsafe.As<byte, Vector128<byte>>(ref vmaskoBase);
+                Vector128<byte> vmask = ShuffleMaskPad4Nx16();
+                Vector128<byte> vmasko = ShuffleMaskSlice4Nx16();
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
@@ -440,8 +443,7 @@ internal static partial class SimdUtils
         {
             if (Ssse3.IsSupported)
             {
-                ref byte vmaskBase = ref MemoryMarshal.GetReference(ShuffleMaskPad4Nx16);
-                Vector128<byte> vmask = Unsafe.As<byte, Vector128<byte>>(ref vmaskBase);
+                Vector128<byte> vmask = ShuffleMaskPad4Nx16();
                 Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
@@ -484,8 +486,7 @@ internal static partial class SimdUtils
         {
             if (Ssse3.IsSupported)
             {
-                ref byte vmaskoBase = ref MemoryMarshal.GetReference(ShuffleMaskSlice4Nx16);
-                Vector128<byte> vmasko = Unsafe.As<byte, Vector128<byte>>(ref vmaskoBase);
+                Vector128<byte> vmasko = ShuffleMaskSlice4Nx16();
                 Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
@@ -542,9 +543,9 @@ internal static partial class SimdUtils
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(InliningOptions.AlwaysInline)]
         public static Vector256<float> MultiplyAdd(
-            in Vector256<float> va,
-            in Vector256<float> vm0,
-            in Vector256<float> vm1)
+            Vector256<float> va,
+            Vector256<float> vm0,
+            Vector256<float> vm1)
         {
             if (Fma.IsSupported)
             {
@@ -565,9 +566,9 @@ internal static partial class SimdUtils
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector256<float> MultiplySubtract(
-            in Vector256<float> vs,
-            in Vector256<float> vm0,
-            in Vector256<float> vm1)
+            Vector256<float> vs,
+            Vector256<float> vm0,
+            Vector256<float> vm1)
         {
             if (Fma.IsSupported)
             {
@@ -587,9 +588,9 @@ internal static partial class SimdUtils
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector256<float> MultiplyAddNegated(
-            in Vector256<float> a,
-            in Vector256<float> b,
-            in Vector256<float> c)
+            Vector256<float> a,
+            Vector256<float> b,
+            Vector256<float> c)
         {
             if (Fma.IsSupported)
             {
@@ -655,7 +656,7 @@ internal static partial class SimdUtils
                     ref Vector256<float> destBase =
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
-                    var scale = Vector256.Create(1 / (float)byte.MaxValue);
+                    Vector256<float> scale = Vector256.Create(1 / (float)byte.MaxValue);
 
                     for (nuint i = 0; i < n; i++)
                     {
@@ -688,7 +689,7 @@ internal static partial class SimdUtils
                     ref Vector128<float> destBase =
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
 
-                    var scale = Vector128.Create(1 / (float)byte.MaxValue);
+                    Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
                     Vector128<byte> zero = Vector128<byte>.Zero;
 
                     for (nuint i = 0; i < n; i++)
@@ -790,9 +791,8 @@ internal static partial class SimdUtils
                 ref Vector256<byte> destBase =
                     ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                var scale = Vector256.Create((float)byte.MaxValue);
-                ref byte maskBase = ref MemoryMarshal.GetReference(PermuteMaskDeinterleave8x32);
-                Vector256<int> mask = Unsafe.As<byte, Vector256<int>>(ref maskBase);
+                Vector256<float> scale = Vector256.Create((float)byte.MaxValue);
+                Vector256<int> mask = PermuteMaskDeinterleave8x32();
 
                 for (nuint i = 0; i < n; i++)
                 {
@@ -829,7 +829,7 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destBase =
                     ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                var scale = Vector128.Create((float)byte.MaxValue);
+                Vector128<float> scale = Vector128.Create((float)byte.MaxValue);
 
                 for (nuint i = 0; i < n; i++)
                 {
@@ -866,14 +866,12 @@ internal static partial class SimdUtils
 
             nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
 
-            ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
-            Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
+            Vector256<uint> control1 = PermuteMaskEvenOdd8x32();
 
-            ref byte control2Bytes = ref MemoryMarshal.GetReference(PermuteMaskShiftAlpha8x32);
-            Vector256<uint> control2 = Unsafe.As<byte, Vector256<uint>>(ref control2Bytes);
-            var a = Vector256.Create((byte)255);
+            Vector256<uint> control2 = PermuteMaskShiftAlpha8x32();
+            Vector256<byte> a = Vector256.Create((byte)255);
 
-            Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
+            Vector256<byte> shuffleAlpha = ShuffleMaskShiftAlpha();
 
             for (nuint i = 0; i < count; i++)
             {
@@ -937,9 +935,8 @@ internal static partial class SimdUtils
             ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
             nuint count = (uint)redChannel.Length / (uint)Vector256<byte>.Count;
-            ref byte control1Bytes = ref MemoryMarshal.GetReference(PermuteMaskEvenOdd8x32);
-            Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
-            var a = Vector256.Create((byte)255);
+            Vector256<uint> control1 = PermuteMaskEvenOdd8x32();
+            Vector256<byte> a = Vector256.Create((byte)255);
 
             for (nuint i = 0; i < count; i++)
             {
@@ -988,8 +985,8 @@ internal static partial class SimdUtils
             ref Vector256<float> destGRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(greenChannel));
             ref Vector256<float> destBRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(blueChannel));
 
-            Vector256<uint> extractToLanesMask = Unsafe.As<byte, Vector256<uint>>(ref MemoryMarshal.GetReference(MoveFirst24BytesToSeparateLanes));
-            Vector256<byte> extractRgbMask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ExtractRgb));
+            Vector256<uint> extractToLanesMask = MoveFirst24BytesToSeparateLanes();
+            Vector256<byte> extractRgbMask = ExtractRgb();
             Vector256<byte> rgb, rg, bx;
             Vector256<float> r, g, b;
 

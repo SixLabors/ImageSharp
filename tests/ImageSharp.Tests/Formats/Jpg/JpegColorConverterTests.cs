@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -67,6 +69,39 @@ public class JpegColorConverterTests
         Assert.True(converter.IsAvailable);
         Assert.Equal(colorSpace, converter.ColorSpace);
         Assert.Equal(precision, converter.Precision);
+    }
+
+    [Fact]
+    public void GetConverterReturnsValidConverterWithRgbColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.RgbScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbVector);
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbArm);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.RGB, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
     }
 
     [Theory]

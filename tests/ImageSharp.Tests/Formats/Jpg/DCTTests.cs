@@ -114,8 +114,7 @@ public static class DCTTests
                 int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
                 Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
-                var srcBlock = default(Block8x8F);
-                srcBlock.LoadFrom(src);
+                Block8x8F srcBlock = Block8x8F.Load(src);
 
                 float[] expectedDest = new float[64];
                 float[] temp = new float[64];
@@ -162,8 +161,7 @@ public static class DCTTests
         public void TranformIDCT_4x4(int seed)
         {
             Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 4, 4);
-            var srcBlock = default(Block8x8F);
-            srcBlock.LoadFrom(src);
+            Block8x8F srcBlock = Block8x8F.Load(src);
 
             float[] expectedDest = new float[64];
             float[] temp = new float[64];
@@ -224,8 +222,7 @@ public static class DCTTests
         public void TranformIDCT_2x2(int seed)
         {
             Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 2, 2);
-            var srcBlock = default(Block8x8F);
-            srcBlock.LoadFrom(src);
+            Block8x8F srcBlock = Block8x8F.Load(src);
 
             float[] expectedDest = new float[64];
             float[] temp = new float[64];
@@ -286,8 +283,7 @@ public static class DCTTests
         public void TranformIDCT_1x1(int seed)
         {
             Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed, 1, 1);
-            var srcBlock = default(Block8x8F);
-            srcBlock.LoadFrom(src);
+            Block8x8F srcBlock = Block8x8F.Load(src);
 
             float[] expectedDest = new float[64];
             float[] temp = new float[64];
@@ -330,8 +326,7 @@ public static class DCTTests
                 int seed = FeatureTestRunner.Deserialize<int>(serialized);
 
                 Span<float> src = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
-                var block = default(Block8x8F);
-                block.LoadFrom(src);
+                Block8x8F block = Block8x8F.Load(src);
 
                 float[] expectedDest = new float[64];
                 float[] temp1 = new float[64];

@@ -101,24 +101,17 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         set => this[((uint)y * 8) + (uint)x] = value;
     }
 
-    public static Block8x8F Load(Span<float> data)
-    {
-        Block8x8F result = default;
-        result.LoadFrom(data);
-        return result;
-    }
-
     /// <summary>
     /// Load raw 32bit floating point data from source.
     /// </summary>
-    /// <param name="source">Source</param>
+    /// <param name="data">Source</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void LoadFrom(Span<float> source)
+    public static Block8x8F Load(Span<float> data)
     {
-        ref byte s = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(source));
-        ref byte d = ref Unsafe.As<Block8x8F, byte>(ref this);
+        DebugGuard.MustBeGreaterThanOrEqualTo(data.Length, Size, "data is too small");
 
-        Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
+        ref byte src = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(data));
+        return Unsafe.ReadUnaligned<Block8x8F>(ref src);
     }
 
     /// <summary>
@@ -144,10 +137,10 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public unsafe void ScaledCopyTo(float[] dest)
     {
-        fixed (void* ptr = &this.V0L)
-        {
-            Marshal.Copy((IntPtr)ptr, dest, 0, Size);
-        }
+        DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, Size, "dest is too small");
+
+        ref byte destRef = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetArrayDataReference(dest));
+        Unsafe.WriteUnaligned(ref destRef, this);
     }
 
     public float[] ToArray()

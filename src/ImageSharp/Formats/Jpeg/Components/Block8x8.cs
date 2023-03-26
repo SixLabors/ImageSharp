@@ -15,24 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 /// 8x8 matrix of <see cref="short"/> coefficients.
 /// </summary>
 // ReSharper disable once InconsistentNaming
-[StructLayout(LayoutKind.Explicit)]
-internal unsafe partial struct Block8x8
+[StructLayout(LayoutKind.Explicit, Size = 2 * Size)]
+internal partial struct Block8x8
 {
     /// <summary>
     /// A number of scalar coefficients in a <see cref="Block8x8F"/>
     /// </summary>
     public const int Size = 64;
-
-#pragma warning disable IDE0051 // Remove unused private member
-    /// <summary>
-    /// A placeholder buffer so the actual struct occupies exactly 64 * 2 bytes.
-    /// </summary>
-    /// <remarks>
-    /// This is not used directly in the code.
-    /// </remarks>
-    [FieldOffset(0)]
-    private fixed short data[Size];
-#pragma warning restore IDE0051
 
     /// <summary>
     /// Gets or sets a <see cref="short"/> value at the given index

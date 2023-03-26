@@ -194,7 +194,7 @@ internal static partial class SimdUtils
         {
             if (Ssse3.IsSupported)
             {
-                int remainder = source.Length & (Vector128<byte>.Count * 4 - 1);    // bit-hack for modulo
+                int remainder = source.Length & ((Vector128<byte>.Count * 4) - 1);    // bit-hack for modulo
 
                 int sourceCount = source.Length - remainder;
                 int destCount = (int)((uint)sourceCount * 3 / 4);

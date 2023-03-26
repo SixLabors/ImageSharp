@@ -229,7 +229,7 @@ internal abstract partial class JpegColorConverterBase
             return new RgbScalar(precision);
         }
 
-        return new GrayscaleScalar(precision);
+        return new RgbScalar(precision);
     }
 
     /// <summary>

@@ -53,6 +53,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private ArithmeticDecodingTable[] acDecodingTables;
 
+    // Don't make this a ReadOnlySpan<byte>, as the values need to get updated.
     private readonly byte[] fixedBin = { 113, 0, 0, 0 };
 
     private readonly CancellationToken cancellationToken;

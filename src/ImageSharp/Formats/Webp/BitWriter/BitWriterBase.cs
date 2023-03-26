@@ -260,8 +260,9 @@ internal abstract class BitWriterBase
 
     private unsafe struct ScratchBuffer
     {
-        private fixed byte scratch[4];
+        private const int Size = 4;
+        private fixed byte scratch[Size];
 
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], 4);
+        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

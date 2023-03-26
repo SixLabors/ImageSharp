@@ -1412,8 +1412,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
     private unsafe struct ScratchBuffer
     {
-        private fixed byte scratch[16];
+        private const int Size = 16;
+        private fixed byte scratch[Size];
 
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], 16);
+        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

@@ -1834,8 +1834,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     private unsafe struct ScratchBuffer
     {
-        private fixed int scratch[256];
+        private const int Size = 256;
+        private fixed int scratch[Size];
 
-        public Span<int> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], 256);
+        public Span<int> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

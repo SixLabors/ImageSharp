@@ -374,6 +374,23 @@ public class JpegColorConverterTests
             new JpegColorConverterBase.YccKScalar(8),
             precísion: 4);
 
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromYccKArm64(int seed) =>
+        this.TestConversionToRgb( new JpegColorConverterBase.YccKArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYccKArm64(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YccKArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8),
+            precísion: 4);
+
     private void TestConversionToRgb(
         JpegColorConverterBase converter,
         int componentCount,

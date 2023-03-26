@@ -167,6 +167,11 @@ internal abstract partial class JpegColorConverterBase
             return new YccKVector(precision);
         }
 
+        if (JpegColorConverterArm64.IsSupported)
+        {
+            return new YccKArm64(precision);
+        }
+
         return new YccKScalar(precision);
     }
 

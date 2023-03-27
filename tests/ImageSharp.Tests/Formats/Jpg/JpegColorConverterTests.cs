@@ -222,6 +222,10 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.YccKVector);
             }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKVector);
+            }
 
             // act
             JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Ycck, 8);

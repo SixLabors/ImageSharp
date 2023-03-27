@@ -123,6 +123,10 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
             }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayscaleArm);
+            }
 
             // act
             JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Grayscale, 8);

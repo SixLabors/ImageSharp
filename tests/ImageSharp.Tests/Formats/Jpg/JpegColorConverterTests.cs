@@ -105,6 +105,35 @@ public class JpegColorConverterTests
     }
 
     [Fact]
+    public void GetConverterReturnsCorrectConverterWithGrayScaleColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.GrayscaleScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayscaleAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Grayscale, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
+    [Fact]
     public void GetConverterReturnsCorrectConverterWithCmykColorSpace()
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(

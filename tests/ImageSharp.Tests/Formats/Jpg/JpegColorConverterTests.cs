@@ -472,6 +472,23 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromGrayscaleArm(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleArm(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayscaleArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleArm(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8),
+            precísion: 3);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromRgbAvx2(int seed) =>
         this.TestConversionToRgb(
             new JpegColorConverterBase.RgbAvx(8),

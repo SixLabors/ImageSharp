@@ -200,6 +200,11 @@ internal abstract partial class JpegColorConverterBase
             return new GrayscaleAvx(precision);
         }
 
+        if (JpegColorConverterArm.IsSupported)
+        {
+            return new GrayscaleArm(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new GrayScaleVector(precision);

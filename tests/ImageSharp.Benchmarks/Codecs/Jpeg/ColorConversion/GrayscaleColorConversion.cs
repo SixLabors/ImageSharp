@@ -29,4 +29,12 @@ public class GrayscaleColorConversion : ColorConversionBenchmark
 
         new JpegColorConverterBase.GrayscaleAvx(8).ConvertToRgbInplace(values);
     }
+
+    [Benchmark]
+    public void SimdVectorArm()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+
+        new JpegColorConverterBase.GrayscaleArm(8).ConvertToRgbInplace(values);
+    }
 }

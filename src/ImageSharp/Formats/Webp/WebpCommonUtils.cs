@@ -25,7 +25,7 @@ internal static class WebpCommonUtils
             ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
             int i = 0;
             int length = (row.Length * 4) - 3;
-            fixed (byte* src = &MemoryMarshal.GetReference(rowBytes))
+            fixed (byte* src = rowBytes)
             {
                 var alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
                 Vector256<byte> all0x80Vector256 = Vector256.Create((byte)0x80).AsByte();

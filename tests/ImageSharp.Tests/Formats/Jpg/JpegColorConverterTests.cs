@@ -166,6 +166,35 @@ public class JpegColorConverterTests
         }
     }
 
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithYcckColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.YccKScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKVector);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Ycck, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
     [Theory]
     [InlineData(JpegColorSpace.Grayscale, 1)]
     [InlineData(JpegColorSpace.Ycck, 4)]

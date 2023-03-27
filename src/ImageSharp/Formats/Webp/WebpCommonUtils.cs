@@ -81,7 +81,7 @@ internal static class WebpCommonUtils
             ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
             int i = 0;
             int length = (row.Length * 4) - 3;
-            fixed (byte* src = &MemoryMarshal.GetReference(rowBytes))
+            fixed (byte* src = rowBytes)
             {
                 for (; i + 64 <= length; i += 64)
                 {

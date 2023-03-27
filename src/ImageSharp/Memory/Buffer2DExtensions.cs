@@ -50,7 +50,7 @@ public static class Buffer2DExtensions
 
         Span<byte> span = MemoryMarshal.AsBytes(buffer.DangerousGetSingleMemory().Span);
 
-        fixed (byte* ptr = &MemoryMarshal.GetReference(span))
+        fixed (byte* ptr = span)
         {
             byte* basePtr = ptr;
             for (int y = 0; y < buffer.Height; y++)

@@ -353,8 +353,8 @@ internal static unsafe class PredictorEncoder
         else
         {
 #pragma warning disable SA1503 // Braces should not be omitted
-            fixed (uint* currentRow = &MemoryMarshal.GetReference(currentRowSpan))
-            fixed (uint* upperRow = &MemoryMarshal.GetReference(upperRowSpan))
+            fixed (uint* currentRow = currentRowSpan)
+            fixed (uint* upperRow = upperRowSpan)
             {
                 for (int x = xStart; x < xEnd; x++)
                 {
@@ -664,9 +664,9 @@ internal static unsafe class PredictorEncoder
         Span<short> scratch)
     {
 #pragma warning disable SA1503 // Braces should not be omitted
-        fixed (uint* current = &MemoryMarshal.GetReference(currentSpan))
-        fixed (uint* upper = &MemoryMarshal.GetReference(upperSpan))
-        fixed (uint* outputFixed = &MemoryMarshal.GetReference(outputSpan))
+        fixed (uint* current = currentSpan)
+        fixed (uint* upper = upperSpan)
+        fixed (uint* outputFixed = outputSpan)
         {
             uint* output = outputFixed;
             if (xStart == 0)

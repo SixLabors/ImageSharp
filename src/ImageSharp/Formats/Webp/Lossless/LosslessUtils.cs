@@ -569,7 +569,7 @@ internal static unsafe class LosslessUtils
         Span<uint> pixelData,
         Span<uint> outputSpan)
     {
-        fixed (uint* inputFixed = &MemoryMarshal.GetReference(pixelData))
+        fixed (uint* inputFixed = pixelData)
         {
             fixed (uint* outputFixed = outputSpan)
             {

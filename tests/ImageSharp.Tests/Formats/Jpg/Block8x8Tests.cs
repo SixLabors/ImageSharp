@@ -269,8 +269,7 @@ public class Block8x8Tests : JpegFixture
             short[] expected = Create8x8ShortData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            var block8x8 = default(Block8x8);
-            block8x8.LoadFrom(Create8x8ShortData());
+            Block8x8 block8x8 = Block8x8.Load(Create8x8ShortData());
 
             block8x8.TransposeInplace();
 

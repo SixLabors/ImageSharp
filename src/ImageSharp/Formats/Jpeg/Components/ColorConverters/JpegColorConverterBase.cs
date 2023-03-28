@@ -241,10 +241,10 @@ internal abstract partial class JpegColorConverterBase
 
         if (JpegColorConverterVector.IsSupported)
         {
-            return new RgbScalar(precision);
+            return new RgbVector(precision);
         }
 
-        return new GrayscaleScalar(precision);
+        return new RgbScalar(precision);
     }
 
     /// <summary>

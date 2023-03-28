@@ -556,7 +556,7 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKArm64(int seed) =>
-        this.TestConversionToRgb( new JpegColorConverterBase.YccKArm64(8),
+        this.TestConversionToRgb(new JpegColorConverterBase.YccKArm64(8),
             4,
             seed,
             new JpegColorConverterBase.YccKScalar(8));

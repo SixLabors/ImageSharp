@@ -191,7 +191,7 @@ public class JpegColorConverterTests
             }
             else if (AdvSimd.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.YCbCrVector);
+                expectedType = typeof(JpegColorConverterBase.YCbCrArm);
             }
 
             // act
@@ -224,7 +224,7 @@ public class JpegColorConverterTests
             }
             else if (AdvSimd.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.YccKVector);
+                expectedType = typeof(JpegColorConverterBase.YccKArm64);
             }
 
             // act

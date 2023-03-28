@@ -329,60 +329,68 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy
             bool alphaCompressionSucceeded = false;
             using var alphaEncoder = new AlphaEncoder();
             Span<byte> alphaData = Span<byte>.Empty;
-            if (hasAlpha)
+            IMemoryOwner<byte> encodedAlphaData = null;
+            try
             {
-                // TODO: This can potentially run in an separate task.
-                IMemoryOwner<byte> encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
-                alphaData = encodedAlphaData.GetSpan();
-                if (alphaDataSize < pixelCount)
+                if (hasAlpha)
                 {
-                    // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
-                    alphaCompressionSucceeded = true;
+                    // TODO: This can potentially run in an separate task.
+                    encodedAlphaData = alphaEncoder.EncodeAlpha(image, this.configuration, this.memoryAllocator, this.alphaCompression, out alphaDataSize);
+                    alphaData = encodedAlphaData.GetSpan();
+                    if (alphaDataSize < pixelCount)
+                    {
+                        // Only use compressed data, if the compressed data is actually smaller then the uncompressed data.
+                        alphaCompressionSucceeded = true;
+                    }
                 }
-            }
 
-            // Stats-collection loop.
-            this.StatLoop(width, height, yStride, uvStride);
-            it.Init();
-            it.InitFilter();
-            var info = new Vp8ModeScore();
-            var residual = new Vp8Residual();
-            do
+                // Stats-collection loop.
+                this.StatLoop(width, height, yStride, uvStride);
+                it.Init();
+                it.InitFilter();
+                var info = new Vp8ModeScore();
+                var residual = new Vp8Residual();
+                do
+                {
+                    bool dontUseSkip = !this.Proba.UseSkipProba;
+                    info.Clear();
+                    it.Import(y, u, v, yStride, uvStride, width, height, false);
+
+                    // Warning! order is important: first call VP8Decimate() and
+                    // *then* decide how to code the skip decision if there's one.
+                    if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
+                    {
+                        this.CodeResiduals(it, info, residual);
+                    }
+                    else
+                    {
+                        it.ResetAfterSkip();
+                    }
+
+                    it.SaveBoundary();
+                }
+                while (it.Next());
+
+                // Store filter stats.
+                this.AdjustFilterStrength();
+
+                // Write bytes from the bitwriter buffer to the stream.
+                ImageMetadata metadata = image.Metadata;
+                metadata.SyncProfiles();
+                this.bitWriter.WriteEncodedImageToStream(
+                    stream,
+                    metadata.ExifProfile,
+                    metadata.XmpProfile,
+                    (uint)width,
+                    (uint)height,
+                    hasAlpha,
+                    alphaData.Slice(0, alphaDataSize),
+                    this.alphaCompression && alphaCompressionSucceeded);
+            }
+            finally
             {
-                bool dontUseSkip = !this.Proba.UseSkipProba;
-                info.Clear();
-                it.Import(y, u, v, yStride, uvStride, width, height, false);
-
-                // Warning! order is important: first call VP8Decimate() and
-                // *then* decide how to code the skip decision if there's one.
-                if (!this.Decimate(it, ref info, this.rdOptLevel) || dontUseSkip)
-                {
-                    this.CodeResiduals(it, info, residual);
-                }
-                else
-                {
-                    it.ResetAfterSkip();
-                }
-
-                it.SaveBoundary();
+                encodedAlphaData?.Dispose();
             }
-            while (it.Next());
-
-            // Store filter stats.
-            this.AdjustFilterStrength();
-
-            // Write bytes from the bitwriter buffer to the stream.
-            ImageMetadata metadata = image.Metadata;
-            metadata.SyncProfiles();
-            this.bitWriter.WriteEncodedImageToStream(
-                stream,
-                metadata.ExifProfile,
-                metadata.XmpProfile,
-                (uint)width,
-                (uint)height,
-                hasAlpha,
-                alphaData,
-                this.alphaCompression && alphaCompressionSucceeded);
         }
 
         /// <inheritdoc/>

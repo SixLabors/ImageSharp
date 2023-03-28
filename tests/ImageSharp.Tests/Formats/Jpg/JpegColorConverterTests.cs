@@ -156,7 +156,7 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.CmykVector);
             }
-            else if (AdvSimd.IsSupported)
+            else if (AdvSimd.Arm64.IsSupported)
             {
                 expectedType = typeof(JpegColorConverterBase.CmykArm64);
             }
@@ -222,7 +222,7 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.YccKVector);
             }
-            else if (AdvSimd.IsSupported)
+            else if (AdvSimd.Arm64.IsSupported)
             {
                 expectedType = typeof(JpegColorConverterBase.YccKArm64);
             }

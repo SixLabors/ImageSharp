@@ -57,11 +57,13 @@ internal static unsafe class PredictorEncoder
         Span<short> scratch = stackalloc short[8];
 
         // TODO: Can we optimize this?
-        int[][] histo = new int[4][];
-        for (int i = 0; i < 4; i++)
+        int[][] histo =
         {
-            histo[i] = new int[256];
-        }
+            new int[256],
+            new int[256],
+            new int[256],
+            new int[256]
+        };
 
         if (lowEffort)
         {
@@ -233,7 +235,7 @@ internal static unsafe class PredictorEncoder
         Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow[(width + 1)..]);
         float bestDiff = MaxDiffCost;
         int bestMode = 0;
-        uint[] residuals = new uint[1 << WebpConstants.MaxTransformBits];
+        Span<uint> residuals = stackalloc uint[1 << WebpConstants.MaxTransformBits];    // 256 bytes
         for (int i = 0; i < 4; i++)
         {
             histoArgb[i].AsSpan().Clear();
@@ -299,9 +301,7 @@ internal static unsafe class PredictorEncoder
 
             if (curDiff < bestDiff)
             {
-                int[][] tmp = histoArgb;
-                histoArgb = bestHisto;
-                bestHisto = tmp;
+                (bestHisto, histoArgb) = (histoArgb, bestHisto);
                 bestDiff = curDiff;
                 bestMode = mode;
             }

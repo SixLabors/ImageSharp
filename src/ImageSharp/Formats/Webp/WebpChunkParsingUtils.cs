@@ -18,7 +18,7 @@ internal static class WebpChunkParsingUtils
     /// Reads the header of a lossy webp image.
     /// </summary>
     /// <returns>Information about this webp image.</returns>
-    public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, BufferedReadStream stream, byte[] buffer, WebpFeatures features)
+    public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
         // VP8 data size (not including this 4 bytes).
         int bytesRead = stream.Read(buffer, 0, 4);
@@ -77,7 +77,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
         }
 
-        if (!buffer.AsSpan(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
+        if (!buffer.Slice(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
         {
             WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
         }
@@ -91,7 +91,7 @@ internal static class WebpChunkParsingUtils
         uint tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         uint width = tmp & 0x3fff;
         sbyte xScale = (sbyte)(tmp >> 6);
-        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.AsSpan(2));
+        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2));
         uint height = tmp & 0x3fff;
         sbyte yScale = (sbyte)(tmp >> 6);
         remaining -= 7;
@@ -140,7 +140,7 @@ internal static class WebpChunkParsingUtils
     /// Reads the header of a lossless webp image.
     /// </summary>
     /// <returns>Information about this image.</returns>
-    public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, BufferedReadStream stream, byte[] buffer, WebpFeatures features)
+    public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
@@ -195,7 +195,7 @@ internal static class WebpChunkParsingUtils
     /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
     /// </summary>
     /// <returns>Information about this webp image.</returns>
-    public static WebpImageInfo ReadVp8XHeader(BufferedReadStream stream, byte[] buffer, WebpFeatures features)
+    public static WebpImageInfo ReadVp8XHeader(BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
         uint fileSize = ReadChunkSize(stream, buffer);
 
@@ -253,7 +253,7 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
-    public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, byte[] buffer)
+    public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, Span<byte> buffer)
     {
         if (stream.Read(buffer, 0, 3) == 3)
         {
@@ -271,9 +271,11 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
     /// <returns>The chunk size in bytes.</returns>
-    public static uint ReadChunkSize(BufferedReadStream stream, byte[] buffer)
+    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
     {
-        if (stream.Read(buffer, 0, 4) == 4)
+        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
+
+        if (stream.Read(buffer) == 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
             return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
@@ -290,9 +292,11 @@ internal static class WebpChunkParsingUtils
     /// <exception cref="ImageFormatException">
     /// Thrown if the input stream is not valid.
     /// </exception>
-    public static WebpChunkType ReadChunkType(BufferedReadStream stream, byte[] buffer)
+    public static WebpChunkType ReadChunkType(BufferedReadStream stream, Span<byte> buffer)
     {
-        if (stream.Read(buffer, 0, 4) == 4)
+        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
+
+        if (stream.Read(buffer) == 4)
         {
             var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
             return chunkType;
@@ -306,7 +310,7 @@ internal static class WebpChunkParsingUtils
     /// If there are more such chunks, readers MAY ignore all except the first one.
     /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
     /// </summary>
-    public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, byte[] buffer)
+    public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, Span<byte> buffer)
     {
         long streamLength = stream.Length;
         while (stream.Position < streamLength)

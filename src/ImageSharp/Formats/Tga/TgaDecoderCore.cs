@@ -18,11 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 internal sealed class TgaDecoderCore : IImageDecoderInternals
 {
     /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] scratchBuffer = new byte[4];
-
-    /// <summary>
     /// General configuration options.
     /// </summary>
     private readonly Configuration configuration;
@@ -407,6 +402,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         bool invertX = InvertX(origin);
         using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0);
         Span<byte> rowSpan = row.GetSpan();
+        Span<byte> scratchBuffer = stackalloc byte[2];
 
         for (int y = 0; y < height; y++)
         {
@@ -417,7 +413,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    int bytesRead = stream.Read(this.scratchBuffer, 0, 2);
+                    int bytesRead = stream.Read(scratchBuffer);
                     if (bytesRead != 2)
                     {
                         TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel row");
@@ -425,16 +421,16 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
                     if (!this.hasAlpha)
                     {
-                        this.scratchBuffer[1] |= 1 << 7;
+                        scratchBuffer[1] |= 1 << 7;
                     }
 
                     if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                     {
-                        color.FromLa16(Unsafe.As<byte, La16>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
+                        color.FromLa16(Unsafe.As<byte, La16>(ref MemoryMarshal.GetReference(scratchBuffer)));
                     }
                     else
                     {
-                        color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
+                        color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref MemoryMarshal.GetReference(scratchBuffer)));
                     }
 
                     pixelSpan[x] = color;
@@ -484,6 +480,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         bool invertX = InvertX(origin);
         if (invertX)
         {
+            Span<byte> scratchBuffer = stackalloc byte[4];
             TPixel color = default;
             for (int y = 0; y < height; y++)
             {
@@ -491,7 +488,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadBgr24Pixel(stream, color, x, pixelSpan);
+                    ReadBgr24Pixel(stream, color, x, pixelSpan, scratchBuffer);
                 }
             }
 
@@ -558,6 +555,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             return;
         }
 
+        Span<byte> scratchBuffer = stackalloc byte[4];
+
         for (int y = 0; y < height; y++)
         {
             int newY = InvertY(y, height, origin);
@@ -566,14 +565,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadBgra32Pixel(stream, x, color, pixelRow);
+                    this.ReadBgra32Pixel(stream, x, color, pixelRow, scratchBuffer);
                 }
             }
             else
             {
                 for (int x = 0; x < width; x++)
                 {
-                    this.ReadBgra32Pixel(stream, x, color, pixelRow);
+                    this.ReadBgra32Pixel(stream, x, color, pixelRow, scratchBuffer);
                 }
             }
         }
@@ -687,16 +686,16 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgr24Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan)
+    private static void ReadBgr24Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int bytesRead = stream.Read(this.scratchBuffer, 0, 3);
+        int bytesRead = stream.Read(scratchBuffer, 0, 3);
         if (bytesRead != 3)
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgr pixel");
         }
 
-        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetArrayDataReference(this.scratchBuffer)));
+        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetReference(scratchBuffer)));
         pixelSpan[x] = color;
     }
 
@@ -715,10 +714,10 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, TPixel color, Span<TPixel> pixelRow)
+    private void ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, TPixel color, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int bytesRead = stream.Read(this.scratchBuffer, 0, 4);
+        int bytesRead = stream.Read(scratchBuffer, 0, 4);
         if (bytesRead != 4)
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgra pixel");
@@ -726,8 +725,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
         Guard.NotNull(this.tgaMetadata);
 
-        byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
-        color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));
+        byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : scratchBuffer[3];
+        color.FromBgra32(new Bgra32(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
         pixelRow[x] = color;
     }
 
@@ -814,7 +813,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void UncompressRle(BufferedReadStream stream, int width, int height, Span<byte> buffer, int bytesPerPixel)
     {
         int uncompressedPixels = 0;
-        Span<byte> pixel = this.scratchBuffer.AsSpan(0, bytesPerPixel);
+        Span<byte> pixel = stackalloc byte[bytesPerPixel];
         int totalPixels = width * height;
         while (uncompressedPixels < totalPixels)
         {
@@ -825,7 +824,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             if (highBit == 1)
             {
                 int runLength = runLengthByte & 127;
-                int bytesRead = stream.Read(pixel, 0, bytesPerPixel);
+                int bytesRead = stream.Read(pixel);
                 if (bytesRead != bytesPerPixel)
                 {
                     TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");
@@ -845,7 +844,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 int bufferIdx = uncompressedPixels * bytesPerPixel;
                 for (int i = 0; i < runLength + 1; i++, uncompressedPixels++)
                 {
-                    int bytesRead = stream.Read(pixel, 0, bytesPerPixel);
+                    int bytesRead = stream.Read(pixel);
                     if (bytesRead != bytesPerPixel)
                     {
                         TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a pixel from the stream");

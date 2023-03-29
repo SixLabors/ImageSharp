@@ -23,11 +23,6 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// Reusable buffer for writing data.
-    /// </summary>
-    private readonly byte[] buffer = new byte[2];
-
-    /// <summary>
     /// The color depth, in number of bits per pixel.
     /// </summary>
     private TgaBitsPerPixel? bitsPerPixel;
@@ -221,9 +216,10 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
             case TgaBitsPerPixel.Pixel16:
                 Bgra5551 bgra5551 = new(color.ToVector4());
-                BinaryPrimitives.WriteInt16LittleEndian(this.buffer, (short)bgra5551.PackedValue);
-                stream.WriteByte(this.buffer[0]);
-                stream.WriteByte(this.buffer[1]);
+                Span<byte> buffer = stackalloc byte[2];
+                BinaryPrimitives.WriteInt16LittleEndian(buffer, (short)bgra5551.PackedValue);
+                stream.WriteByte(buffer[0]);
+                stream.WriteByte(buffer[1]);
 
                 break;
 

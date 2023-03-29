@@ -186,21 +186,32 @@ public class LosslessUtilsTests
     private static void RunPredictor13Test()
     {
         // arrange
-        uint[] topData = { 4278193922, 4278193666 };
-        const uint left = 4278193410;
-        const uint expectedResult = 4278193154;
+        uint[] topData0 = { 4278193922, 4278193666 };
+        const uint left0 = 4278193410;
+        const uint expectedResult0 = 4278193154;
+        uint[] topData1 = { 4294933015, 4278219803 };
+        const uint left1 = 4278236686;
+        const uint expectedResult1 = 4278231571;
+        uint actual0 = 0;
+        uint actual1 = 0;
 
         // act
         unsafe
         {
-            fixed (uint* top = &topData[1])
+            fixed (uint* top = &topData0[1])
             {
-                uint actual = LosslessUtils.Predictor13(left, top);
+                actual0 = LosslessUtils.Predictor13(left0, top);
+            }
 
-                // assert
-                Assert.Equal(expectedResult, actual);
+            fixed (uint* top = &topData1[1])
+            {
+                actual1 = LosslessUtils.Predictor13(left1, top);
             }
         }
+
+        // assert
+        Assert.Equal(expectedResult0, actual0);
+        Assert.Equal(expectedResult1, actual1);
     }
 
     [Fact]

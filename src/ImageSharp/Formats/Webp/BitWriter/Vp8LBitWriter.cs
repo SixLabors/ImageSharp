@@ -15,11 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 internal class Vp8LBitWriter : BitWriterBase
 {
     /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] scratchBuffer = new byte[8];
-
-    /// <summary>
     /// This is the minimum amount of size the memory buffer is guaranteed to grow when extra space is needed.
     /// </summary>
     private const int MinExtraSize = 32768;
@@ -194,8 +189,9 @@ internal class Vp8LBitWriter : BitWriterBase
         stream.Write(WebpConstants.Vp8LMagicBytes);
 
         // Write Vp8 Header.
-        BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, size);
-        stream.Write(this.scratchBuffer.AsSpan(0, 4));
+        Span<byte> scratchBuffer = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt32LittleEndian(scratchBuffer, size);
+        stream.Write(scratchBuffer.Slice(0, 4));
         stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
         // Write the encoded bytes of the image to the stream.
@@ -228,8 +224,9 @@ internal class Vp8LBitWriter : BitWriterBase
             this.BitWriterResize(extraSize);
         }
 
-        BinaryPrimitives.WriteUInt64LittleEndian(this.scratchBuffer, this.bits);
-        this.scratchBuffer.AsSpan(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
+        Span<byte> scratchBuffer = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt64LittleEndian(scratchBuffer, this.bits);
+        scratchBuffer.Slice(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
 
         this.cur += WriterBytes;
         this.bits >>= WriterBits;

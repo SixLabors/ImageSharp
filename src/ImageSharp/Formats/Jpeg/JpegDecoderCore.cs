@@ -28,21 +28,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 {
     /// <summary>
-    /// The only supported precision
-    /// </summary>
-    private readonly byte[] supportedPrecisions = { 8, 12 };
-
-    /// <summary>
-    /// The buffer used to temporarily store bytes read from the stream.
-    /// </summary>
-    private readonly byte[] temp = new byte[2 * 16 * 4];
-
-    /// <summary>
-    /// The buffer used to read markers from the stream.
-    /// </summary>
-    private readonly byte[] markerBuffer = new byte[2];
-
-    /// <summary>
     /// Whether the image has an EXIF marker.
     /// </summary>
     private bool hasExif;
@@ -138,6 +123,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
     }
+
+    /// <summary>
+    /// Gets the only supported precisions
+    /// </summary>
+    // Refers to assembly's static data segment, no allocation occurs.
+    private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };
 
     /// <inheritdoc />
     public DecoderOptions Options { get; }
@@ -257,24 +248,26 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         using MemoryStream ms = new(tableBytes);
         using BufferedReadStream stream = new(this.configuration, ms);
 
+        Span<byte> markerBuffer = stackalloc byte[2];
+
         // Check for the Start Of Image marker.
-        int bytesRead = stream.Read(this.markerBuffer, 0, 2);
-        JpegFileMarker fileMarker = new(this.markerBuffer[1], 0);
+        int bytesRead = stream.Read(markerBuffer);
+        JpegFileMarker fileMarker = new(markerBuffer[1], 0);
         if (fileMarker.Marker != JpegConstants.Markers.SOI)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
         }
 
         // Read next marker.
-        bytesRead = stream.Read(this.markerBuffer, 0, 2);
-        fileMarker = new JpegFileMarker(this.markerBuffer[1], (int)stream.Position - 2);
+        bytesRead = stream.Read(markerBuffer);
+        fileMarker = new JpegFileMarker(markerBuffer[1], (int)stream.Position - 2);
 
         while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
         {
             if (!fileMarker.Invalid)
             {
                 // Get the marker length.
-                int markerContentByteSize = this.ReadUint16(stream) - 2;
+                int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
                 // Check whether the stream actually has enough bytes to read
                 // markerContentByteSize is always positive so we cast
@@ -297,7 +290,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         this.ProcessDefineQuantizationTablesMarker(stream, markerContentByteSize);
                         break;
                     case JpegConstants.Markers.DRI:
-                        this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize);
+                        this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize, markerBuffer);
                         break;
                     case JpegConstants.Markers.EOI:
                         return;
@@ -305,13 +298,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             }
 
             // Read next marker.
-            bytesRead = stream.Read(this.markerBuffer, 0, 2);
+            bytesRead = stream.Read(markerBuffer);
             if (bytesRead != 2)
             {
                 JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
             }
 
-            fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
+            fileMarker = new JpegFileMarker(markerBuffer[1], 0);
         }
     }
 
@@ -329,9 +322,11 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
         this.Metadata = new ImageMetadata();
 
+        Span<byte> markerBuffer = stackalloc byte[2];
+
         // Check for the Start Of Image marker.
-        stream.Read(this.markerBuffer, 0, 2);
-        JpegFileMarker fileMarker = new(this.markerBuffer[1], 0);
+        stream.Read(markerBuffer);
+        JpegFileMarker fileMarker = new(markerBuffer[1], 0);
         if (fileMarker.Marker != JpegConstants.Markers.SOI)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
@@ -349,7 +344,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             if (!fileMarker.Invalid)
             {
                 // Get the marker length.
-                int markerContentByteSize = this.ReadUint16(stream) - 2;
+                int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
                 // Check whether stream actually has enough bytes to read
                 // markerContentByteSize is always positive so we cast
@@ -446,7 +441,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         }
                         else
                         {
-                            this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize);
+                            this.ProcessDefineRestartIntervalMarker(stream, markerContentByteSize, markerBuffer);
                         }
 
                         break;
@@ -755,8 +750,10 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             return;
         }
 
-        stream.Read(this.temp, 0, JFifMarker.Length);
-        if (!JFifMarker.TryParse(this.temp, out this.jFif))
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+
+        stream.Read(temp, 0, JFifMarker.Length);
+        if (!JFifMarker.TryParse(temp, out this.jFif))
         {
             JpegThrowHelper.ThrowNotSupportedException("Unknown App0 Marker - Expected JFIF.");
         }
@@ -796,11 +793,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
         }
 
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+
         // XMP marker is the longer then the EXIF marker, so first try read the EXIF marker bytes.
-        stream.Read(this.temp, 0, exifMarkerLength);
+        stream.Read(temp, 0, exifMarkerLength);
         remaining -= exifMarkerLength;
 
-        if (ProfileResolver.IsProfile(this.temp, ProfileResolver.ExifMarker))
+        if (ProfileResolver.IsProfile(temp, ProfileResolver.ExifMarker))
         {
             this.hasExif = true;
             byte[] profile = new byte[remaining];
@@ -819,7 +818,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             remaining = 0;
         }
 
-        if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker[..exifMarkerLength]))
+        if (ProfileResolver.IsProfile(temp, ProfileResolver.XmpMarker[..exifMarkerLength]))
         {
             const int remainingXmpMarkerBytes = xmpMarkerLength - exifMarkerLength;
             if (remaining < remainingXmpMarkerBytes || this.skipMetadata)
@@ -829,9 +828,9 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                 return;
             }
 
-            stream.Read(this.temp, exifMarkerLength, remainingXmpMarkerBytes);
+            stream.Read(temp, exifMarkerLength, remainingXmpMarkerBytes);
             remaining -= remainingXmpMarkerBytes;
-            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.XmpMarker))
+            if (ProfileResolver.IsProfile(temp, ProfileResolver.XmpMarker))
             {
                 this.hasXmp = true;
                 byte[] profile = new byte[remaining];
@@ -870,8 +869,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             return;
         }
 
-        byte[] identifier = new byte[icclength];
-        stream.Read(identifier, 0, icclength);
+        Span<byte> identifier = stackalloc byte[icclength];
+        stream.Read(identifier);
         remaining -= icclength; // We have read it by this point
 
         if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
@@ -911,13 +910,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             return;
         }
 
-        stream.Read(this.temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+        stream.Read(temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
         remaining -= ProfileResolver.AdobePhotoshopApp13Marker.Length;
-        if (ProfileResolver.IsProfile(this.temp, ProfileResolver.AdobePhotoshopApp13Marker))
+        if (ProfileResolver.IsProfile(temp, ProfileResolver.AdobePhotoshopApp13Marker))
         {
-            byte[] resourceBlockData = new byte[remaining];
-            stream.Read(resourceBlockData, 0, remaining);
-            Span<byte> blockDataSpan = resourceBlockData.AsSpan();
+            Span<byte> blockDataSpan = remaining <= 128 ? stackalloc byte[remaining] : new byte[remaining];
+            stream.Read(blockDataSpan);
 
             while (blockDataSpan.Length > 12)
             {
@@ -1047,10 +1046,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             return;
         }
 
-        stream.Read(this.temp, 0, markerLength);
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+
+        stream.Read(temp, 0, markerLength);
         remaining -= markerLength;
 
-        if (AdobeMarker.TryParse(this.temp, out this.adobe))
+        if (AdobeMarker.TryParse(temp, out this.adobe))
         {
             this.hasAdobeMarker = true;
         }
@@ -1072,6 +1073,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     private void ProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
     {
         JpegMetadata jpegMetadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
 
         while (remaining > 0)
         {
@@ -1102,13 +1104,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
                     }
 
-                    stream.Read(this.temp, 0, 64);
+                    stream.Read(temp, 0, 64);
                     remaining -= 64;
 
                     // Parsing quantization table & saving it in natural order
                     for (int j = 0; j < 64; j++)
                     {
-                        table[ZigZag.ZigZagOrder[j]] = this.temp[j];
+                        table[ZigZag.ZigZagOrder[j]] = temp[j];
                     }
 
                     break;
@@ -1121,13 +1123,13 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DQT), remaining);
                     }
 
-                    stream.Read(this.temp, 0, 128);
+                    stream.Read(temp, 0, 128);
                     remaining -= 128;
 
                     // Parsing quantization table & saving it in natural order
                     for (int j = 0; j < 64; j++)
                     {
-                        table[ZigZag.ZigZagOrder[j]] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                        table[ZigZag.ZigZagOrder[j]] = (temp[2 * j] << 8) | temp[(2 * j) + 1];
                     }
 
                     break;
@@ -1174,28 +1176,30 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
         }
 
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+
         // Read initial marker definitions.
         const int length = 6;
-        int bytesRead = stream.Read(this.temp, 0, length);
+        int bytesRead = stream.Read(temp, 0, length);
         if (bytesRead != length)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("SOF marker does not contain enough data.");
         }
 
         // 1 byte: Bits/sample precision.
-        byte precision = this.temp[0];
+        byte precision = temp[0];
 
         // Validate: only 8-bit and 12-bit precisions are supported.
-        if (Array.IndexOf(this.supportedPrecisions, precision) == -1)
+        if (SupportedPrecisions.IndexOf(precision) < 0)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision is supported.");
         }
 
         // 2 byte: Height
-        int frameHeight = (this.temp[1] << 8) | this.temp[2];
+        int frameHeight = (temp[1] << 8) | temp[2];
 
         // 2 byte: Width
-        int frameWidth = (this.temp[3] << 8) | this.temp[4];
+        int frameWidth = (temp[3] << 8) | temp[4];
 
         // Validate: width/height > 0 (they are upper-bounded by 2 byte max value so no need to check that).
         if (frameHeight == 0 || frameWidth == 0)
@@ -1204,7 +1208,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         // 1 byte: Number of components.
-        byte componentCount = this.temp[5];
+        byte componentCount = temp[5];
 
         // Validate: componentCount more than 4 can lead to a buffer overflow during stream
         // reading so we must limit it to 4.
@@ -1227,7 +1231,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         // components*3 bytes: component data
-        stream.Read(this.temp, 0, remaining);
+        stream.Read(temp, 0, remaining);
 
         // No need to pool this. They max out at 4
         this.Frame.ComponentIds = new byte[componentCount];
@@ -1240,10 +1244,10 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         for (int i = 0; i < this.Frame.Components.Length; i++)
         {
             // 1 byte: component identifier
-            byte componentId = this.temp[index];
+            byte componentId = temp[index];
 
             // 1 byte: component sampling factors
-            byte hv = this.temp[index + 1];
+            byte hv = temp[index + 1];
             int h = (hv >> 4) & 15;
             int v = hv & 15;
 
@@ -1270,7 +1274,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             }
 
             // 1 byte: quantization table destination selector
-            byte quantTableIndex = this.temp[index + 2];
+            byte quantTableIndex = temp[index + 2];
 
             // Validate: 0-3 range
             if (quantTableIndex > 3)
@@ -1379,7 +1383,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <param name="remaining">The remaining bytes in the segment block.</param>
-    private void ProcessDefineRestartIntervalMarker(BufferedReadStream stream, int remaining)
+    /// <param name="markerBuffer">Scratch buffer.</param>
+    private void ProcessDefineRestartIntervalMarker(BufferedReadStream stream, int remaining, Span<byte> markerBuffer)
     {
         if (remaining != 2)
         {
@@ -1388,7 +1393,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
         // Save the reset interval, because it can come before or after the SOF marker.
         // If the reset interval comes after the SOF marker, the scanDecoder has not been created.
-        this.resetInterval = this.ReadUint16(stream);
+        this.resetInterval = ReadUint16(stream, markerBuffer);
 
         if (this.scanDecoder != null)
         {
@@ -1425,14 +1430,16 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.SOS), remaining);
         }
 
+        Span<byte> temp = stackalloc byte[2 * 16 * 4];
+
         // selectorsCount*2 bytes: component index + huffman tables indices
-        stream.Read(this.temp, 0, selectorsBytes);
+        stream.Read(temp, 0, selectorsBytes);
 
         this.Frame.Interleaved = this.Frame.ComponentCount == selectorsCount;
         for (int i = 0; i < selectorsBytes; i += 2)
         {
             // 1 byte: Component id
-            int componentSelectorId = this.temp[i];
+            int componentSelectorId = temp[i];
 
             int componentIndex = -1;
             for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
@@ -1459,7 +1466,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             // 1 byte: Huffman table selectors.
             // 4 bits - dc
             // 4 bits - ac
-            int tableSpec = this.temp[i + 1];
+            int tableSpec = temp[i + 1];
             int dcTableIndex = tableSpec >> 4;
             int acTableIndex = tableSpec & 15;
 
@@ -1475,17 +1482,17 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         // 3 bytes: Progressive scan decoding data.
-        int bytesRead = stream.Read(this.temp, 0, 3);
+        int bytesRead = stream.Read(temp, 0, 3);
         if (bytesRead != 3)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read progressive scan decoding data");
         }
 
-        this.scanDecoder.SpectralStart = this.temp[0];
+        this.scanDecoder.SpectralStart = temp[0];
 
-        this.scanDecoder.SpectralEnd = this.temp[1];
+        this.scanDecoder.SpectralEnd = temp[1];
 
-        int successiveApproximation = this.temp[2];
+        int successiveApproximation = temp[2];
         this.scanDecoder.SuccessiveHigh = successiveApproximation >> 4;
         this.scanDecoder.SuccessiveLow = successiveApproximation & 15;
 
@@ -1501,16 +1508,17 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes.
     /// </summary>
     /// <param name="stream">The input stream.</param>
+    /// <param name="markerBuffer">The scratch buffer used for reading from the stream.</param>
     /// <returns>The <see cref="ushort"/></returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private ushort ReadUint16(BufferedReadStream stream)
+    private static ushort ReadUint16(BufferedReadStream stream, Span<byte> markerBuffer)
     {
-        int bytesRead = stream.Read(this.markerBuffer, 0, 2);
+        int bytesRead = stream.Read(markerBuffer, 0, 2);
         if (bytesRead != 2)
         {
             JpegThrowHelper.ThrowInvalidImageContentException("jpeg stream does not contain enough data, could not read ushort.");
         }
 
-        return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
+        return BinaryPrimitives.ReadUInt16BigEndian(markerBuffer);
     }
 }

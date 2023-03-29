@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-internal class HistogramEncoder
+internal static class HistogramEncoder
 {
     /// <summary>
     /// Number of partitions for the three dominant (literal, red and blue) symbol costs.
@@ -27,7 +27,7 @@ internal class HistogramEncoder
 
     private const ushort InvalidHistogramSymbol = ushort.MaxValue;
 
-    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, uint quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
+    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, uint quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, Span<ushort> histogramSymbols)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(xSize, histoBits) : 1;
         int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
@@ -148,7 +148,7 @@ internal class HistogramEncoder
         }
     }
 
-    private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, ushort[] histogramSymbols)
+    private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, Span<ushort> histogramSymbols)
     {
         var stats = new Vp8LStreaks();
         var bitsEntropy = new Vp8LBitEntropy();
@@ -171,20 +171,28 @@ internal class HistogramEncoder
             }
         }
 
-        int numUsed = histogramSymbols.Count(h => h != InvalidHistogramSymbol);
+        int numUsed = 0;
+        foreach (ushort h in histogramSymbols)
+        {
+            if (h != InvalidHistogramSymbol)
+            {
+                numUsed++;
+            }
+        }
+
         return numUsed;
     }
 
     private static void HistogramCombineEntropyBin(
         List<Vp8LHistogram> histograms,
-        ushort[] clusters,
+        Span<ushort> clusters,
         ushort[] clusterMappings,
         Vp8LHistogram curCombo,
         ushort[] binMap,
         int numBins,
         double combineCostFactor)
     {
-        var binInfo = new HistogramBinInfo[BinSize];
+        Span<HistogramBinInfo> binInfo = stackalloc HistogramBinInfo[BinSize];
         for (int idx = 0; idx < numBins; idx++)
         {
             binInfo[idx].First = -1;
@@ -258,7 +266,7 @@ internal class HistogramEncoder
     /// Given a Histogram set, the mapping of clusters 'clusterMapping' and the
     /// current assignment of the cells in 'symbols', merge the clusters and assign the smallest possible clusters values.
     /// </summary>
-    private static void OptimizeHistogramSymbols(ushort[] clusterMappings, int numClusters, ushort[] clusterMappingsTmp, ushort[] symbols)
+    private static void OptimizeHistogramSymbols(ushort[] clusterMappings, int numClusters, ushort[] clusterMappingsTmp, Span<ushort> symbols)
     {
         bool doContinue = true;
 
@@ -331,7 +339,7 @@ internal class HistogramEncoder
         int maxSize = 9;
 
         // Fill the initial mapping.
-        int[] mappings = new int[histograms.Count];
+        Span<int> mappings = histograms.Count <= 64 ? stackalloc int[histograms.Count] : new int[histograms.Count];
         for (int j = 0, iter = 0; iter < histograms.Count; iter++)
         {
             if (histograms[iter] == null)
@@ -388,9 +396,9 @@ internal class HistogramEncoder
             int bestIdx1 = histoPriorityList[0].Idx1;
             int bestIdx2 = histoPriorityList[0].Idx2;
 
-            int mappingIndex = Array.IndexOf(mappings, bestIdx2);
-            Span<int> src = mappings.AsSpan(mappingIndex + 1, numUsed - mappingIndex - 1);
-            Span<int> dst = mappings.AsSpan(mappingIndex);
+            int mappingIndex = mappings.IndexOf(bestIdx2);
+            Span<int> src = mappings.Slice(mappingIndex + 1, numUsed - mappingIndex - 1);
+            Span<int> dst = mappings.Slice(mappingIndex);
             src.CopyTo(dst);
 
             // Merge the histograms and remove bestIdx2 from the list.
@@ -528,7 +536,7 @@ internal class HistogramEncoder
         }
     }
 
-    private static void HistogramRemap(List<Vp8LHistogram> input, List<Vp8LHistogram> output, ushort[] symbols)
+    private static void HistogramRemap(List<Vp8LHistogram> input, List<Vp8LHistogram> output, Span<ushort> symbols)
     {
         int inSize = input.Count;
         int outSize = output.Count;

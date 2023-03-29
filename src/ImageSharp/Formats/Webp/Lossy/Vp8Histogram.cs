@@ -10,12 +10,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 internal sealed class Vp8Histogram
 {
-    private readonly int[] scratch = new int[16];
-
-    private readonly short[] output = new short[16];
-
-    private readonly int[] distribution = new int[MaxCoeffThresh + 1];
-
     /// <summary>
     /// Size of histogram used by CollectHistogram.
     /// </summary>
@@ -47,17 +41,20 @@ internal sealed class Vp8Histogram
 
     public void CollectHistogram(Span<byte> reference, Span<byte> pred, int startBlock, int endBlock)
     {
+        Span<int> scratch = stackalloc int[16];
+        Span<short> output = stackalloc short[16];
+        Span<int> distribution = stackalloc int[MaxCoeffThresh + 1];
+
         int j;
-        this.distribution.AsSpan().Clear();
         for (j = startBlock; j < endBlock; j++)
         {
-            Vp8Encoding.FTransform(reference[WebpLookupTables.Vp8DspScan[j]..], pred[WebpLookupTables.Vp8DspScan[j]..], this.output, this.scratch);
+            Vp8Encoding.FTransform(reference[WebpLookupTables.Vp8DspScan[j]..], pred[WebpLookupTables.Vp8DspScan[j]..], output, scratch);
 
             // Convert coefficients to bin.
             if (Avx2.IsSupported)
             {
                 // Load.
-                ref short outputRef = ref MemoryMarshal.GetReference<short>(this.output);
+                ref short outputRef = ref MemoryMarshal.GetReference(output);
                 Vector256<byte> out0 = Unsafe.As<short, Vector256<byte>>(ref outputRef);
 
                 // v = abs(out) >> 3
@@ -73,21 +70,21 @@ internal sealed class Vp8Histogram
                 // Convert coefficients to bin.
                 for (int k = 0; k < 16; ++k)
                 {
-                    ++this.distribution[this.output[k]];
+                    ++distribution[output[k]];
                 }
             }
             else
             {
                 for (int k = 0; k < 16; ++k)
                 {
-                    int v = Math.Abs(this.output[k]) >> 3;
+                    int v = Math.Abs(output[k]) >> 3;
                     int clippedValue = ClipMax(v, MaxCoeffThresh);
-                    ++this.distribution[clippedValue];
+                    ++distribution[clippedValue];
                 }
             }
         }
 
-        this.SetHistogramData(this.distribution);
+        this.SetHistogramData(distribution);
     }
 
     public void Merge(Vp8Histogram other)
@@ -103,7 +100,7 @@ internal sealed class Vp8Histogram
         }
     }
 
-    private void SetHistogramData(int[] distribution)
+    private void SetHistogramData(ReadOnlySpan<int> distribution)
     {
         int maxValue = 0;
         int lastNonZero = 1;

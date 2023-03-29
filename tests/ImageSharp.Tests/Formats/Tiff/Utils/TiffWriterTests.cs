@@ -53,7 +53,7 @@ public class TiffWriterTests
     {
         using var stream = new MemoryStream();
         using var writer = new TiffStreamWriter(stream);
-        writer.Write(1234);
+        writer.Write(1234, stackalloc byte[2]);
 
         Assert.Equal(new byte[] { 0xD2, 0x04 }, stream.ToArray());
     }
@@ -63,7 +63,7 @@ public class TiffWriterTests
     {
         using var stream = new MemoryStream();
         using var writer = new TiffStreamWriter(stream);
-        writer.Write(12345678U);
+        writer.Write(12345678U, stackalloc byte[4]);
 
         Assert.Equal(new byte[] { 0x4E, 0x61, 0xBC, 0x00 }, stream.ToArray());
     }
@@ -89,16 +89,17 @@ public class TiffWriterTests
     public void WriteMarker_WritesToPlacedPosition()
     {
         using var stream = new MemoryStream();
+        Span<byte> buffer = stackalloc byte[4];
 
         using (var writer = new TiffStreamWriter(stream))
         {
-            writer.Write(0x11111111);
-            long marker = writer.PlaceMarker();
-            writer.Write(0x33333333);
+            writer.Write(0x11111111, buffer);
+            long marker = writer.PlaceMarker(buffer);
+            writer.Write(0x33333333, buffer);
 
-            writer.WriteMarker(marker, 0x12345678);
+            writer.WriteMarker(marker, 0x12345678, buffer);
 
-            writer.Write(0x44444444);
+            writer.Write(0x44444444, buffer);
         }
 
         Assert.Equal(

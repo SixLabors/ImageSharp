@@ -453,6 +453,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
     private void UncompressRle4(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
     {
+        Span<byte> scratchBuffer = stackalloc byte[128];
         Span<byte> cmd = stackalloc byte[2];
         int count = 0;
 
@@ -491,9 +492,9 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         int max = cmd[1];
                         int bytesToRead = (int)(((uint)max + 1) / 2);
 
-                        byte[] run = new byte[bytesToRead];
+                        Span<byte> run = bytesToRead <= 128 ? scratchBuffer.Slice(0, bytesToRead) : new byte[bytesToRead];
 
-                        stream.Read(run, 0, run.Length);
+                        stream.Read(run);
 
                         int idx = 0;
                         for (int i = 0; i < max; i++)
@@ -559,6 +560,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
     private void UncompressRle8(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
     {
+        Span<byte> scratchBuffer = stackalloc byte[128];
         Span<byte> cmd = stackalloc byte[2];
         int count = 0;
 
@@ -596,13 +598,13 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // Take this number of bytes from the stream as uncompressed data.
                         int length = cmd[1];
 
-                        byte[] run = new byte[length];
+                        Span<byte> run = length <= 128 ? scratchBuffer.Slice(0, length) : new byte[length];
 
-                        stream.Read(run, 0, run.Length);
+                        stream.Read(run);
 
-                        run.AsSpan().CopyTo(buffer[count..]);
+                        run.CopyTo(buffer[count..]);
 
-                        count += run.Length;
+                        count += length;
 
                         // Absolute mode data is aligned to two-byte word-boundary.
                         int padding = length & 1;
@@ -639,6 +641,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <param name="rowsWithUndefinedPixels">Keeps track of rows, which have undefined pixels.</param>
     private void UncompressRle24(BufferedReadStream stream, int w, Span<byte> buffer, Span<bool> undefinedPixels, Span<bool> rowsWithUndefinedPixels)
     {
+        Span<byte> scratchBuffer = stackalloc byte[128];
         Span<byte> cmd = stackalloc byte[2];
         int uncompressedPixels = 0;
 
@@ -675,17 +678,18 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // If the second byte > 2, we are in 'absolute mode'.
                         // Take this number of bytes from the stream as uncompressed data.
                         int length = cmd[1];
+                        int length3 = length * 3;
 
-                        byte[] run = new byte[length * 3];
+                        Span<byte> run = length3 <= 128 ? scratchBuffer.Slice(0, length3) : new byte[length3];
 
-                        stream.Read(run, 0, run.Length);
+                        stream.Read(run);
 
-                        run.AsSpan().CopyTo(buffer[(uncompressedPixels * 3)..]);
+                        run.CopyTo(buffer[(uncompressedPixels * 3)..]);
 
                         uncompressedPixels += length;
 
                         // Absolute mode data is aligned to two-byte word-boundary.
-                        int padding = run.Length & 1;
+                        int padding = length3 & 1;
 
                         stream.Skip(padding);
 
@@ -1286,18 +1290,18 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             // color masks for each color channel follow the info header.
             if (this.infoHeader.Compression == BmpCompression.BitFields)
             {
-                byte[] bitfieldsBuffer = new byte[12];
-                stream.Read(bitfieldsBuffer, 0, 12);
-                Span<byte> data = bitfieldsBuffer.AsSpan();
+                Span<byte> bitfieldsBuffer = stackalloc byte[12];
+                stream.Read(bitfieldsBuffer);
+                Span<byte> data = bitfieldsBuffer;
                 this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                 this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
             }
             else if (this.infoHeader.Compression == BmpCompression.BI_ALPHABITFIELDS)
             {
-                byte[] bitfieldsBuffer = new byte[16];
-                stream.Read(bitfieldsBuffer, 0, 16);
-                Span<byte> data = bitfieldsBuffer.AsSpan();
+                Span<byte> bitfieldsBuffer = stackalloc byte[16];
+                stream.Read(bitfieldsBuffer);
+                Span<byte> data = bitfieldsBuffer;
                 this.infoHeader.RedMask = BinaryPrimitives.ReadInt32LittleEndian(data[..4]);
                 this.infoHeader.GreenMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(4, 4));
                 this.infoHeader.BlueMask = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(8, 4));
@@ -1470,7 +1474,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         {
             // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
             // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-            if ((stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
+            if (stream.Position > this.fileHeader.Offset - colorMapSizeBytes)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException(
                     $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");

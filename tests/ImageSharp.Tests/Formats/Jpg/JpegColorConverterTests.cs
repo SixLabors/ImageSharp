@@ -156,7 +156,7 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.CmykVector);
             }
-            else if (AdvSimd.IsSupported)
+            else if (AdvSimd.Arm64.IsSupported)
             {
                 expectedType = typeof(JpegColorConverterBase.CmykArm64);
             }
@@ -191,7 +191,7 @@ public class JpegColorConverterTests
             }
             else if (AdvSimd.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.YCbCrVector);
+                expectedType = typeof(JpegColorConverterBase.YCbCrArm);
             }
 
             // act
@@ -222,9 +222,9 @@ public class JpegColorConverterTests
             {
                 expectedType = typeof(JpegColorConverterBase.YccKVector);
             }
-            else if (AdvSimd.IsSupported)
+            else if (AdvSimd.Arm64.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.YccKVector);
+                expectedType = typeof(JpegColorConverterBase.YccKArm64);
             }
 
             // act
@@ -427,6 +427,23 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void FromYCbCrArm(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYCbCrArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8),
+            precísion: 2);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void FromCmykAvx2(int seed) =>
         this.TestConversionToRgb(
             new JpegColorConverterBase.CmykAvx(8),
@@ -531,6 +548,23 @@ public class JpegColorConverterTests
     public void FromRgbToYccKAvx2(int seed) =>
         this.TestConversionFromRgb(
             new JpegColorConverterBase.YccKAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8),
+            precísion: 4);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromYccKArm64(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.YccKArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYccKArm64(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YccKArm64(8),
             4,
             seed,
             new JpegColorConverterBase.YccKScalar(8),

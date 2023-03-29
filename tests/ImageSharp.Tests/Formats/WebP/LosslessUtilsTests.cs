@@ -283,9 +283,6 @@ public class LosslessUtilsTests
     public void Predictor13_Works() => RunPredictor13Test();
 
     [Fact]
-    public void SubtractGreen_Works() => RunSubtractGreenTest();
-
-    [Fact]
     public void AddGreenToBlueAndRed_Works() => RunAddGreenToBlueAndRedTest();
 
     [Fact]
@@ -319,10 +316,16 @@ public class LosslessUtilsTests
     public void Predictor13_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor13Test, HwIntrinsics.DisableSSE2);
 
     [Fact]
+    public void SubtractGreen_Works() => RunSubtractGreenTest();
+
+    [Fact]
     public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.AllowAll);
 
     [Fact]
     public void SubtractGreen_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2);
+
+    [Fact]
+    public void SubtractGreen_Scalar_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSSE3);

@@ -25,7 +25,7 @@ internal static class HuffmanUtils
         0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf
     };
 
-    public static void CreateHuffmanTree(uint[] histogram, int treeDepthLimit, bool[] bufRle, HuffmanTree[] huffTree, HuffmanTreeCode huffCode)
+    public static void CreateHuffmanTree(uint[] histogram, int treeDepthLimit, bool[] bufRle, Span<HuffmanTree> huffTree, HuffmanTreeCode huffCode)
     {
         int numSymbols = huffCode.NumSymbols;
         bufRle.AsSpan().Clear();
@@ -159,7 +159,7 @@ internal static class HuffmanUtils
     /// <param name="histogramSize">The size of the histogram.</param>
     /// <param name="treeDepthLimit">The tree depth limit.</param>
     /// <param name="bitDepths">How many bits are used for the symbol.</param>
-    public static void GenerateOptimalTree(HuffmanTree[] tree, uint[] histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
+    public static void GenerateOptimalTree(Span<HuffmanTree> tree, uint[] histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
     {
         uint countMin;
         int treeSizeOrig = 0;
@@ -177,7 +177,7 @@ internal static class HuffmanUtils
             return;
         }
 
-        Span<HuffmanTree> treePool = tree.AsSpan(treeSizeOrig);
+        Span<HuffmanTree> treePool = tree.Slice(treeSizeOrig);
 
         // For block sizes with less than 64k symbols we never need to do a
         // second iteration of this loop.
@@ -202,14 +202,8 @@ internal static class HuffmanUtils
             }
 
             // Build the Huffman tree.
-#if NET5_0_OR_GREATER
-            Span<HuffmanTree> treeSlice = tree.AsSpan(0, treeSize);
+            Span<HuffmanTree> treeSlice = tree.Slice(0, treeSize);
             treeSlice.Sort(HuffmanTree.Compare);
-#else
-            HuffmanTree[] treeCopy = tree.AsSpan(0, treeSize).ToArray();
-            Array.Sort(treeCopy, HuffmanTree.Compare);
-            treeCopy.AsSpan().CopyTo(tree);
-#endif
 
             if (treeSize > 1)
             {
@@ -312,12 +306,12 @@ internal static class HuffmanUtils
         DebugGuard.MustBeGreaterThan(codeLengthsSize, 0, nameof(codeLengthsSize));
 
         // sorted[codeLengthsSize] is a pre-allocated array for sorting symbols by code length.
-        int[] sorted = new int[codeLengthsSize];
+        Span<int> sorted = codeLengthsSize <= 64 ? stackalloc int[codeLengthsSize] : new int[codeLengthsSize];
         int totalSize = 1 << rootBits; // total size root table + 2nd level table.
         int len; // current code length.
         int symbol; // symbol index in original or sorted table.
-        int[] counts = new int[WebpConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
-        int[] offsets = new int[WebpConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
+        Span<int> counts = stackalloc int[WebpConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
+        Span<int> offsets = stackalloc int[WebpConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
 
         // Build histogram of code lengths.
         for (symbol = 0; symbol < codeLengthsSize; ++symbol)
@@ -544,8 +538,8 @@ internal static class HuffmanUtils
     private static void ConvertBitDepthsToSymbols(HuffmanTreeCode tree)
     {
         // 0 bit-depth means that the symbol does not exist.
-        uint[] nextCode = new uint[WebpConstants.MaxAllowedCodeLength + 1];
-        int[] depthCount = new int[WebpConstants.MaxAllowedCodeLength + 1];
+        Span<uint> nextCode = stackalloc uint[WebpConstants.MaxAllowedCodeLength + 1];
+        Span<int> depthCount = stackalloc int[WebpConstants.MaxAllowedCodeLength + 1];
 
         int len = tree.NumSymbols;
         for (int i = 0; i < len; i++)
@@ -603,7 +597,7 @@ internal static class HuffmanUtils
     /// Returns the table width of the next 2nd level table. count is the histogram of bit lengths for the remaining symbols,
     /// len is the code length of the next processed symbol.
     /// </summary>
-    private static int NextTableBitSize(int[] count, int len, int rootBits)
+    private static int NextTableBitSize(ReadOnlySpan<int> count, int len, int rootBits)
     {
         int left = 1 << (len - rootBits);
         while (len < WebpConstants.MaxAllowedCodeLength)

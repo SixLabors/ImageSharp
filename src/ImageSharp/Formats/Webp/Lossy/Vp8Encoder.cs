@@ -329,7 +329,7 @@ internal class Vp8Encoder : IDisposable
         int uvStride = (yStride + 1) >> 1;
 
         Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
-        int[] alphas = new int[WebpConstants.MaxAlpha + 1];
+        Span<int> alphas = stackalloc int[WebpConstants.MaxAlpha + 1];
         this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
         int totalMb = this.Mbw * this.Mbw;
         this.alpha /= totalMb;
@@ -625,15 +625,15 @@ internal class Vp8Encoder : IDisposable
     }
 
     // Simplified k-Means, to assign Nb segments based on alpha-histogram.
-    private void AssignSegments(int[] alphas)
+    private void AssignSegments(ReadOnlySpan<int> alphas)
     {
         int nb = this.SegmentHeader.NumSegments < NumMbSegments ? this.SegmentHeader.NumSegments : NumMbSegments;
-        int[] centers = new int[NumMbSegments];
+        Span<int> centers = stackalloc int[NumMbSegments];
         int weightedAverage = 0;
-        int[] map = new int[WebpConstants.MaxAlpha + 1];
+        Span<int> map = stackalloc int[WebpConstants.MaxAlpha + 1];
         int n, k;
-        int[] accum = new int[NumMbSegments];
-        int[] distAccum = new int[NumMbSegments];
+        Span<int> accum = stackalloc int[NumMbSegments];
+        Span<int> distAccum = stackalloc int[NumMbSegments];
 
         // Bracket the input.
         for (n = 0; n <= WebpConstants.MaxAlpha && alphas[n] == 0; ++n)
@@ -719,7 +719,7 @@ internal class Vp8Encoder : IDisposable
         this.SetSegmentAlphas(centers, weightedAverage);
     }
 
-    private void SetSegmentAlphas(int[] centers, int mid)
+    private void SetSegmentAlphas(ReadOnlySpan<int> centers, int mid)
     {
         int nb = this.SegmentHeader.NumSegments;
         Vp8SegmentInfo[] dqm = this.SegmentInfos;
@@ -840,7 +840,7 @@ internal class Vp8Encoder : IDisposable
 
     private void SetSegmentProbas()
     {
-        int[] p = new int[NumMbSegments];
+        Span<int> p = stackalloc int[NumMbSegments];
         int n;
 
         for (n = 0; n < this.Mbw * this.Mbh; ++n)
@@ -931,7 +931,7 @@ internal class Vp8Encoder : IDisposable
         }
     }
 
-    private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, int[] alphas, out int uvAlpha)
+    private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, Span<int> alphas, out int uvAlpha)
     {
         int alpha = 0;
         uvAlpha = 0;
@@ -952,7 +952,7 @@ internal class Vp8Encoder : IDisposable
         return alpha;
     }
 
-    private int MbAnalyze(Vp8EncIterator it, int[] alphas, out int bestUvAlpha)
+    private int MbAnalyze(Vp8EncIterator it, Span<int> alphas, out int bestUvAlpha)
     {
         it.SetIntra16Mode(0);    // default: Intra16, DC_PRED
         it.SetSkip(false);       // not skipped.

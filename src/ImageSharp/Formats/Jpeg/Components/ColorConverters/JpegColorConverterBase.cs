@@ -138,6 +138,11 @@ internal abstract partial class JpegColorConverterBase
             return new YCbCrAvx(precision);
         }
 
+        if (JpegColorConverterArm.IsSupported)
+        {
+            return new YCbCrArm(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new YCbCrVector(precision);
@@ -155,6 +160,11 @@ internal abstract partial class JpegColorConverterBase
         if (JpegColorConverterAvx.IsSupported)
         {
             return new YccKAvx(precision);
+        }
+
+        if (JpegColorConverterArm64.IsSupported)
+        {
+            return new YccKArm64(precision);
         }
 
         if (JpegColorConverterVector.IsSupported)
@@ -200,6 +210,11 @@ internal abstract partial class JpegColorConverterBase
             return new GrayscaleAvx(precision);
         }
 
+        if (JpegColorConverterArm.IsSupported)
+        {
+            return new GrayscaleArm(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new GrayScaleVector(precision);
@@ -226,10 +241,10 @@ internal abstract partial class JpegColorConverterBase
 
         if (JpegColorConverterVector.IsSupported)
         {
-            return new RgbScalar(precision);
+            return new RgbVector(precision);
         }
 
-        return new GrayscaleScalar(precision);
+        return new RgbScalar(precision);
     }
 
     /// <summary>

@@ -29,8 +29,6 @@ public class Block8x8F_MultiplyInPlaceBlock
             }
         }
 
-        var source = default(Block8x8F);
-        source.LoadFrom(result);
-        return source;
+        return Block8x8F.Load(result);
     }
 }

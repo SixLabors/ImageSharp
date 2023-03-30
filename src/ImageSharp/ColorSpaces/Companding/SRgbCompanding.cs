@@ -167,7 +167,7 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandAvx2(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &table[0])
+        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
         {
             var scale = Vector256.Create((float)Scale);
             Vector256<float> zero = Vector256<float>.Zero;
@@ -199,7 +199,7 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandScalar(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &table[0])
+        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
         {
             Vector4 zero = Vector4.Zero;
             var scale = new Vector4(Scale);

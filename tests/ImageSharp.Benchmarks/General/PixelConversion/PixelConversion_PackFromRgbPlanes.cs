@@ -207,8 +207,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
 
         nuint count = (uint)this.Count / (uint)Vector256<float>.Count;
 
-        ref byte control = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
-        Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
+        Vector256<int> vcontrol = SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32().AsInt32();
 
         var va = Vector256.Create(1F);
 

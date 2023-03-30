@@ -186,21 +186,88 @@ public class LosslessUtilsTests
     private static void RunPredictor13Test()
     {
         // arrange
-        uint[] topData = { 4278193922, 4278193666 };
-        const uint left = 4278193410;
-        const uint expectedResult = 4278193154;
+        uint[] topData0 = { 4278193922, 4278193666 };
+        const uint left0 = 4278193410;
+        const uint expectedResult0 = 4278193154;
+        uint[] topData1 = { 4294933015, 4278219803 };
+        const uint left1 = 4278236686;
+        const uint expectedResult1 = 4278231571;
+        uint actual0 = 0;
+        uint actual1 = 0;
 
         // act
         unsafe
         {
-            fixed (uint* top = &topData[1])
+            fixed (uint* top = &topData0[1])
             {
-                uint actual = LosslessUtils.Predictor13(left, top);
+                actual0 = LosslessUtils.Predictor13(left0, top);
+            }
 
-                // assert
-                Assert.Equal(expectedResult, actual);
+            fixed (uint* top = &topData1[1])
+            {
+                actual1 = LosslessUtils.Predictor13(left1, top);
             }
         }
+
+        // assert
+        Assert.Equal(expectedResult0, actual0);
+        Assert.Equal(expectedResult1, actual1);
+    }
+
+    [Fact]
+    public void BundleColorMap_WithXbitsZero_Works()
+    {
+        // arrange
+        byte[] row = { 238, 238, 238, 238, 238, 238, 240, 237, 240, 235, 223, 223, 218, 220, 226, 219, 220, 204, 218, 211, 218, 221, 254, 255 };
+        int xBits = 0;
+        uint[] actual = new uint[row.Length];
+        uint[] expected =
+        {
+            4278251008, 4278251008, 4278251008, 4278251008, 4278251008,
+            4278251008, 4278251520, 4278250752, 4278251520, 4278250240,
+            4278247168, 4278247168, 4278245888, 4278246400, 4278247936,
+            4278246144, 4278246400, 4278242304, 4278245888, 4278244096,
+            4278245888, 4278246656, 4278255104, 4278255360
+        };
+
+        // act
+        LosslessUtils.BundleColorMap(row, actual.Length, xBits, actual);
+
+        // assert
+        Assert.True(actual.SequenceEqual(expected));
+    }
+
+    [Fact]
+    public void BundleColorMap_WithXbitsNoneZero_Works()
+    {
+        // arrange
+        byte[] row =
+        {
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+        };
+        int xBits = 2;
+        uint[] actual = new uint[row.Length];
+        uint[] expected =
+        {
+            4278233600, 4278233600, 4278233600, 4278233600, 4278255360, 4278255360, 4278255360, 4278255360, 4278233600, 4278233600, 4278233600, 4278233600,
+            4278255360, 4278255360, 4278255360, 4278255360, 4278211840, 4278211840, 4278211840, 4278211840, 4278255360, 4278255360, 4278255360, 4278255360,
+            4278255360, 4278255360, 4278255360, 4278255360, 4278255360, 4278255360, 4278255360, 4278206208, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        };
+
+        // act
+        LosslessUtils.BundleColorMap(row, actual.Length, xBits, actual);
+
+        // assert
+        Assert.True(actual.SequenceEqual(expected));
     }
 
     [Fact]
@@ -214,9 +281,6 @@ public class LosslessUtilsTests
 
     [Fact]
     public void Predictor13_Works() => RunPredictor13Test();
-
-    [Fact]
-    public void SubtractGreen_Works() => RunSubtractGreenTest();
 
     [Fact]
     public void AddGreenToBlueAndRed_Works() => RunAddGreenToBlueAndRedTest();
@@ -252,10 +316,16 @@ public class LosslessUtilsTests
     public void Predictor13_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPredictor13Test, HwIntrinsics.DisableSSE2);
 
     [Fact]
+    public void SubtractGreen_Works() => RunSubtractGreenTest();
+
+    [Fact]
     public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.AllowAll);
 
     [Fact]
     public void SubtractGreen_WithoutAVX2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2);
+
+    [Fact]
+    public void SubtractGreen_Scalar_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSSE3);

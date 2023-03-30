@@ -121,7 +121,7 @@ internal static unsafe class QuantEnc
         var rdi4 = new Vp8ModeScore();
         var rdTmp = new Vp8ModeScore();
         var res = new Vp8Residual();
-        Span<short> tmpLevels = new short[16];
+        Span<short> tmpLevels = stackalloc short[16];
         do
         {
             const int numBlocks = 1;

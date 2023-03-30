@@ -15,10 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Residual
 {
-    private readonly byte[] scratch = new byte[32];
-
-    private readonly ushort[] scratchUShort = new ushort[16];
-
     public int First { get; set; }
 
     public int Last { get; set; }
@@ -162,9 +158,10 @@ internal class Vp8Residual
 
         if (Avx2.IsSupported)
         {
-            Span<byte> ctxs = this.scratch.AsSpan(0, 16);
-            Span<byte> levels = this.scratch.AsSpan(16, 16);
-            Span<ushort> absLevels = this.scratchUShort.AsSpan();
+            Span<byte> scratch = stackalloc byte[32];
+            Span<byte> ctxs = scratch.Slice(0, 16);
+            Span<byte> levels = scratch.Slice(16);
+            Span<ushort> absLevels = stackalloc ushort[16];
 
             // Precompute clamped levels and contexts, packed to 8b.
             ref short outputRef = ref MemoryMarshal.GetReference<short>(this.Coeffs);

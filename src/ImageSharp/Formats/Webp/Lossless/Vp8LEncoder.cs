@@ -23,7 +23,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Scratch buffer to reduce allocations.
     /// </summary>
-    private readonly int[] scratch = new int[256];
+    private ScratchBuffer scratch;  // mutable struct, don't make readonly
 
     private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
 
@@ -549,12 +549,8 @@ internal class Vp8LEncoder : IDisposable
         // bgra data with transformations applied.
         Span<uint> bgra = this.EncodedData.GetSpan();
         int histogramImageXySize = LosslessUtils.SubSampleSize(width, this.HistoBits) * LosslessUtils.SubSampleSize(height, this.HistoBits);
-        ushort[] histogramSymbols = new ushort[histogramImageXySize];
-        HuffmanTree[] huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
-        for (int i = 0; i < huffTree.Length; i++)
-        {
-            huffTree[i] = default;
-        }
+        Span<ushort> histogramSymbols = histogramImageXySize <= 64 ? stackalloc ushort[histogramImageXySize] : new ushort[histogramImageXySize];
+        Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * WebpConstants.CodeLengthCodes];
 
         if (useCache)
         {
@@ -607,10 +603,6 @@ internal class Vp8LEncoder : IDisposable
             int histogramImageSize = histogramImage.Count;
             int bitArraySize = 5 * histogramImageSize;
             HuffmanTreeCode[] huffmanCodes = new HuffmanTreeCode[bitArraySize];
-            for (int i = 0; i < huffmanCodes.Length; i++)
-            {
-                huffmanCodes[i] = default;
-            }
 
             GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
 
@@ -702,7 +694,7 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     private void EncodePalette(bool lowEffort)
     {
-        Span<uint> tmpPalette = new uint[WebpConstants.MaxPaletteSize];
+        Span<uint> tmpPalette = stackalloc uint[WebpConstants.MaxPaletteSize];
         int paletteSize = this.PaletteSize;
         Span<uint> palette = this.Palette.Memory.Span;
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
@@ -763,7 +755,7 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
+        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch.Span);
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
         this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
@@ -778,16 +770,7 @@ internal class Vp8LEncoder : IDisposable
         ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
 
         HuffmanTreeCode[] huffmanCodes = new HuffmanTreeCode[5];
-        for (int i = 0; i < huffmanCodes.Length; i++)
-        {
-            huffmanCodes[i] = default;
-        }
-
-        HuffmanTree[] huffTree = new HuffmanTree[3UL * WebpConstants.CodeLengthCodes];
-        for (int i = 0; i < huffTree.Length; i++)
-        {
-            huffTree[i] = default;
-        }
+        Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * WebpConstants.CodeLengthCodes];
 
         // Calculate backward references from the image pixels.
         hashChain.Fill(bgra, quality, width, height, lowEffort);
@@ -847,10 +830,10 @@ internal class Vp8LEncoder : IDisposable
         this.StoreImageToBitMask(width, 0, refs, histogramSymbols, huffmanCodes);
     }
 
-    private void StoreHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
+    private void StoreHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
     {
         int count = 0;
-        Span<int> symbols = this.scratch.AsSpan(0, 2);
+        Span<int> symbols = this.scratch.Span.Slice(0, 2);
         symbols.Clear();
         const int maxBits = 8;
         const int maxSymbol = 1 << maxBits;
@@ -901,7 +884,7 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private void StoreFullHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
+    private void StoreFullHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
     {
         int i;
         byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
@@ -1013,7 +996,7 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, ushort[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
+    private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, Span<ushort> histogramSymbols, HuffmanTreeCode[] huffmanCodes)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
         int tileMask = histoBits == 0 ? 0 : -(1 << histoBits);
@@ -1143,8 +1126,8 @@ internal class Vp8LEncoder : IDisposable
             prevRow = currentRow;
         }
 
-        double[] entropyComp = new double[(int)HistoIx.HistoTotal];
-        double[] entropy = new double[(int)EntropyIx.NumEntropyIx];
+        Span<double> entropyComp = stackalloc double[(int)HistoIx.HistoTotal];
+        Span<double> entropy = stackalloc double[(int)EntropyIx.NumEntropyIx];
         int lastModeToAnalyze = usePalette ? (int)EntropyIx.Palette : (int)EntropyIx.SpatialSubGreen;
 
         // Let's add one zero to the predicted histograms. The zeros are removed
@@ -1647,11 +1630,7 @@ internal class Vp8LEncoder : IDisposable
 
         // Create Huffman trees.
         bool[] bufRle = new bool[maxNumSymbols];
-        HuffmanTree[] huffTree = new HuffmanTree[3 * maxNumSymbols];
-        for (int i = 0; i < huffTree.Length; i++)
-        {
-            huffTree[i] = default;
-        }
+        Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * maxNumSymbols];
 
         for (int i = 0; i < histogramImage.Count; i++)
         {
@@ -1848,5 +1827,16 @@ internal class Vp8LEncoder : IDisposable
         this.Palette.Dispose();
         this.TransformData.Dispose();
         this.HashChain.Dispose();
+    }
+
+    /// <summary>
+    /// Scratch buffer to reduce allocations.
+    /// </summary>
+    private unsafe struct ScratchBuffer
+    {
+        private const int Size = 256;
+        private fixed int scratch[Size];
+
+        public Span<int> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

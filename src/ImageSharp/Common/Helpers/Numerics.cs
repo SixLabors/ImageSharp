@@ -949,4 +949,94 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOutOfRange(int value, int min, int max)
         => (uint)(value - min) > (uint)(max - min);
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector256Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector256<TVector>.Count;
 }

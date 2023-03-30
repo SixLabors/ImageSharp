@@ -25,8 +25,7 @@ public partial class ReferenceImplementationsTests
         {
             float[] data = Create8x8RandomFloatData(-1000, 1000, seed);
 
-            var b0 = default(Block8x8F);
-            b0.LoadFrom(data);
+            Block8x8F b0 = Block8x8F.Load(data);
 
             Block8x8F b1 = ReferenceImplementations.AccurateDCT.TransformFDCT(ref b0);
             Block8x8F b2 = ReferenceImplementations.AccurateDCT.TransformIDCT(ref b1);

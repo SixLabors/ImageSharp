@@ -15,24 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 /// 8x8 matrix of <see cref="short"/> coefficients.
 /// </summary>
 // ReSharper disable once InconsistentNaming
-[StructLayout(LayoutKind.Explicit)]
-internal unsafe partial struct Block8x8
+[StructLayout(LayoutKind.Explicit, Size = 2 * Size)]
+internal partial struct Block8x8
 {
     /// <summary>
     /// A number of scalar coefficients in a <see cref="Block8x8F"/>
     /// </summary>
     public const int Size = 64;
-
-#pragma warning disable IDE0051 // Remove unused private member
-    /// <summary>
-    /// A placeholder buffer so the actual struct occupies exactly 64 * 2 bytes.
-    /// </summary>
-    /// <remarks>
-    /// This is not used directly in the code.
-    /// </remarks>
-    [FieldOffset(0)]
-    private fixed short data[Size];
-#pragma warning restore IDE0051
 
     /// <summary>
     /// Gets or sets a <see cref="short"/> value at the given index
@@ -74,9 +63,10 @@ internal unsafe partial struct Block8x8
 
     public static Block8x8 Load(Span<short> data)
     {
-        Unsafe.SkipInit(out Block8x8 result);
-        result.LoadFrom(data);
-        return result;
+        DebugGuard.MustBeGreaterThanOrEqualTo(data.Length, Size, "data is too small");
+
+        ref byte src = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(data));
+        return Unsafe.ReadUnaligned<Block8x8>(ref src);
     }
 
     /// <summary>
@@ -104,9 +94,10 @@ internal unsafe partial struct Block8x8
     /// </summary>
     public void CopyTo(Span<short> destination)
     {
-        ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
-        ref byte destRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<short, byte>(destination));
-        Unsafe.CopyBlockUnaligned(ref destRef, ref selfRef, Size * sizeof(short));
+        DebugGuard.MustBeGreaterThanOrEqualTo(destination.Length, Size, "destination is too small");
+
+        ref byte destRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(destination));
+        Unsafe.WriteUnaligned(ref destRef, this);
     }
 
     /// <summary>
@@ -133,19 +124,6 @@ internal unsafe partial struct Block8x8
         {
             this[i] = source[i];
         }
-    }
-
-    /// <summary>
-    /// Load raw 16bit integers from source.
-    /// </summary>
-    /// <param name="source">Source</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void LoadFrom(Span<short> source)
-    {
-        ref byte sourceRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(source));
-        ref byte destRef = ref Unsafe.As<Block8x8, byte>(ref this);
-
-        Unsafe.CopyBlockUnaligned(ref destRef, ref sourceRef, Size * sizeof(short));
     }
 
     /// <summary>

@@ -513,33 +513,36 @@ internal sealed class Vp8LHistogram : IDeepCloneable
         DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
         DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
 
-        if (Avx2.IsSupported)
+        if (Avx2.IsSupported && count >= 32)
         {
             ref uint aRef = ref MemoryMarshal.GetReference(a);
             ref uint bRef = ref MemoryMarshal.GetReference(b);
             ref uint outputRef = ref MemoryMarshal.GetReference(output);
-            int i;
 
-            for (i = 0; i + 32 <= count; i += 32)
+            nuint idx = 0;
+            do
             {
                 // Load values.
-                Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i));
-                Vector256<uint> a1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 8));
-                Vector256<uint> a2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 16));
-                Vector256<uint> a3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, i + 24));
-                Vector256<uint> b0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i));
-                Vector256<uint> b1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 8));
-                Vector256<uint> b2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 16));
-                Vector256<uint> b3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, i + 24));
+                Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 0));
+                Vector256<uint> a1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 8));
+                Vector256<uint> a2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 16));
+                Vector256<uint> a3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 24));
+                Vector256<uint> b0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 0));
+                Vector256<uint> b1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 8));
+                Vector256<uint> b2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 16));
+                Vector256<uint> b3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 24));
 
                 // Note we are adding uint32_t's as *signed* int32's (using _mm_add_epi32). But
                 // that's ok since the histogram values are less than 1<<28 (max picture count).
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i)) = Avx2.Add(a0, b0);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 8)) = Avx2.Add(a1, b1);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 16)) = Avx2.Add(a2, b2);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, i + 24)) = Avx2.Add(a3, b3);
+                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 0)) = Avx2.Add(a0, b0);
+                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 8)) = Avx2.Add(a1, b1);
+                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 16)) = Avx2.Add(a2, b2);
+                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 24)) = Avx2.Add(a3, b3);
+                idx += 32;
             }
+            while (idx <= (uint)count - 32);
 
+            int i = (int)idx;
             for (; i < count; i++)
             {
                 output[i] = a[i] + b[i];

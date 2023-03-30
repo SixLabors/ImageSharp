@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -58,7 +57,8 @@ internal class Vp8BitWriter : BitWriterBase
     /// Initializes a new instance of the <see cref="Vp8BitWriter"/> class.
     /// </summary>
     /// <param name="expectedSize">The expected size in bytes.</param>
-    public Vp8BitWriter(int expectedSize)
+    /// <param name="enc">The Vp8Encoder.</param>
+    public Vp8BitWriter(int expectedSize, Vp8Encoder enc)
         : base(expectedSize)
     {
         this.range = 255 - 1;
@@ -67,15 +67,9 @@ internal class Vp8BitWriter : BitWriterBase
         this.nbBits = -8;
         this.pos = 0;
         this.maxPos = 0;
-    }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Vp8BitWriter"/> class.
-    /// </summary>
-    /// <param name="expectedSize">The expected size in bytes.</param>
-    /// <param name="enc">The Vp8Encoder.</param>
-    public Vp8BitWriter(int expectedSize, Vp8Encoder enc)
-        : this(expectedSize) => this.enc = enc;
+        this.enc = enc;
+    }
 
     /// <inheritdoc/>
     public override int NumBytes() => (int)this.pos;
@@ -414,9 +408,9 @@ internal class Vp8BitWriter : BitWriterBase
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
     public void WriteEncodedImageToStream(
         Stream stream,
-        ExifProfile exifProfile,
-        XmpProfile xmpProfile,
-        IccProfile iccProfile,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
         uint width,
         uint height,
         bool hasAlpha,
@@ -424,22 +418,22 @@ internal class Vp8BitWriter : BitWriterBase
         bool alphaDataIsCompressed)
     {
         bool isVp8X = false;
-        byte[] exifBytes = null;
-        byte[] xmpBytes = null;
-        byte[] iccProfileBytes = null;
+        byte[]? exifBytes = null;
+        byte[]? xmpBytes = null;
+        byte[]? iccProfileBytes = null;
         uint riffSize = 0;
         if (exifProfile != null)
         {
             isVp8X = true;
             exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes);
+            riffSize += MetadataChunkSize(exifBytes!);
         }
 
         if (xmpProfile != null)
         {
             isVp8X = true;
             xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes);
+            riffSize += MetadataChunkSize(xmpBytes!);
         }
 
         if (iccProfile != null)
@@ -463,9 +457,9 @@ internal class Vp8BitWriter : BitWriterBase
         this.Finish();
         uint numBytes = (uint)this.NumBytes();
         int mbSize = this.enc.Mbw * this.enc.Mbh;
-        int expectedSize = mbSize * 7 / 8;
+        int expectedSize = (int)((uint)mbSize * 7 / 8);
 
-        var bitWriterPartZero = new Vp8BitWriter(expectedSize);
+        Vp8BitWriter bitWriterPartZero = new(expectedSize, this.enc);
 
         // Partition #0 with header and partition sizes.
         uint size0 = this.GeneratePartition0(bitWriterPartZero);
@@ -676,9 +670,9 @@ internal class Vp8BitWriter : BitWriterBase
         bool isVp8X,
         uint width,
         uint height,
-        ExifProfile exifProfile,
-        XmpProfile xmpProfile,
-        byte[] iccProfileBytes,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        byte[]? iccProfileBytes,
         bool hasAlpha,
         Span<byte> alphaData,
         bool alphaDataIsCompressed)

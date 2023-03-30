@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
@@ -366,7 +367,7 @@ public class TestImageProviderTests
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
         }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -409,7 +410,7 @@ public class TestImageProviderTests
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            return new(image.PixelType, image.Width, image.Height, image.Metadata);
+            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
         }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)

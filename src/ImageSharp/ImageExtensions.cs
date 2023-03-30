@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 using System.Text;
@@ -180,6 +179,6 @@ public static partial class ImageExtensions
 
         // Always available.
         stream.TryGetBuffer(out ArraySegment<byte> buffer);
-        return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array, 0, (int)stream.Length)}";
+        return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array ?? Array.Empty<byte>(), 0, (int)stream.Length)}";
     }
 }

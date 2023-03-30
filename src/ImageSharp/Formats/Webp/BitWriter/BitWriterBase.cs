@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
@@ -23,7 +24,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// A scratch buffer to reduce allocations.
     /// </summary>
-    private readonly byte[] scratchBuffer = new byte[4];
+    private ScratchBuffer scratchBuffer;  // mutable struct, don't make readonly
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
@@ -90,8 +91,8 @@ internal abstract class BitWriterBase
     protected void WriteRiffHeader(Stream stream, uint riffSize)
     {
         stream.Write(WebpConstants.RiffFourCc);
-        BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, riffSize);
-        stream.Write(this.scratchBuffer.AsSpan(0, 4));
+        BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer.Span, riffSize);
+        stream.Write(this.scratchBuffer.Span.Slice(0, 4));
         stream.Write(WebpConstants.WebpHeader);
     }
 
@@ -123,12 +124,12 @@ internal abstract class BitWriterBase
     /// <param name="stream">The stream to write to.</param>
     /// <param name="metadataBytes">The metadata profile's bytes.</param>
     /// <param name="chunkType">The chuck type to write.</param>
-    protected void WriteMetadataProfile(Stream stream, byte[] metadataBytes, WebpChunkType chunkType)
+    protected void WriteMetadataProfile(Stream stream, byte[]? metadataBytes, WebpChunkType chunkType)
     {
         DebugGuard.NotNull(metadataBytes, nameof(metadataBytes));
 
         uint size = (uint)metadataBytes.Length;
-        Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)chunkType);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
@@ -151,7 +152,7 @@ internal abstract class BitWriterBase
     protected void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
     {
         uint size = (uint)dataBytes.Length + 1;
-        Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Alpha);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
@@ -182,7 +183,7 @@ internal abstract class BitWriterBase
     {
         uint size = (uint)iccProfileBytes.Length;
 
-        Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Iccp);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
@@ -207,7 +208,7 @@ internal abstract class BitWriterBase
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, byte[] iccProfileBytes, uint width, uint height, bool hasAlpha)
+    protected void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, byte[]? iccProfileBytes, uint width, uint height, bool hasAlpha)
     {
         if (width > MaxDimension || height > MaxDimension)
         {
@@ -245,7 +246,7 @@ internal abstract class BitWriterBase
             flags |= 32;
         }
 
-        Span<byte> buf = this.scratchBuffer.AsSpan(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
         stream.Write(WebpConstants.Vp8XMagicBytes);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, WebpConstants.Vp8XChunkSize);
         stream.Write(buf);
@@ -255,5 +256,13 @@ internal abstract class BitWriterBase
         stream.Write(buf[..3]);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, height - 1);
         stream.Write(buf[..3]);
+    }
+
+    private unsafe struct ScratchBuffer
+    {
+        private const int Size = 4;
+        private fixed byte scratch[Size];
+
+        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

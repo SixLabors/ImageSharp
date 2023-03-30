@@ -63,8 +63,8 @@ internal class Vp8LBitReader : BitReaderBase
     /// </summary>
     /// <param name="data">Lossless compressed image data.</param>
     public Vp8LBitReader(IMemoryOwner<byte> data)
+        : base(data)
     {
-        this.Data = data;
         this.len = data.Memory.Length;
         this.value = 0;
         this.bitPos = 0;
@@ -88,10 +88,9 @@ internal class Vp8LBitReader : BitReaderBase
     /// <param name="imageDataSize">The raw image data size in bytes.</param>
     /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
     public Vp8LBitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
+        : base(inputStream, (int)imageDataSize, memoryAllocator)
     {
         long length = imageDataSize;
-
-        this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
 
         this.len = length;
         this.value = 0;
@@ -193,7 +192,7 @@ internal class Vp8LBitReader : BitReaderBase
     [MethodImpl(InliningOptions.ShortMethod)]
     private void ShiftBytes()
     {
-        System.Span<byte> dataSpan = this.Data.Memory.Span;
+        Span<byte> dataSpan = this.Data!.Memory.Span;
         while (this.bitPos >= 8 && this.pos < this.len)
         {
             this.value >>= 8;

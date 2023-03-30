@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -36,7 +35,7 @@ internal class WebpImageInfo : IDisposable
     /// <summary>
     /// Gets or sets additional features present in a VP8X image.
     /// </summary>
-    public WebpFeatures Features { get; set; }
+    public WebpFeatures? Features { get; set; }
 
     /// <summary>
     /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3. Default value will be the invalid value -1.
@@ -46,17 +45,17 @@ internal class WebpImageInfo : IDisposable
     /// <summary>
     /// Gets or sets the VP8 frame header.
     /// </summary>
-    public Vp8FrameHeader Vp8FrameHeader { get; set; }
+    public Vp8FrameHeader? Vp8FrameHeader { get; set; }
 
     /// <summary>
     /// Gets or sets the VP8L bitreader. Will be <see langword="null"/>, if its not a lossless image.
     /// </summary>
-    public Vp8LBitReader Vp8LBitReader { get; set; }
+    public Vp8LBitReader? Vp8LBitReader { get; set; }
 
     /// <summary>
     /// Gets or sets the VP8 bitreader. Will be <see langword="null"/>, if its not a lossy image.
     /// </summary>
-    public Vp8BitReader Vp8BitReader { get; set; }
+    public Vp8BitReader? Vp8BitReader { get; set; }
 
     /// <inheritdoc/>
     public void Dispose()

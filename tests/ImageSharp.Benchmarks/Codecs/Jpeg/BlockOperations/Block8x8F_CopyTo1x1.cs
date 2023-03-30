@@ -72,8 +72,8 @@ public unsafe class Block8x8F_CopyTo1x1
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CopyRowImpl(ref byte selfBase, ref byte destBase, int destStride, int row)
     {
-        ref byte s = ref Unsafe.Add(ref selfBase, row * 8 * sizeof(float));
-        ref byte d = ref Unsafe.Add(ref destBase, row * destStride);
+        ref byte s = ref Unsafe.Add(ref selfBase, (uint)row * 8 * sizeof(float));
+        ref byte d = ref Unsafe.Add(ref destBase, (uint)(row * destStride));
         Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
     }
 
@@ -82,7 +82,7 @@ public unsafe class Block8x8F_CopyTo1x1
     {
         ref Block8x8F s = ref this.block;
         ref float origin = ref Unsafe.AsRef<float>(this.bufferPtr);
-        int stride = Width;
+        nuint stride = (uint)Width;
 
         ref Vector<float> d0 = ref Unsafe.As<float, Vector<float>>(ref origin);
         ref Vector<float> d1 = ref Unsafe.As<float, Vector<float>>(ref Unsafe.Add(ref origin, stride));
@@ -117,7 +117,7 @@ public unsafe class Block8x8F_CopyTo1x1
     {
         ref Block8x8F s = ref this.block;
         ref float origin = ref Unsafe.AsRef<float>(this.bufferPtr);
-        int stride = Width;
+        nuint stride = (uint)Width;
 
         ref Vector<float> d0 = ref Unsafe.As<float, Vector<float>>(ref origin);
         ref Vector<float> d1 = ref Unsafe.As<float, Vector<float>>(ref Unsafe.Add(ref origin, stride));
@@ -141,29 +141,29 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector8_V3()
     {
-        int stride = Width * sizeof(float);
+        nuint stride = (uint)Width * sizeof(float);
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector<float> s = ref Unsafe.As<Block8x8F, Vector<float>>(ref this.block);
 
         Vector<float> v0 = s;
-        Vector<float> v1 = Unsafe.AddByteOffset(ref s, (IntPtr)1);
-        Vector<float> v2 = Unsafe.AddByteOffset(ref s, (IntPtr)2);
-        Vector<float> v3 = Unsafe.AddByteOffset(ref s, (IntPtr)3);
+        Vector<float> v1 = Unsafe.AddByteOffset(ref s, 1);
+        Vector<float> v2 = Unsafe.AddByteOffset(ref s, 2);
+        Vector<float> v3 = Unsafe.AddByteOffset(ref s, 3);
 
         Unsafe.As<float, Vector<float>>(ref d) = v0;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)stride)) = v1;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 2))) = v2;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 3))) = v3;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride)) = v1;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 2)) = v2;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 3)) = v3;
 
-        v0 = Unsafe.AddByteOffset(ref s, (IntPtr)4);
-        v1 = Unsafe.AddByteOffset(ref s, (IntPtr)5);
-        v2 = Unsafe.AddByteOffset(ref s, (IntPtr)6);
-        v3 = Unsafe.AddByteOffset(ref s, (IntPtr)7);
+        v0 = Unsafe.AddByteOffset(ref s, 4);
+        v1 = Unsafe.AddByteOffset(ref s, 5);
+        v2 = Unsafe.AddByteOffset(ref s, 6);
+        v3 = Unsafe.AddByteOffset(ref s, 7);
 
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 4))) = v0;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 5))) = v1;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 6))) = v2;
-        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 7))) = v3;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 4)) = v0;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 5)) = v1;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 6)) = v2;
+        Unsafe.As<float, Vector<float>>(ref Unsafe.AddByteOffset(ref d, stride * 7)) = v3;
     }
 
     [Benchmark]
@@ -254,7 +254,7 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector256_Avx2_Variant3_RefCast()
     {
-        int stride = Width;
+        nuint stride = (uint)Width;
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector256<float> s = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this.block);
 
@@ -282,29 +282,29 @@ public unsafe class Block8x8F_CopyTo1x1
     [Benchmark]
     public void UseVector256_Avx2_Variant3_RefCast_Mod()
     {
-        int stride = Width * sizeof(float);
+        nuint stride = (uint)Width * sizeof(float);
         ref float d = ref this.unpinnedBuffer[0];
         ref Vector256<float> s = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this.block);
 
         Vector256<float> v0 = s;
-        Vector256<float> v1 = Unsafe.AddByteOffset(ref s, (IntPtr)1);
-        Vector256<float> v2 = Unsafe.AddByteOffset(ref s, (IntPtr)2);
-        Vector256<float> v3 = Unsafe.AddByteOffset(ref s, (IntPtr)3);
+        Vector256<float> v1 = Unsafe.AddByteOffset(ref s, 1);
+        Vector256<float> v2 = Unsafe.AddByteOffset(ref s, 2);
+        Vector256<float> v3 = Unsafe.AddByteOffset(ref s, 3);
 
         Unsafe.As<float, Vector256<float>>(ref d) = v0;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)stride)) = v1;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 2))) = v2;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 3))) = v3;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride)) = v1;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 2)) = v2;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 3)) = v3;
 
-        v0 = Unsafe.AddByteOffset(ref s, (IntPtr)4);
-        v1 = Unsafe.AddByteOffset(ref s, (IntPtr)5);
-        v2 = Unsafe.AddByteOffset(ref s, (IntPtr)6);
-        v3 = Unsafe.AddByteOffset(ref s, (IntPtr)7);
+        v0 = Unsafe.AddByteOffset(ref s, 4);
+        v1 = Unsafe.AddByteOffset(ref s, 5);
+        v2 = Unsafe.AddByteOffset(ref s, 6);
+        v3 = Unsafe.AddByteOffset(ref s, 7);
 
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 4))) = v0;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 5))) = v1;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 6))) = v2;
-        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, (IntPtr)(stride * 7))) = v3;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 4)) = v0;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 5)) = v1;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 6)) = v2;
+        Unsafe.As<float, Vector256<float>>(ref Unsafe.AddByteOffset(ref d, stride * 7)) = v3;
     }
 
     // [Benchmark]

@@ -19,7 +19,11 @@ public class TiffMetadata : IDeepCloneable
     /// Initializes a new instance of the <see cref="TiffMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private TiffMetadata(TiffMetadata other) => this.ByteOrder = other.ByteOrder;
+    private TiffMetadata(TiffMetadata other)
+    {
+        this.ByteOrder = other.ByteOrder;
+        this.FormatType = other.FormatType;
+    }
 
     /// <summary>
     /// Gets or sets the byte order.

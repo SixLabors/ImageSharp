@@ -75,7 +75,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         // First convert the required source rows to Vector4.
         for (int i = 0; i < this.kernelSize; i++)
         {
-            int currentYIndex = Unsafe.Add(ref sampleRowBase, i);
+            int currentYIndex = Unsafe.Add(ref sampleRowBase, (uint)i);
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(currentYIndex).Slice(boundsX, boundsWidth);
             Span<Vector4> sourceVectorRow = sourceVectorBuffer.Slice(i * boundsWidth, boundsWidth);
             PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceVectorRow);
@@ -87,15 +87,15 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
             {
                 int index = 0;
                 ref int sampleColumnBase = ref state.GetSampleColumn(x);
-                ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                ref Vector4 target = ref Unsafe.Add(ref targetBase, (uint)x);
                 for (int kY = 0; kY < state.Kernel.Rows; kY++)
                 {
                     Span<Vector4> sourceRow = sourceVectorBuffer[(kY * boundsWidth)..];
                     ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                     for (int kX = 0; kX < state.Kernel.Columns; kX++)
                     {
-                        int currentXIndex = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                        Vector4 pixel = Unsafe.Add(ref sourceRowBase, currentXIndex);
+                        int currentXIndex = Unsafe.Add(ref sampleColumnBase, (uint)kX) - boundsX;
+                        Vector4 pixel = Unsafe.Add(ref sourceRowBase, (uint)currentXIndex);
                         state.Kernel.SetValue(index, pixel);
                         index++;
                     }
@@ -111,15 +111,15 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
             {
                 int index = 0;
                 ref int sampleColumnBase = ref state.GetSampleColumn(x);
-                ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                ref Vector4 target = ref Unsafe.Add(ref targetBase, (uint)x);
                 for (int kY = 0; kY < state.Kernel.Rows; kY++)
                 {
                     Span<Vector4> sourceRow = sourceVectorBuffer[(kY * boundsWidth)..];
                     ref Vector4 sourceRowBase = ref MemoryMarshal.GetReference(sourceRow);
                     for (int kX = 0; kX < state.Kernel.Columns; kX++)
                     {
-                        int currentXIndex = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                        Vector4 pixel = Unsafe.Add(ref sourceRowBase, currentXIndex);
+                        int currentXIndex = Unsafe.Add(ref sampleColumnBase, (uint)kX) - boundsX;
+                        Vector4 pixel = Unsafe.Add(ref sourceRowBase, (uint)currentXIndex);
                         state.Kernel.SetValue(index, pixel);
                         index++;
                     }

@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp;
 
@@ -17,7 +16,7 @@ internal static class ColorNumerics
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
     /// </summary>
-    private static readonly Vector4 Bt709 = new Vector4(.2126f, .7152f, .0722f, 0.0f);
+    private static readonly Vector4 Bt709 = new(.2126f, .7152f, .0722f, 0.0f);
 
     /// <summary>
     /// Convert a pixel value to grayscale using ITU-R Recommendation BT.709.
@@ -137,6 +136,19 @@ internal static class ColorNumerics
     public static int GetColorCountForBitDepth(int bitDepth)
         => 1 << bitDepth;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector4 Transform(Vector4 vector, in ColorMatrix.Impl matrix)
+    {
+        Vector4 result = matrix.X * vector.X;
+
+        result += matrix.Y * vector.Y;
+        result += matrix.Z * vector.Z;
+        result += matrix.W * vector.W;
+        result += matrix.V;
+
+        return result;
+    }
+
     /// <summary>
     /// Transforms a vector by the given color matrix.
     /// </summary>
@@ -144,17 +156,7 @@ internal static class ColorNumerics
     /// <param name="matrix">The transformation color matrix.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform(ref Vector4 vector, ref ColorMatrix matrix)
-    {
-        float x = vector.X;
-        float y = vector.Y;
-        float z = vector.Z;
-        float w = vector.W;
-
-        vector.X = (x * matrix.M11) + (y * matrix.M21) + (z * matrix.M31) + (w * matrix.M41) + matrix.M51;
-        vector.Y = (x * matrix.M12) + (y * matrix.M22) + (z * matrix.M32) + (w * matrix.M42) + matrix.M52;
-        vector.Z = (x * matrix.M13) + (y * matrix.M23) + (z * matrix.M33) + (w * matrix.M43) + matrix.M53;
-        vector.W = (x * matrix.M14) + (y * matrix.M24) + (z * matrix.M34) + (w * matrix.M44) + matrix.M54;
-    }
+        => vector = Transform(vector, matrix.AsImpl());
 
     /// <summary>
     /// Bulk variant of <see cref="Transform(ref Vector4, ref ColorMatrix)"/>.
@@ -164,11 +166,9 @@ internal static class ColorNumerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Transform(Span<Vector4> vectors, ref ColorMatrix matrix)
     {
-        ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
         for (int i = 0; i < vectors.Length; i++)
         {
-            ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+            ref Vector4 v = ref vectors[i];
             Transform(ref v, ref matrix);
         }
     }

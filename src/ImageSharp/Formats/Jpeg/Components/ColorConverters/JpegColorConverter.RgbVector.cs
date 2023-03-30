@@ -28,8 +28,8 @@ internal abstract partial class JpegColorConverterBase
 
             var scale = new Vector<float>(1 / this.MaximumValue);
 
-            nint n = values.Component0.Length / Vector<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = values.Component0.VectorCount<float>();
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector<float> r = ref Unsafe.Add(ref rBase, i);
                 ref Vector<float> g = ref Unsafe.Add(ref gBase, i);

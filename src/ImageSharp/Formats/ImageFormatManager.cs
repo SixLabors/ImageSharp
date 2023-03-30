@@ -102,9 +102,7 @@ public class ImageFormatManager
     /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
     public bool TryFindFormatByFileExtension(string extension, [NotNullWhen(true)] out IImageFormat? format)
     {
-        Guard.NotNullOrWhiteSpace(extension, nameof(extension));
-
-        if (extension[0] == '.')
+        if (!string.IsNullOrWhiteSpace(extension) && extension[0] == '.')
         {
             extension = extension[1..];
         }

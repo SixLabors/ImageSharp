@@ -17,7 +17,7 @@ public class SystemDrawingReferenceDecoder : ImageDecoder
     {
         using SDBitmap sourceBitmap = new(stream);
         PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));
-        return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
+        return new ImageInfo(pixelType, new(sourceBitmap.Width, sourceBitmap.Height), new ImageMetadata());
     }
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)

@@ -71,7 +71,7 @@ public class PixelConversion_ConvertFromVector4
             ref T destBaseRef = ref this.dest[0];
             ref Vector4 sourceBaseRef = ref this.source[0];
 
-            for (int i = 0; i < count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref destBaseRef, i).FromVector4(ref Unsafe.Add(ref sourceBaseRef, i));
             }
@@ -85,7 +85,7 @@ public class PixelConversion_ConvertFromVector4
             ref T destBaseRef = ref this.dest[0];
             ref Vector4 sourceBaseRef = ref this.source[0];
 
-            for (int i = 0; i < count; i++)
+            for (nuint i = 0; i < (uint)count; i++)
             {
                 Unsafe.Add(ref destBaseRef, i).FromVector4(Unsafe.Add(ref sourceBaseRef, i));
             }

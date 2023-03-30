@@ -30,11 +30,6 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] buffer = new byte[4];
-
-    /// <summary>
     /// The global configuration.
     /// </summary>
     private Configuration configuration;
@@ -157,7 +152,9 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         this.SanitizeAndSetEncoderOptions(bitsPerPixel, image.PixelType.BitsPerPixel, photometricInterpretation, compression, predictor);
 
         using TiffStreamWriter writer = new(stream);
-        long ifdMarker = WriteHeader(writer);
+        Span<byte> buffer = stackalloc byte[4];
+
+        long ifdMarker = WriteHeader(writer, buffer);
 
         Image<TPixel> metadataImage = image;
         foreach (ImageFrame<TPixel> frame in image.Frames)
@@ -171,7 +168,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         long currentOffset = writer.BaseStream.Position;
         foreach ((long, uint) marker in this.frameMarkers)
         {
-            writer.WriteMarkerFast(marker.Item1, marker.Item2);
+            writer.WriteMarkerFast(marker.Item1, marker.Item2, buffer);
         }
 
         writer.BaseStream.Seek(currentOffset, SeekOrigin.Begin);
@@ -181,14 +178,15 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     /// Writes the TIFF file header.
     /// </summary>
     /// <param name="writer">The <see cref="TiffStreamWriter" /> to write data to.</param>
+    /// <param name="buffer">Scratch buffer with minimum size of 2.</param>
     /// <returns>
     /// The marker to write the first IFD offset.
     /// </returns>
-    public static long WriteHeader(TiffStreamWriter writer)
+    public static long WriteHeader(TiffStreamWriter writer, Span<byte> buffer)
     {
-        writer.Write(ByteOrderMarker);
-        writer.Write(TiffConstants.HeaderMagicNumber);
-        return writer.PlaceMarker();
+        writer.Write(ByteOrderMarker, buffer);
+        writer.Write(TiffConstants.HeaderMagicNumber, buffer);
+        return writer.PlaceMarker(buffer);
     }
 
     /// <summary>
@@ -307,20 +305,22 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
 
         entries.Sort((a, b) => (ushort)a.Tag - (ushort)b.Tag);
 
-        writer.Write((ushort)entries.Count);
+        Span<byte> buffer = stackalloc byte[4];
+
+        writer.Write((ushort)entries.Count, buffer);
 
         foreach (IExifValue entry in entries)
         {
-            writer.Write((ushort)entry.Tag);
-            writer.Write((ushort)entry.DataType);
-            writer.Write(ExifWriter.GetNumberOfComponents(entry));
+            writer.Write((ushort)entry.Tag, buffer);
+            writer.Write((ushort)entry.DataType, buffer);
+            writer.Write(ExifWriter.GetNumberOfComponents(entry), buffer);
 
             uint length = ExifWriter.GetLength(entry);
             if (length <= 4)
             {
-                int sz = ExifWriter.WriteValue(entry, this.buffer, 0);
+                int sz = ExifWriter.WriteValue(entry, buffer, 0);
                 DebugGuard.IsTrue(sz == length, "Incorrect number of bytes written");
-                writer.WritePadded(this.buffer.AsSpan(0, sz));
+                writer.WritePadded(buffer.Slice(0, sz));
             }
             else
             {
@@ -328,12 +328,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 int sz = ExifWriter.WriteValue(entry, raw, 0);
                 DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
                 largeDataBlocks.Add(raw);
-                writer.Write(dataOffset);
+                writer.Write(dataOffset, buffer);
                 dataOffset += (uint)(raw.Length + (raw.Length % 2));
             }
         }
 
-        long nextIfdMarker = writer.PlaceMarker();
+        long nextIfdMarker = writer.PlaceMarker(buffer);
 
         foreach (byte[] dataBlock in largeDataBlocks)
         {
@@ -390,6 +390,10 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 case TiffBitsPerPixel.Bit48:
                     // Encoding not yet supported bits per pixel will default to 24 bits.
                     this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
+                    break;
+                case TiffBitsPerPixel.Bit64:
+                    // Encoding not yet supported bits per pixel will default to 32 bits.
+                    this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
                     break;
                 default:
                     this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);

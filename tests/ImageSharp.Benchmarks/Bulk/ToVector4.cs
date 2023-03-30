@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk;
+namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
 public abstract class ToVector4<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -20,7 +22,7 @@ public class JpegColorConverterTests
 
     private const int TestBufferLength = 40;
 
-    private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX;
+    private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2;
 
     private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
 
@@ -36,7 +38,7 @@ public class JpegColorConverterTests
     [Fact]
     public void GetConverterThrowsExceptionOnInvalidColorSpace()
     {
-        var invalidColorSpace = (JpegColorSpace)(-1);
+        JpegColorSpace invalidColorSpace = (JpegColorSpace)(-1);
         Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
     }
 
@@ -61,12 +63,177 @@ public class JpegColorConverterTests
     [InlineData(JpegColorSpace.YCbCr, 12)]
     internal void GetConverterReturnsValidConverter(JpegColorSpace colorSpace, int precision)
     {
-        var converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
+        JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
 
         Assert.NotNull(converter);
         Assert.True(converter.IsAvailable);
         Assert.Equal(colorSpace, converter.ColorSpace);
         Assert.Equal(precision, converter.Precision);
+    }
+
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithRgbColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.RgbScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbVector);
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.RgbArm);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.RGB, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithGrayScaleColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.GrayscaleScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayscaleAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.GrayscaleArm);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Grayscale, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithCmykColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.CmykScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.CmykAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.CmykVector);
+            }
+            else if (AdvSimd.Arm64.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.CmykArm64);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Cmyk, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithYCbCrColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.YCbCrScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YCbCrAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YCbCrVector);
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YCbCrArm);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
+    }
+
+    [Fact]
+    public void GetConverterReturnsCorrectConverterWithYcckColorSpace()
+    {
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+
+        static void RunTest(string arg)
+        {
+            // arrange
+            Type expectedType = typeof(JpegColorConverterBase.YccKScalar);
+            if (Avx.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKAvx);
+            }
+            else if (Sse2.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKVector);
+            }
+            else if (AdvSimd.Arm64.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YccKArm64);
+            }
+
+            // act
+            JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Ycck, 8);
+            Type actualType = converter.GetType();
+
+            // assert
+            Assert.Equal(expectedType, actualType);
+        }
     }
 
     [Theory]
@@ -75,10 +242,10 @@ public class JpegColorConverterTests
     [InlineData(JpegColorSpace.Cmyk, 4)]
     [InlineData(JpegColorSpace.RGB, 3)]
     [InlineData(JpegColorSpace.YCbCr, 3)]
-    internal void ConvertWithSelectedConverter(JpegColorSpace colorSpace, int componentCount)
+    internal void ConvertToRgbWithSelectedConverter(JpegColorSpace colorSpace, int componentCount)
     {
-        var converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
-        ValidateConversion(
+        JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
+        ValidateConversionToRgb(
             converter,
             componentCount,
             1);
@@ -87,13 +254,13 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYCbCrBasic(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.YCbCrScalar(8), 3, seed);
+        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrScalar(8), 3, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYCbCrVector(int seed)
     {
-        var converter = new JpegColorConverterBase.YCbCrVector(8);
+        JpegColorConverterBase.YCbCrVector converter = new(8);
 
         if (!converter.IsAvailable)
         {
@@ -108,22 +275,23 @@ public class JpegColorConverterTests
             IntrinsicsConfig);
 
         static void RunTest(string arg) =>
-            ValidateConversion(
+            ValidateConversionToRgb(
                 new JpegColorConverterBase.YCbCrVector(8),
                 3,
-                FeatureTestRunner.Deserialize<int>(arg));
+                FeatureTestRunner.Deserialize<int>(arg),
+                new JpegColorConverterBase.YCbCrScalar(8));
     }
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromCmykBasic(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.CmykScalar(8), 4, seed);
+        this.TestConversionToRgb(new JpegColorConverterBase.CmykScalar(8), 4, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromCmykVector(int seed)
     {
-        var converter = new JpegColorConverterBase.CmykVector(8);
+        JpegColorConverterBase.CmykVector converter = new(8);
 
         if (!converter.IsAvailable)
         {
@@ -138,22 +306,23 @@ public class JpegColorConverterTests
             IntrinsicsConfig);
 
         static void RunTest(string arg) =>
-            ValidateConversion(
+            ValidateConversionToRgb(
                 new JpegColorConverterBase.CmykVector(8),
                 4,
-                FeatureTestRunner.Deserialize<int>(arg));
+                FeatureTestRunner.Deserialize<int>(arg),
+                new JpegColorConverterBase.CmykScalar(8));
     }
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromGrayscaleBasic(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.GrayscaleScalar(8), 1, seed);
+        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleScalar(8), 1, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromGrayscaleVector(int seed)
     {
-        var converter = new JpegColorConverterBase.GrayScaleVector(8);
+        JpegColorConverterBase.GrayScaleVector converter = new(8);
 
         if (!converter.IsAvailable)
         {
@@ -168,22 +337,23 @@ public class JpegColorConverterTests
             IntrinsicsConfig);
 
         static void RunTest(string arg) =>
-            ValidateConversion(
+            ValidateConversionToRgb(
                 new JpegColorConverterBase.GrayScaleVector(8),
                 1,
-                FeatureTestRunner.Deserialize<int>(arg));
+                FeatureTestRunner.Deserialize<int>(arg),
+                new JpegColorConverterBase.GrayscaleScalar(8));
     }
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbBasic(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.RgbScalar(8), 3, seed);
+        this.TestConversionToRgb(new JpegColorConverterBase.RgbScalar(8), 3, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbVector(int seed)
     {
-        var converter = new JpegColorConverterBase.RgbVector(8);
+        JpegColorConverterBase.RgbVector converter = new(8);
 
         if (!converter.IsAvailable)
         {
@@ -198,22 +368,23 @@ public class JpegColorConverterTests
             IntrinsicsConfig);
 
         static void RunTest(string arg) =>
-            ValidateConversion(
+            ValidateConversionToRgb(
                 new JpegColorConverterBase.RgbVector(8),
                 3,
-                FeatureTestRunner.Deserialize<int>(arg));
+                FeatureTestRunner.Deserialize<int>(arg),
+                new JpegColorConverterBase.RgbScalar(8));
     }
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKBasic(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.YccKScalar(8), 4, seed);
+        this.TestConversionToRgb(new JpegColorConverterBase.YccKScalar(8), 4, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKVector(int seed)
     {
-        var converter = new JpegColorConverterBase.YccKVector(8);
+        JpegColorConverterBase.YccKVector converter = new(8);
 
         if (!converter.IsAvailable)
         {
@@ -228,41 +399,182 @@ public class JpegColorConverterTests
             IntrinsicsConfig);
 
         static void RunTest(string arg) =>
-            ValidateConversion(
+            ValidateConversionToRgb(
                 new JpegColorConverterBase.YccKVector(8),
                 4,
-                FeatureTestRunner.Deserialize<int>(arg));
+                FeatureTestRunner.Deserialize<int>(arg),
+                new JpegColorConverterBase.YccKScalar(8));
     }
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYCbCrAvx2(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.YCbCrAvx(8), 3, seed);
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.YCbCrAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYCbCrAvx2(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.YCbCrAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8),
+            precísion: 2);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromYCbCrArm(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYCbCrArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.YCbCrScalar(8),
+            precísion: 2);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromCmykAvx2(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.CmykAvx(8), 4, seed);
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.CmykAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToCmykAvx2(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.CmykAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8),
+            precísion: 4);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromCmykArm(int seed) =>
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.CmykArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToCmykArm(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.CmykArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.CmykScalar(8),
+            precísion: 4);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromGrayscaleAvx2(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.GrayscaleAvx(8), 1, seed);
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.GrayscaleAvx(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayscaleAvx2(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.GrayscaleAvx(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8),
+            precísion: 3);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromGrayscaleArm(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleArm(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayscaleArm(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleArm(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayscaleScalar(8),
+            precísion: 3);
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbAvx2(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.RgbAvx(8), 3, seed);
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.RgbAvx(8),
+            3,
+            seed,
+            new JpegColorConverterBase.RgbScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbArm(int seed) =>
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.RgbArm(8),
+            3,
+            seed,
+            new JpegColorConverterBase.RgbScalar(8));
 
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKAvx2(int seed) =>
-        this.TestConverter(new JpegColorConverterBase.YccKAvx(8), 4, seed);
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.YccKAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8));
 
-    private void TestConverter(
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYccKAvx2(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.YccKAvx(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8),
+            precísion: 4);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromYccKArm64(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.YccKArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToYccKArm64(int seed) =>
+        this.TestConversionFromRgb(new JpegColorConverterBase.YccKArm64(8),
+            4,
+            seed,
+            new JpegColorConverterBase.YccKScalar(8),
+            precísion: 4);
+
+    private void TestConversionToRgb(
         JpegColorConverterBase converter,
         int componentCount,
-        int seed)
+        int seed,
+        JpegColorConverterBase baseLineConverter = null)
     {
         if (!converter.IsAvailable)
         {
@@ -271,10 +583,33 @@ public class JpegColorConverterTests
             return;
         }
 
-        ValidateConversion(
+        ValidateConversionToRgb(
             converter,
             componentCount,
-            seed);
+            seed,
+            baseLineConverter);
+    }
+
+    private void TestConversionFromRgb(
+        JpegColorConverterBase converter,
+        int componentCount,
+        int seed,
+        JpegColorConverterBase baseLineConverter,
+        int precísion)
+    {
+        if (!converter.IsAvailable)
+        {
+            this.Output.WriteLine(
+                $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
+            return;
+        }
+
+        ValidateConversionFromRgb(
+            converter,
+            componentCount,
+            seed,
+            baseLineConverter,
+            precísion);
     }
 
     private static JpegColorConverterBase.ComponentValues CreateRandomValues(
@@ -303,24 +638,117 @@ public class JpegColorConverterTests
         return new JpegColorConverterBase.ComponentValues(buffers, 0);
     }
 
-    private static void ValidateConversion(
+    private static float[] CreateRandomValues(int length, Random rnd)
+    {
+        float[] values = new float[length];
+
+        for (int j = 0; j < values.Length; j++)
+        {
+            values[j] = (float)rnd.NextDouble() * MaxColorChannelValue;
+        }
+
+        return values;
+    }
+
+    private static void ValidateConversionToRgb(
         JpegColorConverterBase converter,
         int componentCount,
-        int seed)
+        int seed,
+        JpegColorConverterBase baseLineConverter = null)
     {
         JpegColorConverterBase.ComponentValues original = CreateRandomValues(TestBufferLength, componentCount, seed);
-        JpegColorConverterBase.ComponentValues values = new(
+        JpegColorConverterBase.ComponentValues actual = new(
                 original.ComponentCount,
                 original.Component0.ToArray(),
                 original.Component1.ToArray(),
                 original.Component2.ToArray(),
                 original.Component3.ToArray());
 
-        converter.ConvertToRgbInplace(values);
+        converter.ConvertToRgbInplace(actual);
 
         for (int i = 0; i < TestBufferLength; i++)
         {
-            Validate(converter.ColorSpace, original, values, i);
+            Validate(converter.ColorSpace, original, actual, i);
+        }
+
+        // Compare conversion result to a baseline, should be the scalar version.
+        if (baseLineConverter != null)
+        {
+            JpegColorConverterBase.ComponentValues expected = new(
+                original.ComponentCount,
+                original.Component0.ToArray(),
+                original.Component1.ToArray(),
+                original.Component2.ToArray(),
+                original.Component3.ToArray());
+            baseLineConverter.ConvertToRgbInplace(expected);
+            if (componentCount == 1)
+            {
+                Assert.True(expected.Component0.SequenceEqual(actual.Component0));
+            }
+
+            if (componentCount == 2)
+            {
+                Assert.True(expected.Component1.SequenceEqual(actual.Component1));
+            }
+
+            if (componentCount == 3)
+            {
+                Assert.True(expected.Component2.SequenceEqual(actual.Component2));
+            }
+
+            if (componentCount == 4)
+            {
+                Assert.True(expected.Component3.SequenceEqual(actual.Component3));
+            }
+        }
+    }
+
+    private static void ValidateConversionFromRgb(
+        JpegColorConverterBase converter,
+        int componentCount,
+        int seed,
+        JpegColorConverterBase baseLineConverter,
+        int precision = 4)
+    {
+        // arrange
+        JpegColorConverterBase.ComponentValues actual = CreateRandomValues(TestBufferLength, componentCount, seed);
+        JpegColorConverterBase.ComponentValues expected = CreateRandomValues(TestBufferLength, componentCount, seed);
+        Random rnd = new(seed);
+        float[] rLane = CreateRandomValues(TestBufferLength, rnd);
+        float[] gLane = CreateRandomValues(TestBufferLength, rnd);
+        float[] bLane = CreateRandomValues(TestBufferLength, rnd);
+
+        // act
+        converter.ConvertFromRgb(actual, rLane, gLane, bLane);
+        baseLineConverter.ConvertFromRgb(expected, rLane, gLane, bLane);
+
+        // assert
+        if (componentCount == 1)
+        {
+            CompareSequenceWithTolerance(expected.Component0, actual.Component0, precision);
+        }
+
+        if (componentCount == 2)
+        {
+            CompareSequenceWithTolerance(expected.Component1, actual.Component1, precision);
+        }
+
+        if (componentCount == 3)
+        {
+            CompareSequenceWithTolerance(expected.Component2, actual.Component2, precision);
+        }
+
+        if (componentCount == 4)
+        {
+            CompareSequenceWithTolerance(expected.Component3, actual.Component3, precision);
+        }
+    }
+
+    private static void CompareSequenceWithTolerance(Span<float> expected, Span<float> actual, int precision)
+    {
+        for (int i = 0; i < expected.Length; i++)
+        {
+            Assert.Equal(expected[i], actual[i], precision: precision);
         }
     }
 
@@ -358,9 +786,9 @@ public class JpegColorConverterTests
         float y = values.Component0[i];
         float cb = values.Component1[i];
         float cr = values.Component2[i];
-        var expected = ColorSpaceConverter.ToRgb(new YCbCr(y, cb, cr));
+        Rgb expected = ColorSpaceConverter.ToRgb(new YCbCr(y, cb, cr));
 
-        var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+        Rgb actual = new(result.Component0[i], result.Component1[i], result.Component2[i]);
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");

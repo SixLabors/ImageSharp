@@ -37,4 +37,12 @@ public class CmykColorConversion : ColorConversionBenchmark
 
         new JpegColorConverterBase.CmykAvx(8).ConvertToRgbInplace(values);
     }
+
+    [Benchmark]
+    public void SimdVectorArm64()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+
+        new JpegColorConverterBase.CmykArm64(8).ConvertToRgbInplace(values);
+    }
 }

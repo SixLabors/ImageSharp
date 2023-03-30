@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -18,11 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 internal class WebpAnimationDecoder : IDisposable
 {
-    /// <summary>
-    /// Reusable buffer.
-    /// </summary>
-    private readonly byte[] buffer = new byte[4];
-
     /// <summary>
     /// Used for allocating memory during the decoding operations.
     /// </summary>
@@ -46,17 +40,17 @@ internal class WebpAnimationDecoder : IDisposable
     /// <summary>
     /// The abstract metadata.
     /// </summary>
-    private ImageMetadata metadata;
+    private ImageMetadata? metadata;
 
     /// <summary>
     /// The gif specific metadata.
     /// </summary>
-    private WebpMetadata webpMetadata;
+    private WebpMetadata? webpMetadata;
 
     /// <summary>
     /// The alpha data, if an ALPH chunk is present.
     /// </summary>
-    private IMemoryOwner<byte> alphaData;
+    private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
@@ -83,28 +77,29 @@ internal class WebpAnimationDecoder : IDisposable
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, WebpFeatures features, uint width, uint height, uint completeDataSize)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> image = null;
-        ImageFrame<TPixel> previousFrame = null;
+        Image<TPixel>? image = null;
+        ImageFrame<TPixel>? previousFrame = null;
 
         this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.AnimationLoopCount = features.AnimationLoopCount;
 
+        Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
         while (remainingBytes > 0)
         {
-            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             remainingBytes -= 4;
             switch (chunkType)
             {
                 case WebpChunkType.Animation:
-                    uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, features.AnimationBackgroundColor.Value);
+                    uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, features.AnimationBackgroundColor!.Value);
                     remainingBytes -= (int)dataSize;
                     break;
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image.Metadata, false, this.buffer);
+                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, false, buffer);
                     break;
                 default:
                     WebpThrowHelper.ThrowImageFormatException("Read unexpected webp chunk data");
@@ -117,7 +112,7 @@ internal class WebpAnimationDecoder : IDisposable
             }
         }
 
-        return image;
+        return image!;
     }
 
     /// <summary>
@@ -130,40 +125,41 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="backgroundColor">The default background color of the canvas in.</param>
-    private uint ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, uint width, uint height, Color backgroundColor)
+    private uint ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, uint width, uint height, Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         AnimationFrameData frameData = this.ReadFrameHeader(stream);
         long streamStartPosition = stream.Position;
+        Span<byte> buffer = stackalloc byte[4];
 
-        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+        WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
         bool hasAlpha = false;
         byte alphaChunkHeader = 0;
         if (chunkType is WebpChunkType.Alpha)
         {
             alphaChunkHeader = this.ReadAlphaData(stream);
             hasAlpha = true;
-            chunkType = WebpChunkParsingUtils.ReadChunkType(stream, this.buffer);
+            chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
         }
 
-        WebpImageInfo webpInfo = null;
+        WebpImageInfo? webpInfo = null;
         WebpFeatures features = new();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
-                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, this.buffer, features);
+                webpInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                 features.Alpha = hasAlpha;
                 features.AlphaChunkHeader = alphaChunkHeader;
                 break;
             case WebpChunkType.Vp8L:
-                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, this.buffer, features);
+                webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                 break;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Read unexpected chunk type, should be VP8 or VP8L");
                 break;
         }
 
-        ImageFrame<TPixel> currentFrame = null;
+        ImageFrame<TPixel>? currentFrame = null;
         ImageFrame<TPixel> imageFrame;
         if (previousFrame is null)
         {
@@ -175,7 +171,7 @@ internal class WebpAnimationDecoder : IDisposable
         }
         else
         {
-            currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
+            currentFrame = image!.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
 
             SetFrameMetadata(currentFrame.Metadata, frameData.Duration);
 
@@ -227,7 +223,7 @@ internal class WebpAnimationDecoder : IDisposable
     {
         this.alphaData?.Dispose();
 
-        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer);
+        uint alphaChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, stackalloc byte[4]);
         int alphaDataSize = (int)(alphaChunkSize - 1);
         this.alphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
 
@@ -354,24 +350,26 @@ internal class WebpAnimationDecoder : IDisposable
     /// <returns>Animation frame data.</returns>
     private AnimationFrameData ReadFrameHeader(BufferedReadStream stream)
     {
+        Span<byte> buffer = stackalloc byte[4];
+
         AnimationFrameData data = new()
         {
-            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, this.buffer),
+            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
 
             // 3 bytes for the X coordinate of the upper left corner of the frame.
-            X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+            X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
 
             // 3 bytes for the Y coordinate of the upper left corner of the frame.
-            Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer),
+            Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
 
             // Frame width Minus One.
-            Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+            Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
 
             // Frame height Minus One.
-            Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer) + 1,
+            Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
 
             // Frame duration.
-            Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, this.buffer)
+            Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer)
         };
 
         byte flags = (byte)stream.ReadByte();

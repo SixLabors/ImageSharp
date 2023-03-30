@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
@@ -53,6 +54,12 @@ internal static class Numerics
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Modulo4(int x) => x & 3;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo4(nint x) => x & 3;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 8
@@ -290,7 +297,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref byte remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -315,7 +322,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref uint remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -340,7 +347,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref int remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -365,7 +372,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref float remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -390,7 +397,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref double remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -429,9 +436,9 @@ internal static class Numerics
         var vmin = new Vector<T>(min);
         var vmax = new Vector<T>(max);
 
-        int n = span.Length / Vector<T>.Count;
-        int m = Modulo4(n);
-        int u = n - m;
+        nint n = (nint)(uint)span.Length / Vector<T>.Count;
+        nint m = Modulo4(n);
+        nint u = n - m;
 
         ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
         ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
@@ -473,21 +480,10 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Premultiply(ref Vector4 source)
     {
-        float w = source.W;
-        source *= w;
-        source.W = w;
-    }
-
-    /// <summary>
-    /// Reverses the result of premultiplying a vector via <see cref="Premultiply(ref Vector4)"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UnPremultiply(ref Vector4 source)
-    {
-        float w = source.W;
-        source /= w;
-        source.W = w;
+        // Load into a local variable to prevent accessing the source from memory multiple times.
+        Vector4 src = source;
+        Vector4 alpha = PermuteW(src);
+        source = WithW(src * alpha, alpha);
     }
 
     /// <summary>
@@ -497,17 +493,17 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Premultiply(Span<Vector4> vectors)
     {
-        if (Avx2.IsSupported && vectors.Length >= 2)
+        if (Avx.IsSupported && vectors.Length >= 2)
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
                 Vector256<float> source = vectorsBase;
-                Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
-                vectorsBase = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                Vector256<float> alpha = Avx.Permute(source, ShuffleAlphaControl);
+                vectorsBase = Avx.Blend(Avx.Multiply(source, alpha), source, BlendAlphaControl);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -520,7 +516,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
@@ -532,23 +528,48 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Reverses the result of premultiplying a vector via <see cref="Premultiply(ref Vector4)"/>.
+    /// </summary>
+    /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnPremultiply(ref Vector4 source)
+    {
+        Vector4 alpha = PermuteW(source);
+        UnPremultiply(ref source, alpha);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UnPremultiply(ref Vector4 source, Vector4 alpha)
+    {
+        if (alpha == Vector4.Zero)
+        {
+            return;
+        }
+
+        // Divide source by alpha if alpha is nonzero, otherwise set all components to match the source value
+        // Blend the result with the alpha vector to ensure that the alpha component is unchanged
+        source = WithW(source / alpha, alpha);
+    }
+
+    /// <summary>
     /// Bulk variant of <see cref="UnPremultiply(ref Vector4)"/>
     /// </summary>
     /// <param name="vectors">The span of vectors</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnPremultiply(Span<Vector4> vectors)
     {
-        if (Avx2.IsSupported && vectors.Length >= 2)
+        if (Avx.IsSupported && vectors.Length >= 2)
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
+            Vector256<float> epsilon = Vector256.Create(Constants.Epsilon);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
                 Vector256<float> source = vectorsBase;
-                Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
-                vectorsBase = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
+                Vector256<float> alpha = Avx.Permute(source, ShuffleAlphaControl);
+                vectorsBase = UnPremultiply(source, alpha);
                 vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
             }
 
@@ -561,7 +582,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
@@ -572,6 +593,61 @@ internal static class Numerics
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> UnPremultiply(Vector256<float> source, Vector256<float> alpha)
+    {
+        // Check if alpha is zero to avoid division by zero
+        Vector256<float> zeroMask = Avx.CompareEqual(alpha, Vector256<float>.Zero);
+
+        // Divide source by alpha if alpha is nonzero, otherwise set all components to match the source value
+        Vector256<float> result = Avx.BlendVariable(Avx.Divide(source, alpha), source, zeroMask);
+
+        // Blend the result with the alpha vector to ensure that the alpha component is unchanged
+        return Avx.Blend(result, alpha, BlendAlphaControl);
+    }
+
+    /// <summary>
+    /// Permutes the given vector return a new instance with all the values set to <see cref="Vector4.W"/>.
+    /// </summary>
+    /// <param name="value">The vector.</param>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 PermuteW(Vector4 value)
+    {
+        if (Sse.IsSupported)
+        {
+            return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
+        }
+
+        return new(value.W);
+    }
+
+    /// <summary>
+    /// Sets the W component of the given vector <paramref name="value"/> to the given value from <paramref name="w"/>.
+    /// </summary>
+    /// <param name="value">The vector to set.</param>
+    /// <param name="w">The vector containing the W value.</param>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 WithW(Vector4 value, Vector4 w)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.Insert(value.AsVector128(), w.AsVector128(), 0b11_11_0000).AsVector4();
+        }
+
+        if (Sse.IsSupported)
+        {
+            // Create tmp as <w[3], w[0], value[2], value[0]>
+            // Then return <value[0], value[1], tmp[2], tmp[0]> (which is <value[0], value[1], value[2], w[3]>)
+            Vector128<float> tmp = Sse.Shuffle(w.AsVector128(), value.AsVector128(), 0b00_10_00_11);
+            return Sse.Shuffle(value.AsVector128(), tmp, 0b00_10_01_00).AsVector4();
+        }
+
+        value.W = w.W;
+        return value;
+    }
+
     /// <summary>
     /// Calculates the cube pow of all the XYZ channels of the input vectors.
     /// </summary>
@@ -580,12 +656,12 @@ internal static class Numerics
     public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-        ref Vector4 endRef = ref Unsafe.Add(ref baseRef, vectors.Length);
+        ref Vector4 endRef = ref Unsafe.Add(ref baseRef, (uint)vectors.Length);
 
         while (Unsafe.IsAddressLessThan(ref baseRef, ref endRef))
         {
             Vector4 v = baseRef;
-            float a = v.W;
+            Vector4 a = PermuteW(v);
 
             // Fast path for the default gamma exposure, which is 3. In this case we can skip
             // calling Math.Pow 3 times (one per component), as the method is an internal call and
@@ -594,7 +670,7 @@ internal static class Numerics
             // back to the target index in the temporary span. The whole iteration will get completely
             // inlined and traslated into vectorized instructions, with much better performance.
             v = v * v * v;
-            v.W = a;
+            v = WithW(v, a);
 
             baseRef = v;
             baseRef = ref Unsafe.Add(ref baseRef, 1);
@@ -611,7 +687,7 @@ internal static class Numerics
         if (Sse41.IsSupported)
         {
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, vectors.Length);
+            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
 
             var v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
@@ -660,7 +736,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, (uint)vectors.Length);
 
             // Fallback with scalar preprocessing and vectorized approximation steps
             while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
@@ -809,6 +885,25 @@ internal static class Numerics
     }
 
     /// <summary>
+    /// Reduces elements of the vector into one sum.
+    /// </summary>
+    /// <param name="accumulator">The accumulator to reduce.</param>
+    /// <returns>The sum of all elements.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static int ReduceSumArm(Vector128<uint> accumulator)
+    {
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            Vector64<uint> sum = AdvSimd.Arm64.AddAcross(accumulator);
+            return (int)AdvSimd.Extract(sum, 0);
+        }
+
+        Vector128<ulong> sum2 = AdvSimd.AddPairwiseWidening(accumulator);
+        Vector64<uint> sum3 = AdvSimd.Add(sum2.GetLower().AsUInt32(), sum2.GetUpper().AsUInt32());
+        return (int)AdvSimd.Extract(sum3, 0);
+    }
+
+    /// <summary>
     /// Reduces even elements of the vector into one sum.
     /// </summary>
     /// <param name="accumulator">The accumulator to reduce.</param>
@@ -854,4 +949,94 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOutOfRange(int value, int min, int max)
         => (uint)(value - min) > (uint)(max - min);
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector256Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector256<TVector>.Count;
 }

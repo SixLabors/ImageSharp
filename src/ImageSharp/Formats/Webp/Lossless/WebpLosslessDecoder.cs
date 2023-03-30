@@ -158,10 +158,9 @@ internal sealed class WebpLosslessDecoder
         // Finish setting up the color-cache.
         if (isColorCachePresent)
         {
-            decoder.Metadata.ColorCache = new ColorCache();
+            decoder.Metadata.ColorCache = new ColorCache(colorCacheBits);
             colorCacheSize = 1 << colorCacheBits;
             decoder.Metadata.ColorCacheSize = colorCacheSize;
-            decoder.Metadata.ColorCache.Init(colorCacheBits);
         }
         else
         {
@@ -499,10 +498,7 @@ internal sealed class WebpLosslessDecoder
     private int ReadHuffmanCode(int alphabetSize, int[] codeLengths, Span<HuffmanCode> table)
     {
         bool simpleCode = this.bitReader.ReadBit();
-        for (int i = 0; i < alphabetSize; i++)
-        {
-            codeLengths[i] = 0;
-        }
+        codeLengths.AsSpan(0, alphabetSize).Clear();
 
         if (simpleCode)
         {

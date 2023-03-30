@@ -127,9 +127,9 @@
 |CleanFaxData               |       |       |                          |
 |ConsecutiveBadFaxLines     |       |       |                          |
 |SubIFDs                    |       |   -   |                          |
-|InkSet                     |       |       |                          |
-|InkNames                   |       |       |                          |
-|NumberOfInks               |       |       |                          |
+|InkSet                     |       |   Y   |  CMYK                    |
+|InkNames                   |       |   -   |                          |
+|NumberOfInks               |       |   -   |                          |
 |DotRange                   |       |       |                          |
 |TargetPrinter              |       |       |                          |
 |SampleFormat               |       |   -   |                          |

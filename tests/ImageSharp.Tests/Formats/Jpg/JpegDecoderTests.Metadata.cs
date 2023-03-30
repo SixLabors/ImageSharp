@@ -175,20 +175,20 @@ public partial class JpegDecoderTests
         Assert.Equal(expectedColorType, meta.ColorType);
     }
 
-    private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<ImageInfo> test)
+    private static void TestImageInfo(string imagePath, IImageDecoder decoder, Action<ImageInfo> test)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
-        if (useIdentify)
-        {
-            ImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
-            test(imageInfo);
-        }
-        else
-        {
-            using Image<Rgba32> img = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
-            test(img);
-        }
+        ImageInfo imageInfo = decoder.Identify(DecoderOptions.Default, stream);
+        test(imageInfo);
+    }
+
+    private static void TestImageDecode(string imagePath, IImageDecoder decoder, Action<Image> test)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image<Rgba32> img = decoder.Decode<Rgba32>(DecoderOptions.Default, stream);
+        test(img);
     }
 
     private static void TestMetadataImpl(
@@ -197,25 +197,18 @@ public partial class JpegDecoderTests
         string imagePath,
         int expectedPixelSize,
         bool exifProfilePresent,
-        bool iccProfilePresent) => TestImageInfo(
-            imagePath,
-            decoder,
-            useIdentify,
-            imageInfo =>
+        bool iccProfilePresent)
+    {
+        if (useIdentify)
+        {
+            TestImageInfo(
+                imagePath,
+                decoder,
+                imageInfo =>
                 {
                     Assert.NotNull(imageInfo);
                     Assert.NotNull(imageInfo.PixelType);
-
-                    if (useIdentify)
-                    {
-                        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
-                    }
-                    else
-                    {
-                        // When full Image<TPixel> decoding is performed, BitsPerPixel will match TPixel
-                        int bpp32 = Unsafe.SizeOf<Rgba32>() * 8;
-                        Assert.Equal(bpp32, imageInfo.PixelType.BitsPerPixel);
-                    }
+                    Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
 
                     ExifProfile exifProfile = imageInfo.Metadata.ExifProfile;
 
@@ -241,6 +234,47 @@ public partial class JpegDecoderTests
                         Assert.Null(iccProfile);
                     }
                 });
+        }
+        else
+        {
+            TestImageDecode(
+                imagePath,
+                decoder,
+                imageInfo =>
+                {
+                    Assert.NotNull(imageInfo);
+                    Assert.NotNull(imageInfo.PixelType);
+
+                    // When full Image<TPixel> decoding is performed, BitsPerPixel will match TPixel
+                    int bpp32 = Unsafe.SizeOf<Rgba32>() * 8;
+                    Assert.Equal(bpp32, imageInfo.PixelType.BitsPerPixel);
+
+                    ExifProfile exifProfile = imageInfo.Metadata.ExifProfile;
+
+                    if (exifProfilePresent)
+                    {
+                        Assert.NotNull(exifProfile);
+                        Assert.NotEmpty(exifProfile.Values);
+                    }
+                    else
+                    {
+                        Assert.Null(exifProfile);
+                    }
+
+                    IccProfile iccProfile = imageInfo.Metadata.IccProfile;
+
+                    if (iccProfilePresent)
+                    {
+                        Assert.NotNull(iccProfile);
+                        Assert.NotEmpty(iccProfile.Entries);
+                    }
+                    else
+                    {
+                        Assert.Null(iccProfile);
+                    }
+                });
+        }
+    }
 
     [Theory]
     [InlineData(false)]
@@ -268,28 +302,60 @@ public partial class JpegDecoderTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify) => TestImageInfo(
-            TestImages.Jpeg.Baseline.Floorplan,
-            JpegDecoder.Instance,
-            useIdentify,
-            imageInfo =>
-            {
-                Assert.Equal(300, imageInfo.Metadata.HorizontalResolution);
-                Assert.Equal(300, imageInfo.Metadata.VerticalResolution);
-            });
+    public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify)
+    {
+        if (useIdentify)
+        {
+            TestImageInfo(
+                TestImages.Jpeg.Baseline.Floorplan,
+                JpegDecoder.Instance,
+                imageInfo =>
+                {
+                    Assert.Equal(300, imageInfo.Metadata.HorizontalResolution);
+                    Assert.Equal(300, imageInfo.Metadata.VerticalResolution);
+                });
+        }
+        else
+        {
+            TestImageDecode(
+                TestImages.Jpeg.Baseline.Floorplan,
+                JpegDecoder.Instance,
+                image =>
+                {
+                    Assert.Equal(300, image.Metadata.HorizontalResolution);
+                    Assert.Equal(300, image.Metadata.VerticalResolution);
+                });
+        }
+    }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify) => TestImageInfo(
-            TestImages.Jpeg.Baseline.Jpeg420Exif,
-            JpegDecoder.Instance,
-            useIdentify,
-            imageInfo =>
+    public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify)
+    {
+        if (useIdentify)
+        {
+            TestImageInfo(
+                TestImages.Jpeg.Baseline.Jpeg420Exif,
+                JpegDecoder.Instance,
+                imageInfo =>
                 {
                     Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);
                     Assert.Equal(72, imageInfo.Metadata.VerticalResolution);
                 });
+        }
+        else
+        {
+            TestImageDecode(
+                TestImages.Jpeg.Baseline.Jpeg420Exif,
+                JpegDecoder.Instance,
+                imageInfo =>
+                {
+                    Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);
+                    Assert.Equal(72, imageInfo.Metadata.VerticalResolution);
+                });
+        }
+    }
 
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.InvalidIptcTag, PixelTypes.Rgba32)]

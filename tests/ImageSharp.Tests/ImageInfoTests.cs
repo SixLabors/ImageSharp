@@ -18,7 +18,7 @@ public class ImageInfoTests
         PixelTypeInfo pixelType = new(8);
         ImageMetadata meta = new();
 
-        ImageInfo info = new(pixelType, width, height, meta);
+        ImageInfo info = new(pixelType, size, meta);
 
         Assert.Equal(pixelType, info.PixelType);
         Assert.Equal(width, info.Width);
@@ -26,5 +26,27 @@ public class ImageInfoTests
         Assert.Equal(size, info.Size);
         Assert.Equal(rectangle, info.Bounds);
         Assert.Equal(meta, info.Metadata);
+    }
+
+    [Fact]
+    public void ImageInfoInitializesCorrectlyWithFrameMetadata()
+    {
+        const int width = 50;
+        const int height = 60;
+        Size size = new(width, height);
+        Rectangle rectangle = new(0, 0, width, height);
+        PixelTypeInfo pixelType = new(8);
+        ImageMetadata meta = new();
+        IReadOnlyList<ImageFrameMetadata> frameMetadata = new List<ImageFrameMetadata>() { new() };
+
+        ImageInfo info = new(pixelType, size, meta, frameMetadata);
+
+        Assert.Equal(pixelType, info.PixelType);
+        Assert.Equal(width, info.Width);
+        Assert.Equal(height, info.Height);
+        Assert.Equal(size, info.Size);
+        Assert.Equal(rectangle, info.Bounds);
+        Assert.Equal(meta, info.Metadata);
+        Assert.Equal(frameMetadata.Count, info.FrameMetadataCollection.Count);
     }
 }

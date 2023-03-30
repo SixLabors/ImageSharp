@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -38,7 +38,7 @@ internal class AlphaDecoder : IDisposable
         this.LastRow = 0;
         int totalPixels = width * height;
 
-        var compression = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03);
+        WebpAlphaCompressionMethod compression = (WebpAlphaCompressionMethod)(alphaChunkHeader & 0x03);
         if (compression is not WebpAlphaCompressionMethod.NoCompression and not WebpAlphaCompressionMethod.WebpLosslessCompression)
         {
             WebpThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
@@ -59,7 +59,7 @@ internal class AlphaDecoder : IDisposable
 
         if (this.Compressed)
         {
-            var bitReader = new Vp8LBitReader(data);
+            Vp8LBitReader bitReader = new(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
 
@@ -110,6 +110,7 @@ internal class AlphaDecoder : IDisposable
     /// <summary>
     /// Gets a value indicating whether the alpha channel uses compression.
     /// </summary>
+    [MemberNotNullWhen(true, nameof(LosslessDecoder))]
     private bool Compressed { get; }
 
     /// <summary>
@@ -120,7 +121,7 @@ internal class AlphaDecoder : IDisposable
     /// <summary>
     /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
     /// </summary>
-    private WebpLosslessDecoder LosslessDecoder { get; }
+    private WebpLosslessDecoder? LosslessDecoder { get; }
 
     /// <summary>
     /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.
@@ -173,17 +174,14 @@ internal class AlphaDecoder : IDisposable
                 dst = dst[this.Width..];
             }
         }
+        else if (this.Use8BDecode)
+        {
+            this.LosslessDecoder.DecodeAlphaData(this);
+        }
         else
         {
-            if (this.Use8BDecode)
-            {
-                this.LosslessDecoder.DecodeAlphaData(this);
-            }
-            else
-            {
-                this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
-                this.ExtractAlphaRows(this.Vp8LDec);
-            }
+            this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
+            this.ExtractAlphaRows(this.Vp8LDec);
         }
     }
 
@@ -261,8 +259,7 @@ internal class AlphaDecoder : IDisposable
     {
         int numRowsToProcess = dec.Height;
         int width = dec.Width;
-        Span<uint> pixels = dec.Pixels.Memory.Span;
-        Span<uint> input = pixels;
+        Span<uint> input = dec.Pixels.Memory.Span;
         Span<byte> output = this.Alpha.Memory.Span;
 
         // Extract alpha (which is stored in the green plane).
@@ -322,12 +319,13 @@ internal class AlphaDecoder : IDisposable
                 return;
             }
 
-            nint i;
+            nuint i;
             Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
             ref byte srcRef = ref MemoryMarshal.GetReference(input);
-            for (i = 1; i + 8 <= width; i += 8)
+            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+            for (i = 1; i <= (uint)width - 8; i += 8)
             {
-                var a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
+                Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
                 Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
                 Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
                 Vector128<byte> a3 = Sse2.Add(a1, a2);
@@ -336,12 +334,12 @@ internal class AlphaDecoder : IDisposable
                 Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
                 Vector128<byte> a7 = Sse2.Add(a5, a6);
 
-                ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
+                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
                 Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
                 last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
             }
 
-            for (; i < width; ++i)
+            for (; i < (uint)width; ++i)
             {
                 dst[(int)i] = (byte)(input[(int)i] + dst[(int)i - 1]);
             }
@@ -365,32 +363,33 @@ internal class AlphaDecoder : IDisposable
         {
             HorizontalUnfilter(null, input, dst, width);
         }
+        else if (Avx2.IsSupported)
+        {
+            ref byte inputRef = ref MemoryMarshal.GetReference(input);
+            ref byte prevRef = ref MemoryMarshal.GetReference(prev);
+            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+
+            nuint i;
+            int maxPos = width & ~31;
+            for (i = 0; i < (uint)maxPos; i += 32)
+            {
+                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
+                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
+                Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
+                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
+                Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
+            }
+
+            for (; i < (uint)width; i++)
+            {
+                Unsafe.Add(ref dstRef, i) = (byte)(Unsafe.Add(ref prevRef, i) + Unsafe.Add(ref inputRef, i));
+            }
+        }
         else
         {
-            if (Avx2.IsSupported)
+            for (int i = 0; i < width; i++)
             {
-                nint i;
-                int maxPos = width & ~31;
-                for (i = 0; i < maxPos; i += 32)
-                {
-                    Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(input), i));
-                    Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(prev), i));
-                    Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
-                    ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(dst), i);
-                    Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
-                }
-
-                for (; i < width; i++)
-                {
-                    dst[(int)i] = (byte)(prev[(int)i] + input[(int)i]);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < width; i++)
-                {
-                    dst[i] = (byte)(prev[i] + input[i]);
-                }
+                dst[i] = (byte)(prev[i] + input[i]);
             }
         }
     }

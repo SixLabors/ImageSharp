@@ -167,7 +167,7 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandAvx2(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &table[0])
+        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
         {
             var scale = Vector256.Create((float)Scale);
             Vector256<float> zero = Vector256<float>.Zero;
@@ -175,7 +175,7 @@ public static class SRgbCompanding
 
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
@@ -199,12 +199,12 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandScalar(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &table[0])
+        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
         {
             Vector4 zero = Vector4.Zero;
             var scale = new Vector4(Scale);
             ref Vector4 vectorsBase = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsLast = ref Unsafe.Add(ref vectorsBase, vectors.Length);
+            ref Vector4 vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {

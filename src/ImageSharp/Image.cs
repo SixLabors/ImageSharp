@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp;
 /// For the non-generic <see cref="Image"/> type, the pixel type is only known at runtime.
 /// <see cref="Image"/> is always implemented by a pixel-specific <see cref="Image{TPixel}"/> instance.
 /// </summary>
-public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProvider
+public abstract partial class Image : IDisposable, IConfigurationProvider
 {
     private bool isDisposed;
     private readonly Configuration configuration;
@@ -22,20 +22,22 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
     /// </summary>
-    /// <param name="configuration">
-    /// The configuration which allows altering default behaviour or extending the library.
-    /// </param>
+    /// <param name="configuration">The global configuration..</param>
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="size">The size in px units.</param>
     protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata? metadata, Size size)
-       : base(pixelType, size, metadata)
-        => this.configuration = configuration;
+    {
+        this.configuration = configuration;
+        this.PixelType = pixelType;
+        this.Size = size;
+        this.Metadata = metadata ?? new ImageMetadata();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration.</param>
+    /// <param name="configuration">The global configuration.</param>
     /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
     /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
     /// <param name="width">The width in px units.</param>
@@ -50,6 +52,39 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     {
     }
 
+    /// <inheritdoc/>
+    Configuration IConfigurationProvider.Configuration => this.configuration;
+
+    /// <summary>
+    /// Gets information about the image pixels.
+    /// </summary>
+    public PixelTypeInfo PixelType { get; }
+
+    /// <summary>
+    /// Gets the image width in px units.
+    /// </summary>
+    public int Width => this.Size.Width;
+
+    /// <summary>
+    /// Gets the image height in px units.
+    /// </summary>
+    public int Height => this.Size.Height;
+
+    /// <summary>
+    /// Gets any metadata associated with the image.
+    /// </summary>
+    public ImageMetadata Metadata { get; }
+
+    /// <summary>
+    /// Gets the size of the image in px units.
+    /// </summary>
+    public Size Size { get; internal set; }
+
+    /// <summary>
+    /// Gets the bounds of the image.
+    /// </summary>
+    public Rectangle Bounds => new(0, 0, this.Width, this.Height);
+
     /// <summary>
     /// Gets the <see cref="ImageFrameCollection"/> implementing the public <see cref="Frames"/> property.
     /// </summary>
@@ -59,9 +94,6 @@ public abstract partial class Image : ImageInfo, IDisposable, IConfigurationProv
     /// Gets the frames of the image as (non-generic) <see cref="ImageFrameCollection"/>.
     /// </summary>
     public ImageFrameCollection Frames => this.NonGenericFrameCollection;
-
-    /// <inheritdoc/>
-    Configuration IConfigurationProvider.Configuration => this.configuration;
 
     /// <inheritdoc />
     public void Dispose()

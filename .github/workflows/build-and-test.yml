@@ -56,11 +56,6 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
         exclude:
           - isARM: false
             options:
@@ -114,7 +109,6 @@ jobs:
         if: ${{ matrix.options.sdk-preview != true }}
         uses: actions/setup-dotnet@v3
         with:
-          include-prerelease: true
           dotnet-version: |
             6.0.x
 
@@ -122,7 +116,6 @@ jobs:
         if: ${{ matrix.options.sdk-preview == true }}
         uses: actions/setup-dotnet@v3
         with:
-          include-prerelease: true
           dotnet-version: |
             7.0.x
 
@@ -198,9 +191,16 @@ jobs:
         shell: pwsh
         run: ./ci-pack.ps1
 
-      - name: MyGet Publish
+      - name: Feedz Publish
         shell: pwsh
         run: |
-          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v2/package
-          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v3/index.json
-        # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/symbols --skip-duplicate
+
+      - name: NuGet Publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        shell: pwsh
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+

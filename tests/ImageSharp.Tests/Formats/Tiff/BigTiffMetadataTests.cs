@@ -211,8 +211,8 @@ public class BigTiffMetadataTests
 
         foreach (IExifValue entry in values)
         {
-            writer.Write((ushort)entry.Tag);
-            writer.Write((ushort)entry.DataType);
+            writer.Write((ushort)entry.Tag, buffer);
+            writer.Write((ushort)entry.DataType, buffer);
             WriteLong8(writer, buffer, ExifWriter.GetNumberOfComponents(entry));
 
             uint length = ExifWriter.GetLength(entry);

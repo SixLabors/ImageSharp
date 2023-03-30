@@ -12,6 +12,10 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 
+// Several of the tests  in this class comparing images with associated alpha encoding use a high tolerance for comparison.
+// This is due to an issue in the reference decoder where it is not correctly checking for a zero alpha component value
+// before unpremultying the encoded values. This can lead to incorrect values when the rgb channels contain non-zero values.
+// The tests should be manually verified following any changes to the decoder.
 [Trait("Format", "Tiff")]
 [ValidateDisposedMemoryAllocations]
 public class TiffDecoderTests : TiffDecoderBaseTester
@@ -21,6 +25,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
+    [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
 
@@ -197,16 +202,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_12Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
     }
 
     [Theory]
@@ -254,16 +251,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
     }
 
     [Theory]
@@ -281,16 +270,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
     }
 
     [Theory]
@@ -383,13 +364,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
         // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
         TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
@@ -423,16 +397,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_40Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
     }
 
     [Theory]
@@ -462,16 +428,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_48Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
     }
 
     [Theory]
@@ -492,16 +450,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_56Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Only debug save on OSX: For some reason the reference image has a difference of 50%. The imagesharp output file looks ok though.
-            using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-            image.DebugSave(provider);
-            return;
-        }
 
-        // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.0002f);
+        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
     }
 
     [Theory]

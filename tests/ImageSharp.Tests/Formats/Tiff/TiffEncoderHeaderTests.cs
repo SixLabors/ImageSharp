@@ -19,7 +19,7 @@ public class TiffEncoderHeaderTests
 
         using (TiffStreamWriter writer = new(stream))
         {
-            long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
+            long firstIfdMarker = TiffEncoderCore.WriteHeader(writer, stackalloc byte[4]);
         }
 
         Assert.Equal(new byte[] { 0x49, 0x49, 42, 0, 0x00, 0x00, 0x00, 0x00 }, stream.ToArray());
@@ -32,7 +32,7 @@ public class TiffEncoderHeaderTests
         TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
 
         using TiffStreamWriter writer = new(stream);
-        long firstIfdMarker = TiffEncoderCore.WriteHeader(writer);
+        long firstIfdMarker = TiffEncoderCore.WriteHeader(writer, stackalloc byte[4]);
         Assert.Equal(4, firstIfdMarker);
     }
 }

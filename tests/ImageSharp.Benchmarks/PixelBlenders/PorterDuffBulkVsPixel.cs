@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks;
 
 public class PorterDuffBulkVsPixel
 {
-    private Configuration Configuration => Configuration.Default;
+    private static Configuration Configuration => Configuration.Default;
 
-    private void BulkVectorConvert<TPixel>(
+    private static void BulkVectorConvert<TPixel>(
         Span<TPixel> destination,
         Span<TPixel> background,
         Span<TPixel> source,
@@ -31,18 +31,18 @@ public class PorterDuffBulkVsPixel
         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
         Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
 
-        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, background, backgroundSpan);
-        PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, source, sourceSpan);
+        PixelOperations<TPixel>.Instance.ToVector4(Configuration, background, backgroundSpan);
+        PixelOperations<TPixel>.Instance.ToVector4(Configuration, source, sourceSpan);
 
         for (int i = 0; i < destination.Length; i++)
         {
             destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
         }
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, destinationSpan, destination);
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(Configuration, destinationSpan, destination);
     }
 
-    private void BulkPixelConvert<TPixel>(
+    private static void BulkPixelConvert<TPixel>(
         Span<TPixel> destination,
         Span<TPixel> background,
         Span<TPixel> source,
@@ -62,7 +62,7 @@ public class PorterDuffBulkVsPixel
     [Benchmark(Description = "ImageSharp BulkVectorConvert")]
     public Size BulkVectorConvert()
     {
-        using var image = new Image<Rgba32>(800, 800);
+        using Image<Rgba32> image = new(800, 800);
         using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);
         amounts.GetSpan().Fill(1);
 
@@ -70,7 +70,7 @@ public class PorterDuffBulkVsPixel
         for (int y = 0; y < image.Height; y++)
         {
             Span<Rgba32> span = pixels.DangerousGetRowSpan(y);
-            this.BulkVectorConvert(span, span, span, amounts.GetSpan());
+            BulkVectorConvert(span, span, span, amounts.GetSpan());
         }
 
         return new Size(image.Width, image.Height);
@@ -79,14 +79,14 @@ public class PorterDuffBulkVsPixel
     [Benchmark(Description = "ImageSharp BulkPixelConvert")]
     public Size BulkPixelConvert()
     {
-        using var image = new Image<Rgba32>(800, 800);
+        using Image<Rgba32> image = new(800, 800);
         using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);
         amounts.GetSpan().Fill(1);
         Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
         for (int y = 0; y < image.Height; y++)
         {
             Span<Rgba32> span = pixels.DangerousGetRowSpan(y);
-            this.BulkPixelConvert(span, span, span, amounts.GetSpan());
+            BulkPixelConvert(span, span, span, amounts.GetSpan());
         }
 
         return new Size(image.Width, image.Height);

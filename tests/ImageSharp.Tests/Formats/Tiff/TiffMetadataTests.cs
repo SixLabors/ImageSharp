@@ -31,13 +31,16 @@ public class TiffMetadataTests
         TiffMetadata meta = new()
         {
             ByteOrder = ByteOrder.BigEndian,
+            FormatType = TiffFormatType.BigTIFF,
         };
 
         TiffMetadata clone = (TiffMetadata)meta.DeepClone();
 
         clone.ByteOrder = ByteOrder.LittleEndian;
+        clone.FormatType = TiffFormatType.Default;
 
-        Assert.False(meta.ByteOrder == clone.ByteOrder);
+        Assert.Equal(ByteOrder.BigEndian, meta.ByteOrder);
+        Assert.Equal(TiffFormatType.BigTIFF, meta.FormatType);
     }
 
     [Theory]
@@ -104,6 +107,32 @@ public class TiffMetadataTests
         TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
         Assert.NotNull(tiffMetadata);
         Assert.Equal(expectedByteOrder, tiffMetadata.ByteOrder);
+    }
+
+    [Theory]
+    [InlineData(Cmyk, 1, TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    [InlineData(Cmyk64BitDeflate, 1, TiffBitsPerPixel.Bit64, TiffPhotometricInterpretation.Separated, TiffInkSet.Cmyk)]
+    [InlineData(YCbCrJpegCompressed, 1, TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.YCbCr, null)]
+    public void Identify_Frames(string imagePath, int framesCount, TiffBitsPerPixel bitsPerPixel, TiffPhotometricInterpretation photometric, TiffInkSet? inkSet)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+        Assert.NotNull(tiffMetadata);
+
+        Assert.Equal(framesCount, imageInfo.FrameMetadataCollection.Count);
+
+        foreach (ImageFrameMetadata metadata in imageInfo.FrameMetadataCollection)
+        {
+            TiffFrameMetadata tiffFrameMetadata = metadata.GetTiffMetadata();
+            Assert.Equal(bitsPerPixel, tiffFrameMetadata.BitsPerPixel);
+            Assert.Equal(photometric, tiffFrameMetadata.PhotometricInterpretation);
+            Assert.Equal(inkSet, tiffFrameMetadata.InkSet);
+        }
     }
 
     [Theory]

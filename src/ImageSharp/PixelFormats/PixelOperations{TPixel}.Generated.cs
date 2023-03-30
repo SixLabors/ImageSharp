@@ -22,7 +22,7 @@ public partial class PixelOperations<TPixel>
         ref Argb32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -58,7 +58,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Argb32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -94,7 +94,7 @@ public partial class PixelOperations<TPixel>
         ref Abgr32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Abgr32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -130,7 +130,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Abgr32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Abgr32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -166,7 +166,7 @@ public partial class PixelOperations<TPixel>
         ref Bgr24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -202,7 +202,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -238,7 +238,7 @@ public partial class PixelOperations<TPixel>
         ref Bgra32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -274,7 +274,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -310,7 +310,7 @@ public partial class PixelOperations<TPixel>
         ref L8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref L8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -346,7 +346,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref L8 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -382,7 +382,7 @@ public partial class PixelOperations<TPixel>
         ref L16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref L16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -418,7 +418,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref L16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -454,7 +454,7 @@ public partial class PixelOperations<TPixel>
         ref La16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref La16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -490,7 +490,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref La16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref La16 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -526,7 +526,7 @@ public partial class PixelOperations<TPixel>
         ref La32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref La32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -562,7 +562,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref La32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref La32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -598,7 +598,7 @@ public partial class PixelOperations<TPixel>
         ref Rgb24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -634,7 +634,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -670,7 +670,7 @@ public partial class PixelOperations<TPixel>
         ref Rgba32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -706,7 +706,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -742,7 +742,7 @@ public partial class PixelOperations<TPixel>
         ref Rgb48 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -778,7 +778,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Rgb48 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -814,7 +814,7 @@ public partial class PixelOperations<TPixel>
         ref Rgba64 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -850,7 +850,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -886,7 +886,7 @@ public partial class PixelOperations<TPixel>
         ref Bgra5551 sourceBaseRef = ref MemoryMarshal.GetReference(source);
         ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < source.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Bgra5551 sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
@@ -922,7 +922,7 @@ public partial class PixelOperations<TPixel>
         ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
         ref Bgra5551 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
 
-        for (int i = 0; i < sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
             ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
             ref Bgra5551 dp = ref Unsafe.Add(ref destBaseRef, i);

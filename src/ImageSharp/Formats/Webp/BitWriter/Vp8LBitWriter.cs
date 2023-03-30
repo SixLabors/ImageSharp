@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -15,11 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 /// </summary>
 internal class Vp8LBitWriter : BitWriterBase
 {
-    /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] scratchBuffer = new byte[8];
-
     /// <summary>
     /// This is the minimum amount of size the memory buffer is guaranteed to grow when extra space is needed.
     /// </summary>
@@ -138,25 +132,25 @@ internal class Vp8LBitWriter : BitWriterBase
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    public void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, XmpProfile xmpProfile, IccProfile iccProfile, uint width, uint height, bool hasAlpha)
+    public void WriteEncodedImageToStream(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha)
     {
         bool isVp8X = false;
-        byte[] exifBytes = null;
-        byte[] xmpBytes = null;
-        byte[] iccBytes = null;
+        byte[]? exifBytes = null;
+        byte[]? xmpBytes = null;
+        byte[]? iccBytes = null;
         uint riffSize = 0;
         if (exifProfile != null)
         {
             isVp8X = true;
             exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes);
+            riffSize += MetadataChunkSize(exifBytes!);
         }
 
         if (xmpProfile != null)
         {
             isVp8X = true;
             xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes);
+            riffSize += MetadataChunkSize(xmpBytes!);
         }
 
         if (iccProfile != null)
@@ -195,8 +189,9 @@ internal class Vp8LBitWriter : BitWriterBase
         stream.Write(WebpConstants.Vp8LMagicBytes);
 
         // Write Vp8 Header.
-        BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer, size);
-        stream.Write(this.scratchBuffer.AsSpan(0, 4));
+        Span<byte> scratchBuffer = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt32LittleEndian(scratchBuffer, size);
+        stream.Write(scratchBuffer.Slice(0, 4));
         stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
         // Write the encoded bytes of the image to the stream.
@@ -229,8 +224,9 @@ internal class Vp8LBitWriter : BitWriterBase
             this.BitWriterResize(extraSize);
         }
 
-        BinaryPrimitives.WriteUInt64LittleEndian(this.scratchBuffer, this.bits);
-        this.scratchBuffer.AsSpan(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
+        Span<byte> scratchBuffer = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt64LittleEndian(scratchBuffer, this.bits);
+        scratchBuffer.Slice(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
 
         this.cur += WriterBytes;
         this.bits >>= WriterBits;

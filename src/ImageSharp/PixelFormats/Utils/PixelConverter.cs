@@ -29,6 +29,8 @@ internal static class PixelConverter
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Argb32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WXYZShuffle4>(source, dest, default);
@@ -38,6 +40,8 @@ internal static class PixelConverter
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<ZYXWShuffle4>(source, dest, default);
@@ -47,6 +51,8 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Abgr32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToAbgr32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
@@ -56,6 +62,8 @@ internal static class PixelConverter
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgb24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(source, dest, default);
@@ -65,9 +73,11 @@ internal static class PixelConverter
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgr24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(3, 0, 1, 2));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle3012));
     }
 
     /// <summary>
@@ -82,6 +92,8 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgba32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<YZWXShuffle4>(source, dest, default);
@@ -91,6 +103,8 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
@@ -100,6 +114,8 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Abgr32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToAbgr32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<XWZYShuffle4>(source, dest, default);
@@ -109,18 +125,22 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgb24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(0, 3, 2, 1));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle0321));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgr24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(0, 1, 2, 3));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle0123));
     }
 
     /// <summary>
@@ -135,6 +155,8 @@ internal static class PixelConverter
         /// <see cref="Bgra32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Argb32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
@@ -144,6 +166,8 @@ internal static class PixelConverter
         /// <see cref="Bgra32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgba32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<ZYXWShuffle4>(source, dest, default);
@@ -153,6 +177,8 @@ internal static class PixelConverter
         /// <see cref="Bgra32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Abgr32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToAbgr32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WXYZShuffle4>(source, dest, default);
@@ -162,15 +188,19 @@ internal static class PixelConverter
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgb24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(3, 0, 1, 2));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle3012));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Argb32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgr24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(source, dest, default);
@@ -188,6 +218,8 @@ internal static class PixelConverter
         /// <see cref="Abgr32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Argb32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<XWZYShuffle4>(source, dest, default);
@@ -197,6 +229,8 @@ internal static class PixelConverter
         /// <see cref="Abgr32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
@@ -206,6 +240,8 @@ internal static class PixelConverter
         /// <see cref="Abgr32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Shuffle4<YZWXShuffle4>(source, dest, default);
@@ -215,18 +251,22 @@ internal static class PixelConverter
         /// <see cref="Abgr32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgb24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(0, 1, 2, 3));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle0123));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Abgr32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgr24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(0, 3, 2, 1));
+            => SimdUtils.Shuffle4Slice3(source, dest, new DefaultShuffle4Slice3(SimdUtils.Shuffle.MMShuffle0321));
     }
 
     /// <summary>
@@ -241,6 +281,8 @@ internal static class PixelConverter
         /// <see cref="Rgb24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgba32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(source, dest, default);
@@ -250,36 +292,44 @@ internal static class PixelConverter
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Argb32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(2, 1, 0, 3));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle2103));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(3, 0, 1, 2));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle3012));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Rgba32"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToAbgr32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(0, 1, 2, 3));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle0123));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Rgb24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgr24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(0, 1, 2));
+            => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(SimdUtils.Shuffle.MMShuffle3012));
     }
 
     /// <summary>
@@ -294,24 +344,30 @@ internal static class PixelConverter
         /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Argb32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(0, 1, 2, 3));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle0123));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(3, 0, 1, 2));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle3012));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Bgra32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
             => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(source, dest, default);
@@ -321,17 +377,21 @@ internal static class PixelConverter
         /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Abgr32"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToAbgr32(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(2, 1, 0, 3));
+            => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(SimdUtils.Shuffle.MMShuffle2103));
 
         /// <summary>
         /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
         /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
         /// a collection of <see cref="Rgb24"/> pixels.
         /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
-            => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(0, 1, 2));
+            => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(SimdUtils.Shuffle.MMShuffle3012));
     }
 }

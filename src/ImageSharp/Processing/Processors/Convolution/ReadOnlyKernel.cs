@@ -17,24 +17,24 @@ internal readonly ref struct ReadOnlyKernel
 
     public ReadOnlyKernel(DenseMatrix<float> matrix)
     {
-        this.Columns = matrix.Columns;
-        this.Rows = matrix.Rows;
+        this.Columns = (uint)matrix.Columns;
+        this.Rows = (uint)matrix.Rows;
         this.values = matrix.Span;
     }
 
-    public int Columns
+    public uint Columns
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     }
 
-    public int Rows
+    public uint Rows
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     }
 
-    public float this[int row, int column]
+    public float this[uint row, uint column]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -46,14 +46,14 @@ internal readonly ref struct ReadOnlyKernel
     }
 
     [Conditional("DEBUG")]
-    private void CheckCoordinates(int row, int column)
+    private void CheckCoordinates(uint row, uint column)
     {
-        if (row < 0 || row >= this.Rows)
+        if (row >= this.Rows)
         {
             throw new ArgumentOutOfRangeException(nameof(row), row, $"{row} is outwith the matrix bounds.");
         }
 
-        if (column < 0 || column >= this.Columns)
+        if (column >= this.Columns)
         {
             throw new ArgumentOutOfRangeException(nameof(column), column, $"{column} is outwith the matrix bounds.");
         }

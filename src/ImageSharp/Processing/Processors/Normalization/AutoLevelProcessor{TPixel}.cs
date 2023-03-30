@@ -148,12 +148,12 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                var vector = Unsafe.Add(ref vectorRef, x);
+                var vector = Unsafe.Add(ref vectorRef, (uint)x);
                 int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
-                float scaledLuminance = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
+                float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 float scalingFactor = scaledLuminance * levels / luminance;
                 Vector4 scaledVector = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
-                Unsafe.Add(ref vectorRef, x) = scaledVector;
+                Unsafe.Add(ref vectorRef, (uint)x) = scaledVector;
             }
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);
@@ -209,7 +209,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                var vector = Unsafe.Add(ref vectorRef, x) * levelsMinusOne;
+                var vector = Unsafe.Add(ref vectorRef, (uint)x) * levelsMinusOne;
 
                 uint originalX = (uint)MathF.Round(vector.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;
@@ -217,7 +217,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
                 uint originalZ = (uint)MathF.Round(vector.Z);
                 float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, x) = new Vector4(scaledX, scaledY, scaledZ, vector.W);
+                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, vector.W);
             }
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);

@@ -98,8 +98,8 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
     {
         private readonly Buffer2D<TPixel> targetPixels;
         private readonly Buffer2D<TPixel> passPixels;
-        private readonly int minX;
-        private readonly int maxX;
+        private readonly uint minX;
+        private readonly uint maxX;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public RowOperation(
@@ -109,8 +109,8 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
         {
             this.targetPixels = targetPixels;
             this.passPixels = passPixels;
-            this.minX = bounds.X;
-            this.maxX = bounds.Right;
+            this.minX = (uint)bounds.X;
+            this.maxX = (uint)bounds.Right;
         }
 
         /// <inheritdoc/>
@@ -120,7 +120,7 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
             ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.DangerousGetRowSpan(y));
             ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.DangerousGetRowSpan(y));
 
-            for (int x = this.minX; x < this.maxX; x++)
+            for (nuint x = this.minX; x < this.maxX; x++)
             {
                 // Grab the max components of the two pixels
                 ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);

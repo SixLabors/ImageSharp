@@ -347,12 +347,12 @@ internal class Vp8EncIterator
         }
     }
 
-    public int FastMbAnalyze(int quality)
+    public int FastMbAnalyze(uint quality)
     {
         // Empirical cut-off value, should be around 16 (~=block size). We use the
         // [8-17] range and favor intra4 at high quality, intra16 for low quality.
-        int q = quality;
-        int kThreshold = 8 + ((17 - 8) * q / 100);
+        uint q = quality;
+        uint kThreshold = 8 + ((17 - 8) * q / 100);
         int k;
         Span<uint> dc = stackalloc uint[16];
         uint m;
@@ -374,7 +374,7 @@ internal class Vp8EncIterator
         }
         else
         {
-            byte[] modes = new byte[16];  // DC4
+            Span<byte> modes = stackalloc byte[16];  // DC4
             this.SetIntra4Mode(modes);
         }
 
@@ -407,7 +407,7 @@ internal class Vp8EncIterator
 
     public int MbAnalyzeBestIntra4Mode(int bestAlpha)
     {
-        byte[] modes = new byte[16];
+        Span<byte> modes = stackalloc byte[16];
         const int maxMode = MaxIntra4Mode;
         Vp8Histogram totalHisto = new();
         int curHisto = 0;
@@ -494,13 +494,13 @@ internal class Vp8EncIterator
         this.CurrentMacroBlockInfo.MacroBlockType = Vp8MacroBlockType.I16X16;
     }
 
-    public void SetIntra4Mode(byte[] modes)
+    public void SetIntra4Mode(ReadOnlySpan<byte> modes)
     {
         int modesIdx = 0;
         int predIdx = this.PredIdx;
         for (int y = 4; y > 0; y--)
         {
-            modes.AsSpan(modesIdx, 4).CopyTo(this.Preds.AsSpan(predIdx));
+            modes.Slice(modesIdx, 4).CopyTo(this.Preds.AsSpan(predIdx));
             predIdx += this.predsWidth;
             modesIdx += 4;
         }

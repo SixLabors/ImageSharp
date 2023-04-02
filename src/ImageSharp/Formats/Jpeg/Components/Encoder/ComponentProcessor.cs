@@ -129,6 +129,18 @@ internal class ComponentProcessor : IDisposable
                     Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
                 }
             }
+            else if (AdvSimd.IsSupported)
+            {
+                ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
+                ref Vector128<float> sourceVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+
+                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                nuint count = source.Vector128Count<float>();
+                for (nuint i = 0; i < count; i++)
+                {
+                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
+                }
+            }
             else
             {
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));

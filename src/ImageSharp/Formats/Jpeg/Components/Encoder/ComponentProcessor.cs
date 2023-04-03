@@ -123,6 +123,7 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> sourceVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
                 nuint count = source.Vector256Count<float>();
                 for (nuint i = 0; i < count; i++)
                 {
@@ -135,6 +136,7 @@ internal class ComponentProcessor : IDisposable
                 ref Vector128<float> sourceVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
                 nuint count = source.Vector128Count<float>();
                 for (nuint i = 0; i < count; i++)
                 {
@@ -213,6 +215,7 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
                 nuint count = target.Vector256Count<float>();
                 Vector256<float> multiplierVector = Vector256.Create(multiplier);
                 for (nuint i = 0; i < count; i++)
@@ -225,6 +228,7 @@ internal class ComponentProcessor : IDisposable
                 ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
                 nuint count = target.Vector128Count<float>();
                 Vector128<float> multiplierVector = Vector128.Create(multiplier);
                 for (nuint i = 0; i < count; i++)

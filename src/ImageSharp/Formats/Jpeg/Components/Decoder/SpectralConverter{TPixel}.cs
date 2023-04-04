@@ -184,34 +184,39 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
         MemoryAllocator allocator = this.Configuration.MemoryAllocator;
 
-        // color converter from RGB to TPixel
+        // Color converter from RGB to TPixel
         JpegColorConverterBase converter = this.GetColorConverter(this.frame, this.jpegData);
         this.colorConverter = converter;
 
-        // resulting image size
+        // Resulting image size
         Size pixelSize = CalculateResultingImageSize(this.frame.PixelSize, this.targetSize, out int blockPixelSize);
 
-        // iteration data
+        // Iteration data
         int majorBlockWidth = this.frame.Components.Max((component) => component.SizeInBlocks.Width);
         int majorVerticalSamplingFactor = this.frame.Components.Max((component) => component.SamplingFactors.Height);
 
         this.pixelRowsPerStep = majorVerticalSamplingFactor * blockPixelSize;
 
-        // pixel buffer for resulting image
+        // Pixel buffer for resulting image
         this.pixelBuffer = allocator.Allocate2D<TPixel>(
             pixelSize.Width,
             pixelSize.Height,
             this.Configuration.PreferContiguousImageBuffers);
         this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
-        // component processors from spectral to RGB
+        // Component processors from spectral to RGB
         int bufferWidth = majorBlockWidth * blockPixelSize;
-        int batchSize = converter.ElementsPerBatch;
-        int batchRemainder = bufferWidth & (batchSize - 1);
-        Size postProcessorBufferSize = new(bufferWidth + (batchSize - batchRemainder), this.pixelRowsPerStep);
+
+        // Converters process pixels in batches and require target buffer size to be divisible by a batch size
+        // Corner case: image size including jpeg padding is already divisible by a batch size or remainder == 0
+        int elementsPerBatch = converter.ElementsPerBatch;
+        int batchRemainder = bufferWidth & (elementsPerBatch - 1);
+        int widthComplementaryValue = batchRemainder == 0 ? 0 : elementsPerBatch - batchRemainder;
+
+        Size postProcessorBufferSize = new(bufferWidth + widthComplementaryValue, this.pixelRowsPerStep);
         this.componentProcessors = this.CreateComponentProcessors(this.frame, this.jpegData, blockPixelSize, postProcessorBufferSize);
 
-        // single 'stride' rgba32 buffer for conversion between spectral and TPixel
+        // Single 'stride' rgba32 buffer for conversion between spectral and TPixel
         this.rgbBuffer = allocator.Allocate<byte>(pixelSize.Width * 3);
     }
 

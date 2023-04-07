@@ -24,7 +24,7 @@ public class Vp8ResidualTests
         // arrange
         int ctx0 = 0;
         int expected = 20911;
-        string jsonString = File.ReadAllText(@"TestDataWebp\Vp8Residual.json");
+        string jsonString = File.ReadAllText(Path.Combine("TestDataWebp", "Vp8Residual.json"));
         Vp8Residual residual = JsonSerializer.Deserialize<Vp8Residual>(jsonString);
 
         // act

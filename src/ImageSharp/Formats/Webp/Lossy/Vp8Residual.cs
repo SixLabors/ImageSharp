@@ -173,55 +173,6 @@ internal class Vp8Residual
             return LossyUtils.Vp8BitCost(0, (byte)p0);
         }
 
-        if (false)
-        {
-            Span<byte> scratch = stackalloc byte[32];
-            Span<byte> ctxs = scratch.Slice(0, 16);
-            Span<byte> levels = scratch.Slice(16);
-            Span<ushort> absLevels = stackalloc ushort[16];
-
-            // Precompute clamped levels and contexts, packed to 8b.
-            ref short outputRef = ref MemoryMarshal.GetReference<short>(this.Coeffs);
-            Vector256<short> c0 = Unsafe.As<short, Vector256<byte>>(ref outputRef).AsInt16();
-            Vector256<short> d0 = Avx2.Subtract(Vector256<short>.Zero, c0);
-            Vector256<short> e0 = Avx2.Max(c0, d0); // abs(v), 16b
-            Vector256<sbyte> f = Avx2.PackSignedSaturate(e0, e0);
-            Vector256<byte> g = Avx2.Min(f.AsByte(), Vector256.Create((byte)2));
-            Vector256<byte> h = Avx2.Min(f.AsByte(), Vector256.Create((byte)67)); // clampLevel in [0..67]
-
-            ref byte ctxsRef = ref MemoryMarshal.GetReference(ctxs);
-            ref byte levelsRef = ref MemoryMarshal.GetReference(levels);
-            ref ushort absLevelsRef = ref MemoryMarshal.GetReference(absLevels);
-            Unsafe.As<byte, Vector128<byte>>(ref ctxsRef) = g.GetLower();
-            Unsafe.As<byte, Vector128<byte>>(ref levelsRef) = h.GetLower();
-            Unsafe.As<ushort, Vector256<ushort>>(ref absLevelsRef) = e0.AsUInt16();
-
-            int level;
-            int flevel;
-            for (; n < this.Last; ++n)
-            {
-                int ctx = ctxs[n];
-                level = levels[n];
-                flevel = absLevels[n];
-                cost += WebpLookupTables.Vp8LevelFixedCosts[flevel] + t.Costs[level];
-                t = costs[n + 1].Costs[ctx];
-            }
-
-            // Last coefficient is always non-zero.
-            level = levels[n];
-            flevel = absLevels[n];
-            cost += WebpLookupTables.Vp8LevelFixedCosts[flevel] + t.Costs[level];
-            if (n < 15)
-            {
-                int b = WebpConstants.Vp8EncBands[n + 1];
-                int ctx = ctxs[n];
-                int lastP0 = this.Prob[b].Probabilities[ctx].Probabilities[0];
-                cost += LossyUtils.Vp8BitCost(0, (byte)lastP0);
-            }
-
-            return cost;
-        }
-
         if (Sse2.IsSupported)
         {
             Span<byte> scratch = stackalloc byte[32];

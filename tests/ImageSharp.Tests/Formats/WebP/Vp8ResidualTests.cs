@@ -12,6 +12,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 public class Vp8ResidualTests
 {
     [Fact]
+    public void GetResidualCost_Works()
+    {
+        // arrange
+        int ctx0 = 0;
+        int expected = 20911;
+        string jsonString = File.ReadAllText(@"TestDataWebp\Vp8Residual.json");
+        Vp8Residual residual = JsonSerializer.Deserialize<Vp8Residual>(jsonString);
+
+        // act
+        int actual = residual.GetResidualCost(ctx0);
+
+        // assert
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void Serialization_Works()
     {
         // arrange

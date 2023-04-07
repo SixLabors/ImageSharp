@@ -1029,4 +1029,13 @@ public static class TestImages
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
     }
+
+    public static class Exr
+    {
+        public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
+        public const string Zip = "Exr/Calliphora_zip.exr";
+        public const string Zips = "Exr/Calliphora_zips.exr";
+        public const string Rle = "Exr/Calliphora_rle.exr";
+        public const string B44 = "Exr/Calliphora_b44.exr";
+    }
 }

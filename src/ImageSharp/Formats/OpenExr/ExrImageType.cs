@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+namespace SixLabors.ImageSharp.Formats.OpenExr;
+
+internal enum ExrImageType
 {
-    internal enum ExrImageType
-    {
-        ScanLine = 0,
+    ScanLine = 0,
 
-        Tiled = 1
-    }
+    Tiled = 1
 }

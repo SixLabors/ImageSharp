@@ -1,16 +1,15 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+namespace SixLabors.ImageSharp.Formats.OpenExr;
+
+/// <summary>
+/// Configuration options for use during OpenExr encoding.
+/// </summary>
+internal interface IExrEncoderOptions
 {
     /// <summary>
-    /// Configuration options for use during OpenExr encoding.
+    /// Gets the pixel type of the image.
     /// </summary>
-    internal interface IExrEncoderOptions
-    {
-        /// <summary>
-        /// Gets the pixel type of the image.
-        /// </summary>
-        ExrPixelType? PixelType { get; }
-    }
+    ExrPixelType? PixelType { get; }
 }

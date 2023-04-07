@@ -8,17 +8,56 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Utility methods for <see cref="IImageDecoderInternals"/>.
+/// Utility methods for <see cref="IImageDecoder"/>.
 /// </summary>
 internal static class ImageDecoderUtilities
 {
-    internal static ImageInfo Identify(
+    /// <summary>
+    /// Performs a resize operation against the decoded image. If the target size is not set, or the image size
+    /// already matches the target size, the image is untouched.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The decoded image.</param>
+    public static void Resize(DecoderOptions options, Image image)
+    {
+        if (ShouldResize(options, image))
+        {
+            ResizeOptions resizeOptions = new()
+            {
+                Size = options.TargetSize.Value,
+                Sampler = options.Sampler,
+                Mode = ResizeMode.Max
+            };
+
+            image.Mutate(x => x.Resize(resizeOptions));
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the decoded image should be resized.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The decoded image.</param>
+    /// <returns><see langword="true"/> if the image should be resized, otherwise; <see langword="false"/>.</returns>
+    private static bool ShouldResize(DecoderOptions options, Image image)
+    {
+        if (options.TargetSize is null)
+        {
+            return false;
+        }
+
+        Size targetSize = options.TargetSize.Value;
+        Size currentSize = image.Size();
+        return currentSize.Width != targetSize.Width && currentSize.Height != targetSize.Height;
+    }
+
+    internal static IImageInfo Identify(
         this IImageDecoderInternals decoder,
         Configuration configuration,
         Stream stream,
         CancellationToken cancellationToken)
     {
-        using BufferedReadStream bufferedReadStream = new(configuration, stream, cancellationToken);
+        using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
         try
         {
@@ -59,10 +98,6 @@ internal static class ImageDecoderUtilities
         catch (InvalidMemoryOperationException ex)
         {
             throw largeImageExceptionFactory(ex, decoder.Dimensions);
-        }
-        catch (Exception)
-        {
-            throw;
         }
     }
 

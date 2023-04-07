@@ -1,85 +1,82 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.Collections.Generic;
+namespace SixLabors.ImageSharp.Formats.OpenExr;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+/// <summary>
+/// Defines constants relating to OpenExr images.
+/// </summary>
+internal static class ExrConstants
 {
     /// <summary>
-    /// Defines constants relating to OpenExr images.
+    /// The list of mimetypes that equate to a OpenExr image.
     /// </summary>
-    internal static class ExrConstants
+    public static readonly IEnumerable<string> MimeTypes = new[] { "image/x-exr" };
+
+    /// <summary>
+    /// The list of file extensions that equate to a OpenExr image.
+    /// </summary>
+    public static readonly IEnumerable<string> FileExtensions = new[] { "exr" };
+
+    /// <summary>
+    /// The magick bytes identifying an OpenExr image.
+    /// </summary>
+    public static readonly int MagickBytes = 20000630;
+
+    /// <summary>
+    /// EXR attribute names.
+    /// </summary>
+    internal static class AttributeNames
     {
-        /// <summary>
-        /// The list of mimetypes that equate to a OpenExr image.
-        /// </summary>
-        public static readonly IEnumerable<string> MimeTypes = new[] { "image/x-exr" };
+        public const string Channels = "channels";
 
-        /// <summary>
-        /// The list of file extensions that equate to a OpenExr image.
-        /// </summary>
-        public static readonly IEnumerable<string> FileExtensions = new[] { "exr" };
+        public const string Compression = "compression";
 
-        /// <summary>
-        /// The magick bytes identifying an OpenExr image.
-        /// </summary>
-        public static readonly int MagickBytes = 20000630;
+        public const string DataWindow = "dataWindow";
 
-        /// <summary>
-        /// EXR attribute names.
-        /// </summary>
-        internal static class AttributeNames
-        {
-            public const string Channels = "channels";
+        public const string DisplayWindow = "displayWindow";
 
-            public const string Compression = "compression";
+        public const string LineOrder = "lineOrder";
 
-            public const string DataWindow = "dataWindow";
+        public const string PixelAspectRatio = "pixelAspectRatio";
 
-            public const string DisplayWindow = "displayWindow";
+        public const string ScreenWindowCenter = "screenWindowCenter";
 
-            public const string LineOrder = "lineOrder";
+        public const string ScreenWindowWidth = "screenWindowWidth";
 
-            public const string PixelAspectRatio = "pixelAspectRatio";
+        public const string Tiles = "tiles";
 
-            public const string ScreenWindowCenter = "screenWindowCenter";
+        public const string ChunkCount = "chunkCount";
+    }
 
-            public const string ScreenWindowWidth = "screenWindowWidth";
+    /// <summary>
+    /// EXR attribute types.
+    /// </summary>
+    internal static class AttibuteTypes
+    {
+        public const string ChannelList = "chlist";
 
-            public const string Tiles = "tiles";
+        public const string Compression = "compression";
 
-            public const string ChunkCount = "chunkCount";
-        }
+        public const string Float = "float";
 
-        /// <summary>
-        /// EXR attribute types.
-        /// </summary>
-        internal static class AttibuteTypes
-        {
-            public const string ChannelList = "chlist";
+        public const string LineOrder = "lineOrder";
 
-            public const string Compression = "compression";
+        public const string TwoFloat = "v2f";
 
-            public const string Float = "float";
+        public const string BoxInt = "box2i";
+    }
 
-            public const string LineOrder = "lineOrder";
+    internal static class ChannelNames
+    {
+        public const string Red = "R";
 
-            public const string TwoFloat = "v2f";
+        public const string Green = "G";
 
-            public const string BoxInt = "box2i";
-        }
+        public const string Blue = "B";
 
-        internal static class ChannelNames
-        {
-            public const string Red = "R";
+        public const string Alpha = "A";
 
-            public const string Green = "G";
-
-            public const string Blue = "B";
-
-            public const string Alpha = "A";
-
-            public const string Luminance = "Y";
-        }
+        public const string Luminance = "Y";
     }
 }

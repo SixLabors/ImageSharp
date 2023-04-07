@@ -1,14 +1,13 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr
+namespace SixLabors.ImageSharp.Formats.OpenExr;
+
+internal enum ExrLineOrder : byte
 {
-    internal enum ExrLineOrder : byte
-    {
-        IncreasingY = 0,
+    IncreasingY = 0,
 
-        DecreasingY = 1,
+    DecreasingY = 1,
 
-        RandomY = 2
-    }
+    RandomY = 2
 }

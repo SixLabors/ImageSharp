@@ -837,4 +837,36 @@ public static partial class ImageExtensions
               encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance),
               cancellationToken);
 
+            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance),
+            cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Open Exr format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static void SaveAsOpenExr(this Image source, Stream stream, ExrEncoder encoder)
+        => source.Save(
+            stream,
+            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance));
+
+    /// <summary>
+    /// Saves the image to the given stream with the Open Exr format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsOpenExrAsync(this Image source, Stream stream, ExrEncoder encoder, CancellationToken cancellationToken = default) =>
+        source.SaveAsync(
+            stream,
+            encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(ExrFormat.Instance),
+            cancellationToken);
+
+
 }

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.IO;
@@ -158,6 +159,31 @@ internal sealed class BufferedReadStream : Stream
         {
             return this.pinnedReadBuffer[this.readBufferIndex++];
         }
+    }
+
+    /// <summary>
+    /// Reads a float value.
+    /// </summary>
+    /// <returns>The value.</returns>
+    public float ReadSingle(byte[] data)
+    {
+        int offset = 0;
+        int bytesToRead = 4;
+        while (bytesToRead > 0)
+        {
+            int bytesRead = this.Read(data, offset, bytesToRead);
+            if (bytesRead == 0)
+            {
+                throw new ImageFormatException("Not enough data to read a float value from the stream");
+            }
+
+            bytesToRead -= bytesRead;
+            offset += bytesRead;
+        }
+
+        int intValue = BinaryPrimitives.ReadInt32BigEndian(data);
+
+        return Unsafe.As<int, float>(ref intValue);
     }
 
     /// <inheritdoc/>

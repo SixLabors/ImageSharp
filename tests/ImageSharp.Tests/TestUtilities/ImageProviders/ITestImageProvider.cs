@@ -1,16 +1,15 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests;
+
+public interface ITestImageProvider
 {
-    public interface ITestImageProvider
-    {
-        PixelTypes PixelType { get; }
+    PixelTypes PixelType { get; }
 
-        ImagingTestCaseUtility Utility { get; }
+    ImagingTestCaseUtility Utility { get; }
 
-        string SourceFileOrDescription { get; }
+    string SourceFileOrDescription { get; }
 
-        Configuration Configuration { get; set; }
-    }
+    Configuration Configuration { get; set; }
 }

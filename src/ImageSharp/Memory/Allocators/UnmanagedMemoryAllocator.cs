@@ -1,33 +1,31 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 using SixLabors.ImageSharp.Memory.Internals;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.ImageSharp.Memory;
+
+/// <summary>
+/// A <see cref="MemoryAllocator"/> implementation that allocates memory on the unmanaged heap
+/// without any pooling.
+/// </summary>
+internal class UnmanagedMemoryAllocator : MemoryAllocator
 {
-    /// <summary>
-    /// A <see cref="MemoryAllocator"/> implementation that allocates memory on the unmanaged heap
-    /// without any pooling.
-    /// </summary>
-    internal class UnmanagedMemoryAllocator : MemoryAllocator
+    private readonly int bufferCapacityInBytes;
+
+    public UnmanagedMemoryAllocator(int bufferCapacityInBytes) => this.bufferCapacityInBytes = bufferCapacityInBytes;
+
+    protected internal override int GetBufferCapacityInBytes() => this.bufferCapacityInBytes;
+
+    public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        private readonly int bufferCapacityInBytes;
-
-        public UnmanagedMemoryAllocator(int bufferCapacityInBytes) => this.bufferCapacityInBytes = bufferCapacityInBytes;
-
-        protected internal override int GetBufferCapacityInBytes() => this.bufferCapacityInBytes;
-
-        public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
+        var buffer = UnmanagedBuffer<T>.Allocate(length);
+        if (options.Has(AllocationOptions.Clean))
         {
-            var buffer = UnmanagedBuffer<T>.Allocate(length);
-            if (options.Has(AllocationOptions.Clean))
-            {
-                buffer.GetSpan().Clear();
-            }
-
-            return buffer;
+            buffer.GetSpan().Clear();
         }
+
+        return buffer;
     }
 }

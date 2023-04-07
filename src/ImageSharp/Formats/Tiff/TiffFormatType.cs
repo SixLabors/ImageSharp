@@ -1,21 +1,20 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff;
+
+/// <summary>
+/// The TIFF format type enum.
+/// </summary>
+public enum TiffFormatType
 {
     /// <summary>
-    /// The TIFF format type enum.
+    /// The TIFF file format type.
     /// </summary>
-    public enum TiffFormatType
-    {
-        /// <summary>
-        /// The TIFF file format type.
-        /// </summary>
-        Default,
+    Default,
 
-        /// <summary>
-        /// The BigTIFF format type.
-        /// </summary>
-        BigTIFF
-    }
+    /// <summary>
+    /// The BigTIFF format type.
+    /// </summary>
+    BigTIFF
 }

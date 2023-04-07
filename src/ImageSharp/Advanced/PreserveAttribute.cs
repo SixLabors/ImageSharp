@@ -1,14 +1,14 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Advanced
+namespace SixLabors.ImageSharp.Advanced;
+
+/// <summary>
+/// This is necessary to avoid being excluded from compilation in environments that do AOT builds, such as Unity's IL2CPP and Xamarin.
+/// The only thing that matters is the class name.
+/// There is no need to use or inherit from the PreserveAttribute class in each environment.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+internal sealed class PreserveAttribute : Attribute
 {
-    /// <summary>
-    /// This is necessary to avoid being excluded from compilation in environments that do AOT builds, such as Unity's IL2CPP and Xamarin.
-    /// The only thing that matters is the class name.
-    /// There is no need to use or inherit from the PreserveAttribute class in each environment.
-    /// </summary>
-    internal sealed class PreserveAttribute : System.Attribute
-    {
-    }
 }

@@ -1,60 +1,56 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Quantization
+namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
+
+/// <summary>
+/// Enables the quantization of images to reduce the number of colors used in the image palette.
+/// </summary>
+/// <typeparam name="TPixel">The pixel format.</typeparam>
+internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
+    where TPixel : unmanaged, IPixel<TPixel>
 {
+    private readonly IQuantizer quantizer;
+
     /// <summary>
-    /// Enables the quantization of images to reduce the number of colors used in the image palette.
+    /// Initializes a new instance of the <see cref="QuantizeProcessor{TPixel}"/> class.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="quantizer">The quantizer used to reduce the color palette.</param>
+    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    public QuantizeProcessor(Configuration configuration, IQuantizer quantizer, Image<TPixel> source, Rectangle sourceRectangle)
+        : base(configuration, source, sourceRectangle)
     {
-        private readonly IQuantizer quantizer;
+        Guard.NotNull(quantizer, nameof(quantizer));
+        this.quantizer = quantizer;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizeProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The quantizer used to reduce the color palette.</param>
-        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
-        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public QuantizeProcessor(Configuration configuration, IQuantizer quantizer, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(configuration, source, sourceRectangle)
+    /// <inheritdoc />
+    protected override void OnFrameApply(ImageFrame<TPixel> source)
+    {
+        var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
+
+        Configuration configuration = this.Configuration;
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(source, interest);
+
+        ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
+        int offsetY = interest.Top;
+        int offsetX = interest.Left;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+
+        for (int y = interest.Y; y < interest.Height; y++)
         {
-            Guard.NotNull(quantizer, nameof(quantizer));
-            this.quantizer = quantizer;
-        }
+            Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> quantizedRow = quantized.DangerousGetRowSpan(y - offsetY);
 
-        /// <inheritdoc />
-        protected override void OnFrameApply(ImageFrame<TPixel> source)
-        {
-            var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
-
-            Configuration configuration = this.Configuration;
-            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
-            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(source, interest);
-
-            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-            int offsetY = interest.Top;
-            int offsetX = interest.Left;
-            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
-
-            for (int y = interest.Y; y < interest.Height; y++)
+            for (int x = interest.Left; x < interest.Right; x++)
             {
-                Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
-                ReadOnlySpan<byte> quantizedRow = quantized.DangerousGetRowSpan(y - offsetY);
-
-                for (int x = interest.Left; x < interest.Right; x++)
-                {
-                    row[x] = paletteSpan[quantizedRow[x - offsetX]];
-                }
+                row[x] = paletteSpan[quantizedRow[x - offsetX]];
             }
         }
     }

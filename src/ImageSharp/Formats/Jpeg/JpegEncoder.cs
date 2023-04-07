@@ -1,50 +1,56 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.PixelFormats;
+namespace SixLabors.ImageSharp.Formats.Jpeg;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg
+/// <summary>
+/// Encoder for writing the data image to a stream in jpeg format.
+/// </summary>
+public sealed class JpegEncoder : ImageEncoder
 {
     /// <summary>
-    /// Encoder for writing the data image to a stream in jpeg format.
+    /// Backing field for <see cref="Quality"/>.
     /// </summary>
-    public sealed class JpegEncoder : IImageEncoder, IJpegEncoderOptions
+    private int? quality;
+
+    /// <summary>
+    /// Gets the quality, that will be used to encode the image. Quality
+    /// index must be between 1 and 100 (compression from max to min).
+    /// Defaults to <value>75</value>.
+    /// </summary>
+    /// <exception cref="ArgumentException">Quality factor must be in [1..100] range.</exception>
+    public int? Quality
     {
-        /// <inheritdoc/>
-        public int? Quality { get; set; }
-
-        /// <inheritdoc/>
-        public JpegColorType? ColorType { get; set; }
-
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+        get => this.quality;
+        init
         {
-            var encoder = new JpegEncoderCore(this);
-            encoder.Encode(image, stream);
-        }
+            if (value is < 1 or > 100)
+            {
+                throw new ArgumentException("Quality factor must be in [1..100] range.");
+            }
 
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new JpegEncoderCore(this);
-            return encoder.EncodeAsync(image, stream, cancellationToken);
+            this.quality = value;
         }
+    }
+
+    /// <summary>
+    /// Gets the component encoding mode.
+    /// </summary>
+    /// <remarks>
+    /// Interleaved encoding mode encodes all color components in a single scan.
+    /// Non-interleaved encoding mode encodes each color component in a separate scan.
+    /// </remarks>
+    public bool? Interleaved { get; init; }
+
+    /// <summary>
+    /// Gets the jpeg color for encoding.
+    /// </summary>
+    public JpegEncodingColor? ColorType { get; init; }
+
+    /// <inheritdoc/>
+    protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    {
+        JpegEncoderCore encoder = new(this);
+        encoder.Encode(image, stream, cancellationToken);
     }
 }

@@ -1,97 +1,94 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Gif
+namespace SixLabors.ImageSharp.Formats.Gif;
+
+internal readonly struct GifXmpApplicationExtension : IGifExtension
 {
-    internal readonly struct GifXmpApplicationExtension : IGifExtension
+    public GifXmpApplicationExtension(byte[] data) => this.Data = data;
+
+    public byte Label => GifConstants.ApplicationExtensionLabel;
+
+    // size          : 1
+    // identifier    : 11
+    // magic trailer : 257
+    public int ContentLength => (this.Data.Length > 0) ? this.Data.Length + 269 : 0;
+
+    /// <summary>
+    /// Gets the raw Data.
+    /// </summary>
+    public byte[] Data { get; }
+
+    /// <summary>
+    /// Reads the XMP metadata from the specified stream.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <returns>The XMP metadata</returns>
+    public static GifXmpApplicationExtension Read(Stream stream, MemoryAllocator allocator)
     {
-        public GifXmpApplicationExtension(byte[] data) => this.Data = data;
+        byte[] xmpBytes = ReadXmpData(stream, allocator);
 
-        public byte Label => GifConstants.ApplicationExtensionLabel;
-
-        public int ContentLength => this.Data.Length + 269; // 12 + Data Length + 1 + 256
-
-        /// <summary>
-        /// Gets the raw Data.
-        /// </summary>
-        public byte[] Data { get; }
-
-        /// <summary>
-        /// Reads the XMP metadata from the specified stream.
-        /// </summary>
-        /// <param name="stream">The stream to read from.</param>
-        /// <returns>The XMP metadata</returns>
-        /// <exception cref="ImageFormatException">Thrown if the XMP block is not properly terminated.</exception>
-        public static GifXmpApplicationExtension Read(Stream stream)
+        // Exclude the "magic trailer", see XMP Specification Part 3, 1.1.2 GIF
+        int xmpLength = xmpBytes.Length - 256; // 257 - unread 0x0
+        byte[] buffer = Array.Empty<byte>();
+        if (xmpLength > 0)
         {
-            // Read data in blocks, until an \0 character is encountered.
-            // We overshoot, indicated by the terminatorIndex variable.
-            const int bufferSize = 256;
-            var list = new List<byte[]>();
-            int terminationIndex = -1;
-            while (terminationIndex < 0)
-            {
-                byte[] temp = new byte[bufferSize];
-                int bytesRead = stream.Read(temp);
-                list.Add(temp);
-                terminationIndex = Array.IndexOf(temp, (byte)1);
-            }
-
-            // Pack all the blocks (except magic trailer) into one single array again.
-            int dataSize = ((list.Count - 1) * bufferSize) + terminationIndex;
-            byte[] buffer = new byte[dataSize];
-            Span<byte> bufferSpan = buffer;
-            int pos = 0;
-            for (int j = 0; j < list.Count - 1; j++)
-            {
-                list[j].CopyTo(bufferSpan.Slice(pos));
-                pos += bufferSize;
-            }
-
-            // Last one only needs the portion until terminationIndex copied over.
-            Span<byte> lastBytes = list[list.Count - 1];
-            lastBytes.Slice(0, terminationIndex).CopyTo(bufferSpan.Slice(pos));
-
-            // Skip the remainder of the magic trailer.
-            stream.Skip(258 - (bufferSize - terminationIndex));
-            return new GifXmpApplicationExtension(buffer);
+            buffer = new byte[xmpLength];
+            xmpBytes.AsSpan(0, xmpLength).CopyTo(buffer);
+            stream.Skip(1); // Skip the terminator.
         }
 
-        public int WriteTo(Span<byte> buffer)
+        return new GifXmpApplicationExtension(buffer);
+    }
+
+    public int WriteTo(Span<byte> buffer)
+    {
+        int bytesWritten = 0;
+        buffer[bytesWritten++] = GifConstants.ApplicationBlockSize;
+
+        // Write "XMP DataXMP"
+        ReadOnlySpan<byte> idBytes = GifConstants.XmpApplicationIdentificationBytes;
+        idBytes.CopyTo(buffer[bytesWritten..]);
+        bytesWritten += idBytes.Length;
+
+        // XMP Data itself
+        this.Data.CopyTo(buffer[bytesWritten..]);
+        bytesWritten += this.Data.Length;
+
+        // Write the Magic Trailer
+        buffer[bytesWritten++] = 0x01;
+        for (byte i = 255; i > 0; i--)
         {
-            int totalSize = this.ContentLength;
-            if (buffer.Length < totalSize)
+            buffer[bytesWritten++] = i;
+        }
+
+        buffer[bytesWritten++] = 0x00;
+
+        return this.ContentLength;
+    }
+
+    private static byte[] ReadXmpData(Stream stream, MemoryAllocator allocator)
+    {
+        using ChunkedMemoryStream bytes = new(allocator);
+
+        // XMP data doesn't have a fixed length nor is there an indicator of the length.
+        // So we simply read one byte at a time until we hit the 0x0 value at the end
+        // of the magic trailer or the end of the stream.
+        // Using ChunkedMemoryStream reduces the array resize allocation normally associated
+        // with writing from a non fixed-size buffer.
+        while (true)
+        {
+            int b = stream.ReadByte();
+            if (b <= 0)
             {
-                throw new InsufficientMemoryException("Unable to write XMP metadata to GIF image");
+                return bytes.ToArray();
             }
 
-            int bytesWritten = 0;
-            buffer[bytesWritten++] = GifConstants.ApplicationBlockSize;
-
-            // Write "XMP DataXMP"
-            ReadOnlySpan<byte> idBytes = GifConstants.XmpApplicationIdentificationBytes;
-            idBytes.CopyTo(buffer.Slice(bytesWritten));
-            bytesWritten += idBytes.Length;
-
-            // XMP Data itself
-            this.Data.CopyTo(buffer.Slice(bytesWritten));
-            bytesWritten += this.Data.Length;
-
-            // Write the Magic Trailer
-            buffer[bytesWritten++] = 0x01;
-            for (byte i = 255; i > 0; i--)
-            {
-                buffer[bytesWritten++] = i;
-            }
-
-            buffer[bytesWritten++] = 0x00;
-
-            return totalSize;
+            bytes.WriteByte((byte)b);
         }
     }
 }

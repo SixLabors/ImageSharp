@@ -1,18 +1,16 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution;
+
+[Trait("Category", "Processors")]
+[GroupOutput("Convolution")]
+public class BoxBlurTest : Basic1ParameterConvolutionTests
 {
-    [Trait("Category", "Processors")]
-    [GroupOutput("Convolution")]
-    public class BoxBlurTest : Basic1ParameterConvolutionTests
-    {
-        protected override void Apply(IImageProcessingContext ctx, int value) => ctx.BoxBlur(value);
+    protected override void Apply(IImageProcessingContext ctx, int value) => ctx.BoxBlur(value);
 
-        protected override void Apply(IImageProcessingContext ctx, int value, Rectangle bounds) =>
-            ctx.BoxBlur(value, bounds);
-    }
+    protected override void Apply(IImageProcessingContext ctx, int value, Rectangle bounds) =>
+        ctx.BoxBlur(value, bounds);
 }

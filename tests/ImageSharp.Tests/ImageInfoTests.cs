@@ -1,33 +1,52 @@
-﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 
-using Xunit;
+namespace SixLabors.ImageSharp.Tests;
 
-namespace SixLabors.ImageSharp.Tests
+public class ImageInfoTests
 {
-    public class ImageInfoTests
+    [Fact]
+    public void ImageInfoInitializesCorrectly()
     {
-        [Fact]
-        public void ImageInfoInitializesCorrectly()
-        {
-            const int Width = 50;
-            const int Height = 60;
-            var size = new Size(Width, Height);
-            var rectangle = new Rectangle(0, 0, Width, Height);
-            var pixelType = new PixelTypeInfo(8);
-            var meta = new ImageMetadata();
+        const int width = 50;
+        const int height = 60;
+        Size size = new(width, height);
+        Rectangle rectangle = new(0, 0, width, height);
+        PixelTypeInfo pixelType = new(8);
+        ImageMetadata meta = new();
 
-            var info = new ImageInfo(pixelType, Width, Height, meta);
+        ImageInfo info = new(pixelType, size, meta);
 
-            Assert.Equal(pixelType, info.PixelType);
-            Assert.Equal(Width, info.Width);
-            Assert.Equal(Height, info.Height);
-            Assert.Equal(size, info.Size());
-            Assert.Equal(rectangle, info.Bounds());
-            Assert.Equal(meta, info.Metadata);
-        }
+        Assert.Equal(pixelType, info.PixelType);
+        Assert.Equal(width, info.Width);
+        Assert.Equal(height, info.Height);
+        Assert.Equal(size, info.Size);
+        Assert.Equal(rectangle, info.Bounds);
+        Assert.Equal(meta, info.Metadata);
+    }
+
+    [Fact]
+    public void ImageInfoInitializesCorrectlyWithFrameMetadata()
+    {
+        const int width = 50;
+        const int height = 60;
+        Size size = new(width, height);
+        Rectangle rectangle = new(0, 0, width, height);
+        PixelTypeInfo pixelType = new(8);
+        ImageMetadata meta = new();
+        IReadOnlyList<ImageFrameMetadata> frameMetadata = new List<ImageFrameMetadata>() { new() };
+
+        ImageInfo info = new(pixelType, size, meta, frameMetadata);
+
+        Assert.Equal(pixelType, info.PixelType);
+        Assert.Equal(width, info.Width);
+        Assert.Equal(height, info.Height);
+        Assert.Equal(size, info.Size);
+        Assert.Equal(rectangle, info.Bounds);
+        Assert.Equal(meta, info.Metadata);
+        Assert.Equal(frameMetadata.Count, info.FrameMetadataCollection.Count);
     }
 }

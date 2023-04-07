@@ -1,304 +1,299 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Numerics;
 using System.Reflection;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
+
+[Trait("Category", "Processors")]
+public class AffineTransformTests
 {
-    [Trait("Category", "Processors")]
-    public class AffineTransformTests
+    private readonly ITestOutputHelper output;
+    private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.033F, 3);
+
+    /// <summary>
+    /// angleDeg, sx, sy, tx, ty
+    /// </summary>
+    public static readonly TheoryData<float, float, float, float, float> TransformValues
+        = new TheoryData<float, float, float, float, float>
+              {
+                  { 0, 1, 1, 0, 0 },
+                  { 50, 1, 1, 0, 0 },
+                  { 0, 1, 1, 20, 10 },
+                  { 50, 1, 1, 20, 10 },
+                  { 0, 1, 1, -20, -10 },
+                  { 50, 1, 1, -20, -10 },
+                  { 50, 1.5f, 1.5f, 0, 0 },
+                  { 50, 1.1F, 1.3F, 30, -20 },
+                  { 0, 2f, 1f, 0, 0 },
+                  { 0, 1f, 2f, 0, 0 },
+              };
+
+    public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
     {
-        private readonly ITestOutputHelper output;
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.033F, 3);
+        nameof(KnownResamplers.Bicubic),
+        nameof(KnownResamplers.Box),
+        nameof(KnownResamplers.CatmullRom),
+        nameof(KnownResamplers.Hermite),
+        nameof(KnownResamplers.Lanczos2),
+        nameof(KnownResamplers.Lanczos3),
+        nameof(KnownResamplers.Lanczos5),
+        nameof(KnownResamplers.Lanczos8),
+        nameof(KnownResamplers.MitchellNetravali),
+        nameof(KnownResamplers.NearestNeighbor),
+        nameof(KnownResamplers.Robidoux),
+        nameof(KnownResamplers.RobidouxSharp),
+        nameof(KnownResamplers.Spline),
+        nameof(KnownResamplers.Triangle),
+        nameof(KnownResamplers.Welch),
+    };
 
-        /// <summary>
-        /// angleDeg, sx, sy, tx, ty
-        /// </summary>
-        public static readonly TheoryData<float, float, float, float, float> TransformValues
-            = new TheoryData<float, float, float, float, float>
-                  {
-                      { 0, 1, 1, 0, 0 },
-                      { 50, 1, 1, 0, 0 },
-                      { 0, 1, 1, 20, 10 },
-                      { 50, 1, 1, 20, 10 },
-                      { 0, 1, 1, -20, -10 },
-                      { 50, 1, 1, -20, -10 },
-                      { 50, 1.5f, 1.5f, 0, 0 },
-                      { 50, 1.1F, 1.3F, 30, -20 },
-                      { 0, 2f, 1f, 0, 0 },
-                      { 0, 1f, 2f, 0, 0 },
-                  };
-
-        public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
-        {
-            nameof(KnownResamplers.Bicubic),
-            nameof(KnownResamplers.Box),
-            nameof(KnownResamplers.CatmullRom),
-            nameof(KnownResamplers.Hermite),
-            nameof(KnownResamplers.Lanczos2),
-            nameof(KnownResamplers.Lanczos3),
-            nameof(KnownResamplers.Lanczos5),
-            nameof(KnownResamplers.Lanczos8),
-            nameof(KnownResamplers.MitchellNetravali),
-            nameof(KnownResamplers.NearestNeighbor),
-            nameof(KnownResamplers.Robidoux),
-            nameof(KnownResamplers.RobidouxSharp),
-            nameof(KnownResamplers.Spline),
-            nameof(KnownResamplers.Triangle),
-            nameof(KnownResamplers.Welch),
-        };
-
-        public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
-            new TheoryData<string>
-                {
-                    nameof(KnownResamplers.NearestNeighbor),
-                    nameof(KnownResamplers.Triangle),
-                    nameof(KnownResamplers.Bicubic),
-                    nameof(KnownResamplers.Lanczos8),
-                };
-
-        public AffineTransformTests(ITestOutputHelper output) => this.output = output;
-
-        /// <summary>
-        /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-        [Theory]
-        [WithSolidFilledImages(nameof(Transform_DoesNotCreateEdgeArtifacts_ResamplerNames), 5, 5, 255, 255, 255, 255, PixelTypes.Rgba32)]
-        public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            IResampler resampler = GetResampler(resamplerName);
-            using (Image<TPixel> image = provider.GetImage())
+    public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
+        new TheoryData<string>
             {
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendRotationDegrees(30);
+                nameof(KnownResamplers.NearestNeighbor),
+                nameof(KnownResamplers.Triangle),
+                nameof(KnownResamplers.Bicubic),
+                nameof(KnownResamplers.Lanczos8),
+            };
 
-                image.Mutate(c => c.Transform(builder, resampler));
-                image.DebugSave(provider, resamplerName);
+    public AffineTransformTests(ITestOutputHelper output) => this.output = output;
 
-                VerifyAllPixelsAreWhiteOrTransparent(image);
-            }
-        }
-
-        [Theory]
-        [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
-        public void Transform_RotateScaleTranslate<TPixel>(
-            TestImageProvider<TPixel> provider,
-            float angleDeg,
-            float sx,
-            float sy,
-            float tx,
-            float ty)
-            where TPixel : unmanaged, IPixel<TPixel>
+    /// <summary>
+    /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+    [Theory]
+    [WithSolidFilledImages(nameof(Transform_DoesNotCreateEdgeArtifacts_ResamplerNames), 5, 5, 255, 255, 255, 255, PixelTypes.Rgba32)]
+    public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        IResampler resampler = GetResampler(resamplerName);
+        using (Image<TPixel> image = provider.GetImage())
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider, $"_original");
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendRotationDegrees(angleDeg)
-                    .AppendScale(new SizeF(sx, sy))
-                    .AppendTranslation(new PointF(tx, ty));
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendRotationDegrees(30);
 
-                this.PrintMatrix(builder.BuildMatrix(image.Size()));
+            image.Mutate(c => c.Transform(builder, resampler));
+            image.DebugSave(provider, resamplerName);
 
-                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
-
-                FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
-                image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
-            }
+            VerifyAllPixelsAreWhiteOrTransparent(image);
         }
+    }
 
-        [Theory]
-        [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
-        public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
-            where TPixel : unmanaged, IPixel<TPixel>
+    [Theory]
+    [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
+    public void Transform_RotateScaleTranslate<TPixel>(
+        TestImageProvider<TPixel> provider,
+        float angleDeg,
+        float sx,
+        float sy,
+        float tx,
+        float ty)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage())
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendRotationDegrees(angleDeg)
-                    .AppendScale(new SizeF(s, s));
+            image.DebugSave(provider, $"_original");
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendRotationDegrees(angleDeg)
+                .AppendScale(new SizeF(sx, sy))
+                .AppendTranslation(new PointF(tx, ty));
 
-                image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
+            this.PrintMatrix(builder.BuildMatrix(image.Size));
 
-                FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
-                image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
-            }
+            image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
+
+            FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
+            image.DebugSave(provider, testOutputDetails);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
         }
+    }
 
-        public static readonly TheoryData<int, int, int, int> Transform_IntoRectangle_Data =
-            new TheoryData<int, int, int, int>
-                {
-                    { 0, 0, 10, 10 },
-                    { 0, 0, 5, 10 },
-                    { 0, 0, 10, 5 },
-                    { 5, 0, 5, 10 },
-                    { -5, -5, 20, 20 }
-                };
-
-        /// <summary>
-        /// Testing transforms using custom source rectangles:
-        /// https://github.com/SixLabors/ImageSharp/pull/386#issuecomment-357104963
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-        [Theory]
-        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
-        public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+    [Theory]
+    [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
+    public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage())
         {
-            var rectangle = new Rectangle(48, 0, 48, 24);
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendRotationDegrees(angleDeg)
+                .AppendScale(new SizeF(s, s));
 
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.DebugSave(provider, $"_original");
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendScale(new SizeF(2, 1.5F));
+            image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
-                image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
-
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
+            image.DebugSave(provider, testOutputDetails);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
         }
+    }
 
-        [Theory]
-        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
-        public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+    public static readonly TheoryData<int, int, int, int> Transform_IntoRectangle_Data =
+        new TheoryData<int, int, int, int>
+            {
+                { 0, 0, 10, 10 },
+                { 0, 0, 5, 10 },
+                { 0, 0, 10, 5 },
+                { 5, 0, 5, 10 },
+                { -5, -5, 20, 20 }
+            };
+
+    /// <summary>
+    /// Testing transforms using custom source rectangles:
+    /// https://github.com/SixLabors/ImageSharp/pull/386#issuecomment-357104963
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+    [Theory]
+    [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
+    public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        var rectangle = new Rectangle(48, 0, 48, 24);
+
+        using (Image<TPixel> image = provider.GetImage())
         {
-            var rectangle = new Rectangle(0, 24, 48, 24);
+            image.DebugSave(provider, $"_original");
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendScale(new SizeF(2, 1.5F));
 
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendScale(new SizeF(1F, 2F));
+            image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
-                image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
-
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
+    }
 
-        [Theory]
-        [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
-        public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : unmanaged, IPixel<TPixel>
+    [Theory]
+    [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
+    public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        var rectangle = new Rectangle(0, 24, 48, 24);
+
+        using (Image<TPixel> image = provider.GetImage())
         {
-            IResampler sampler = GetResampler(resamplerName);
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                AffineTransformBuilder builder = new AffineTransformBuilder()
-                    .AppendRotationDegrees(50)
-                    .AppendScale(new SizeF(.6F, .6F));
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendScale(new SizeF(1F, 2F));
 
-                image.Mutate(i => i.Transform(builder, sampler));
+            image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
-                image.DebugSave(provider, resamplerName);
-                image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
-            }
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ValidatorComparer, provider);
         }
+    }
 
-        [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 21)]
-        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, int bufferCapacityInPixelRows)
-            where TPixel : unmanaged, IPixel<TPixel>
+    [Theory]
+    [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
+    public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        IResampler sampler = GetResampler(resamplerName);
+        using (Image<TPixel> image = provider.GetImage())
         {
             AffineTransformBuilder builder = new AffineTransformBuilder()
                 .AppendRotationDegrees(50)
                 .AppendScale(new SizeF(.6F, .6F));
-            provider.RunBufferCapacityLimitProcessorTest(
-                bufferCapacityInPixelRows,
-                c => c.Transform(builder));
+
+            image.Mutate(i => i.Transform(builder, sampler));
+
+            image.DebugSave(provider, resamplerName);
+            image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
+        }
+    }
+
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 21)]
+    public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, int bufferCapacityInPixelRows)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendRotationDegrees(50)
+            .AppendScale(new SizeF(.6F, .6F));
+        provider.RunBufferCapacityLimitProcessorTest(
+            bufferCapacityInPixelRows,
+            c => c.Transform(builder));
+    }
+
+    [Fact]
+    public void Issue1911()
+    {
+        using var image = new Image<Rgba32>(100, 100);
+        image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix3x2.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+
+        Assert.Equal(99, image.Width);
+        Assert.Equal(100, image.Height);
+    }
+
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+    public void Identity<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        Matrix3x2 m = Matrix3x2.Identity;
+        Rectangle r = new(25, 25, 50, 50);
+        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider);
+    }
+
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0.0001F)]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 57F)]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0F)]
+    public void Transform_With_Custom_Dimensions<TPixel>(TestImageProvider<TPixel> provider, float radians)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        var m = Matrix3x2.CreateRotation(radians, new Vector2(50, 50));
+        Rectangle r = new(25, 25, 50, 50);
+        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.DebugSave(provider, testOutputDetails: radians);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
+    }
+
+    private static IResampler GetResampler(string name)
+    {
+        PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+
+        if (property is null)
+        {
+            throw new Exception($"No resampler named {name}");
         }
 
-        [Fact]
-        public void Issue1911()
+        return (IResampler)property.GetValue(null);
+    }
+
+    private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<TPixel> data));
+        var white = new Rgb24(255, 255, 255);
+        foreach (TPixel pixel in data.Span)
         {
-            using var image = new Image<Rgba32>(100, 100);
-            image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix3x2.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
-
-            Assert.Equal(99, image.Width);
-            Assert.Equal(100, image.Height);
-        }
-
-        [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
-        public void Identity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage();
-
-            Matrix3x2 m = Matrix3x2.Identity;
-            Rectangle r = new(25, 25, 50, 50);
-            image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
-        }
-
-        [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0.0001F)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 57F)]
-        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0F)]
-        public void Transform_With_Custom_Dimensions<TPixel>(TestImageProvider<TPixel> provider, float radians)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage();
-
-            var m = Matrix3x2.CreateRotation(radians, new Vector2(50, 50));
-            Rectangle r = new(25, 25, 50, 50);
-            image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
-            image.DebugSave(provider, testOutputDetails: radians);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
-        }
-
-        private static IResampler GetResampler(string name)
-        {
-            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
-
-            if (property is null)
+            Rgba32 rgba = default;
+            pixel.ToRgba32(ref rgba);
+            if (rgba.A == 0)
             {
-                throw new Exception($"No resampler named {name}");
+                continue;
             }
 
-            return (IResampler)property.GetValue(null);
+            Assert.Equal(white, rgba.Rgb);
         }
+    }
 
-        private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<TPixel> data));
-            var white = new Rgb24(255, 255, 255);
-            foreach (TPixel pixel in data.Span)
-            {
-                Rgba32 rgba = default;
-                pixel.ToRgba32(ref rgba);
-                if (rgba.A == 0)
-                {
-                    continue;
-                }
-
-                Assert.Equal(white, rgba.Rgb);
-            }
-        }
-
-        private void PrintMatrix(Matrix3x2 a)
-        {
-            string s = $"{a.M11:F10},{a.M12:F10},{a.M21:F10},{a.M22:F10},{a.M31:F10},{a.M32:F10}";
-            this.output.WriteLine(s);
-        }
+    private void PrintMatrix(Matrix3x2 a)
+    {
+        string s = $"{a.M11:F10},{a.M12:F10},{a.M21:F10},{a.M22:F10},{a.M31:F10},{a.M32:F10}";
+        this.output.WriteLine(s);
     }
 }

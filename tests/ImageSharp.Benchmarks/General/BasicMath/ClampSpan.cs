@@ -1,43 +1,41 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using BenchmarkDotNet.Attributes;
 
-namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
+namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath;
+
+public class ClampSpan
 {
-    public class ClampSpan
+    private static readonly int[] A = new int[2048];
+    private static readonly int[] B = new int[2048];
+
+    public void Setup()
     {
-        private static readonly int[] A = new int[2048];
-        private static readonly int[] B = new int[2048];
+        var r = new Random();
 
-        public void Setup()
+        for (int i = 0; i < A.Length; i++)
         {
-            var r = new Random();
-
-            for (int i = 0; i < A.Length; i++)
-            {
-                int x = r.Next();
-                A[i] = x;
-                B[i] = x;
-            }
+            int x = r.Next();
+            A[i] = x;
+            B[i] = x;
         }
+    }
 
-        [Benchmark(Baseline = true)]
-        public void ClampNoIntrinsics()
+    [Benchmark(Baseline = true)]
+    public void ClampNoIntrinsics()
+    {
+        for (int i = 0; i < A.Length; i++)
         {
-            for (int i = 0; i < A.Length; i++)
-            {
-                ref int x = ref A[i];
-                x = Numerics.Clamp(x, 64, 128);
-            }
+            ref int x = ref A[i];
+            x = Numerics.Clamp(x, 64, 128);
         }
+    }
 
-        [Benchmark]
-        public void ClampVectorIntrinsics()
-        {
-            Numerics.Clamp(B, 64, 128);
-        }
+    [Benchmark]
+    public void ClampVectorIntrinsics()
+    {
+        Numerics.Clamp(B, 64, 128);
     }
 }
 

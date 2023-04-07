@@ -1,116 +1,106 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg
+namespace SixLabors.ImageSharp.Formats.Jpeg;
+
+/// <summary>
+/// Provides Jpeg specific metadata information for the image.
+/// </summary>
+public class JpegMetadata : IDeepCloneable
 {
     /// <summary>
-    /// Provides Jpeg specific metadata information for the image.
+    /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
     /// </summary>
-    public class JpegMetadata : IDeepCloneable
+    public JpegMetadata()
     {
-        /// <summary>
-        /// Backing field for <see cref="LuminanceQuality"/>
-        /// </summary>
-        private int? luminanceQuality;
-
-        /// <summary>
-        /// Backing field for <see cref="ChrominanceQuality"/>
-        /// </summary>
-        private int? chrominanceQuality;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
-        /// </summary>
-        public JpegMetadata()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
-        /// </summary>
-        /// <param name="other">The metadata to create an instance from.</param>
-        private JpegMetadata(JpegMetadata other)
-        {
-            this.ColorType = other.ColorType;
-
-            this.luminanceQuality = other.luminanceQuality;
-            this.chrominanceQuality = other.chrominanceQuality;
-        }
-
-        /// <summary>
-        /// Gets or sets the jpeg luminance quality.
-        /// </summary>
-        /// <remarks>
-        /// This value might not be accurate if it was calculated during jpeg decoding
-        /// with non-complient ITU quantization tables.
-        /// </remarks>
-        internal int LuminanceQuality
-        {
-            get => this.luminanceQuality ?? Quantization.DefaultQualityFactor;
-            set => this.luminanceQuality = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the jpeg chrominance quality.
-        /// </summary>
-        /// <remarks>
-        /// This value might not be accurate if it was calculated during jpeg decoding
-        /// with non-complient ITU quantization tables.
-        /// </remarks>
-        internal int ChrominanceQuality
-        {
-            get => this.chrominanceQuality ?? Quantization.DefaultQualityFactor;
-            set => this.chrominanceQuality = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the encoded quality.
-        /// </summary>
-        /// <remarks>
-        /// Note that jpeg image can have different quality for luminance and chrominance components.
-        /// This property returns maximum value of luma/chroma qualities.
-        /// </remarks>
-        public int Quality
-        {
-            get
-            {
-                // Jpeg always has a luminance table thus it must have a luminance quality derived from it
-                if (!this.luminanceQuality.HasValue)
-                {
-                    return Quantization.DefaultQualityFactor;
-                }
-
-                int lumaQuality = this.luminanceQuality.Value;
-
-                // Jpeg might not have a chrominance table - return luminance quality (grayscale images)
-                if (!this.chrominanceQuality.HasValue)
-                {
-                    return lumaQuality;
-                }
-
-                int chromaQuality = this.chrominanceQuality.Value;
-
-                // Theoretically, luma quality would always be greater or equal to chroma quality
-                // But we've already encountered images which can have higher quality of chroma components
-                return Math.Max(lumaQuality, chromaQuality);
-            }
-
-            set
-            {
-                this.LuminanceQuality = value;
-                this.ChrominanceQuality = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the color type.
-        /// </summary>
-        public JpegColorType? ColorType { get; set; }
-
-        /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new JpegMetadata(this);
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
+    /// </summary>
+    /// <param name="other">The metadata to create an instance from.</param>
+    private JpegMetadata(JpegMetadata other)
+    {
+        this.ColorType = other.ColorType;
+
+        this.LuminanceQuality = other.LuminanceQuality;
+        this.ChrominanceQuality = other.ChrominanceQuality;
+    }
+
+    /// <summary>
+    /// Gets or sets the jpeg luminance quality.
+    /// </summary>
+    /// <remarks>
+    /// This value might not be accurate if it was calculated during jpeg decoding
+    /// with non-complient ITU quantization tables.
+    /// </remarks>
+    internal int? LuminanceQuality { get; set; }
+
+    /// <summary>
+    /// Gets or sets the jpeg chrominance quality.
+    /// </summary>
+    /// <remarks>
+    /// This value might not be accurate if it was calculated during jpeg decoding
+    /// with non-complient ITU quantization tables.
+    /// </remarks>
+    internal int? ChrominanceQuality { get; set; }
+
+    /// <summary>
+    /// Gets the encoded quality.
+    /// </summary>
+    /// <remarks>
+    /// Note that jpeg image can have different quality for luminance and chrominance components.
+    /// This property returns maximum value of luma/chroma qualities if both are present.
+    /// </remarks>
+    public int Quality
+    {
+        get
+        {
+            if (this.LuminanceQuality.HasValue)
+            {
+                if (this.ChrominanceQuality.HasValue)
+                {
+                    return Math.Max(this.LuminanceQuality.Value, this.ChrominanceQuality.Value);
+                }
+
+                return this.LuminanceQuality.Value;
+            }
+            else
+            {
+                if (this.ChrominanceQuality.HasValue)
+                {
+                    return this.ChrominanceQuality.Value;
+                }
+
+                return Quantization.DefaultQualityFactor;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the color type.
+    /// </summary>
+    public JpegEncodingColor? ColorType { get; internal set; }
+
+    /// <summary>
+    /// Gets the component encoding mode.
+    /// </summary>
+    /// <remarks>
+    /// Interleaved encoding mode encodes all color components in a single scan.
+    /// Non-interleaved encoding mode encodes each color component in a separate scan.
+    /// </remarks>
+    public bool? Interleaved { get; internal set; }
+
+    /// <summary>
+    /// Gets the scan encoding mode.
+    /// </summary>
+    /// <remarks>
+    /// Progressive jpeg images encode component data across multiple scans.
+    /// </remarks>
+    public bool? Progressive { get; internal set; }
+
+    /// <inheritdoc/>
+    public IDeepCloneable DeepClone() => new JpegMetadata(this);
 }

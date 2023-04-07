@@ -1,155 +1,135 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tga
+namespace SixLabors.ImageSharp.Tests.Formats.Tga;
+
+public class ImageExtensionsTest
 {
-    public class ImageExtensionsTest
+    [Fact]
+    public void SaveAsTga_Path()
     {
-        [Fact]
-        public void SaveAsTga_Path()
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsTga_Path.tga");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
-            string file = Path.Combine(dir, "SaveAsTga_Path.tga");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsTga(file);
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            image.SaveAsTga(file);
         }
 
-        [Fact]
-        public async Task SaveAsTgaAsync_Path()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsTgaAsync_Path()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsTgaAsync_Path.tga");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
-            string file = Path.Combine(dir, "SaveAsTgaAsync_Path.tga");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsTgaAsync(file);
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            await image.SaveAsTgaAsync(file);
         }
 
-        [Fact]
-        public void SaveAsTga_Path_Encoder()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public void SaveAsTga_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsTga_Path_Encoder.tga");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsTga_Path_Encoder.tga");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsTga(file, new TgaEncoder());
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            image.SaveAsTga(file, new TgaEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsTgaAsync_Path_Encoder()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsTgaAsync_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsTgaAsync_Path_Encoder.tga");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsTgaAsync_Path_Encoder.tga");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsTgaAsync(file, new TgaEncoder());
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            await image.SaveAsTgaAsync(file, new TgaEncoder());
         }
 
-        [Fact]
-        public void SaveAsTga_Stream()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public void SaveAsTga_Stream()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsTga(memoryStream);
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            image.SaveAsTga(memoryStream);
         }
 
-        [Fact]
-        public async Task SaveAsTgaAsync_StreamAsync()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsTgaAsync_StreamAsync()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsTgaAsync(memoryStream);
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            await image.SaveAsTgaAsync(memoryStream);
         }
 
-        [Fact]
-        public void SaveAsTga_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public void SaveAsTga_Stream_Encoder()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsTga(memoryStream, new TgaEncoder());
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            image.SaveAsTga(memoryStream, new TgaEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsTgaAsync_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is TgaFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsTgaAsync_Stream_Encoder()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsTgaAsync(memoryStream, new TgaEncoder());
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/tga", mime.DefaultMimeType);
-            }
+            await image.SaveAsTgaAsync(memoryStream, new TgaEncoder());
         }
+
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is TgaFormat);
     }
 }

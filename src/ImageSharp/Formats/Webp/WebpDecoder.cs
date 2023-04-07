@@ -1,88 +1,49 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Webp
+namespace SixLabors.ImageSharp.Formats.Webp;
+
+/// <summary>
+/// Image decoder for generating an image out of a webp stream.
+/// </summary>
+public sealed class WebpDecoder : ImageDecoder
 {
-    /// <summary>
-    /// Image decoder for generating an image out of a webp stream.
-    /// </summary>
-    public sealed class WebpDecoder : IImageDecoder, IWebpDecoderOptions, IImageInfoDetector
+    private WebpDecoder()
     {
-        /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new WebpDecoderCore(configuration, this);
-
-            try
-            {
-                return decoder.Decode<TPixel>(configuration, stream);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-            }
-        }
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(Configuration configuration, Stream stream)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            return new WebpDecoderCore(configuration, this).Identify(configuration, stream);
-        }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
-
-        /// <inheritdoc />
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            var decoder = new WebpDecoderCore(configuration, this);
-
-            try
-            {
-                using var bufferedStream = new BufferedReadStream(configuration, stream);
-                return decoder.DecodeAsync<TPixel>(configuration, bufferedStream, cancellationToken);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken).ConfigureAwait(false);
-
-        /// <inheritdoc />
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            Guard.NotNull(stream, nameof(stream));
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return new WebpDecoderCore(configuration, this).IdentifyAsync(configuration, bufferedStream, cancellationToken);
-        }
     }
+
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static WebpDecoder Instance { get; } = new();
+
+    /// <inheritdoc/>
+    protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        using WebpDecoderCore decoder = new(options);
+        return decoder.Identify(options.Configuration, stream, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        using WebpDecoderCore decoder = new(options);
+        Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+        ScaleToTargetSize(options, image);
+
+        return image;
+    }
+
+    /// <inheritdoc/>
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

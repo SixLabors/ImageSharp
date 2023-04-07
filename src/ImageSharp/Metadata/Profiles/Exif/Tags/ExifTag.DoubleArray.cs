@@ -1,29 +1,28 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
+
+/// <content/>
+public abstract partial class ExifTag
 {
-    /// <content/>
-    public abstract partial class ExifTag
-    {
-        /// <summary>
-        /// Gets the PixelScale exif tag.
-        /// </summary>
-        public static ExifTag<double[]> PixelScale { get; } = new ExifTag<double[]>(ExifTagValue.PixelScale);
+    /// <summary>
+    /// Gets the PixelScale exif tag.
+    /// </summary>
+    public static ExifTag<double[]> PixelScale { get; } = new ExifTag<double[]>(ExifTagValue.PixelScale);
 
-        /// <summary>
-        /// Gets the IntergraphMatrix exif tag.
-        /// </summary>
-        public static ExifTag<double[]> IntergraphMatrix { get; } = new ExifTag<double[]>(ExifTagValue.IntergraphMatrix);
+    /// <summary>
+    /// Gets the IntergraphMatrix exif tag.
+    /// </summary>
+    public static ExifTag<double[]> IntergraphMatrix { get; } = new ExifTag<double[]>(ExifTagValue.IntergraphMatrix);
 
-        /// <summary>
-        /// Gets the ModelTiePoint exif tag.
-        /// </summary>
-        public static ExifTag<double[]> ModelTiePoint { get; } = new ExifTag<double[]>(ExifTagValue.ModelTiePoint);
+    /// <summary>
+    /// Gets the ModelTiePoint exif tag.
+    /// </summary>
+    public static ExifTag<double[]> ModelTiePoint { get; } = new ExifTag<double[]>(ExifTagValue.ModelTiePoint);
 
-        /// <summary>
-        /// Gets the ModelTransform exif tag.
-        /// </summary>
-        public static ExifTag<double[]> ModelTransform { get; } = new ExifTag<double[]>(ExifTagValue.ModelTransform);
-    }
+    /// <summary>
+    /// Gets the ModelTransform exif tag.
+    /// </summary>
+    public static ExifTag<double[]> ModelTransform { get; } = new ExifTag<double[]>(ExifTagValue.ModelTransform);
 }

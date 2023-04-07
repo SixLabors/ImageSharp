@@ -1,223 +1,222 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.ImageSharp.Memory;
+
+internal abstract partial class MemoryGroup<T>
 {
-    internal abstract partial class MemoryGroup<T>
+    /// <summary>
+    /// A <see cref="MemoryGroup{T}"/> implementation that owns the underlying memory buffers.
+    /// </summary>
+    public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
     {
-        /// <summary>
-        /// A <see cref="MemoryGroup{T}"/> implementation that owns the underlying memory buffers.
-        /// </summary>
-        public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
+        private IMemoryOwner<T>[]? memoryOwners;
+        private RefCountedMemoryLifetimeGuard? groupLifetimeGuard;
+
+        public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
+            : base(bufferLength, totalLength)
         {
-            private IMemoryOwner<T>[] memoryOwners;
-            private RefCountedMemoryLifetimeGuard groupLifetimeGuard;
+            this.memoryOwners = memoryOwners;
+            this.Swappable = swappable;
+            this.View = new MemoryGroupView<T>(this);
+            this.memoryGroupSpanCache = MemoryGroupSpanCache.Create(memoryOwners);
+        }
 
-            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
-                : base(bufferLength, totalLength)
-            {
-                this.memoryOwners = memoryOwners;
-                this.Swappable = swappable;
-                this.View = new MemoryGroupView<T>(this);
-                this.memoryGroupSpanCache = MemoryGroupSpanCache.Create(memoryOwners);
-            }
+        public Owned(
+            UniformUnmanagedMemoryPool pool,
+            UnmanagedMemoryHandle[] pooledHandles,
+            int bufferLength,
+            long totalLength,
+            int sizeOfLastBuffer,
+            AllocationOptions options)
+            : this(CreateBuffers(pooledHandles, bufferLength, sizeOfLastBuffer, options), bufferLength, totalLength, true) =>
+            this.groupLifetimeGuard = pool.CreateGroupLifetimeGuard(pooledHandles);
 
-            public Owned(
-                UniformUnmanagedMemoryPool pool,
-                UnmanagedMemoryHandle[] pooledHandles,
-                int bufferLength,
-                long totalLength,
-                int sizeOfLastBuffer,
-                AllocationOptions options)
-                : this(CreateBuffers(pooledHandles, bufferLength, sizeOfLastBuffer, options), bufferLength, totalLength, true) =>
-                this.groupLifetimeGuard = pool.CreateGroupLifetimeGuard(pooledHandles);
+        public bool Swappable { get; }
 
-            public bool Swappable { get; }
+        private bool IsDisposed => this.memoryOwners == null;
 
-            private bool IsDisposed => this.memoryOwners == null;
-
-            public override int Count
-            {
-                [MethodImpl(InliningOptions.ShortMethod)]
-                get
-                {
-                    this.EnsureNotDisposed();
-                    return this.memoryOwners.Length;
-                }
-            }
-
-            public override Memory<T> this[int index]
-            {
-                get
-                {
-                    this.EnsureNotDisposed();
-                    return this.memoryOwners[index].Memory;
-                }
-            }
-
-            private static IMemoryOwner<T>[] CreateBuffers(
-                UnmanagedMemoryHandle[] pooledBuffers,
-                int bufferLength,
-                int sizeOfLastBuffer,
-                AllocationOptions options)
-            {
-                var result = new IMemoryOwner<T>[pooledBuffers.Length];
-                for (int i = 0; i < pooledBuffers.Length - 1; i++)
-                {
-                    var currentBuffer = ObservedBuffer.Create(pooledBuffers[i], bufferLength, options);
-                    result[i] = currentBuffer;
-                }
-
-                var lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
-                result[result.Length - 1] = lastBuffer;
-                return result;
-            }
-
-            /// <inheritdoc/>
+        public override int Count
+        {
             [MethodImpl(InliningOptions.ShortMethod)]
-            public override MemoryGroupEnumerator<T> GetEnumerator() => new(this);
-
-            public override void IncreaseRefCounts()
+            get
             {
                 this.EnsureNotDisposed();
-
-                if (this.groupLifetimeGuard != null)
-                {
-                    this.groupLifetimeGuard.AddRef();
-                }
-                else
-                {
-                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
-                    {
-                        if (memoryOwner is IRefCounted unmanagedBuffer)
-                        {
-                            unmanagedBuffer.AddRef();
-                        }
-                    }
-                }
+                return this.memoryOwners.Length;
             }
+        }
 
-            public override void DecreaseRefCounts()
+        public override Memory<T> this[int index]
+        {
+            get
             {
                 this.EnsureNotDisposed();
-                if (this.groupLifetimeGuard != null)
+                return this.memoryOwners[index].Memory;
+            }
+        }
+
+        private static IMemoryOwner<T>[] CreateBuffers(
+            UnmanagedMemoryHandle[] pooledBuffers,
+            int bufferLength,
+            int sizeOfLastBuffer,
+            AllocationOptions options)
+        {
+            var result = new IMemoryOwner<T>[pooledBuffers.Length];
+            for (int i = 0; i < pooledBuffers.Length - 1; i++)
+            {
+                var currentBuffer = ObservedBuffer.Create(pooledBuffers[i], bufferLength, options);
+                result[i] = currentBuffer;
+            }
+
+            var lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
+            result[result.Length - 1] = lastBuffer;
+            return result;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public override MemoryGroupEnumerator<T> GetEnumerator() => new(this);
+
+        public override void IncreaseRefCounts()
+        {
+            this.EnsureNotDisposed();
+
+            if (this.groupLifetimeGuard != null)
+            {
+                this.groupLifetimeGuard.AddRef();
+            }
+            else
+            {
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                 {
-                    this.groupLifetimeGuard.ReleaseRef();
-                }
-                else
-                {
-                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                    if (memoryOwner is IRefCounted unmanagedBuffer)
                     {
-                        if (memoryOwner is IRefCounted unmanagedBuffer)
-                        {
-                            unmanagedBuffer.ReleaseRef();
-                        }
+                        unmanagedBuffer.AddRef();
                     }
                 }
             }
+        }
 
-            public override void RecreateViewAfterSwap()
+        public override void DecreaseRefCounts()
+        {
+            this.EnsureNotDisposed();
+            if (this.groupLifetimeGuard != null)
             {
-                this.View.Invalidate();
-                this.View = new MemoryGroupView<T>(this);
+                this.groupLifetimeGuard.ReleaseRef();
             }
-
-            /// <inheritdoc/>
-            IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
+            else
             {
-                this.EnsureNotDisposed();
-                return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
-            }
-
-            public override void Dispose()
-            {
-                if (this.IsDisposed)
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                 {
-                    return;
-                }
-
-                this.View.Invalidate();
-
-                if (this.groupLifetimeGuard != null)
-                {
-                    this.groupLifetimeGuard.Dispose();
-                }
-                else
-                {
-                    foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
+                    if (memoryOwner is IRefCounted unmanagedBuffer)
                     {
-                        memoryOwner.Dispose();
+                        unmanagedBuffer.ReleaseRef();
                     }
                 }
+            }
+        }
 
-                this.memoryOwners = null;
-                this.IsValid = false;
-                this.groupLifetimeGuard = null;
+        public override void RecreateViewAfterSwap()
+        {
+            this.View.Invalidate();
+            this.View = new MemoryGroupView<T>(this);
+        }
+
+        /// <inheritdoc/>
+        IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
+        {
+            this.EnsureNotDisposed();
+            return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
+        }
+
+        public override void Dispose()
+        {
+            if (this.IsDisposed)
+            {
+                return;
             }
 
-            [MethodImpl(InliningOptions.ShortMethod)]
-            private void EnsureNotDisposed()
+            this.View.Invalidate();
+
+            if (this.groupLifetimeGuard != null)
             {
-                if (this.memoryOwners is null)
+                this.groupLifetimeGuard.Dispose();
+            }
+            else
+            {
+                foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners!)
                 {
-                    ThrowObjectDisposedException();
+                    memoryOwner.Dispose();
                 }
             }
 
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            private static void ThrowObjectDisposedException() => throw new ObjectDisposedException(nameof(MemoryGroup<T>));
+            this.memoryOwners = null;
+            this.IsValid = false;
+            this.groupLifetimeGuard = null;
+        }
 
-            // When the MemoryGroup points to multiple buffers via `groupLifetimeGuard`,
-            // the lifetime of the individual buffers is managed by the guard.
-            // Group buffer IMemoryOwner<T>-s d not manage ownership.
-            private sealed class ObservedBuffer : MemoryManager<T>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        [MemberNotNull(nameof(memoryOwners))]
+        private void EnsureNotDisposed()
+        {
+            if (this.memoryOwners is null)
             {
-                private readonly UnmanagedMemoryHandle handle;
-                private readonly int lengthInElements;
+                ThrowObjectDisposedException();
+            }
+        }
 
-                private ObservedBuffer(UnmanagedMemoryHandle handle, int lengthInElements)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        [DoesNotReturn]
+        private static void ThrowObjectDisposedException() => throw new ObjectDisposedException(nameof(MemoryGroup<T>));
+
+        // When the MemoryGroup points to multiple buffers via `groupLifetimeGuard`,
+        // the lifetime of the individual buffers is managed by the guard.
+        // Group buffer IMemoryOwner<T>-s d not manage ownership.
+        private sealed class ObservedBuffer : MemoryManager<T>
+        {
+            private readonly UnmanagedMemoryHandle handle;
+            private readonly int lengthInElements;
+
+            private ObservedBuffer(UnmanagedMemoryHandle handle, int lengthInElements)
+            {
+                this.handle = handle;
+                this.lengthInElements = lengthInElements;
+            }
+
+            public static ObservedBuffer Create(
+                UnmanagedMemoryHandle handle,
+                int lengthInElements,
+                AllocationOptions options)
+            {
+                var buffer = new ObservedBuffer(handle, lengthInElements);
+                if (options.Has(AllocationOptions.Clean))
                 {
-                    this.handle = handle;
-                    this.lengthInElements = lengthInElements;
+                    buffer.GetSpan().Clear();
                 }
 
-                public static ObservedBuffer Create(
-                    UnmanagedMemoryHandle handle,
-                    int lengthInElements,
-                    AllocationOptions options)
-                {
-                    var buffer = new ObservedBuffer(handle, lengthInElements);
-                    if (options.Has(AllocationOptions.Clean))
-                    {
-                        buffer.GetSpan().Clear();
-                    }
+                return buffer;
+            }
 
-                    return buffer;
-                }
+            protected override void Dispose(bool disposing)
+            {
+                // No-op.
+            }
 
-                protected override void Dispose(bool disposing)
-                {
-                    // No-op.
-                }
+            public override unsafe Span<T> GetSpan() => new(this.handle.Pointer, this.lengthInElements);
 
-                public override unsafe Span<T> GetSpan() => new(this.handle.Pointer, this.lengthInElements);
+            public override unsafe MemoryHandle Pin(int elementIndex = 0)
+            {
+                void* pbData = Unsafe.Add<T>(this.handle.Pointer, elementIndex);
+                return new MemoryHandle(pbData);
+            }
 
-                public override unsafe MemoryHandle Pin(int elementIndex = 0)
-                {
-                    void* pbData = Unsafe.Add<T>(this.handle.Pointer, elementIndex);
-                    return new MemoryHandle(pbData);
-                }
-
-                public override void Unpin()
-                {
-                }
+            public override void Unpin()
+            {
             }
         }
     }

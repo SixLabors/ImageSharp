@@ -1,78 +1,76 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
+#nullable disable
 
-using System.Collections.Generic;
-using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff;
+
+internal class EntryReader : BaseExifReader
 {
-    internal class EntryReader : BaseExifReader
+    public EntryReader(Stream stream, ByteOrder byteOrder, MemoryAllocator allocator)
+        : base(stream, allocator) =>
+        this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
+
+    public List<IExifValue> Values { get; } = new();
+
+    public ulong NextIfdOffset { get; private set; }
+
+    public void ReadTags(bool isBigTiff, ulong ifdOffset)
     {
-        public EntryReader(Stream stream, ByteOrder byteOrder, MemoryAllocator allocator)
-            : base(stream, allocator) =>
-            this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
-
-        public List<IExifValue> Values { get; } = new();
-
-        public ulong NextIfdOffset { get; private set; }
-
-        public void ReadTags(bool isBigTiff, ulong ifdOffset)
+        if (!isBigTiff)
         {
-            if (!isBigTiff)
-            {
-                this.ReadValues(this.Values, (uint)ifdOffset);
-                this.NextIfdOffset = this.ReadUInt32();
+            this.ReadValues(this.Values, (uint)ifdOffset);
+            this.NextIfdOffset = this.ReadUInt32();
 
-                this.ReadSubIfd(this.Values);
-            }
-            else
-            {
-                this.ReadValues64(this.Values, ifdOffset);
-                this.NextIfdOffset = this.ReadUInt64();
-
-                //// this.ReadSubIfd64(this.Values);
-            }
+            this.ReadSubIfd(this.Values);
         }
+        else
+        {
+            this.ReadValues64(this.Values, ifdOffset);
+            this.NextIfdOffset = this.ReadUInt64();
 
-        public void ReadBigValues() => this.ReadBigValues(this.Values);
+            //// this.ReadSubIfd64(this.Values);
+        }
     }
 
-    internal class HeaderReader : BaseExifReader
+    public void ReadBigValues() => this.ReadBigValues(this.Values);
+}
+
+internal class HeaderReader : BaseExifReader
+{
+    public HeaderReader(Stream stream, ByteOrder byteOrder)
+        : base(stream, null) =>
+        this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
+
+    public bool IsBigTiff { get; private set; }
+
+    public ulong FirstIfdOffset { get; private set; }
+
+    public void ReadFileHeader()
     {
-        public HeaderReader(Stream stream, ByteOrder byteOrder)
-            : base(stream, null) =>
-            this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
-
-        public bool IsBigTiff { get; private set; }
-
-        public ulong FirstIfdOffset { get; private set; }
-
-        public void ReadFileHeader()
+        ushort magic = this.ReadUInt16();
+        if (magic == TiffConstants.HeaderMagicNumber)
         {
-            ushort magic = this.ReadUInt16();
-            if (magic == TiffConstants.HeaderMagicNumber)
+            this.IsBigTiff = false;
+            this.FirstIfdOffset = this.ReadUInt32();
+            return;
+        }
+        else if (magic == TiffConstants.BigTiffHeaderMagicNumber)
+        {
+            this.IsBigTiff = true;
+
+            ushort bytesize = this.ReadUInt16();
+            ushort reserve = this.ReadUInt16();
+            if (bytesize == TiffConstants.BigTiffBytesize && reserve == 0)
             {
-                this.IsBigTiff = false;
-                this.FirstIfdOffset = this.ReadUInt32();
+                this.FirstIfdOffset = this.ReadUInt64();
                 return;
             }
-            else if (magic == TiffConstants.BigTiffHeaderMagicNumber)
-            {
-                this.IsBigTiff = true;
-
-                ushort bytesize = this.ReadUInt16();
-                ushort reserve = this.ReadUInt16();
-                if (bytesize == TiffConstants.BigTiffBytesize && reserve == 0)
-                {
-                    this.FirstIfdOffset = this.ReadUInt64();
-                    return;
-                }
-            }
-
-            TiffThrowHelper.ThrowInvalidHeader();
         }
+
+        TiffThrowHelper.ThrowInvalidHeader();
     }
 }

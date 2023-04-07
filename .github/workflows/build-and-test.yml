@@ -9,69 +9,65 @@ on:
   pull_request:
     branches:
       - main
+    types: [ labeled, opened, synchronize, reopened ]
 jobs:
   Build:
     strategy:
       matrix:
+        isARM:
+          - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: macos-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: buildjet-4vcpu-ubuntu-2204-arm
+            framework: net7.0
+            sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: ubuntu-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
           - os: macos-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net5.0
+            framework: net6.0
+            sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: ubuntu-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: macos-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: netcoreapp3.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: netcoreapp2.1
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net472
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net472
-            runtime: -x86
-            codecov: false
+        exclude:
+          - isARM: false
+            options:
+              os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{matrix.options.os}}
 
     steps:
+      - name: Install libgdi+, which is required for tests running on ubuntu
+        if: ${{ matrix.options.os == 'buildjet-4vcpu-ubuntu-2204-arm' }}
+        run: sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
       - name: Git Config
         shell: bash
         run: |
@@ -79,7 +75,7 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -89,7 +85,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: lfs-cache
         with:
           path: .git/lfs
@@ -102,7 +98,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -110,13 +106,18 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        uses: actions/setup-dotnet@v1
+        if: ${{ matrix.options.sdk-preview != true }}
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: |
             6.0.x
-            5.0.x
-            3.1.x
-            2.1.x
+
+      - name: DotNet Setup Preview
+        if: ${{ matrix.options.sdk-preview == true }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: |
+            7.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
@@ -149,7 +150,7 @@ jobs:
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
@@ -170,7 +171,7 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: recursive
@@ -179,7 +180,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -190,9 +191,16 @@ jobs:
         shell: pwsh
         run: ./ci-pack.ps1
 
-      - name: MyGet Publish
+      - name: Feedz Publish
         shell: pwsh
         run: |
-          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v2/package
-          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.MYGET_TOKEN}} -s https://www.myget.org/F/sixlabors/api/v3/index.json
-        # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/nuget/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.FEEDZ_TOKEN}} -s https://f.feedz.io/sixlabors/sixlabors/symbols --skip-duplicate
+
+      - name: NuGet Publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        shell: pwsh
+        run: |
+          dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
+

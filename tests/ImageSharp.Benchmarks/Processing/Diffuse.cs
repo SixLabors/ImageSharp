@@ -1,32 +1,31 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Benchmarks.Processing
+namespace SixLabors.ImageSharp.Benchmarks.Processing;
+
+[Config(typeof(Config.MultiFramework))]
+public class Diffuse
 {
-    [Config(typeof(Config.MultiFramework))]
-    public class Diffuse
+    [Benchmark]
+    public Size DoDiffuse()
     {
-        [Benchmark]
-        public Size DoDiffuse()
-        {
-            using var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond);
-            image.Mutate(x => x.Dither(KnownDitherings.FloydSteinberg));
+        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+        image.Mutate(x => x.Dither(KnownDitherings.FloydSteinberg));
 
-            return image.Size();
-        }
+        return image.Size;
+    }
 
-        [Benchmark]
-        public Size DoDither()
-        {
-            using var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond);
-            image.Mutate(x => x.Dither());
+    [Benchmark]
+    public Size DoDither()
+    {
+        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+        image.Mutate(x => x.Dither());
 
-            return image.Size();
-        }
+        return image.Size;
     }
 }
 

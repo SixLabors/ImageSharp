@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,226 +8,225 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Dithering
+namespace SixLabors.ImageSharp.Processing.Processors.Dithering;
+
+/// <summary>
+/// An error diffusion dithering implementation.
+/// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
+/// </summary>
+public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, IEquatable<IDither>
 {
+    private readonly int offset;
+    private readonly DenseMatrix<float> matrix;
+
     /// <summary>
-    /// An error diffusion dithering implementation.
-    /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
+    /// Initializes a new instance of the <see cref="ErrorDither"/> struct.
     /// </summary>
-    public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, IEquatable<IDither>
+    /// <param name="matrix">The diffusion matrix.</param>
+    /// <param name="offset">The starting offset within the matrix.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public ErrorDither(in DenseMatrix<float> matrix, int offset)
     {
-        private readonly int offset;
-        private readonly DenseMatrix<float> matrix;
+        Guard.MustBeGreaterThan(offset, 0, nameof(offset));
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDither"/> struct.
-        /// </summary>
-        /// <param name="matrix">The diffusion matrix.</param>
-        /// <param name="offset">The starting offset within the matrix.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ErrorDither(in DenseMatrix<float> matrix, int offset)
+        this.matrix = matrix;
+        this.offset = offset;
+    }
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator ==(IDither left, ErrorDither right)
+        => right == left;
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator !=(IDither left, ErrorDither right)
+        => !(right == left);
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator ==(ErrorDither left, IDither right)
+        => left.Equals(right);
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator !=(ErrorDither left, IDither right)
+        => !(left == right);
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator ==(ErrorDither left, ErrorDither right)
+        => left.Equals(right);
+
+    /// <summary>
+    /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+    /// </summary>
+    /// <param name="left">The first source instance.</param>
+    /// <param name="right">The second source instance.</param>
+    /// <returns>The <see cref="bool"/>.</returns>
+    public static bool operator !=(ErrorDither left, ErrorDither right)
+        => !(left == right);
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
+        ref TFrameQuantizer quantizer,
+        ImageFrame<TPixel> source,
+        IndexedImageFrame<TPixel> destination,
+        Rectangle bounds)
+        where TFrameQuantizer : struct, IQuantizer<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (this == default)
         {
-            Guard.MustBeGreaterThan(offset, 0, nameof(offset));
-
-            this.matrix = matrix;
-            this.offset = offset;
+            ThrowDefaultInstance();
         }
 
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator ==(IDither left, ErrorDither right)
-            => right == left;
+        int offsetY = bounds.Top;
+        int offsetX = bounds.Left;
+        float scale = quantizer.Options.DitherScale;
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator !=(IDither left, ErrorDither right)
-            => !(right == left);
-
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator ==(ErrorDither left, IDither right)
-            => left.Equals(right);
-
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator !=(ErrorDither left, IDither right)
-            => !(left == right);
-
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator ==(ErrorDither left, ErrorDither right)
-            => left.Equals(right);
-
-        /// <summary>
-        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
-        /// </summary>
-        /// <param name="left">The first source instance.</param>
-        /// <param name="right">The second source instance.</param>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool operator !=(ErrorDither left, ErrorDither right)
-            => !(left == right);
-
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
-            ref TFrameQuantizer quantizer,
-            ImageFrame<TPixel> source,
-            IndexedImageFrame<TPixel> destination,
-            Rectangle bounds)
-            where TFrameQuantizer : struct, IQuantizer<TPixel>
-            where TPixel : unmanaged, IPixel<TPixel>
+        for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
-            if (this == default)
+            ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
+            ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
+
+            for (int x = bounds.Left; x < bounds.Right; x++)
             {
-                ThrowDefaultInstance();
-            }
-
-            int offsetY = bounds.Top;
-            int offsetX = bounds.Left;
-            float scale = quantizer.Options.DitherScale;
-            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
-
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
-            {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
-                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
-
-                for (int x = bounds.Left; x < bounds.Right; x++)
-                {
-                    TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
-                    Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
-                    this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
-                }
+                TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, (uint)x);
+                Unsafe.Add(ref destinationRowRef, (uint)(x - offsetX)) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
             }
         }
+    }
 
-        /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
-            in TPaletteDitherImageProcessor processor,
-            ImageFrame<TPixel> source,
-            Rectangle bounds)
-            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
-            where TPixel : unmanaged, IPixel<TPixel>
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+        in TPaletteDitherImageProcessor processor,
+        ImageFrame<TPixel> source,
+        Rectangle bounds)
+        where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (this == default)
         {
-            if (this == default)
-            {
-                ThrowDefaultInstance();
-            }
-
-            Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
-            float scale = processor.DitherScale;
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
-            {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
-                for (int x = bounds.Left; x < bounds.Right; x++)
-                {
-                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
-                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
-                    this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
-                    sourcePixel = transformed;
-                }
-            }
+            ThrowDefaultInstance();
         }
 
-        // Internal for AOT
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal TPixel Dither<TPixel>(
-            ImageFrame<TPixel> image,
-            Rectangle bounds,
-            TPixel source,
-            TPixel transformed,
-            int x,
-            int y,
-            float scale)
-            where TPixel : unmanaged, IPixel<TPixel>
+        Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
+        float scale = processor.DitherScale;
+        for (int y = bounds.Top; y < bounds.Bottom; y++)
         {
-            // Equal? Break out as there's no error to pass.
-            if (source.Equals(transformed))
+            ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
+            for (int x = bounds.Left; x < bounds.Right; x++)
             {
-                return transformed;
+                ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, (uint)x);
+                TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
+                this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
+                sourcePixel = transformed;
+            }
+        }
+    }
+
+    // Internal for AOT
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal TPixel Dither<TPixel>(
+        ImageFrame<TPixel> image,
+        Rectangle bounds,
+        TPixel source,
+        TPixel transformed,
+        int x,
+        int y,
+        float scale)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Equal? Break out as there's no error to pass.
+        if (source.Equals(transformed))
+        {
+            return transformed;
+        }
+
+        // Calculate the error
+        Vector4 error = (source.ToVector4() - transformed.ToVector4()) * scale;
+
+        int offset = this.offset;
+        DenseMatrix<float> matrix = this.matrix;
+        Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
+
+        // Loop through and distribute the error amongst neighboring pixels.
+        for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)
+        {
+            if (targetY >= bounds.Bottom)
+            {
+                continue;
             }
 
-            // Calculate the error
-            Vector4 error = (source.ToVector4() - transformed.ToVector4()) * scale;
+            Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(targetY);
 
-            int offset = this.offset;
-            DenseMatrix<float> matrix = this.matrix;
-            Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
-
-            // Loop through and distribute the error amongst neighboring pixels.
-            for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)
+            for (int col = 0; col < matrix.Columns; col++)
             {
-                if (targetY >= bounds.Bottom)
+                int targetX = x + (col - offset);
+                if (targetX < bounds.Left || targetX >= bounds.Right)
                 {
                     continue;
                 }
 
-                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(targetY);
-
-                for (int col = 0; col < matrix.Columns; col++)
+                float coefficient = matrix[row, col];
+                if (coefficient == 0)
                 {
-                    int targetX = x + (col - offset);
-                    if (targetX < bounds.Left || targetX >= bounds.Right)
-                    {
-                        continue;
-                    }
-
-                    float coefficient = matrix[row, col];
-                    if (coefficient == 0)
-                    {
-                        continue;
-                    }
-
-                    ref TPixel pixel = ref rowSpan[targetX];
-                    var result = pixel.ToVector4();
-
-                    result += error * coefficient;
-                    pixel.FromVector4(result);
+                    continue;
                 }
-            }
 
-            return transformed;
+                ref TPixel pixel = ref rowSpan[targetX];
+                var result = pixel.ToVector4();
+
+                result += error * coefficient;
+                pixel.FromVector4(result);
+            }
         }
 
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-            => obj is ErrorDither dither && this.Equals(dither);
-
-        /// <inheritdoc/>
-        public bool Equals(ErrorDither other)
-            => this.offset == other.offset && this.matrix.Equals(other.matrix);
-
-        /// <inheritdoc/>
-        public bool Equals(IDither other)
-            => this.Equals((object)other);
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-            => HashCode.Combine(this.offset, this.matrix);
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static void ThrowDefaultInstance()
-            => throw new ImageProcessingException("Cannot use the default value type instance to dither.");
+        return transformed;
     }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+        => obj is ErrorDither dither && this.Equals(dither);
+
+    /// <inheritdoc/>
+    public bool Equals(ErrorDither other)
+        => this.offset == other.offset && this.matrix.Equals(other.matrix);
+
+    /// <inheritdoc/>
+    public bool Equals(IDither? other)
+        => this.Equals((object?)other);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(this.offset, this.matrix);
+
+    [MethodImpl(InliningOptions.ColdPath)]
+    private static void ThrowDefaultInstance()
+        => throw new ImageProcessingException("Cannot use the default value type instance to dither.");
 }

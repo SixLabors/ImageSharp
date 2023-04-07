@@ -1,54 +1,54 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif
+namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif;
+
+[Trait("Profile", "Exif")]
+public class ExifValueTests
 {
-    [Trait("Profile", "Exif")]
-    public class ExifValueTests
+    private readonly ExifProfile profile;
+
+    public ExifValueTests()
     {
-        private readonly ExifProfile profile;
-
-        public ExifValueTests()
+        using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image())
         {
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image())
-            {
-                this.profile = image.Metadata.ExifProfile;
-            }
+            this.profile = image.Metadata.ExifProfile;
         }
+    }
 
-        private IExifValue<string> GetExifValue()
-        {
-            Assert.NotNull(this.profile);
+    private IExifValue<string> GetExifValue()
+    {
+        Assert.NotNull(this.profile);
 
-            return this.profile.GetValue(ExifTag.Software);
-        }
+        this.profile.TryGetValue(ExifTag.Software, out IExifValue<string> value);
 
-        [Fact]
-        public void IEquatable()
-        {
-            IExifValue<string> first = this.GetExifValue();
-            IExifValue<string> second = this.GetExifValue();
+        return value;
+    }
 
-            Assert.True(first == second);
-            Assert.True(first.Equals(second));
-        }
+    [Fact]
+    public void IEquatable()
+    {
+        IExifValue<string> first = this.GetExifValue();
+        IExifValue<string> second = this.GetExifValue();
 
-        [Fact]
-        public void Properties()
-        {
-            IExifValue<string> value = this.GetExifValue();
+        Assert.True(first == second);
+        Assert.True(first.Equals(second));
+    }
 
-            Assert.Equal(ExifDataType.Ascii, value.DataType);
-            Assert.Equal(ExifTag.Software, value.Tag);
-            Assert.False(value.IsArray);
+    [Fact]
+    public void Properties()
+    {
+        IExifValue<string> value = this.GetExifValue();
 
-            const string expected = "Windows Photo Editor 10.0.10011.16384";
-            Assert.Equal(expected, value.ToString());
-            Assert.Equal(expected, value.Value);
-        }
+        Assert.Equal(ExifDataType.Ascii, value.DataType);
+        Assert.Equal(ExifTag.Software, value.Tag);
+        Assert.False(value.IsArray);
+
+        const string expected = "Windows Photo Editor 10.0.10011.16384";
+        Assert.Equal(expected, value.ToString());
+        Assert.Equal(expected, value.Value);
     }
 }

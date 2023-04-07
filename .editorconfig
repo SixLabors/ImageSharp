@@ -1,5 +1,5 @@
-# Version: 2.1.0 (Using https://semver.org/)
-# Updated: 2021-03-03
+# Version: 4.1.1 (Using https://semver.org/)
+# Updated: 2022-05-23
 # See https://github.com/RehanSaeed/EditorConfig/releases for release notes.
 # See https://github.com/RehanSaeed/EditorConfig for updates to this file.
 # See http://EditorConfig.org for more information about .editorconfig files.
@@ -49,11 +49,11 @@ indent_size = 2
 indent_size = 2
 
 # Markdown Files
-[*.md]
+[*.{md,mdx}]
 trim_trailing_whitespace = false
 
 # Web Files
-[*.{htm,html,js,jsm,ts,tsx,css,sass,scss,less,svg,vue}]
+[*.{htm,html,js,jsm,ts,tsx,cjs,cts,ctsx,mjs,mts,mtsx,css,sass,scss,less,pcss,svg,vue}]
 indent_size = 2
 
 # Batch Files
@@ -75,7 +75,7 @@ indent_style = tab
 
 [*.{cs,csx,cake,vb,vbx}]
 # Default Severity for all .NET Code Style rules below
-dotnet_analyzer_diagnostic.category-style.severity = warning
+dotnet_analyzer_diagnostic.severity = warning
 
 ##########################################
 # Language Rules
@@ -122,20 +122,21 @@ dotnet_style_coalesce_expression = true:warning
 dotnet_style_null_propagation = true:warning
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
 # File header preferences
-file_header_template = Copyright (c) Six Labors.\nLicensed under the Apache License, Version 2.0.
+file_header_template = Copyright (c) Six Labors.\nLicensed under the Six Labors Split License.
 # SA1636: File header copyright text should match
 # Justification: .editorconfig supports file headers. If this is changed to a value other than "none", a stylecop.json file will need to added to the project.
 # dotnet_diagnostic.SA1636.severity = none
 
 # Undocumented
-dotnet_style_operator_placement_when_wrapping = end_of_line
+dotnet_style_operator_placement_when_wrapping = end_of_line:warning
+csharp_style_prefer_null_check_over_type_check = true:warning
 
 # C# Style Rules
 # https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/language-rules#c-style-rules
 [*.{cs,csx,cake}]
 # 'var' preferences
-csharp_style_var_for_built_in_types = never
-csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = false:warning
 csharp_style_var_elsewhere = false:warning
 # Expression-bodied members
 csharp_style_expression_bodied_methods = true:warning
@@ -200,12 +201,15 @@ dotnet_diagnostic.IDE0059.severity = suggestion
 # Organize using directives
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
+# Dotnet namespace options
+dotnet_style_namespace_match_folder = true:suggestion
+dotnet_diagnostic.IDE0130.severity = suggestion
 
 # C# formatting rules
 # https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#c-formatting-rules
 [*.{cs,csx,cake}]
 # Newline options
-# https://docs.microsoft.com/visualstudio/ide/editorconfig-formatting-conventions#new-line-options
+# https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#new-line-options
 csharp_new_line_before_open_brace = all
 csharp_new_line_before_else = true
 csharp_new_line_before_catch = true
@@ -214,7 +218,7 @@ csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_between_query_expression_clauses = true
 # Indentation options
-# https://docs.microsoft.com/visualstudio/ide/editorconfig-formatting-conventions#indentation-options
+# https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#indentation-options
 csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
 csharp_indent_labels = no_change
@@ -222,7 +226,7 @@ csharp_indent_block_contents = true
 csharp_indent_braces = false
 csharp_indent_case_contents_when_block = false
 # Spacing options
-# https://docs.microsoft.com/visualstudio/ide/editorconfig-formatting-conventions#spacing-options
+# https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#spacing-options
 csharp_space_after_cast = false
 csharp_space_after_keywords_in_control_flow_statements = true
 csharp_space_between_parentheses = false
@@ -246,9 +250,12 @@ csharp_space_before_open_square_brackets = false
 csharp_space_between_empty_square_brackets = false
 csharp_space_between_square_brackets = false
 # Wrap options
-# https://docs.microsoft.com/visualstudio/ide/editorconfig-formatting-conventions#wrap-options
+# https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#wrap-options
 csharp_preserve_single_line_statements = false
 csharp_preserve_single_line_blocks = true
+# Namespace options
+# https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/formatting-rules#namespace-options
+csharp_style_namespace_declarations = file_scoped:warning
 
 ##########################################
 # .NET Naming Rules

@@ -7,32 +7,31 @@ SixLabors.ImageSharp
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/main)](https://github.com/SixLabors/ImageSharp/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/SixLabors/ImageSharp/build-and-test.yml?branch=main)](https://github.com/SixLabors/ImageSharp/actions)
 [![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/main/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: Six Labors Split](https://img.shields.io/badge/license-Six%20Labors%20Split-%23e30183)](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
 </div>
 
 ### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
 
-ImageSharp is a new, fully featured, fully managed, cross-platform, 2D graphics library. Designed to simplify image processing, ImageSharp brings you an incredibly powerful yet beautifully simple API.
+ImageSharp is a new, fully featured, fully managed, cross-platform, 2D graphics library. 
+Designed to simplify image processing, ImageSharp brings you an incredibly powerful yet beautifully simple API.
 
 ImageSharp is designed from the ground up to be flexible and extensible. The library provides API endpoints for common image processing operations and the building blocks to allow for the development of additional operations.
 
-Built against [.NET Standard 2.0](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
+Built against [.NET 6](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 
 
 ## License
   
-- ImageSharp is licensed under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0)  
-- An alternative Commercial Support License can be purchased **for projects and applications requiring support**.
-Please visit https://sixlabors.com/pricing for details.
+- ImageSharp is licensed under the [Six Labors Split License, Version 1.0](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE)  
 
 ## Support Six Labors
 
 Support the efforts of the development of the Six Labors projects. 
- - [Purchase a Commercial Support License :heart:](https://sixlabors.com/pricing/)
+ - [Purchase a Commercial License :heart:](https://sixlabors.com/pricing/)
  - [Become a sponsor via GitHub Sponsors :heart:]( https://github.com/sponsors/SixLabors)
  - [Become a sponsor via Open Collective :heart:](https://opencollective.com/sixlabors)
 
@@ -43,7 +42,8 @@ Support the efforts of the development of the Six Labors projects.
 
 ## Questions
 
-- Do you have questions? We are happy to help! Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/category_choices), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
+- Do you have questions? Please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/q-a). Do not open issues for questions.
+- For feature ideas please [join our Discussions Forum](https://github.com/SixLabors/ImageSharp/discussions/categories/ideas) and we'll be happy to discuss.  
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
 ## Code of Conduct  
@@ -54,17 +54,17 @@ For more information, see the [.NET Foundation Code of Conduct](https://dotnetfo
 
 Install stable releases via Nuget; development releases are available via MyGet.
 
-| Package Name                   | Release (NuGet) | Nightly (MyGet) |
+| Package Name                   | Release (NuGet) | Nightly (Feedz.io) |
 |--------------------------------|-----------------|-----------------|
-| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/vpre/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
+| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![feedz.io](https://img.shields.io/badge/endpoint.svg?url=https%3A%2F%2Ff.feedz.io%2Fsixlabors%2Fsixlabors%2Fshield%2FSixLabors.ImageSharp%2Flatest)](https://f.feedz.io/sixlabors/sixlabors/nuget/index.json) |
 
 ## Manual build
 
 If you prefer, you can compile ImageSharp yourself (please do and help!)
 
-- Using [Visual Studio 2019](https://visualstudio.microsoft.com/vs/)
+- Using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
   - Make sure you have the latest version installed
-  - Make sure you have [the .NET 5 SDK](https://www.microsoft.com/net/core#windows) installed
+  - Make sure you have [the .NET 7 SDK](https://www.microsoft.com/net/core#windows) installed
 
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 
@@ -75,6 +75,12 @@ To clone ImageSharp locally, click the "Clone in [YOUR_OS]" button above or run 
 
 ```bash
 git clone https://github.com/SixLabors/ImageSharp
+```
+
+Then set the following config to ensure blame commands ignore mass reformatting commits.
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 If working with Windows please ensure that you have enabled long file paths in git (run as Administrator).

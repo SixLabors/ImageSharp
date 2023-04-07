@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Webp.Lossy
+namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
+
+internal enum Vp8MacroBlockType
 {
-    internal enum Vp8MacroBlockType
-    {
-        I4X4 = 0,
+    I4X4 = 0,
 
-        I16X16 = 1
-    }
+    I16X16 = 1
 }

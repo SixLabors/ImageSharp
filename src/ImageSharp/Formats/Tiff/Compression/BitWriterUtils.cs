@@ -1,51 +1,61 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression;
+
+internal static class BitWriterUtils
 {
-    internal static class BitWriterUtils
+    public static void WriteBits(Span<byte> buffer, nint pos, nint count, byte value)
     {
-        public static void WriteBits(Span<byte> buffer, int pos, uint count, byte value)
+        nint bitPos = Numerics.Modulo8(pos);
+        nint bufferPos = pos / 8;
+        nint startIdx = bufferPos + bitPos;
+        nint endIdx = startIdx + count;
+
+        if (value == 1)
         {
-            int bitPos = pos % 8;
-            int bufferPos = pos / 8;
-            int startIdx = bufferPos + bitPos;
-            int endIdx = (int)(startIdx + count);
-
-            if (value == 1)
+            for (nint i = startIdx; i < endIdx; i++)
             {
-                for (int i = startIdx; i < endIdx; i++)
-                {
-                    WriteBit(buffer, bufferPos, bitPos);
+                WriteBit(buffer, bufferPos, bitPos);
 
-                    bitPos++;
-                    if (bitPos >= 8)
-                    {
-                        bitPos = 0;
-                        bufferPos++;
-                    }
-                }
-            }
-            else
-            {
-                for (int i = startIdx; i < endIdx; i++)
+                bitPos++;
+                if (bitPos >= 8)
                 {
-                    WriteZeroBit(buffer, bufferPos, bitPos);
-
-                    bitPos++;
-                    if (bitPos >= 8)
-                    {
-                        bitPos = 0;
-                        bufferPos++;
-                    }
+                    bitPos = 0;
+                    bufferPos++;
                 }
             }
         }
+        else
+        {
+            for (nint i = startIdx; i < endIdx; i++)
+            {
+                WriteZeroBit(buffer, bufferPos, bitPos);
 
-        public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] |= (byte)(1 << (7 - bitPos));
+                bitPos++;
+                if (bitPos >= 8)
+                {
+                    bitPos = 0;
+                    bufferPos++;
+                }
+            }
+        }
+    }
 
-        public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] = (byte)(buffer[bufferPos] & ~(1 << (7 - bitPos)));
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static void WriteBit(Span<byte> buffer, nint bufferPos, nint bitPos)
+    {
+        ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+        b |= (byte)(1 << (int)(7 - bitPos));
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static void WriteZeroBit(Span<byte> buffer, nint bufferPos, nint bitPos)
+    {
+        ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+        b = (byte)(b & ~(1 << (int)(7 - bitPos)));
     }
 }

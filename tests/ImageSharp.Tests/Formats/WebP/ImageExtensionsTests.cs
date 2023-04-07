@@ -1,156 +1,136 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Webp
+namespace SixLabors.ImageSharp.Tests.Formats.Webp;
+
+[Trait("Format", "Webp")]
+public class ImageExtensionsTests
 {
-    [Trait("Format", "Webp")]
-    public class ImageExtensionsTests
+    [Fact]
+    public void SaveAsWebp_Path()
     {
-        [Fact]
-        public void SaveAsWebp_Path()
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
+        string file = Path.Combine(dir, "SaveAsWebp_Path.webp");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
-            string file = Path.Combine(dir, "SaveAsWebp_Path.webp");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsWebp(file);
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            image.SaveAsWebp(file);
         }
 
-        [Fact]
-        public async Task SaveAsWebpAsync_Path()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsWebpAsync_Path()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
+        string file = Path.Combine(dir, "SaveAsWebpAsync_Path.webp");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTests));
-            string file = Path.Combine(dir, "SaveAsWebpAsync_Path.webp");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsWebpAsync(file);
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            await image.SaveAsWebpAsync(file);
         }
 
-        [Fact]
-        public void SaveAsWebp_Path_Encoder()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public void SaveAsWebp_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsWebp_Path_Encoder.webp");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsWebp_Path_Encoder.webp");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsWebp(file, new WebpEncoder());
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            image.SaveAsWebp(file, new WebpEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsWebpAsync_Path_Encoder()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsWebpAsync_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsWebpAsync_Path_Encoder.webp");
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-            string file = Path.Combine(dir, "SaveAsWebpAsync_Path_Encoder.webp");
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsWebpAsync(file, new WebpEncoder());
-            }
-
-            using (Image.Load(file, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            await image.SaveAsWebpAsync(file, new WebpEncoder());
         }
 
-        [Fact]
-        public void SaveAsWebp_Stream()
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public void SaveAsWebp_Stream()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsWebp(memoryStream);
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            image.SaveAsWebp(memoryStream);
         }
 
-        [Fact]
-        public async Task SaveAsWebpAsync_StreamAsync()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsWebpAsync_StreamAsync()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsWebpAsync(memoryStream);
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            await image.SaveAsWebpAsync(memoryStream);
         }
 
-        [Fact]
-        public void SaveAsWebp_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public void SaveAsWebp_Stream_Encoder()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                image.SaveAsWebp(memoryStream, new WebpEncoder());
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            image.SaveAsWebp(memoryStream, new WebpEncoder());
         }
 
-        [Fact]
-        public async Task SaveAsWebpAsync_Stream_Encoder()
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is WebpFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsWebpAsync_Stream_Encoder()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            using var memoryStream = new MemoryStream();
-
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsWebpAsync(memoryStream, new WebpEncoder());
-            }
-
-            memoryStream.Position = 0;
-
-            using (Image.Load(memoryStream, out IImageFormat mime))
-            {
-                Assert.Equal("image/webp", mime.DefaultMimeType);
-            }
+            await image.SaveAsWebpAsync(memoryStream, new WebpEncoder());
         }
+
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is WebpFormat);
     }
 }

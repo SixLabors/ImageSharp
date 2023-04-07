@@ -1,83 +1,81 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
+
+internal abstract class ExifValue : IExifValue, IEquatable<ExifTag>
 {
-    internal abstract class ExifValue : IExifValue, IEquatable<ExifTag>
+    protected ExifValue(ExifTag tag) => this.Tag = tag;
+
+    protected ExifValue(ExifTagValue tag) => this.Tag = new UnkownExifTag(tag);
+
+    internal ExifValue(ExifValue other)
     {
-        protected ExifValue(ExifTag tag) => this.Tag = tag;
+        Guard.NotNull(other, nameof(other));
 
-        protected ExifValue(ExifTagValue tag) => this.Tag = new UnkownExifTag(tag);
+        this.DataType = other.DataType;
+        this.IsArray = other.IsArray;
+        this.Tag = other.Tag;
 
-        internal ExifValue(ExifValue other)
+        if (!other.IsArray)
         {
-            Guard.NotNull(other, nameof(other));
-
-            this.DataType = other.DataType;
-            this.IsArray = other.IsArray;
-            this.Tag = other.Tag;
-
-            if (!other.IsArray)
-            {
-                // All types are value types except for string which is immutable so safe to simply assign.
-                this.TrySetValue(other.GetValue());
-            }
-            else
-            {
-                // All array types are value types so Clone() is sufficient here.
-                var array = (Array)other.GetValue();
-                this.TrySetValue(array.Clone());
-            }
+            // All types are value types except for string which is immutable so safe to simply assign.
+            this.TrySetValue(other.GetValue());
         }
-
-        public virtual ExifDataType DataType { get; }
-
-        public virtual bool IsArray { get; }
-
-        public ExifTag Tag { get; }
-
-        public static bool operator ==(ExifValue left, ExifTag right) => Equals(left, right);
-
-        public static bool operator !=(ExifValue left, ExifTag right) => !Equals(left, right);
-
-        public override bool Equals(object obj)
+        else
         {
-            if (obj is null)
-            {
-                return false;
-            }
+            // All array types are value types so Clone() is sufficient here.
+            Array? array = (Array?)other.GetValue();
+            this.TrySetValue(array?.Clone());
+        }
+    }
 
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
+    public virtual ExifDataType DataType { get; }
 
-            if (obj is ExifTag tag)
-            {
-                return this.Equals(tag);
-            }
+    public virtual bool IsArray { get; }
 
-            if (obj is ExifValue value)
-            {
-                return this.Tag.Equals(value.Tag) && Equals(this.GetValue(), value.GetValue());
-            }
+    public ExifTag Tag { get; }
 
+    public static bool operator ==(ExifValue left, ExifTag right) => Equals(left, right);
+
+    public static bool operator !=(ExifValue left, ExifTag right) => !Equals(left, right);
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is null)
+        {
             return false;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(ExifTag other) => this.Tag.Equals(other);
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => HashCode.Combine(this.Tag, this.GetValue());
+        if (obj is ExifTag tag)
+        {
+            return this.Equals(tag);
+        }
 
-        public abstract object GetValue();
+        if (obj is ExifValue value)
+        {
+            return this.Tag.Equals(value.Tag) && Equals(this.GetValue(), value.GetValue());
+        }
 
-        public abstract bool TrySetValue(object value);
-
-        public abstract IExifValue DeepClone();
+        return false;
     }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool Equals(ExifTag? other) => this.Tag.Equals(other);
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public override int GetHashCode() => HashCode.Combine(this.Tag, this.GetValue());
+
+    public abstract object? GetValue();
+
+    public abstract bool TrySetValue(object? value);
+
+    public abstract IExifValue DeepClone();
 }

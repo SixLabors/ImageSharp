@@ -1,24 +1,22 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Transforms
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
+
+[Trait("Category", "Processors")]
+public class EntropyCropTest : BaseImageOperationsExtensionTest
 {
-    [Trait("Category", "Processors")]
-    public class EntropyCropTest : BaseImageOperationsExtensionTest
+    [Theory]
+    [InlineData(0.5F)]
+    [InlineData(.2F)]
+    public void EntropyCropThresholdFloatEntropyCropProcessorWithThreshold(float threshold)
     {
-        [Theory]
-        [InlineData(0.5F)]
-        [InlineData(.2F)]
-        public void EntropyCropThresholdFloatEntropyCropProcessorWithThreshold(float threshold)
-        {
-            this.operations.EntropyCrop(threshold);
-            EntropyCropProcessor processor = this.Verify<EntropyCropProcessor>();
+        this.operations.EntropyCrop(threshold);
+        EntropyCropProcessor processor = this.Verify<EntropyCropProcessor>();
 
-            Assert.Equal(threshold, processor.Threshold);
-        }
+        Assert.Equal(threshold, processor.Threshold);
     }
 }

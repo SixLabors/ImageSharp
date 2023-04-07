@@ -2,6 +2,18 @@ name: "OSS : Bug Report"
 description: Create a report to help us improve the project. OSS Issues are not guaranteed to be triaged.
 labels: ["needs triage"]
 body:
+- type: checkboxes
+  attributes:
+    label: Prerequisites
+    options:
+      - label: I have written a descriptive issue title
+        required: true
+      - label: I have verified that I am running the latest version of ImageSharp
+        required: true
+      - label: I have verified if the problem exist in both `DEBUG` and `RELEASE` mode
+        required: true
+      - label: I have searched [open](https://github.com/SixLabors/ImageSharp/issues) and [closed](https://github.com/SixLabors/ImageSharp/issues?q=is%3Aissue+is%3Aclosed) issues to ensure it has not already been reported
+        required: true
 - type: input
   attributes:
     label: ImageSharp version

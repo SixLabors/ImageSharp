@@ -1,19 +1,18 @@
 ﻿// Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Processing.Processors.Filters;
+
+/// <summary>
+/// Converts the colors of the image recreating Protanomaly (Red-Weak) color blindness.
+/// </summary>
+public sealed class ProtanomalyProcessor : FilterProcessor
 {
     /// <summary>
-    /// Converts the colors of the image recreating Protanomaly (Red-Weak) color blindness.
+    /// Initializes a new instance of the <see cref="ProtanomalyProcessor"/> class.
     /// </summary>
-    public sealed class ProtanomalyProcessor : FilterProcessor
+    public ProtanomalyProcessor()
+        : base(KnownFilterMatrices.ProtanomalyFilter)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProtanomalyProcessor"/> class.
-        /// </summary>
-        public ProtanomalyProcessor()
-            : base(KnownFilterMatrices.ProtanomalyFilter)
-        {
-        }
     }
 }

@@ -1,38 +1,30 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.IO;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
+
+[Config(typeof(Config.ShortMultiFramework))]
+public class IdentifyJpeg
 {
-    [Config(typeof(Config.ShortMultiFramework))]
-    public class IdentifyJpeg
+    private byte[] jpegBytes;
+
+    private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+
+    [Params(TestImages.Jpeg.Baseline.Jpeg420Exif, TestImages.Jpeg.Baseline.Calliphora)]
+    public string TestImage { get; set; }
+
+    [GlobalSetup]
+    public void ReadImages() => this.jpegBytes ??= File.ReadAllBytes(this.TestImageFullPath);
+
+    [Benchmark]
+    public ImageInfo Identify()
     {
-        private byte[] jpegBytes;
-
-        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
-
-        [Params(TestImages.Jpeg.Baseline.Jpeg420Exif, TestImages.Jpeg.Baseline.Calliphora)]
-        public string TestImage { get; set; }
-
-        [GlobalSetup]
-        public void ReadImages()
-        {
-            if (this.jpegBytes == null)
-            {
-                this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
-            }
-        }
-
-        [Benchmark]
-        public IImageInfo Identify()
-        {
-            using var memoryStream = new MemoryStream(this.jpegBytes);
-            var decoder = new JpegDecoder();
-            return decoder.Identify(Configuration.Default, memoryStream);
-        }
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        return JpegDecoder.Instance.Identify(DecoderOptions.Default, memoryStream);
     }
 }

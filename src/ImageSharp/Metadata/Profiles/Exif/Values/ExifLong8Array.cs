@@ -1,171 +1,168 @@
 // Copyright (c) Six Labors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
+namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
+internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 {
-    internal sealed class ExifLong8Array : ExifArrayValue<ulong>
+    public ExifLong8Array(ExifTagValue tag)
+        : base(tag)
     {
-        public ExifLong8Array(ExifTagValue tag)
-            : base(tag)
-        {
-        }
+    }
 
-        private ExifLong8Array(ExifLong8Array value)
-            : base(value)
-        {
-        }
+    private ExifLong8Array(ExifLong8Array value)
+        : base(value)
+    {
+    }
 
-        public override ExifDataType DataType
+    public override ExifDataType DataType
+    {
+        get
         {
-            get
+            if (this.Value is not null)
             {
-                if (this.Value is not null)
+                foreach (ulong value in this.Value)
                 {
-                    foreach (ulong value in this.Value)
+                    if (value > uint.MaxValue)
                     {
-                        if (value > uint.MaxValue)
-                        {
-                            return ExifDataType.Long8;
-                        }
+                        return ExifDataType.Long8;
                     }
                 }
-
-                return ExifDataType.Long;
             }
+
+            return ExifDataType.Long;
+        }
+    }
+
+    public override bool TrySetValue(object? value)
+    {
+        if (base.TrySetValue(value))
+        {
+            return true;
         }
 
-        public override bool TrySetValue(object value)
+        switch (value)
         {
-            if (base.TrySetValue(value))
+            case int val:
+                return this.SetSingle((ulong)Numerics.Clamp(val, 0, int.MaxValue));
+
+            case uint val:
+                return this.SetSingle((ulong)val);
+
+            case short val:
+                return this.SetSingle((ulong)Numerics.Clamp(val, 0, short.MaxValue));
+
+            case ushort val:
+                return this.SetSingle((ulong)val);
+
+            case long val:
+                return this.SetSingle((ulong)Numerics.Clamp(val, 0, long.MaxValue));
+
+            case long[] array:
             {
-                return true;
-            }
-
-            switch (value)
-            {
-                case int val:
-                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, int.MaxValue));
-
-                case uint val:
-                    return this.SetSingle((ulong)val);
-
-                case short val:
-                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, short.MaxValue));
-
-                case ushort val:
-                    return this.SetSingle((ulong)val);
-
-                case long val:
-                    return this.SetSingle((ulong)Numerics.Clamp(val, 0, long.MaxValue));
-
-                case long[] array:
+                if (value.GetType() == typeof(ulong[]))
                 {
-                    if (value.GetType() == typeof(ulong[]))
-                    {
-                        return this.SetArray((ulong[])value);
-                    }
-
-                    return this.SetArray(array);
+                    return this.SetArray((ulong[])value);
                 }
 
-                case int[] array:
-                {
-                    if (value.GetType() == typeof(uint[]))
-                    {
-                        return this.SetArray((uint[])value);
-                    }
+                return this.SetArray(array);
+            }
 
-                    return this.SetArray(array);
+            case int[] array:
+            {
+                if (value.GetType() == typeof(uint[]))
+                {
+                    return this.SetArray((uint[])value);
                 }
 
-                case short[] array:
+                return this.SetArray(array);
+            }
+
+            case short[] array:
+            {
+                if (value.GetType() == typeof(ushort[]))
                 {
-                    if (value.GetType() == typeof(ushort[]))
-                    {
-                        return this.SetArray((ushort[])value);
-                    }
-
-                    return this.SetArray(array);
+                    return this.SetArray((ushort[])value);
                 }
+
+                return this.SetArray(array);
             }
-
-            return false;
         }
 
-        public override IExifValue DeepClone() => new ExifLong8Array(this);
+        return false;
+    }
 
-        private bool SetSingle(ulong value)
+    public override IExifValue DeepClone() => new ExifLong8Array(this);
+
+    private bool SetSingle(ulong value)
+    {
+        this.Value = new[] { value };
+        return true;
+    }
+
+    private bool SetArray(long[] values)
+    {
+        var numbers = new ulong[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            this.Value = new[] { value };
-            return true;
+            numbers[i] = (ulong)(values[i] < 0 ? 0 : values[i]);
         }
 
-        private bool SetArray(long[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(ulong[] values)
+    {
+        this.Value = values;
+        return true;
+    }
+
+    private bool SetArray(int[] values)
+    {
+        var numbers = new ulong[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)(values[i] < 0 ? 0 : values[i]);
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = (ulong)Numerics.Clamp(values[i], 0, int.MaxValue);
         }
 
-        private bool SetArray(ulong[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(uint[] values)
+    {
+        var numbers = new ulong[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            this.Value = values;
-            return true;
+            numbers[i] = (ulong)values[i];
         }
 
-        private bool SetArray(int[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(short[] values)
+    {
+        var numbers = new ulong[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, int.MaxValue);
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = (ulong)Numerics.Clamp(values[i], 0, short.MaxValue);
         }
 
-        private bool SetArray(uint[] values)
+        this.Value = numbers;
+        return true;
+    }
+
+    private bool SetArray(ushort[] values)
+    {
+        var numbers = new ulong[values.Length];
+        for (int i = 0; i < values.Length; i++)
         {
-            var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)values[i];
-            }
-
-            this.Value = numbers;
-            return true;
+            numbers[i] = (ulong)values[i];
         }
 
-        private bool SetArray(short[] values)
-        {
-            var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)Numerics.Clamp(values[i], 0, short.MaxValue);
-            }
-
-            this.Value = numbers;
-            return true;
-        }
-
-        private bool SetArray(ushort[] values)
-        {
-            var numbers = new ulong[values.Length];
-            for (int i = 0; i < values.Length; i++)
-            {
-                numbers[i] = (ulong)values[i];
-            }
-
-            this.Value = numbers;
-            return true;
-        }
+        this.Value = numbers;
+        return true;
     }
 }

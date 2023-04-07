@@ -101,6 +101,8 @@ git submodule update --init --recursive
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening a PR.
 
+Useful tools for development and links to specifications can be found in our wikipage: [Useful-tools-and-links](https://github.com/SixLabors/ImageSharp/wiki/Useful-tools-and-links).
+
 ## The ImageSharp Team
 
 - [James Jackson-South](https://github.com/jimbobsquarepants)

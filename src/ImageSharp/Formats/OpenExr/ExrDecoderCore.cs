@@ -81,7 +81,11 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ReadExrHeader(stream);
-            this.IsSupportedCompression();
+            if (!this.IsSupportedCompression())
+            {
+                ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
+            }
+
             ExrPixelType pixelType = this.ValidateChannels();
             this.ReadImageDataType();
 
@@ -92,7 +96,15 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             {
                 case ExrPixelType.Half:
                 case ExrPixelType.Float:
-                    this.DecodeFloatingPointPixelData(stream, pixels);
+                    if (this.ImageType is ExrImageType.ScanLine)
+                    {
+                        this.DecodeFloatingPointPixelData(stream, pixels);
+                    }
+                    else
+                    {
+                        this.DecodeTiledFloatingPointPixelData(stream, pixels);
+                    }
+
                     break;
                 case ExrPixelType.UnsignedInt:
                     this.DecodeUnsignedIntPixelData(stream, pixels);
@@ -211,6 +223,97 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                         pixelRow[x] = color;
                     }
                 }
+            }
+        }
+
+        private void DecodeTiledFloatingPointPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (!this.HeaderAttributes.ChunkCount.HasValue)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("Missing chunk count in tiled image");
+            }
+
+            int chunks = this.HeaderAttributes.ChunkCount.Value;
+
+            bool hasAlpha = this.HasAlpha();
+            uint tileWidth = (uint)this.HeaderAttributes.TileXSize;
+            uint tileHeight = (uint)this.HeaderAttributes.TileYSize;
+            int width = this.Width;
+            int height = this.Height;
+            uint bytesPerRow = this.CalculateBytesPerRow((uint)this.Width);
+            uint bytesPerBlockRow = this.CalculateBytesPerRow(tileWidth);
+            uint rowsPerBlock = this.RowsPerBlock();
+            uint bytesPerBlock = bytesPerBlockRow * rowsPerBlock;
+            uint columnsPerBlock = (uint)(this.Height / tileHeight);
+            uint tilesPerScanline = (uint)((this.Width + tileWidth - 1) / tileWidth);
+
+            using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>((int)(tileWidth * 4));
+            using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((width * height) / chunks);
+            Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
+            Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, (int)tileWidth);
+            Span<float> greenPixelData = rowBuffer.GetSpan().Slice((int)tileWidth, (int)tileWidth);
+            Span<float> bluePixelData = rowBuffer.GetSpan().Slice((int)(tileWidth * 2), (int)tileWidth);
+            Span<float> alphaPixelData = rowBuffer.GetSpan().Slice((int)(tileWidth * 3), (int)tileWidth);
+
+            using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock);
+
+            uint y = 0;
+            uint x = 0;
+            TPixel color = default;
+            for (int chunk = 0; chunk < chunks; chunk++)
+            {
+                ulong dataOffset = this.ReadUnsignedLong(stream);
+                long nextOffsetPosition = stream.Position;
+                stream.Position = (long)dataOffset;
+                uint tileX = this.ReadUnsignedInteger(stream);
+                uint tileY = this.ReadUnsignedInteger(stream);
+                uint levelX = this.ReadUnsignedInteger(stream);
+                uint levelY = this.ReadUnsignedInteger(stream);
+
+                uint compressedBytesCount = this.ReadUnsignedInteger(stream);
+                decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
+
+                int offset = 0;
+                for (y = 0; y < height; y += rowsPerBlock)
+                {
+                    for (x = 0; x < tilesPerScanline; x++)
+                    {
+                        uint rowStartIndex = tileHeight * tileY;
+                        uint columnStartIndex = tileWidth * tileX;
+                        for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
+                        {
+                            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan((int)rowIndex);
+                            for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
+                            {
+                                ExrChannelInfo channel = this.Channels[channelIdx];
+                                offset += this.ReadFloatChannelData(
+                                    stream,
+                                    channel,
+                                    decompressedPixelData.Slice(offset),
+                                    redPixelData,
+                                    greenPixelData,
+                                    bluePixelData,
+                                    alphaPixelData,
+                                    (int)tileWidth);
+                            }
+
+                            uint columnEndIdx = (uint)Math.Min(columnStartIndex + tileWidth, width);
+                            int channelOffset = 0;
+                            for (int pixelRowIdx = (int)columnStartIndex; pixelRowIdx < columnEndIdx; pixelRowIdx++)
+                            {
+                                var pixelValue = new HalfVector4(redPixelData[channelOffset],
+                                    greenPixelData[channelOffset], bluePixelData[channelOffset],
+                                    hasAlpha ? alphaPixelData[channelOffset] : 1.0f);
+                                color.FromVector4(pixelValue.ToVector4());
+                                pixelRow[pixelRowIdx] = color;
+                                channelOffset++;
+                            }
+                        }
+                    }
+                }
+
+                stream.Position = nextOffsetPosition;
             }
         }
 
@@ -477,6 +580,12 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
                     case ExrConstants.AttributeNames.Tiles:
                         header.TileXSize = this.ReadUnsignedInteger(stream);
                         header.TileYSize = this.ReadUnsignedInteger(stream);
+                        int mode = stream.ReadByte();
+                        if (mode != 0)
+                        {
+                            ExrThrowHelper.ThrowNotSupported("Unsupported tile mode. Only mode 0 is supported yet.");
+                        }
+
                         break;
                     case ExrConstants.AttributeNames.ChunkCount:
                         header.ChunkCount = this.ReadSignedInteger(stream);
@@ -614,12 +723,19 @@ namespace SixLabors.ImageSharp.Formats.OpenExr
             return pixelType.Value;
         }
 
-        private void IsSupportedCompression()
+        private bool IsSupportedCompression()
         {
-            if (this.Compression is not ExrCompressionType.None and not ExrCompressionType.Zips and not ExrCompressionType.Zip and not ExrCompressionType.RunLengthEncoded)
+            switch (this.Compression)
             {
-                ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
+                case ExrCompressionType.None:
+                case ExrCompressionType.Zip:
+                case ExrCompressionType.Zips:
+                case ExrCompressionType.RunLengthEncoded:
+                case ExrCompressionType.B44:
+                    return true;
             }
+
+            return false;
         }
 
         private void ReadImageDataType()

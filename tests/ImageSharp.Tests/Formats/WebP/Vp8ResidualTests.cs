@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -14,6 +15,12 @@ public class Vp8ResidualTests
     [Fact]
     public void GetResidualCost_Works()
     {
+        if (!Sse2.IsSupported)
+        {
+            // JsonSerializer without SSE2 does not seem to work, skip test then.
+            return;
+        }
+
         // arrange
         int ctx0 = 0;
         int expected = 20911;
@@ -30,6 +37,12 @@ public class Vp8ResidualTests
     [Fact]
     public void Serialization_Works()
     {
+        if (!Sse2.IsSupported)
+        {
+            // JsonSerializer without SSE2 does not seem to work, skip test then.
+            return;
+        }
+
         // arrange
         Vp8Residual expected = new();
         Vp8EncProba encProb = new();

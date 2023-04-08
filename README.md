@@ -111,5 +111,11 @@ Useful tools for development and links to specifications can be found in our wik
 - [Scott Williams](https://github.com/tocsoft)
 - [Brian Popow](https://github.com/brianpopow)
 
-Thanks to [jetbrains](https://www.jetbrains.com) for supporting the ImageSharp team via the [Open Source Development Program](www.jetbrains.com/community/opensource/), so we can use the jetbrains tools for developing ImageSharp!
+---
 
+<div>
+  <a href="https://www.jetbrains.com/?from=ImageSharp" align="right"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" alt="JetBrains" class="logo-footer" width="72" align="left"></a>
+  <br/>
+
+  Special thanks to [JetBrains](https://www.jetbrains.com/?from=ImageSharp) for supporting us with open-source licenses for their IDEs.
+</div>

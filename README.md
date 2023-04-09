@@ -101,6 +101,8 @@ git submodule update --init --recursive
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening a PR.
 
+Useful tools for development and links to specifications can be found in our wikipage: [Useful-tools-and-links](https://github.com/SixLabors/ImageSharp/wiki/Useful-tools-and-links).
+
 ## The ImageSharp Team
 
 - [James Jackson-South](https://github.com/jimbobsquarepants)
@@ -109,6 +111,11 @@ Please... Spread the word, contribute algorithms, submit performance improvement
 - [Scott Williams](https://github.com/tocsoft)
 - [Brian Popow](https://github.com/brianpopow)
 
+---
 
+<div>
+  <a href="https://www.jetbrains.com/?from=ImageSharp" align="right"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" alt="JetBrains" class="logo-footer" width="72" align="left"></a>
+  <br/>
 
-
+  Special thanks to [JetBrains](https://www.jetbrains.com/?from=ImageSharp) for supporting us with open-source licenses for their IDEs.
+</div>

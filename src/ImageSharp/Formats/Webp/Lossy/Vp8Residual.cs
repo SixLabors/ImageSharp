@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text.Json.Serialization;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
@@ -16,22 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Residual
 {
-    public Vp8Residual()
-    {
-    }
-
-    [JsonConstructor]
-    public Vp8Residual(int first, int last, int coeffType, short[] coeffs, Vp8BandProbas[] prob, Vp8Stats[] stats, Vp8Costs[] costs)
-    {
-        this.First = first;
-        this.Last = last;
-        this.CoeffType = coeffType;
-        this.Coeffs = coeffs;
-        this.Prob = prob;
-        this.Stats = stats;
-        this.Costs = costs;
-    }
-
     public int First { get; set; }
 
     public int Last { get; set; }

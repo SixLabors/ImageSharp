@@ -5,7 +5,9 @@ using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
+using SixLabors.ImageSharp.Tests.Formats.WebP.Serialization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 
@@ -13,29 +15,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 public class Vp8ResidualTests
 {
     [Fact]
-    public void GetResidualCost_Works()
+    public void Vp8CostArray_Serialization_Works()
     {
-        if (!Sse2.IsSupported)
+        // arrange
+        Vp8CostArray expected = new();
+        for (ushort i = 0; i < expected.Costs.Length; i++)
         {
-            // JsonSerializer without SSE2 does not seem to work, skip test then.
-            return;
+            expected.Costs[i] = i;
         }
 
-        // arrange
-        int ctx0 = 0;
-        int expected = 20911;
-        string jsonString = File.ReadAllText(Path.Combine("TestDataWebp", "Vp8Residual.json"));
-        Vp8Residual residual = JsonSerializer.Deserialize<Vp8Residual>(jsonString);
+        JsonSerializerOptions options = new()
+        {
+            Converters = { new Vp8CostArrayJsonConverter() }
+        };
 
         // act
-        int actual = residual.GetResidualCost(ctx0);
+        string jsonString = JsonSerializer.Serialize(expected);
+        Vp8CostArray actual = JsonSerializer.Deserialize<Vp8CostArray>(jsonString, options);
 
         // assert
-        Assert.Equal(expected, actual);
+        Assert.Equal(expected.Costs, actual.Costs);
     }
 
     [Fact]
-    public void Serialization_Works()
+    public void Vp8Residual_Serialization_Works()
     {
         if (!Sse2.IsSupported)
         {
@@ -100,6 +103,30 @@ public class Vp8ResidualTests
             }
         }
     }
+
+    [Fact]
+    public void GetResidualCost_Works()
+    {
+        if (!Sse2.IsSupported)
+        {
+            // JsonSerializer without SSE2 does not seem to work, skip test then.
+            return;
+        }
+
+        // arrange
+        int ctx0 = 0;
+        int expected = 20911;
+        string jsonString = File.ReadAllText(Path.Combine("TestDataWebp", "Vp8Residual.json"));
+        Vp8Residual residual = JsonSerializer.Deserialize<Vp8Residual>(jsonString);
+
+        // act
+        int actual = residual.GetResidualCost(ctx0);
+
+        // assert
+        Assert.Equal(expected, actual);
+    }
+
+    
 
     private static void CreateRandomProbas(Vp8EncProba probas, Random rand)
     {

@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Memory;
 
@@ -122,10 +123,24 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> sourceVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
                 nuint count = source.Vector256Count<float>();
                 for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
+                }
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
+                ref Vector128<float> sourceVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+
+                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
+                nuint count = source.Vector128Count<float>();
+                for (nuint i = 0; i < count; i++)
+                {
+                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
                 }
             }
             else
@@ -200,11 +215,25 @@ internal class ComponentProcessor : IDisposable
                 ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
 
                 // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
                 nuint count = target.Vector256Count<float>();
-                var multiplierVector = Vector256.Create(multiplier);
+                Vector256<float> multiplierVector = Vector256.Create(multiplier);
                 for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) = Avx.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
+                }
+            }
+            else if (AdvSimd.IsSupported)
+            {
+                ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
+
+                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
+                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
+                nuint count = target.Vector128Count<float>();
+                Vector128<float> multiplierVector = Vector128.Create(multiplier);
+                for (nuint i = 0; i < count; i++)
+                {
+                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
                 }
             }
             else

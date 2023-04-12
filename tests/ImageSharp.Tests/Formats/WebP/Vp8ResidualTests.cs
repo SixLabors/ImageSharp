@@ -2,10 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics.X86;
-using System.Text.Json;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
-using SixLabors.ImageSharp.Tests.Formats.WebP.Serialization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -14,29 +12,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class Vp8ResidualTests
 {
-    [Fact]
-    public void Vp8CostArray_Serialization_Works()
-    {
-        // arrange
-        Vp8CostArray expected = new();
-        for (ushort i = 0; i < expected.Costs.Length; i++)
-        {
-            expected.Costs[i] = i;
-        }
-
-        JsonSerializerOptions options = new()
-        {
-            Converters = { new Vp8CostArrayJsonConverter() }
-        };
-
-        // act
-        string jsonString = JsonSerializer.Serialize(expected);
-        Vp8CostArray actual = JsonSerializer.Deserialize<Vp8CostArray>(jsonString, options);
-
-        // assert
-        Assert.Equal(expected.Costs, actual.Costs);
-    }
-
     [Fact]
     public void Vp8Residual_Serialization_Works()
     {

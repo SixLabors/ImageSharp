@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// <summary>
 /// All the probabilities associated to one band.
 /// </summary>
+[Serializable]
 internal class Vp8BandProbas
 {
     /// <summary>
@@ -21,13 +22,6 @@ internal class Vp8BandProbas
             this.Probabilities[i] = new Vp8ProbaArray();
         }
     }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Vp8BandProbas"/> class.
-    /// Only used for unit tests.
-    /// </summary>
-    [JsonConstructor]
-    public Vp8BandProbas(Vp8ProbaArray[] probabilities) => this.Probabilities = probabilities;
 
     /// <summary>
     /// Gets the Probabilities.

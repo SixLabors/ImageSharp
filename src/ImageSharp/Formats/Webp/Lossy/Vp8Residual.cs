@@ -14,22 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// <summary>
 /// On-the-fly info about the current set of residuals.
 /// </summary>
+[Serializable]
 internal class Vp8Residual
 {
     public Vp8Residual()
     {
-    }
-
-    [JsonConstructor]
-    public Vp8Residual(int first, int last, int coeffType, short[] coeffs, Vp8BandProbas[] prob, Vp8Stats[] stats, Vp8Costs[] costs)
-    {
-        this.First = first;
-        this.Last = last;
-        this.CoeffType = coeffType;
-        this.Coeffs = coeffs;
-        this.Prob = prob;
-        this.Stats = stats;
-        this.Costs = costs;
     }
 
     public int First { get; set; }

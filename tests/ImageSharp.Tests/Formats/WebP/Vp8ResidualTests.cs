@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -11,6 +11,117 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class Vp8ResidualTests
 {
+    private static void WriteVp8Residual(string filename, Vp8Residual residual)
+    {
+        using FileStream stream = File.Open(filename, FileMode.Create);
+        using BinaryWriter writer = new(stream, Encoding.UTF8, false);
+
+        writer.Write(residual.First);
+        writer.Write(residual.Last);
+        writer.Write(residual.CoeffType);
+
+        for (int i = 0; i < residual.Coeffs.Length; i++)
+        {
+            writer.Write(residual.Coeffs[i]);
+        }
+
+        for (int i = 0; i < residual.Prob.Length; i++)
+        {
+            for (int j = 0; j < residual.Prob[i].Probabilities.Length; j++)
+            {
+                writer.Write(residual.Prob[i].Probabilities[j].Probabilities);
+            }
+        }
+
+        for (int i = 0; i < residual.Costs.Length; i++)
+        {
+            Vp8Costs costs = residual.Costs[i];
+            Vp8CostArray[] costsArray = costs.Costs;
+            for (int j = 0; j < costsArray.Length; j++)
+            {
+                for (int k = 0; k < costsArray[j].Costs.Length; k++)
+                {
+                    writer.Write(costsArray[j].Costs[k]);
+                }
+            }
+        }
+
+        for (int i = 0; i < residual.Stats.Length; i++)
+        {
+            for (int j = 0; j < residual.Stats[i].Stats.Length; j++)
+            {
+                for (int k = 0; k < residual.Stats[i].Stats[j].Stats.Length; k++)
+                {
+                    writer.Write(residual.Stats[i].Stats[j].Stats[k]);
+                }
+            }
+        }
+
+        writer.Flush();
+    }
+
+    private static Vp8Residual ReadVp8Residual(string fileName)
+    {
+        using FileStream stream = File.Open(fileName, FileMode.Open);
+        using BinaryReader reader = new(stream, Encoding.UTF8, false);
+
+        Vp8Residual residual = new()
+        {
+            First = reader.ReadInt32(),
+            Last = reader.ReadInt32(),
+            CoeffType = reader.ReadInt32()
+        };
+
+        for (int i = 0; i < residual.Coeffs.Length; i++)
+        {
+            residual.Coeffs[i] = reader.ReadInt16();
+        }
+
+        Vp8BandProbas[] bandProbas = new Vp8BandProbas[8];
+        for (int i = 0; i < bandProbas.Length; i++)
+        {
+            bandProbas[i] = new Vp8BandProbas();
+            for (int j = 0; j < bandProbas[i].Probabilities.Length; j++)
+            {
+                for (int k = 0; k < 11; k++)
+                {
+                    bandProbas[i].Probabilities[j].Probabilities[k] = reader.ReadByte();
+                }
+            }
+        }
+
+        residual.Prob = bandProbas;
+
+        residual.Costs = new Vp8Costs[16];
+        for (int i = 0; i < residual.Costs.Length; i++)
+        {
+            residual.Costs[i] = new Vp8Costs();
+            Vp8CostArray[] costsArray = residual.Costs[i].Costs;
+            for (int j = 0; j < costsArray.Length; j++)
+            {
+                for (int k = 0; k < costsArray[j].Costs.Length; k++)
+                {
+                    costsArray[j].Costs[k] = reader.ReadUInt16();
+                }
+            }
+        }
+
+        residual.Stats = new Vp8Stats[8];
+        for (int i = 0; i < residual.Stats.Length; i++)
+        {
+            residual.Stats[i] = new Vp8Stats();
+            for (int j = 0; j < residual.Stats[i].Stats.Length; j++)
+            {
+                for (int k = 0; k < residual.Stats[i].Stats[j].Stats.Length; k++)
+                {
+                    residual.Stats[i].Stats[j].Stats[k] = reader.ReadUInt32();
+                }
+            }
+        }
+
+        return residual;
+    }
+
     [Fact]
     public void Vp8Residual_Serialization_Works()
     {
@@ -27,12 +138,10 @@ public class Vp8ResidualTests
         }
 
         // act
-        BinaryFormatter formatter = new();
-        using MemoryStream ms = new();
-        formatter.Serialize(ms, expected);
-        ms.Position = 0;
-        object obj = formatter.Deserialize(ms);
-        Vp8Residual actual = (Vp8Residual)obj;
+        string fileName = "Vp8SerializationTest.bin";
+        WriteVp8Residual(fileName, expected);
+        Vp8Residual actual = ReadVp8Residual(fileName);
+        File.Delete(fileName);
 
         // assert
         Assert.Equal(expected.CoeffType, actual.CoeffType);
@@ -82,11 +191,7 @@ public class Vp8ResidualTests
         // arrange
         int ctx0 = 0;
         int expected = 20911;
-        byte[] data = File.ReadAllBytes(Path.Combine("TestDataWebp", "Vp8Residual.bin"));
-        BinaryFormatter formatter = new();
-        using Stream stream = new MemoryStream(data);
-        object obj = formatter.Deserialize(stream);
-        Vp8Residual residual = (Vp8Residual)obj;
+        Vp8Residual residual = ReadVp8Residual(Path.Combine("TestDataWebp", "Vp8Residual.bin"));
 
         // act
         int actual = residual.GetResidualCost(ctx0);

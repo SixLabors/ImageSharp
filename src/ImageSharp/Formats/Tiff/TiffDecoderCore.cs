@@ -344,7 +344,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             ArgumentNullException.ThrowIfNull(valueWidth);
         }
 
-        if (!tags.TryGetValue(ExifTag.TileWidth, out IExifValue<Number> valueLength))
+        if (!tags.TryGetValue(ExifTag.TileLength, out IExifValue<Number> valueLength))
         {
             ArgumentNullException.ThrowIfNull(valueLength);
         }

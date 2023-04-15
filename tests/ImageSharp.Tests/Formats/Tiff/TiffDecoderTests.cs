@@ -200,11 +200,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba3BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_12Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
 
     [Theory]
     [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
@@ -249,11 +245,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba5BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_20Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
 
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
 
     [Theory]
     [WithFile(FlowerRgb888Contiguous, PixelTypes.Rgba32)]
@@ -268,11 +260,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba6BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
 
     [Theory]
     [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
@@ -362,12 +350,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba8BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
         // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
 
     [Theory]
     [WithFile(Flower32BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
@@ -395,11 +379,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba10BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba10BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_40Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
 
     [Theory]
     [WithFile(FlowerRgb141414Contiguous, PixelTypes.Rgba32)]
@@ -426,11 +406,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba12BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba12BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_48Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
 
     [Theory]
     [WithFile(FlowerRgb161616PredictorBigEndian, PixelTypes.Rgba32)]
@@ -448,11 +424,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba14BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba14BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_56Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
 
     [Theory]
     [WithFile(FlowerRgb242424Contiguous, PixelTypes.Rgba32)]
@@ -684,6 +656,12 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Issues2149, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Fax4CompressedWithStrips<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    // https://github.com/SixLabors/ImageSharp/issues/2435
+    [Theory]
+    [WithFile(Issues2435, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_TiledWithNonEqualWidthAndHeight<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
     [Theory]

@@ -7,20 +7,14 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text.Json.Serialization;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 /// <summary>
 /// On-the-fly info about the current set of residuals.
 /// </summary>
-[Serializable]
 internal class Vp8Residual
 {
-    public Vp8Residual()
-    {
-    }
-
     public int First { get; set; }
 
     public int Last { get; set; }

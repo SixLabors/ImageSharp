@@ -1,14 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Text.Json.Serialization;
-
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 /// <summary>
 /// All the probabilities associated to one band.
 /// </summary>
-[Serializable]
 internal class Vp8BandProbas
 {
     /// <summary>

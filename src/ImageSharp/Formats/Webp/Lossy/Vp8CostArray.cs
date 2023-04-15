@@ -3,7 +3,6 @@
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
-[Serializable]
 internal class Vp8CostArray
 {
     /// <summary>

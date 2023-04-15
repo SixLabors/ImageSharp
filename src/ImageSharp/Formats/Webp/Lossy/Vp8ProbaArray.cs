@@ -6,7 +6,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// <summary>
 /// Probabilities associated to one of the contexts.
 /// </summary>
-[Serializable]
 internal class Vp8ProbaArray
 {
     /// <summary>

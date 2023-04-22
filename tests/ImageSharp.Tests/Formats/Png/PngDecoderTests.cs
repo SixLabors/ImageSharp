@@ -133,6 +133,42 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+    public void PngDecoder_Decode_Resize_ScalarResizeKernel(TestImageProvider<Rgba32> provider)
+    {
+        HwIntrinsics intrinsicsFilter = HwIntrinsics.DisableHWIntrinsic;
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            intrinsicsFilter,
+            provider,
+            string.Empty);
+
+        static void RunTest(string arg1, string notUsed)
+        {
+            TestImageProvider<Rgba32> provider =
+                FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(arg1);
+
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.0005F),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.AverageFilter3BytesPerPixel, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.AverageFilter4BytesPerPixel, PixelTypes.Rgba32)]
     public void Decode_WithAverageFilter<TPixel>(TestImageProvider<TPixel> provider)

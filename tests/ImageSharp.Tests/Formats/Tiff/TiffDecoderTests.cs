@@ -3,6 +3,7 @@
 
 // ReSharper disable InconsistentNaming
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
@@ -695,10 +696,11 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
 
-        // Floating point differences result in minor pixel differences.
+        // Floating point differences in FMA used in the ResizeKernel result in minor pixel differences.
         // Output have been manually verified.
+        // For more details see discussion: https://github.com/SixLabors/ImageSharp/pull/1513#issuecomment-763643594
         image.CompareToReferenceOutput(
-            TestEnvironment.OSArchitecture == Architecture.Arm64 ? ImageComparer.TolerantPercentage(0.0006F) : ImageComparer.Exact,
+            Fma.IsSupported ? ImageComparer.Exact : ImageComparer.TolerantPercentage(0.0006F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

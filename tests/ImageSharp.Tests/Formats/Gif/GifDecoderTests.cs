@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -51,10 +51,11 @@ public class GifDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
 
-        // Floating point differences result in minor pixel differences.
+        // Floating point differences in FMA used in the ResizeKernel result in minor pixel differences.
         // Output have been manually verified.
+        // For more details see discussion: https://github.com/SixLabors/ImageSharp/pull/1513#issuecomment-763643594
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0002F : 0.0001F),
+            ImageComparer.TolerantPercentage(Fma.IsSupported ? 0.0001F : 0.0002F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);

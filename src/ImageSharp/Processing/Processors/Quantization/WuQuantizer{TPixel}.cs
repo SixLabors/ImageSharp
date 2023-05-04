@@ -684,7 +684,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         using IMemoryOwner<double> vvOwner = this.Configuration.MemoryAllocator.Allocate<double>(this.maxColors);
         Span<double> vv = vvOwner.GetSpan();
 
-        ref Box cube = ref this.colorCube[0];
+        ref Box cube = ref MemoryMarshal.GetArrayDataReference(this.colorCube);
         cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;
         cube.RMax = cube.GMax = cube.BMax = IndexCount - 1;
         cube.AMax = IndexAlphaCount - 1;

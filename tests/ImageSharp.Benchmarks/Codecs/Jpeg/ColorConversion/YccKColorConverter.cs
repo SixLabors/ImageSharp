@@ -37,4 +37,12 @@ public class YccKColorConverter : ColorConversionBenchmark
 
         new JpegColorConverterBase.YccKAvx(8).ConvertToRgbInplace(values);
     }
+
+    [Benchmark]
+    public void SimdVectorArm64()
+    {
+        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+
+        new JpegColorConverterBase.YccKArm64(8).ConvertToRgbInplace(values);
+    }
 }

@@ -70,8 +70,7 @@ public partial class ReferenceImplementationsTests
         {
             float[] floatData = Create8x8RandomFloatData(-1000, 1000);
 
-            Block8x8F source = default;
-            source.LoadFrom(floatData);
+            Block8x8F source = Block8x8F.Load(floatData);
 
             Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
             Block8x8F actual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformFDCT_UpscaleBy8(ref source);

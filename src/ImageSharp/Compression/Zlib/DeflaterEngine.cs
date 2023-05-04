@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Compression.Zlib;
@@ -426,8 +427,8 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     private void SlideWindow()
     {
         Unsafe.CopyBlockUnaligned(
-            ref this.window.Span[0],
-            ref this.window.Span[DeflaterConstants.WSIZE],
+            ref MemoryMarshal.GetReference(this.window.Span),
+            ref Unsafe.Add(ref MemoryMarshal.GetReference(this.window.Span), DeflaterConstants.WSIZE),
             DeflaterConstants.WSIZE);
 
         this.matchStart -= DeflaterConstants.WSIZE;

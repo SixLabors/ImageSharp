@@ -27,7 +27,7 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         var color = default(TPixel);
         color.FromScaledVector4(Vector4.Zero);
         int offset = 0;
-        byte[] buffer = new byte[4];
+        Span<byte> buffer = stackalloc byte[4];
 
         for (int y = top; y < top + height; y++)
         {
@@ -38,18 +38,18 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 4).CopyTo(buffer);
-                    Array.Reverse(buffer);
-                    float r = BitConverter.ToSingle(buffer, 0);
+                    buffer.Reverse();
+                    float r = BitConverter.ToSingle(buffer);
                     offset += 4;
 
                     data.Slice(offset, 4).CopyTo(buffer);
-                    Array.Reverse(buffer);
-                    float g = BitConverter.ToSingle(buffer, 0);
+                    buffer.Reverse();
+                    float g = BitConverter.ToSingle(buffer);
                     offset += 4;
 
                     data.Slice(offset, 4).CopyTo(buffer);
-                    Array.Reverse(buffer);
-                    float b = BitConverter.ToSingle(buffer, 0);
+                    buffer.Reverse();
+                    float b = BitConverter.ToSingle(buffer);
                     offset += 4;
 
                     var colorVector = new Vector4(r, g, b, 1.0f);
@@ -61,16 +61,13 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    data.Slice(offset, 4).CopyTo(buffer);
-                    float r = BitConverter.ToSingle(buffer, 0);
+                    float r = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    data.Slice(offset, 4).CopyTo(buffer);
-                    float g = BitConverter.ToSingle(buffer, 0);
+                    float g = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    data.Slice(offset, 4).CopyTo(buffer);
-                    float b = BitConverter.ToSingle(buffer, 0);
+                    float b = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
                     var colorVector = new Vector4(r, g, b, 1.0f);

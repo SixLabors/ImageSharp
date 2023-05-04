@@ -15,10 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Residual
 {
-    private readonly byte[] scratch = new byte[32];
-
-    private readonly ushort[] scratchUShort = new ushort[16];
-
     public int First { get; set; }
 
     public int Last { get; set; }
@@ -160,27 +156,32 @@ internal class Vp8Residual
             return LossyUtils.Vp8BitCost(0, (byte)p0);
         }
 
-        if (Avx2.IsSupported)
+        if (Sse2.IsSupported)
         {
-            Span<byte> ctxs = this.scratch.AsSpan(0, 16);
-            Span<byte> levels = this.scratch.AsSpan(16, 16);
-            Span<ushort> absLevels = this.scratchUShort.AsSpan();
+            Span<byte> scratch = stackalloc byte[32];
+            Span<byte> ctxs = scratch.Slice(0, 16);
+            Span<byte> levels = scratch.Slice(16);
+            Span<ushort> absLevels = stackalloc ushort[16];
 
             // Precompute clamped levels and contexts, packed to 8b.
             ref short outputRef = ref MemoryMarshal.GetReference<short>(this.Coeffs);
-            Vector256<short> c0 = Unsafe.As<short, Vector256<byte>>(ref outputRef).AsInt16();
-            Vector256<short> d0 = Avx2.Subtract(Vector256<short>.Zero, c0);
-            Vector256<short> e0 = Avx2.Max(c0, d0); // abs(v), 16b
-            Vector256<sbyte> f = Avx2.PackSignedSaturate(e0, e0);
-            Vector256<byte> g = Avx2.Min(f.AsByte(), Vector256.Create((byte)2));
-            Vector256<byte> h = Avx2.Min(f.AsByte(), Vector256.Create((byte)67)); // clampLevel in [0..67]
+            Vector128<short> c0 = Unsafe.As<short, Vector128<byte>>(ref outputRef).AsInt16();
+            Vector128<short> c1 = Unsafe.As<short, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 8)).AsInt16();
+            Vector128<short> d0 = Sse2.Subtract(Vector128<short>.Zero, c0);
+            Vector128<short> d1 = Sse2.Subtract(Vector128<short>.Zero, c1);
+            Vector128<short> e0 = Sse2.Max(c0, d0); // abs(v), 16b
+            Vector128<short> e1 = Sse2.Max(c1, d1);
+            Vector128<sbyte> f = Sse2.PackSignedSaturate(e0, e1);
+            Vector128<byte> g = Sse2.Min(f.AsByte(), Vector128.Create((byte)2)); // context = 0, 1, 2
+            Vector128<byte> h = Sse2.Min(f.AsByte(), Vector128.Create((byte)67)); // clampLevel in [0..67]
 
             ref byte ctxsRef = ref MemoryMarshal.GetReference(ctxs);
             ref byte levelsRef = ref MemoryMarshal.GetReference(levels);
             ref ushort absLevelsRef = ref MemoryMarshal.GetReference(absLevels);
-            Unsafe.As<byte, Vector128<byte>>(ref ctxsRef) = g.GetLower();
-            Unsafe.As<byte, Vector128<byte>>(ref levelsRef) = h.GetLower();
-            Unsafe.As<ushort, Vector256<ushort>>(ref absLevelsRef) = e0.AsUInt16();
+            Unsafe.As<byte, Vector128<byte>>(ref ctxsRef) = g;
+            Unsafe.As<byte, Vector128<byte>>(ref levelsRef) = h;
+            Unsafe.As<ushort, Vector128<ushort>>(ref absLevelsRef) = e0.AsUInt16();
+            Unsafe.As<ushort, Vector128<ushort>>(ref Unsafe.Add(ref absLevelsRef, 8)) = e1.AsUInt16();
 
             int level;
             int flevel;

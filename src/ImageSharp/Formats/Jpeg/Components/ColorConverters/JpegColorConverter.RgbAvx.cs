@@ -29,8 +29,8 @@ internal abstract partial class JpegColorConverterBase
 
             // Used for the color conversion
             var scale = Vector256.Create(1 / this.MaximumValue);
-            nint n = values.Component0.Length / Vector256<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = values.Component0.Vector256Count<float>();
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector256<float> r = ref Unsafe.Add(ref rBase, i);
                 ref Vector256<float> g = ref Unsafe.Add(ref gBase, i);

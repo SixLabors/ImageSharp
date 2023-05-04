@@ -59,7 +59,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
         int tileWidth = source.Width / this.Tiles;
         int tileHeight = tileWidth;
         int pixelInTile = tileWidth * tileHeight;
-        int halfTileHeight = tileHeight / 2;
+        int halfTileHeight = (int)((uint)tileHeight / 2);
         int halfTileWidth = halfTileHeight;
         SlidingWindowInfos slidingWindowInfos = new(tileWidth, tileHeight, halfTileWidth, halfTileHeight, pixelInTile);
 
@@ -254,10 +254,10 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void AddPixelsToHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
     {
-        for (nint idx = 0; idx < length; idx++)
+        for (nuint idx = 0; idx < (uint)length; idx++)
         {
             int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
-            Unsafe.Add(ref histogramBase, luminance)++;
+            Unsafe.Add(ref histogramBase, (uint)luminance)++;
         }
     }
 
@@ -271,10 +271,10 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void RemovePixelsFromHistogram(ref Vector4 greyValuesBase, ref int histogramBase, int luminanceLevels, int length)
     {
-        for (int idx = 0; idx < length; idx++)
+        for (nuint idx = 0; idx < (uint)length; idx++)
         {
             int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
-            Unsafe.Add(ref histogramBase, luminance)--;
+            Unsafe.Add(ref histogramBase, (uint)luminance)--;
         }
     }
 
@@ -382,7 +382,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
 
                     // Map the current pixel to the new equalized value.
                     int luminance = GetLuminance(this.source[x, y], this.processor.LuminanceLevels);
-                    float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / numberOfPixelsMinusCdfMin;
+                    float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / numberOfPixelsMinusCdfMin;
                     this.targetPixels[x, y].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, this.source[x, y].ToVector4().W));
 
                     // Remove top most row from the histogram, mirroring rows which exceeds the borders.

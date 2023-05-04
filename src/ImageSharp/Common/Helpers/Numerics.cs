@@ -56,6 +56,12 @@ internal static class Numerics
     public static int Modulo4(int x) => x & 3;
 
     /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo4(nint x) => x & 3;
+
+    /// <summary>
     /// Calculates <paramref name="x"/> % 8
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -291,7 +297,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref byte remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -316,7 +322,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref uint remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -341,7 +347,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref int remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -366,7 +372,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref float remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -391,7 +397,7 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref double remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
@@ -430,9 +436,9 @@ internal static class Numerics
         var vmin = new Vector<T>(min);
         var vmax = new Vector<T>(max);
 
-        int n = span.Length / Vector<T>.Count;
-        int m = Modulo4(n);
-        int u = n - m;
+        nint n = (nint)(uint)span.Length / Vector<T>.Count;
+        nint m = Modulo4(n);
+        nint u = n - m;
 
         ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
         ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
@@ -491,7 +497,7 @@ internal static class Numerics
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
@@ -510,7 +516,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
@@ -556,7 +562,7 @@ internal static class Numerics
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
             Vector256<float> epsilon = Vector256.Create(Constants.Epsilon);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
@@ -576,7 +582,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
@@ -650,7 +656,7 @@ internal static class Numerics
     public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-        ref Vector4 endRef = ref Unsafe.Add(ref baseRef, vectors.Length);
+        ref Vector4 endRef = ref Unsafe.Add(ref baseRef, (uint)vectors.Length);
 
         while (Unsafe.IsAddressLessThan(ref baseRef, ref endRef))
         {
@@ -681,7 +687,7 @@ internal static class Numerics
         if (Sse41.IsSupported)
         {
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, vectors.Length);
+            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
 
             var v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
@@ -730,7 +736,7 @@ internal static class Numerics
         else
         {
             ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, vectors.Length);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, (uint)vectors.Length);
 
             // Fallback with scalar preprocessing and vectorized approximation steps
             while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
@@ -943,4 +949,94 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOutOfRange(int value, int min, int max)
         => (uint)(value - min) > (uint)(max - min);
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint VectorCount<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector128Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector128<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector256Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector256Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector256<TVector>.Count;
 }

@@ -10,13 +10,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers;
 /// </summary>
 internal sealed class TiffStreamWriter : IDisposable
 {
-    private static readonly byte[] PaddingBytes = new byte[4];
-
-    /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private readonly byte[] buffer = new byte[4];
-
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffStreamWriter"/> class.
     /// </summary>
@@ -41,11 +34,12 @@ internal sealed class TiffStreamWriter : IDisposable
     /// <summary>
     /// Writes an empty four bytes to the stream, returning the offset to be written later.
     /// </summary>
+    /// <param name="buffer">Scratch buffer with minimum size of 4.</param>
     /// <returns>The offset to be written later.</returns>
-    public long PlaceMarker()
+    public long PlaceMarker(Span<byte> buffer)
     {
         long offset = this.BaseStream.Position;
-        this.Write(0u);
+        this.Write(0u, buffer);
         return offset;
     }
 
@@ -71,36 +65,38 @@ internal sealed class TiffStreamWriter : IDisposable
     /// Writes a two-byte unsigned integer to the current stream.
     /// </summary>
     /// <param name="value">The two-byte unsigned integer to write.</param>
-    public void Write(ushort value)
+    /// <param name="buffer">Scratch buffer with minimum size of 2.</param>
+    public void Write(ushort value, Span<byte> buffer)
     {
         if (IsLittleEndian)
         {
-            BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, value);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, value);
         }
         else
         {
-            BinaryPrimitives.WriteUInt16BigEndian(this.buffer, value);
+            BinaryPrimitives.WriteUInt16BigEndian(buffer, value);
         }
 
-        this.BaseStream.Write(this.buffer.AsSpan(0, 2));
+        this.BaseStream.Write(buffer.Slice(0, 2));
     }
 
     /// <summary>
     /// Writes a four-byte unsigned integer to the current stream.
     /// </summary>
     /// <param name="value">The four-byte unsigned integer to write.</param>
-    public void Write(uint value)
+    /// <param name="buffer">Scratch buffer with minimum size of 4.</param>
+    public void Write(uint value, Span<byte> buffer)
     {
         if (IsLittleEndian)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
         }
         else
         {
-            BinaryPrimitives.WriteUInt32BigEndian(this.buffer, value);
+            BinaryPrimitives.WriteUInt32BigEndian(buffer, value);
         }
 
-        this.BaseStream.Write(this.buffer.AsSpan(0, 4));
+        this.BaseStream.Write(buffer.Slice(0, 4));
     }
 
     /// <summary>
@@ -113,7 +109,10 @@ internal sealed class TiffStreamWriter : IDisposable
 
         if (value.Length % 4 != 0)
         {
-            this.BaseStream.Write(PaddingBytes, 0, 4 - (value.Length % 4));
+            // No allocation occurs, refers directly to assembly's data segment.
+            ReadOnlySpan<byte> paddingBytes = new byte[4] { 0x00, 0x00, 0x00, 0x00 };
+            paddingBytes = paddingBytes[..(4 - (value.Length % 4))];
+            this.BaseStream.Write(paddingBytes);
         }
     }
 
@@ -122,18 +121,19 @@ internal sealed class TiffStreamWriter : IDisposable
     /// </summary>
     /// <param name="offset">The offset returned when placing the marker</param>
     /// <param name="value">The four-byte unsigned integer to write.</param>
-    public void WriteMarker(long offset, uint value)
+    /// <param name="buffer">Scratch buffer.</param>
+    public void WriteMarker(long offset, uint value, Span<byte> buffer)
     {
         long back = this.BaseStream.Position;
         this.BaseStream.Seek(offset, SeekOrigin.Begin);
-        this.Write(value);
+        this.Write(value, buffer);
         this.BaseStream.Seek(back, SeekOrigin.Begin);
     }
 
-    public void WriteMarkerFast(long offset, uint value)
+    public void WriteMarkerFast(long offset, uint value, Span<byte> buffer)
     {
         this.BaseStream.Seek(offset, SeekOrigin.Begin);
-        this.Write(value);
+        this.Write(value, buffer);
     }
 
     /// <summary>

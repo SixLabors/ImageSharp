@@ -29,11 +29,6 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private readonly Configuration configuration;
 
     /// <summary>
-    /// A reusable buffer used to reduce allocations.
-    /// </summary>
-    private readonly byte[] buffer = new byte[20];
-
-    /// <summary>
     /// Whether to skip metadata during encode.
     /// </summary>
     private readonly bool skipMetadata;
@@ -254,7 +249,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         for (int i = rgbaSpan.Length - 1; i >= 0; i--)
         {
-            if (Unsafe.Add(ref rgbaSpanRef, i).Equals(default))
+            if (Unsafe.Add(ref rgbaSpanRef, (uint)i).Equals(default))
             {
                 index = i;
             }
@@ -324,9 +319,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             backgroundColorIndex: unchecked((byte)transparencyIndex),
             ratio);
 
-        descriptor.WriteTo(this.buffer);
+        Span<byte> buffer = stackalloc byte[20];
+        descriptor.WriteTo(buffer);
 
-        stream.Write(this.buffer, 0, GifLogicalScreenDescriptor.Size);
+        stream.Write(buffer, 0, GifLogicalScreenDescriptor.Size);
     }
 
     /// <summary>
@@ -365,12 +361,14 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             return;
         }
 
+        Span<byte> buffer = stackalloc byte[2];
+
         for (int i = 0; i < metadata.Comments.Count; i++)
         {
             string comment = metadata.Comments[i];
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = GifConstants.CommentLabel;
-            stream.Write(this.buffer, 0, 2);
+            buffer[1] = GifConstants.CommentLabel;
+            buffer[0] = GifConstants.ExtensionIntroducer;
+            stream.Write(buffer);
 
             // Comment will be stored in chunks of 255 bytes, if it exceeds this size.
             ReadOnlySpan<char> commentSpan = comment.AsSpan();
@@ -437,22 +435,23 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
         where TGifExtension : struct, IGifExtension
     {
-        IMemoryOwner<byte>? owner = null;
-        Span<byte> extensionBuffer;
         int extensionSize = extension.ContentLength;
 
         if (extensionSize == 0)
         {
             return;
         }
-        else if (extensionSize > this.buffer.Length - 3)
+
+        IMemoryOwner<byte>? owner = null;
+        Span<byte> extensionBuffer = stackalloc byte[0];    // workaround compiler limitation
+        if (extensionSize > 128)
         {
             owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);
             extensionBuffer = owner.GetSpan();
         }
         else
         {
-            extensionBuffer = this.buffer;
+            extensionBuffer = stackalloc byte[extensionSize + 3];
         }
 
         extensionBuffer[0] = GifConstants.ExtensionIntroducer;
@@ -489,9 +488,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             height: (ushort)image.Height,
             packed: packedValue);
 
-        descriptor.WriteTo(this.buffer);
+        Span<byte> buffer = stackalloc byte[20];
+        descriptor.WriteTo(buffer);
 
-        stream.Write(this.buffer, 0, GifImageDescriptor.Size);
+        stream.Write(buffer, 0, GifImageDescriptor.Size);
     }
 
     /// <summary>

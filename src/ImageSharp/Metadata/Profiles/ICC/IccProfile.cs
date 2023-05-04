@@ -108,10 +108,10 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         const int profileIdPos = 84;
 
         // need to copy some values because they need to be zero for the hashing
-        byte[] temp = new byte[24];
-        Buffer.BlockCopy(data, profileFlagPos, temp, 0, 4);
-        Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
-        Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
+        Span<byte> temp = stackalloc byte[24];
+        data.AsSpan(profileFlagPos, 4).CopyTo(temp);
+        data.AsSpan(renderingIntentPos, 4).CopyTo(temp.Slice(4));
+        data.AsSpan(profileIdPos, 16).CopyTo(temp.Slice(8));
 
         try
         {
@@ -131,9 +131,9 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         }
         finally
         {
-            Buffer.BlockCopy(temp, 0, data, profileFlagPos, 4);
-            Buffer.BlockCopy(temp, 4, data, renderingIntentPos, 4);
-            Buffer.BlockCopy(temp, 8, data, profileIdPos, 16);
+            temp.Slice(0, 4).CopyTo(data.AsSpan(profileFlagPos));
+            temp.Slice(4, 4).CopyTo(data.AsSpan(renderingIntentPos));
+            temp.Slice(8, 16).CopyTo(data.AsSpan(profileIdPos));
         }
     }
 

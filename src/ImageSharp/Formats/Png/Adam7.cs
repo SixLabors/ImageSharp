@@ -67,16 +67,22 @@ internal static class Adam7
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ComputeColumns(int width, int passIndex)
     {
-        switch (passIndex)
+        uint w = (uint)width;
+
+        uint result = passIndex switch
         {
-            case 0: return (width + 7) / 8;
-            case 1: return (width + 3) / 8;
-            case 2: return (width + 3) / 4;
-            case 3: return (width + 1) / 4;
-            case 4: return (width + 1) / 2;
-            case 5: return width / 2;
-            case 6: return width;
-            default: throw new ArgumentException($"Not a valid pass index: {passIndex}");
-        }
+            0 => (w + 7) / 8,
+            1 => (w + 3) / 8,
+            2 => (w + 3) / 4,
+            3 => (w + 1) / 4,
+            4 => (w + 1) / 2,
+            5 => w / 2,
+            6 => w,
+            _ => Throw(passIndex)
+        };
+
+        return (int)result;
+
+        static uint Throw(int passIndex) => throw new ArgumentException($"Not a valid pass index: {passIndex}");
     }
 }

@@ -132,7 +132,7 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
 
                 case BinaryThresholdMode.MaxChroma:
                 {
-                    float threshold = this.threshold / 2F;
+                    float threshold = this.threshold * 0.5F;    // /2
                     for (int x = 0; x < rowSpan.Length; x++)
                     {
                         float chroma = GetMaxChroma(span[x]);
@@ -149,9 +149,10 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         private static float GetSaturation(Rgb24 rgb)
         {
             // Slimmed down RGB => HSL formula. See HslAndRgbConverter.
-            float r = rgb.R / 255F;
-            float g = rgb.G / 255F;
-            float b = rgb.B / 255F;
+            const float inv255 = 1 / 255F;
+            float r = rgb.R * inv255;
+            float g = rgb.G * inv255;
+            float b = rgb.B * inv255;
 
             float max = MathF.Max(r, MathF.Max(g, b));
             float min = MathF.Min(r, MathF.Min(g, b));
@@ -162,7 +163,7 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
                 return 0F;
             }
 
-            float l = (max + min) / 2F;
+            float l = (max + min) * 0.5F;   // /2
 
             if (l <= .5F)
             {

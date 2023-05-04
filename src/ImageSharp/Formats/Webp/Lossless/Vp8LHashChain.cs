@@ -56,7 +56,7 @@ internal sealed class Vp8LHashChain : IDisposable
     /// </summary>
     public int Size { get; }
 
-    public void Fill(ReadOnlySpan<uint> bgra, int quality, int xSize, int ySize, bool lowEffort)
+    public void Fill(ReadOnlySpan<uint> bgra, uint quality, int xSize, int ySize, bool lowEffort)
     {
         int size = xSize * ySize;
         int iterMax = GetMaxItersForQuality(quality);
@@ -272,14 +272,14 @@ internal sealed class Vp8LHashChain : IDisposable
     /// <param name="quality">The quality.</param>
     /// <returns>Number of hash chain lookups.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int GetMaxItersForQuality(int quality) => 8 + (quality * quality / 128);
+    private static int GetMaxItersForQuality(uint quality) => (int)(8 + (quality * quality / 128));
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int GetWindowSizeForHashChain(int quality, int xSize)
+    private static int GetWindowSizeForHashChain(uint quality, int xSize)
     {
-        int maxWindowSize = quality > 75 ? WindowSize
-            : quality > 50 ? xSize << 8
-            : quality > 25 ? xSize << 6
+        int maxWindowSize = quality > 75u ? WindowSize
+            : quality > 50u ? xSize << 8
+            : quality > 25u ? xSize << 6
             : xSize << 4;
 
         return maxWindowSize > WindowSize ? WindowSize : maxWindowSize;

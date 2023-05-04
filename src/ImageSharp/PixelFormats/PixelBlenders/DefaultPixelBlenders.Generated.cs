@@ -52,7 +52,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -89,7 +89,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -157,7 +157,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -194,7 +194,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -262,7 +262,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -299,7 +299,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -367,7 +367,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -404,7 +404,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -472,7 +472,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -509,7 +509,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -577,7 +577,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -614,7 +614,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -682,7 +682,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -719,7 +719,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -787,7 +787,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -824,7 +824,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -892,7 +892,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -929,7 +929,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -997,7 +997,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1034,7 +1034,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1102,7 +1102,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1139,7 +1139,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1207,7 +1207,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1244,7 +1244,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1312,7 +1312,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1349,7 +1349,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1417,7 +1417,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1454,7 +1454,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1522,7 +1522,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1559,7 +1559,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1627,7 +1627,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1664,7 +1664,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1732,7 +1732,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1769,7 +1769,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1837,7 +1837,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1874,7 +1874,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1942,7 +1942,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1979,7 +1979,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2047,7 +2047,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2084,7 +2084,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2152,7 +2152,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2189,7 +2189,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2257,7 +2257,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2294,7 +2294,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2362,7 +2362,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2399,7 +2399,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2467,7 +2467,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2504,7 +2504,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2572,7 +2572,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2609,7 +2609,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2677,7 +2677,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2714,7 +2714,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2782,7 +2782,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2819,7 +2819,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2887,7 +2887,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2924,7 +2924,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2992,7 +2992,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3029,7 +3029,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3097,7 +3097,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3134,7 +3134,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3202,7 +3202,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3239,7 +3239,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3307,7 +3307,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3344,7 +3344,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3412,7 +3412,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3449,7 +3449,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3517,7 +3517,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3554,7 +3554,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3622,7 +3622,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3659,7 +3659,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3727,7 +3727,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3764,7 +3764,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3832,7 +3832,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3869,7 +3869,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3937,7 +3937,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3974,7 +3974,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4042,7 +4042,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4079,7 +4079,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4147,7 +4147,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4184,7 +4184,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4252,7 +4252,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4289,7 +4289,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4357,7 +4357,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4394,7 +4394,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4462,7 +4462,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4499,7 +4499,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4567,7 +4567,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4604,7 +4604,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4672,7 +4672,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4709,7 +4709,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4777,7 +4777,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4814,7 +4814,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4882,7 +4882,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4919,7 +4919,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4987,7 +4987,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5024,7 +5024,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5092,7 +5092,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5129,7 +5129,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5197,7 +5197,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5234,7 +5234,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5302,7 +5302,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5339,7 +5339,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5407,7 +5407,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5444,7 +5444,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5512,7 +5512,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5549,7 +5549,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5617,7 +5617,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5654,7 +5654,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5722,7 +5722,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5759,7 +5759,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5827,7 +5827,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5864,7 +5864,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5932,7 +5932,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5969,7 +5969,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6037,7 +6037,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6074,7 +6074,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6142,7 +6142,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6179,7 +6179,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6247,7 +6247,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6284,7 +6284,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6352,7 +6352,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6389,7 +6389,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6457,7 +6457,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6494,7 +6494,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6562,7 +6562,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6599,7 +6599,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6667,7 +6667,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6704,7 +6704,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6772,7 +6772,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6809,7 +6809,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6877,7 +6877,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6914,7 +6914,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6982,7 +6982,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7019,7 +7019,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7087,7 +7087,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7124,7 +7124,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7192,7 +7192,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7229,7 +7229,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7297,7 +7297,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7334,7 +7334,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7402,7 +7402,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7439,7 +7439,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7507,7 +7507,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7544,7 +7544,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7612,7 +7612,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7649,7 +7649,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7717,7 +7717,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7754,7 +7754,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7822,7 +7822,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7859,7 +7859,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7927,7 +7927,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7964,7 +7964,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8032,7 +8032,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8069,7 +8069,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8137,7 +8137,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8174,7 +8174,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8242,7 +8242,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8279,7 +8279,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8347,7 +8347,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8384,7 +8384,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8452,7 +8452,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8489,7 +8489,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8557,7 +8557,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8594,7 +8594,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8662,7 +8662,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8699,7 +8699,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8767,7 +8767,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8804,7 +8804,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8872,7 +8872,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8909,7 +8909,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8977,7 +8977,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9014,7 +9014,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9082,7 +9082,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9119,7 +9119,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9187,7 +9187,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9224,7 +9224,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9292,7 +9292,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9329,7 +9329,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9397,7 +9397,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9434,7 +9434,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9502,7 +9502,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9539,7 +9539,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9607,7 +9607,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9644,7 +9644,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9712,7 +9712,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9749,7 +9749,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9817,7 +9817,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9854,7 +9854,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9922,7 +9922,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9959,7 +9959,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10027,7 +10027,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10064,7 +10064,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10132,7 +10132,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10169,7 +10169,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10237,7 +10237,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10274,7 +10274,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10342,7 +10342,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10379,7 +10379,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10447,7 +10447,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10484,7 +10484,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10552,7 +10552,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10589,7 +10589,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10657,7 +10657,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10694,7 +10694,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10762,7 +10762,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10799,7 +10799,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10867,7 +10867,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10904,7 +10904,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10972,7 +10972,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11009,7 +11009,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11077,7 +11077,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11114,7 +11114,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11182,7 +11182,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11219,7 +11219,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11287,7 +11287,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11324,7 +11324,7 @@ internal static class DefaultPixelBlenders<TPixel>
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (IntPtr)((uint)destination.Length / 2u));
+                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));

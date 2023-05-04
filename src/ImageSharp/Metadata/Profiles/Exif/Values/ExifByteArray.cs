@@ -45,12 +45,12 @@ internal sealed class ExifByteArray : ExifArrayValue<byte>
 
     private bool TrySetSignedIntArray(int[] intArrayValue)
     {
-        if (Array.FindIndex(intArrayValue, x => x < byte.MinValue || x > byte.MaxValue) > -1)
+        if (Array.FindIndex(intArrayValue, x => (uint)x > byte.MaxValue) >= 0)
         {
             return false;
         }
 
-        var value = new byte[intArrayValue.Length];
+        byte[] value = new byte[intArrayValue.Length];
         for (int i = 0; i < intArrayValue.Length; i++)
         {
             int s = intArrayValue[i];

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -88,7 +88,7 @@ internal static partial class Vector4Converters
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
-            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, sourceVectors.Length);
+            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceVectors.Length);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
@@ -107,7 +107,7 @@ internal static partial class Vector4Converters
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourcePixels);
-            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, sourcePixels.Length);
+            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourcePixels.Length);
             ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
@@ -126,7 +126,7 @@ internal static partial class Vector4Converters
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
-            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, sourceVectors.Length);
+            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceVectors.Length);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
@@ -145,7 +145,7 @@ internal static partial class Vector4Converters
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourceColors);
-            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, sourceColors.Length);
+            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceColors.Length);
             ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))

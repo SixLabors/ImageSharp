@@ -13,10 +13,10 @@ public enum QoiColorSpace
     /// <summary>
     /// sRGB color space with linear alpha value
     /// </summary>
-    SRGB_WITH_LINEAR_ALPHA,
+    SrgbWithLinearAlpha,
 
     /// <summary>
     /// All the values in the color space are linear
     /// </summary>
-    ALL_CHANNELS_LINEAR
+    AllChannelsLinear
 }

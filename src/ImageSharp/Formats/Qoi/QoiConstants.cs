@@ -7,7 +7,6 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 
 internal static class QoiConstants
 {
-
     /// <summary>
     /// Gets the bytes that indicates the image is QOI
     /// </summary>
@@ -15,7 +14,7 @@ internal static class QoiConstants
 
     /// <summary>
     /// The list of mimetypes that equate to a QOI.
-    /// See <seealso cref="https://github.com/phoboslab/qoi/issues/167"/>
+    /// See https://github.com/phoboslab/qoi/issues/167
     /// </summary>
     public static readonly IEnumerable<string> MimeTypes = new[] { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
 

@@ -49,30 +49,31 @@ internal class QoiDecoderCore : IImageDecoderInternals
     {
         ImageMetadata metadata = new();
 
-        byte[] widthBytes, heightBytes;
-        byte[] magicBytes = widthBytes = heightBytes = Array.Empty<byte>();
+        byte[] magicBytes = new byte[4], widthBytes = new byte[4], heightBytes = new byte[4];
 
         // Read magic bytes
-        int read = stream.Read(magicBytes, 0, 4);
-        if (read != 4 || !magicBytes.Equals(QoiConstants.Magic.ToArray()))
+        int read = stream.Read(magicBytes);
+        if (read != 4 || !magicBytes.SequenceEqual(QoiConstants.Magic.ToArray()))
         {
             throw new InvalidImageContentException("The image is not a QOI image");
         }
 
         // If it's a qoi image, read the rest of properties
-        read = stream.Read(widthBytes, 0, 4);
+        read = stream.Read(widthBytes);
         if (read != 4)
         {
             throw new InvalidImageContentException("The image is not a QOI image");
         }
 
-        read = stream.Read(heightBytes, 0, 4);
+        read = stream.Read(heightBytes);
         if (read != 4)
         {
             throw new InvalidImageContentException("The image is not a QOI image");
         }
 
-        Size size = new(BitConverter.ToInt32(widthBytes), BitConverter.ToInt32(heightBytes));
+        widthBytes = widthBytes.Reverse().ToArray();
+        heightBytes = heightBytes.Reverse().ToArray();
+        Size size = new((int)BitConverter.ToUInt32(widthBytes), (int)BitConverter.ToUInt32(heightBytes));
 
         int channels = stream.ReadByte();
         if (channels == -1)

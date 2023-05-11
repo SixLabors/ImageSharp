@@ -74,6 +74,11 @@ public readonly struct Rational : IEquatable<Rational>
 
         this.Numerator = (uint)rational.Numerator;
         this.Denominator = (uint)rational.Denominator;
+        
+        if(this.Numerator == 0 && this.Denominator == 0) 
+        {
+            this.Denominator = 1;
+        }
     }
 
     /// <summary>

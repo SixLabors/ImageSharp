@@ -23,7 +23,12 @@ public class GifMetadata : IDeepCloneable
     {
         this.RepeatCount = other.RepeatCount;
         this.ColorTableMode = other.ColorTableMode;
-        this.GlobalColorTableLength = other.GlobalColorTableLength;
+        this.BackgroundColor = other.BackgroundColor;
+
+        if (other.DecodedGlobalColorTable.Length > 0)
+        {
+            this.DecodedGlobalColorTable = other.DecodedGlobalColorTable.ToArray();
+        }
 
         for (int i = 0; i < other.Comments.Count; i++)
         {
@@ -45,9 +50,15 @@ public class GifMetadata : IDeepCloneable
     public GifColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
-    /// Gets or sets the length of the global color table if present.
+    /// Gets the decoded global color table, if any.
     /// </summary>
-    public int GlobalColorTableLength { get; set; }
+    public ReadOnlyMemory<Color> DecodedGlobalColorTable { get; internal set; }
+
+    /// <summary>
+    /// Gets or sets the index at the <see cref="DecodedGlobalColorTable"/> for the background color.
+    /// The background color is the color used for those pixels on the screen that are not covered by an image.
+    /// </summary>
+    public byte BackgroundColor { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of comments about the graphics, credits, descriptions or any

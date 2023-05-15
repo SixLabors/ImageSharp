@@ -630,6 +630,33 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
+        /// Blend packed 8-bit integers from <paramref name="left"/> and <paramref name="right"/> using <paramref name="mask"/>.
+        /// The high bit of each corresponding <paramref name="mask"/> byte determines the selection.
+        /// If the high bit is set the element of <paramref name="left"/> is selected.
+        /// The element of <paramref name="right"/> is selected otherwise.
+        /// </summary>
+        /// <param name="left">The left vector.</param>
+        /// <param name="right">The right vector.</param>
+        /// <param name="mask">The mask vector.</param>
+        /// <returns>The <see cref="Vector256{T}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<byte> BlendVariable(in Vector128<byte> left, in Vector128<byte> right, in Vector128<byte> mask)
+        {
+            if (Sse41.IsSupported)
+            {
+                return Sse41.BlendVariable(left, right, mask);
+            }
+            else if (Sse2.IsSupported)
+            {
+                return Sse2.Or(Sse2.And(right, mask), Sse2.AndNot(mask, left));
+            }
+
+            // Use a signed shift right to create a mask with the sign bit.
+            Vector128<short> signedMask = AdvSimd.ShiftRightArithmetic(mask.AsInt16(), 7);
+            return AdvSimd.BitwiseSelect(signedMask, right.AsInt16(), left.AsInt16()).AsByte();
+        }
+
+        /// <summary>
         /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]

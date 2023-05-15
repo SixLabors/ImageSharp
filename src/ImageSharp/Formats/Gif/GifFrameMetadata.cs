@@ -22,9 +22,16 @@ public class GifFrameMetadata : IDeepCloneable
     private GifFrameMetadata(GifFrameMetadata other)
     {
         this.ColorTableMode = other.ColorTableMode;
-        this.ColorTableLength = other.ColorTableLength;
         this.FrameDelay = other.FrameDelay;
         this.DisposalMethod = other.DisposalMethod;
+
+        if (other.DecodedLocalColorTable.Length > 0)
+        {
+            this.DecodedLocalColorTable = other.DecodedLocalColorTable.ToArray();
+        }
+
+        this.HasTransparency = other.HasTransparency;
+        this.TransparencyIndex = other.TransparencyIndex;
     }
 
     /// <summary>
@@ -33,11 +40,21 @@ public class GifFrameMetadata : IDeepCloneable
     public GifColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
-    /// Gets or sets the length of the color table.
-    /// If not 0, then this field indicates the maximum number of colors to use when quantizing the
-    /// image frame.
+    /// Gets the decoded global color table, if any.
     /// </summary>
-    public int ColorTableLength { get; set; }
+    public ReadOnlyMemory<Color> DecodedLocalColorTable { get; internal set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the frame has transparency
+    /// </summary>
+    public bool HasTransparency { get; set; }
+
+    /// <summary>
+    /// Gets or sets the transparency index.
+    /// When <see cref="HasTransparency"/> is set to <see langword="true"/> this value indicates the index within
+    /// the color palette at which the transparent color is located.
+    /// </summary>
+    public byte TransparencyIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the frame delay for animated images.

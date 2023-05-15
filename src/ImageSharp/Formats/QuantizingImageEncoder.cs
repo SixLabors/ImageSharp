@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats;
@@ -14,7 +13,7 @@ public abstract class QuantizingImageEncoder : ImageEncoder
     /// <summary>
     /// Gets the quantizer used to generate the color palette.
     /// </summary>
-    public IQuantizer Quantizer { get; init; } = KnownQuantizers.Octree;
+    public IQuantizer? Quantizer { get; init; }
 
     /// <summary>
     /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building color palettes.

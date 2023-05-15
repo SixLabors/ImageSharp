@@ -35,9 +35,9 @@ internal static class PaethFilter
         // row:  a d
         // The Paeth function predicts d to be whichever of a, b, or c is nearest to
         // p = a + b - c.
-        if (Sse41.IsSupported && bytesPerPixel is 4)
+        if (Sse2.IsSupported && bytesPerPixel is 4)
         {
-            DecodeSse41(scanline, previousScanline);
+            DecodeSse3(scanline, previousScanline);
         }
         else if (AdvSimd.Arm64.IsSupported && bytesPerPixel is 4)
         {
@@ -50,7 +50,7 @@ internal static class PaethFilter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecodeSse41(Span<byte> scanline, Span<byte> previousScanline)
+    private static void DecodeSse3(Span<byte> scanline, Span<byte> previousScanline)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
@@ -90,8 +90,8 @@ internal static class PaethFilter
             Vector128<short> smallest = Sse2.Min(pc, Sse2.Min(pa, pb));
 
             // Paeth breaks ties favoring a over b over c.
-            Vector128<byte> mask = Sse41.BlendVariable(c, b, Sse2.CompareEqual(smallest, pb).AsByte());
-            Vector128<byte> nearest = Sse41.BlendVariable(mask, a, Sse2.CompareEqual(smallest, pa).AsByte());
+            Vector128<byte> mask = SimdUtils.HwIntrinsics.BlendVariable(c, b, Sse2.CompareEqual(smallest, pb).AsByte());
+            Vector128<byte> nearest = SimdUtils.HwIntrinsics.BlendVariable(mask, a, Sse2.CompareEqual(smallest, pa).AsByte());
 
             // Note `_epi8`: we need addition to wrap modulo 255.
             d = Sse2.Add(d, nearest);
@@ -143,8 +143,8 @@ internal static class PaethFilter
             Vector128<short> smallest = AdvSimd.Min(pc, AdvSimd.Min(pa, pb));
 
             // Paeth breaks ties favoring a over b over c.
-            Vector128<byte> mask = BlendVariable(c, b, AdvSimd.CompareEqual(smallest, pb).AsByte());
-            Vector128<byte> nearest = BlendVariable(mask, a, AdvSimd.CompareEqual(smallest, pa).AsByte());
+            Vector128<byte> mask = SimdUtils.HwIntrinsics.BlendVariable(c, b, AdvSimd.CompareEqual(smallest, pb).AsByte());
+            Vector128<byte> nearest = SimdUtils.HwIntrinsics.BlendVariable(mask, a, AdvSimd.CompareEqual(smallest, pa).AsByte());
 
             d = AdvSimd.Add(d, nearest);
 
@@ -155,27 +155,6 @@ internal static class PaethFilter
             rb -= bytesPerBatch;
             offset += bytesPerBatch;
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<byte> BlendVariable(Vector128<byte> a, Vector128<byte> b, Vector128<byte> c)
-    {
-        // Equivalent of Sse41.BlendVariable:
-        // Blend packed 8-bit integers from a and b using mask, and store the results in
-        // dst.
-        //
-        //   FOR j := 0 to 15
-        //       i := j*8
-        //       IF mask[i+7]
-        //           dst[i+7:i] := b[i+7:i]
-        //       ELSE
-        //           dst[i+7:i] := a[i+7:i]
-        //       FI
-        //   ENDFOR
-        //
-        // Use a signed shift right to create a mask with the sign bit.
-        Vector128<short> mask = AdvSimd.ShiftRightArithmetic(c.AsInt16(), 7);
-        return AdvSimd.BitwiseSelect(mask, b.AsInt16(), a.AsInt16()).AsByte();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

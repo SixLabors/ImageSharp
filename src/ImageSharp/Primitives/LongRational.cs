@@ -203,7 +203,7 @@ internal readonly struct LongRational : IEquatable<LongRational>
 
         if (this.Numerator == 0)
         {
-            return new LongRational(0, 0);
+            return new LongRational(0, 1);
         }
 
         if (this.Numerator == this.Denominator)

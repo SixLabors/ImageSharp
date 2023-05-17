@@ -153,6 +153,10 @@ internal readonly struct LongRational : IEquatable<LongRational>
         double df = numerator / (double)denominator;
         double epsilon = bestPrecision ? double.Epsilon : .000001;
 
+        if(val < epsilon) {
+            return new LongRational(0, 1);
+        }
+
         while (Math.Abs(df - val) > epsilon)
         {
             if (df < val)
@@ -199,11 +203,6 @@ internal readonly struct LongRational : IEquatable<LongRational>
             this.IsZero)
         {
             return this;
-        }
-
-        if (this.Numerator == 0)
-        {
-            return new LongRational(0, 1);
         }
 
         if (this.Numerator == this.Denominator)

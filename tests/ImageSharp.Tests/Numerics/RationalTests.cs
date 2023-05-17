@@ -42,6 +42,18 @@ public class RationalTests
     }
 
     /// <summary>
+    /// Tests the correct FromDouble(0).
+    /// </summary>
+    [Fact]
+    public void FromDouble0Non0Denominator()
+    {
+        var r = Rational.FromDouble(0);
+
+        Assert.Equal(0, r.Numerator);
+        Assert.Equal(1, r.Denominator);
+    }
+
+    /// <summary>
     /// Tests whether the Rational constructor correctly assign properties.
     /// </summary>
     [Fact]

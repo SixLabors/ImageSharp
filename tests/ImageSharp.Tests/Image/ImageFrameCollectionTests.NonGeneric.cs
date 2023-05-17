@@ -318,7 +318,7 @@ public abstract partial class ImageFrameCollectionTests
 
             if (aData.ColorTableMode == GifColorTableMode.Local && bData.ColorTableMode == GifColorTableMode.Local)
             {
-                Assert.Equal(aData.DecodedLocalColorTable.Length, bData.DecodedLocalColorTable.Length);
+                Assert.Equal(aData.LocalColorTable.Value.Length, bData.LocalColorTable.Value.Length);
             }
         }
     }

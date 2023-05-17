@@ -102,10 +102,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         if (this.quantizer is null)
         {
             // Is this a gif with color information. If so use that, otherwise use octree.
-            if (gifMetadata.ColorTableMode == GifColorTableMode.Global && gifMetadata.DecodedGlobalColorTable.Length > 0)
+            if (gifMetadata.ColorTableMode == GifColorTableMode.Global && gifMetadata.GlobalColorTable?.Length > 0)
             {
                 // We avoid dithering by default to preserve the original colors.
-                this.quantizer = new PaletteQuantizer(gifMetadata.DecodedGlobalColorTable, new() { Dither = null });
+                this.quantizer = new PaletteQuantizer(gifMetadata.GlobalColorTable.Value, new() { Dither = null });
             }
             else
             {
@@ -234,11 +234,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             if (useLocal)
             {
                 // Reassign using the current frame and details.
-                if (metadata?.DecodedLocalColorTable.Length > 0)
+                if (metadata?.LocalColorTable?.Length > 0)
                 {
                     // We can use the color data from the decoded metadata here.
                     // We avoid dithering by default to preserve the original colors.
-                    PaletteQuantizer localQuantizer = new(metadata.DecodedLocalColorTable, new() { Dither = null });
+                    PaletteQuantizer localQuantizer = new(metadata.LocalColorTable.Value, new() { Dither = null });
                     using IQuantizer<TPixel> frameQuantizer = localQuantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, localQuantizer.Options);
                     quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
                 }

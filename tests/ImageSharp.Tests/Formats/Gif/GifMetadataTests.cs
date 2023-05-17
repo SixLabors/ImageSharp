@@ -34,7 +34,7 @@ public class GifMetadataTests
         {
             RepeatCount = 1,
             ColorTableMode = GifColorTableMode.Global,
-            DecodedGlobalColorTable = new[] { Color.Black, Color.White },
+            GlobalColorTable = new[] { Color.Black, Color.White },
             Comments = new List<string> { "Foo" }
         };
 
@@ -42,12 +42,12 @@ public class GifMetadataTests
 
         clone.RepeatCount = 2;
         clone.ColorTableMode = GifColorTableMode.Local;
-        clone.DecodedGlobalColorTable = new[] { Color.Black };
+        clone.GlobalColorTable = new[] { Color.Black };
 
         Assert.False(meta.RepeatCount.Equals(clone.RepeatCount));
         Assert.False(meta.ColorTableMode.Equals(clone.ColorTableMode));
-        Assert.False(meta.DecodedGlobalColorTable.Length == clone.DecodedGlobalColorTable.Length);
-        Assert.Equal(1, clone.DecodedGlobalColorTable.Length);
+        Assert.False(meta.GlobalColorTable.Value.Length == clone.GlobalColorTable.Value.Length);
+        Assert.Equal(1, clone.GlobalColorTable.Value.Length);
         Assert.False(meta.Comments.Equals(clone.Comments));
         Assert.True(meta.Comments.SequenceEqual(clone.Comments));
     }
@@ -208,7 +208,7 @@ public class GifMetadataTests
 
         if (colorTableMode == GifColorTableMode.Global)
         {
-            Assert.Equal(globalColorTableLength, gifMetadata.DecodedGlobalColorTable.Length);
+            Assert.Equal(globalColorTableLength, gifMetadata.GlobalColorTable.Value.Length);
         }
 
         Assert.Equal(frameDelay, gifFrameMetadata.FrameDelay);

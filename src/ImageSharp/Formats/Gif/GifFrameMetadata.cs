@@ -25,9 +25,9 @@ public class GifFrameMetadata : IDeepCloneable
         this.FrameDelay = other.FrameDelay;
         this.DisposalMethod = other.DisposalMethod;
 
-        if (other.DecodedLocalColorTable.Length > 0)
+        if (other.LocalColorTable?.Length > 0)
         {
-            this.DecodedLocalColorTable = other.DecodedLocalColorTable.ToArray();
+            this.LocalColorTable = other.LocalColorTable.Value.ToArray();
         }
 
         this.HasTransparency = other.HasTransparency;
@@ -40,9 +40,9 @@ public class GifFrameMetadata : IDeepCloneable
     public GifColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
-    /// Gets the decoded global color table, if any.
+    /// Gets or sets the local color table, if any.
     /// </summary>
-    public ReadOnlyMemory<Color> DecodedLocalColorTable { get; internal set; }
+    public ReadOnlyMemory<Color>? LocalColorTable { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the frame has transparency

@@ -175,11 +175,11 @@ public class GifEncoderTests
         int maxColors;
         if (colorMode == GifColorTableMode.Global)
         {
-            maxColors = metaData.DecodedGlobalColorTable.Length;
+            maxColors = metaData.GlobalColorTable.Value.Length;
         }
         else
         {
-            maxColors = frameMetadata.DecodedLocalColorTable.Length;
+            maxColors = frameMetadata.LocalColorTable.Value.Length;
         }
 
         GifEncoder encoder = new()
@@ -201,11 +201,11 @@ public class GifEncoderTests
         colorMode = cloneMetadata.ColorTableMode;
         if (colorMode == GifColorTableMode.Global)
         {
-            maxColors = metaData.DecodedGlobalColorTable.Length;
+            maxColors = metaData.GlobalColorTable.Value.Length;
         }
         else
         {
-            maxColors = frameMetadata.DecodedLocalColorTable.Length;
+            maxColors = frameMetadata.LocalColorTable.Value.Length;
         }
 
         Assert.Equal(64, maxColors);
@@ -217,7 +217,7 @@ public class GifEncoderTests
 
             if (iMeta.ColorTableMode == GifColorTableMode.Local)
             {
-                Assert.Equal(iMeta.DecodedLocalColorTable.Length, cMeta.DecodedLocalColorTable.Length);
+                Assert.Equal(iMeta.LocalColorTable.Value.Length, cMeta.LocalColorTable.Value.Length);
             }
 
             Assert.Equal(iMeta.FrameDelay, cMeta.FrameDelay);

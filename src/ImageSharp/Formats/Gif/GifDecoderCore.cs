@@ -716,7 +716,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 colorTable[i] = new Color(Unsafe.Add(ref localBase, (uint)i));
             }
 
-            gifMeta.DecodedLocalColorTable = colorTable;
+            gifMeta.LocalColorTable = colorTable;
         }
 
         // Graphics control extensions is optional.
@@ -793,7 +793,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     colorTable[i] = new Color(Unsafe.Add(ref globalBase, (uint)i));
                 }
 
-                this.gifMetadata.DecodedGlobalColorTable = colorTable;
+                this.gifMetadata.GlobalColorTable = colorTable;
             }
         }
     }

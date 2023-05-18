@@ -308,6 +308,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
     [Theory]
     [WithFile(Cmyk, PixelTypes.Rgba32)]
+    [WithFile(CmykLzwPredictor, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

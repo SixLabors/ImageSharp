@@ -33,6 +33,9 @@ public class GifEncoderTests
         }
     }
 
+    [Fact]
+    public void GifEncoderDefaultInstanceHasNullQuantizer() => Assert.Null(new GifEncoder().Quantizer);
+
     [Theory]
     [WithTestPatternImages(100, 100, TestPixelTypes, false)]
     [WithTestPatternImages(100, 100, TestPixelTypes, false)]

@@ -46,17 +46,20 @@ public class BmpEncoderTests
         { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
     };
 
+    [Fact]
+    public void BmpEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(BmpEncoder.Quantizer);
+
     [Theory]
     [MemberData(nameof(RatioFiles))]
     public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, BmpEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageMetadata meta = output.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -67,13 +70,13 @@ public class BmpEncoderTests
     [MemberData(nameof(BmpBitsPerPixelFiles))]
     public void Encode_PreserveBitsPerPixel(string imagePath, BmpBitsPerPixel bmpBitsPerPixel)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, BmpEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
@@ -196,8 +199,8 @@ public class BmpEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
-        using var memoryStream = new MemoryStream();
+        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel };
+        using MemoryStream memoryStream = new();
         using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
@@ -205,7 +208,7 @@ public class BmpEncoderTests
         memoryStream.Position = 0;
 
         // assert
-        using var actual = Image.Load<TPixel>(memoryStream);
+        using Image<TPixel> actual = Image.Load<TPixel>(memoryStream);
         ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
         Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
     }
@@ -218,8 +221,8 @@ public class BmpEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
-        using var memoryStream = new MemoryStream();
+        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel };
+        using MemoryStream memoryStream = new();
         using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
@@ -227,7 +230,7 @@ public class BmpEncoderTests
         memoryStream.Position = 0;
 
         // assert
-        using var actual = Image.Load<TPixel>(memoryStream);
+        using Image<TPixel> actual = Image.Load<TPixel>(memoryStream);
         ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
         Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
     }
@@ -266,7 +269,7 @@ public class BmpEncoderTests
         }
 
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
             BitsPerPixel = BmpBitsPerPixel.Pixel8,
             Quantizer = new WuQuantizer()
@@ -298,7 +301,7 @@ public class BmpEncoderTests
         }
 
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
             BitsPerPixel = BmpBitsPerPixel.Pixel8,
             Quantizer = new OctreeQuantizer()
@@ -333,11 +336,11 @@ public class BmpEncoderTests
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, new BmpEncoder());
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
         byte[] actualProfileBytes = actualProfile.ToByteArray();
 
@@ -353,7 +356,7 @@ public class BmpEncoderTests
         Exception exception = Record.Exception(() =>
         {
             using Image image = new Image<Rgba32>(width, height);
-            using var memStream = new MemoryStream();
+            using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);
         });
 
@@ -387,7 +390,7 @@ public class BmpEncoderTests
             image.Mutate(c => c.MakeOpaque());
         }
 
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
             BitsPerPixel = bitsPerPixel,
             SupportTransparency = supportTransparency,

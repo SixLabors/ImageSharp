@@ -373,6 +373,30 @@ public class BmpEncoderTests
         TestBmpEncoderCore(provider, bitsPerPixel);
     }
 
+    [Theory]
+    [WithFile(BlackWhitePalletDataMatrix, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel1)]
+    public void Encode_Issue2467<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        using var reencodedStream = new MemoryStream();
+        var encoder = new BmpEncoder
+        {
+            BitsPerPixel = bitsPerPixel,
+            SupportTransparency = false,
+            Quantizer = KnownQuantizers.Octree
+        };
+        image.SaveAsBmp(reencodedStream, encoder);
+        reencodedStream.Seek(0, SeekOrigin.Begin);
+
+        using Image<TPixel> reencodedImage = Image.Load<TPixel>(reencodedStream);
+
+        reencodedImage.DebugSave(provider);
+
+        reencodedImage.CompareToOriginal(provider);
+    }
+
     private static void TestBmpEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel,

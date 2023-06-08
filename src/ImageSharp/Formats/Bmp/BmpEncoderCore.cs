@@ -669,7 +669,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
             if (quantizedPixelRow.Length % 8 != 0)
             {
-                int startIdx = quantizedPixelRow.Length - 7;
+                int startIdx = quantizedPixelRow.Length - (quantizedPixelRow.Length % 8);
                 endIdx = quantizedPixelRow.Length;
                 Write1BitPalette(stream, startIdx, endIdx, quantizedPixelRow);
             }

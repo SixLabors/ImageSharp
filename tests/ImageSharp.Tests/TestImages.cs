@@ -407,6 +407,8 @@ public static class TestImages
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
+        public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
+
         public static readonly string[] BitFields =
         {
               Rgb32bfdef,
@@ -958,6 +960,7 @@ public static class TestImages
 
         public const string Cmyk = "Tiff/Cmyk.tiff";
         public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
+        public const string CmykLzwPredictor = "Tiff/Cmyk-lzw-predictor.tiff";
 
         public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";

@@ -35,6 +35,17 @@ public class GifDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2450_A, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2450_B, PixelTypes.Rgba32)]
+    public void Decode_Issue2450<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
     [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
     public void GifDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

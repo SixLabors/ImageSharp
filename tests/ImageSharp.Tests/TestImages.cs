@@ -484,7 +484,8 @@ public static class TestImages
             public const string Issue2288_B = "Gif/issues/issue_2288_2.gif";
             public const string Issue2288_C = "Gif/issues/issue_2288_3.gif";
             public const string Issue2288_D = "Gif/issues/issue_2288_4.gif";
-            public const string Issue2450 = "Gif/issues/issue_2450.gif";
+            public const string Issue2450_A = "Gif/issues/issue_2450.gif";
+            public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
         }
 

@@ -290,6 +290,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         }
 
         this.WriteGraphicalControlExtension(metadata, transparencyIndex, stream);
+
+        // TODO: Consider an optimization that trims down the buffer to the minimum size required.
+        // We would use a process similar to entropy crop where we trim the buffer from the edges
+        // until we hit a non-transparent pixel.
         this.WriteImageDescriptor(frame, useLocal, stream);
 
         if (useLocal)

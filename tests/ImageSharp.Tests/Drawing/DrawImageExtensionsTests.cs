@@ -13,11 +13,12 @@ public class DrawImageExtensionsTests : BaseImageOperationsExtensionTest
     [Fact]
     public void DrawImage_OpacityOnly_VerifyGraphicOptionsTakenFromContext()
     {
-        // non-default values as we cant easly defect usage otherwise
+        // non-default values as we cant easily defect usage otherwise
         this.options.AlphaCompositionMode = PixelAlphaCompositionMode.Xor;
         this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
-        this.operations.DrawImage(null, 0.5f);
+        using Image<Rgba32> image = new(Configuration.Default, 1, 1);
+        this.operations.DrawImage(image, 0.5f);
         DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
         Assert.Equal(0.5, dip.Opacity);
@@ -28,11 +29,12 @@ public class DrawImageExtensionsTests : BaseImageOperationsExtensionTest
     [Fact]
     public void DrawImage_OpacityAndBlending_VerifyGraphicOptionsTakenFromContext()
     {
-        // non-default values as we cant easly defect usage otherwise
+        // non-default values as we cant easily defect usage otherwise
         this.options.AlphaCompositionMode = PixelAlphaCompositionMode.Xor;
         this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
-        this.operations.DrawImage(null, PixelColorBlendingMode.Multiply, 0.5f);
+        using Image<Rgba32> image = new(Configuration.Default, 1, 1);
+        this.operations.DrawImage(image, PixelColorBlendingMode.Multiply, 0.5f);
         DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
         Assert.Equal(0.5, dip.Opacity);
@@ -43,11 +45,12 @@ public class DrawImageExtensionsTests : BaseImageOperationsExtensionTest
     [Fact]
     public void DrawImage_LocationAndOpacity_VerifyGraphicOptionsTakenFromContext()
     {
-        // non-default values as we cant easly defect usage otherwise
+        // non-default values as we cant easily defect usage otherwise
         this.options.AlphaCompositionMode = PixelAlphaCompositionMode.Xor;
         this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
-        this.operations.DrawImage(null, Point.Empty, 0.5f);
+        using Image<Rgba32> image = new(Configuration.Default, 1, 1);
+        this.operations.DrawImage(image, Point.Empty, 0.5f);
         DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
         Assert.Equal(0.5, dip.Opacity);
@@ -58,11 +61,12 @@ public class DrawImageExtensionsTests : BaseImageOperationsExtensionTest
     [Fact]
     public void DrawImage_LocationAndOpacityAndBlending_VerifyGraphicOptionsTakenFromContext()
     {
-        // non-default values as we cant easly defect usage otherwise
+        // non-default values as we cant easily defect usage otherwise
         this.options.AlphaCompositionMode = PixelAlphaCompositionMode.Xor;
         this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
-        this.operations.DrawImage(null, Point.Empty, PixelColorBlendingMode.Multiply, 0.5f);
+        using Image<Rgba32> image = new(Configuration.Default, 1, 1);
+        this.operations.DrawImage(image, Point.Empty, PixelColorBlendingMode.Multiply, 0.5f);
         DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
         Assert.Equal(0.5, dip.Opacity);

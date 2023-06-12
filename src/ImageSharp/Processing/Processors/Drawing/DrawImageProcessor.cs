@@ -15,19 +15,22 @@ public class DrawImageProcessor : IImageProcessor
     /// Initializes a new instance of the <see cref="DrawImageProcessor"/> class.
     /// </summary>
     /// <param name="image">The image to blend.</param>
-    /// <param name="location">The location to draw the blended image.</param>
+    /// <param name="backgroundLocation">The location to draw the foreground image on the background.</param>
+    /// <param name="foregoundRectangle">The rectangular portion of the foreground image to draw.</param>
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend.</param>
     public DrawImageProcessor(
         Image image,
-        Point location,
+        Point backgroundLocation,
+        Rectangle foregoundRectangle,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
         float opacity)
     {
         this.Image = image;
-        this.Location = location;
+        this.BackgroundLocation = backgroundLocation;
+        this.ForegroundRectangle = foregoundRectangle;
         this.ColorBlendingMode = colorBlendingMode;
         this.AlphaCompositionMode = alphaCompositionMode;
         this.Opacity = opacity;
@@ -39,9 +42,14 @@ public class DrawImageProcessor : IImageProcessor
     public Image Image { get; }
 
     /// <summary>
-    /// Gets the location to draw the blended image.
+    /// Gets the location to draw the foreground image on the background.
     /// </summary>
-    public Point Location { get; }
+    public Point BackgroundLocation { get; }
+
+    /// <summary>
+    /// Gets the rectangular portion of the foreground image to draw.
+    /// </summary>
+    public Rectangle ForegroundRectangle { get; }
 
     /// <summary>
     /// Gets the blending mode to use when drawing the image.
@@ -62,7 +70,7 @@ public class DrawImageProcessor : IImageProcessor
     public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Configuration configuration, Image<TPixelBg> source, Rectangle sourceRectangle)
         where TPixelBg : unmanaged, IPixel<TPixelBg>
     {
-        ProcessorFactoryVisitor<TPixelBg> visitor = new(configuration, this, source, sourceRectangle);
+        ProcessorFactoryVisitor<TPixelBg> visitor = new(configuration, this, source);
         this.Image.AcceptVisitor(visitor);
         return visitor.Result!;
     }
@@ -73,14 +81,15 @@ public class DrawImageProcessor : IImageProcessor
         private readonly Configuration configuration;
         private readonly DrawImageProcessor definition;
         private readonly Image<TPixelBg> source;
-        private readonly Rectangle sourceRectangle;
 
-        public ProcessorFactoryVisitor(Configuration configuration, DrawImageProcessor definition, Image<TPixelBg> source, Rectangle sourceRectangle)
+        public ProcessorFactoryVisitor(
+            Configuration configuration,
+            DrawImageProcessor definition,
+            Image<TPixelBg> source)
         {
             this.configuration = configuration;
             this.definition = definition;
             this.source = source;
-            this.sourceRectangle = sourceRectangle;
         }
 
         public IImageProcessor<TPixelBg>? Result { get; private set; }
@@ -91,8 +100,8 @@ public class DrawImageProcessor : IImageProcessor
                 this.configuration,
                 image,
                 this.source,
-                this.sourceRectangle,
-                this.definition.Location,
+                this.definition.BackgroundLocation,
+                this.definition.ForegroundRectangle,
                 this.definition.ColorBlendingMode,
                 this.definition.AlphaCompositionMode,
                 this.definition.Opacity);

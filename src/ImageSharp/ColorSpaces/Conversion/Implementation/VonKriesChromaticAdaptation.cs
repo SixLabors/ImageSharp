@@ -81,7 +81,7 @@ public sealed class VonKriesChromaticAdaptation : IChromaticAdaptation
         ref CieXyz sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyz destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyz dp = ref Unsafe.Add(ref destRef, i);

@@ -54,7 +54,7 @@ internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
         using IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width);
         Span<TPixel> temp = tempBuffer.Memory.Span;
 
-        for (int yTop = 0; yTop < height / 2; yTop++)
+        for (int yTop = 0; yTop < (int)((uint)height / 2); yTop++)
         {
             int yBottom = height - yTop - 1;
             Span<TPixel> topRow = source.DangerousGetRowSpan(yBottom);

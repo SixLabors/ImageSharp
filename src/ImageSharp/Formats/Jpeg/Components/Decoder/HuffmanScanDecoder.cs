@@ -211,7 +211,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockBaseline(
                                 component,
-                                ref Unsafe.Add(ref blockRef, blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref dcHuffmanTable,
                                 ref acHuffmanTable);
                         }
@@ -255,7 +255,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 this.DecodeBlockBaseline(
                     component,
-                    ref Unsafe.Add(ref blockRef, i),
+                    ref Unsafe.Add(ref blockRef, (uint)i),
                     ref dcHuffmanTable,
                     ref acHuffmanTable);
 
@@ -297,7 +297,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockRef, k),
+                        ref Unsafe.Add(ref blockRef, (uint)k),
                         ref dcHuffmanTable,
                         ref acHuffmanTable);
 
@@ -417,7 +417,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockProgressiveDC(
                                 component,
-                                ref Unsafe.Add(ref blockRef, blockCol),
+                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
                                 ref dcHuffmanTable);
                         }
                     }
@@ -459,7 +459,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveDC(
                         component,
-                        ref Unsafe.Add(ref blockRef, i),
+                        ref Unsafe.Add(ref blockRef, (uint)i),
                         ref dcHuffmanTable);
 
                     this.HandleRestart();
@@ -485,7 +485,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     }
 
                     this.DecodeBlockProgressiveAC(
-                        ref Unsafe.Add(ref blockRef, i),
+                        ref Unsafe.Add(ref blockRef, (uint)i),
                         ref acHuffmanTable);
 
                     this.HandleRestart();

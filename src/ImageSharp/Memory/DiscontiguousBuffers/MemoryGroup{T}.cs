@@ -252,7 +252,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
             {
                 ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
                 ref T e0 = ref Unsafe.As<byte, T>(ref b0);
-                e0 = ref Unsafe.Add(ref e0, y * width);
+                e0 = ref Unsafe.Add(ref e0, (uint)(y * width));
                 return MemoryMarshal.CreateSpan(ref e0, width);
             }
 

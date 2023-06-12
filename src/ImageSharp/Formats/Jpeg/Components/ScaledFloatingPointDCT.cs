@@ -40,7 +40,7 @@ internal static class ScaledFloatingPointDCT
     public static void AdjustToIDCT(ref Block8x8F quantTable)
     {
         ref float tableRef = ref Unsafe.As<Block8x8F, float>(ref quantTable);
-        for (nint i = 0; i < Block8x8F.Size; i++)
+        for (nuint i = 0; i < Block8x8F.Size; i++)
         {
             ref float elemRef = ref Unsafe.Add(ref tableRef, i);
             elemRef = 0.125f * elemRef;
@@ -103,10 +103,10 @@ internal static class ScaledFloatingPointDCT
             // temporal result is saved to +4 shifted indices
             // because result is saved into the top left 2x2 region of the
             // input block
-            block[(ctr * 8) + 0 + 4] = (tmp10 + tmp2) / 2;
-            block[(ctr * 8) + 3 + 4] = (tmp10 - tmp2) / 2;
-            block[(ctr * 8) + 1 + 4] = (tmp12 + tmp0) / 2;
-            block[(ctr * 8) + 2 + 4] = (tmp12 - tmp0) / 2;
+            block[(ctr * 8) + 0 + 4] = (tmp10 + tmp2) * 0.5F;
+            block[(ctr * 8) + 3 + 4] = (tmp10 - tmp2) * 0.5F;
+            block[(ctr * 8) + 1 + 4] = (tmp12 + tmp0) * 0.5F;
+            block[(ctr * 8) + 2 + 4] = (tmp12 - tmp0) * 0.5F;
         }
 
         for (int ctr = 0; ctr < 4; ctr++)
@@ -136,10 +136,10 @@ internal static class ScaledFloatingPointDCT
                    (z4 * FP32_2_562915447);
 
             // Save results to the top left 4x4 subregion
-            block[(ctr * 8) + 0] = MathF.Round(Numerics.Clamp(((tmp10 + tmp2) / 2) + normalizationValue, 0, maxValue));
-            block[(ctr * 8) + 3] = MathF.Round(Numerics.Clamp(((tmp10 - tmp2) / 2) + normalizationValue, 0, maxValue));
-            block[(ctr * 8) + 1] = MathF.Round(Numerics.Clamp(((tmp12 + tmp0) / 2) + normalizationValue, 0, maxValue));
-            block[(ctr * 8) + 2] = MathF.Round(Numerics.Clamp(((tmp12 - tmp0) / 2) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 0] = MathF.Round(Numerics.Clamp(((tmp10 + tmp2) * 0.5F) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 3] = MathF.Round(Numerics.Clamp(((tmp10 - tmp2) * 0.5F) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 1] = MathF.Round(Numerics.Clamp(((tmp12 + tmp0) * 0.5F) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 2] = MathF.Round(Numerics.Clamp(((tmp12 - tmp0) * 0.5F) + normalizationValue, 0, maxValue));
         }
     }
 
@@ -183,8 +183,8 @@ internal static class ScaledFloatingPointDCT
             // temporal result is saved to +2 shifted indices
             // because result is saved into the top left 2x2 region of the
             // input block
-            block[(ctr * 8) + 2] = (tmp10 + tmp0) / 4;
-            block[(ctr * 8) + 3] = (tmp10 - tmp0) / 4;
+            block[(ctr * 8) + 2] = (tmp10 + tmp0) * 0.25F;
+            block[(ctr * 8) + 3] = (tmp10 - tmp0) * 0.25F;
         }
 
         for (int ctr = 0; ctr < 2; ctr++)
@@ -199,8 +199,8 @@ internal static class ScaledFloatingPointDCT
                    (block[ctr + (8 * 1) + 2] * FP32_3_624509785);
 
             // Save results to the top left 2x2 subregion
-            block[(ctr * 8) + 0] = MathF.Round(Numerics.Clamp(((tmp10 + tmp0) / 4) + normalizationValue, 0, maxValue));
-            block[(ctr * 8) + 1] = MathF.Round(Numerics.Clamp(((tmp10 - tmp0) / 4) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 0] = MathF.Round(Numerics.Clamp(((tmp10 + tmp0) * 0.25F) + normalizationValue, 0, maxValue));
+            block[(ctr * 8) + 1] = MathF.Round(Numerics.Clamp(((tmp10 - tmp0) * 0.25F) + normalizationValue, 0, maxValue));
         }
     }
 

@@ -76,7 +76,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 
         var state = new Convolution2DState(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
-        ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+        ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
         // Clear the target buffers for each row run.
         targetYBuffer.Clear();
@@ -87,7 +87,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         ReadOnlyKernel kernelY = state.KernelY;
         ReadOnlyKernel kernelX = state.KernelX;
         Span<TPixel> sourceRow;
-        for (int kY = 0; kY < kernelY.Rows; kY++)
+        for (uint kY = 0; kY < kernelY.Rows; kY++)
         {
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
@@ -96,16 +96,16 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
-            for (int x = 0; x < sourceBuffer.Length; x++)
+            for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
             {
                 ref int sampleColumnBase = ref state.GetSampleColumn(x);
                 ref Vector4 targetY = ref Unsafe.Add(ref targetBaseY, x);
                 ref Vector4 targetX = ref Unsafe.Add(ref targetBaseX, x);
 
-                for (int kX = 0; kX < kernelY.Columns; kX++)
+                for (uint kX = 0; kX < kernelY.Columns; kX++)
                 {
                     int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                    Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                    Vector4 sample = Unsafe.Add(ref sourceBase, (uint)sampleX);
                     targetY += kernelX[kY, kX] * sample;
                     targetX += kernelY[kY, kX] * sample;
                 }
@@ -117,7 +117,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
         PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
-        for (int x = 0; x < sourceRow.Length; x++)
+        for (nuint x = 0; x < (uint)sourceRow.Length; x++)
         {
             ref Vector4 target = ref Unsafe.Add(ref targetBaseY, x);
             Vector4 vectorY = target;
@@ -142,7 +142,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 
         var state = new Convolution2DState(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
-        ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+        ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
         // Clear the target buffers for each row run.
         targetYBuffer.Clear();
@@ -152,7 +152,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
 
         ReadOnlyKernel kernelY = state.KernelY;
         ReadOnlyKernel kernelX = state.KernelX;
-        for (int kY = 0; kY < kernelY.Rows; kY++)
+        for (uint kY = 0; kY < kernelY.Rows; kY++)
         {
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
@@ -162,13 +162,13 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             Numerics.Premultiply(sourceBuffer);
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
-            for (int x = 0; x < sourceBuffer.Length; x++)
+            for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
             {
                 ref int sampleColumnBase = ref state.GetSampleColumn(x);
                 ref Vector4 targetY = ref Unsafe.Add(ref targetBaseY, x);
                 ref Vector4 targetX = ref Unsafe.Add(ref targetBaseX, x);
 
-                for (int kX = 0; kX < kernelY.Columns; kX++)
+                for (uint kX = 0; kX < kernelY.Columns; kX++)
                 {
                     int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
                     Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
@@ -179,7 +179,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         }
 
         // Now we need to combine the values
-        for (int x = 0; x < targetYBuffer.Length; x++)
+        for (nuint x = 0; x < (uint)targetYBuffer.Length; x++)
         {
             ref Vector4 target = ref Unsafe.Add(ref targetBaseY, x);
             Vector4 vectorY = target;

@@ -86,10 +86,6 @@ internal class ExifReader : BaseExifReader
 /// </summary>
 internal abstract class BaseExifReader
 {
-    private readonly byte[] buf8 = new byte[8];
-    private readonly byte[] buf4 = new byte[4];
-    private readonly byte[] buf2 = new byte[2];
-
     private readonly MemoryAllocator? allocator;
     private readonly Stream data;
     private List<ExifTag>? invalidTags;
@@ -528,20 +524,33 @@ internal abstract class BaseExifReader
         return read == length;
     }
 
-    protected ulong ReadUInt64() =>
-        this.TryReadSpan(this.buf8)
-            ? this.ConvertToUInt64(this.buf8)
+    protected ulong ReadUInt64()
+    {
+        Span<byte> buffer = stackalloc byte[8];
+
+        return this.TryReadSpan(buffer)
+            ? this.ConvertToUInt64(buffer)
             : default;
+    }
 
     // Known as Long in Exif Specification.
-    protected uint ReadUInt32() =>
-        this.TryReadSpan(this.buf4)
-            ? this.ConvertToUInt32(this.buf4)
-            : default;
+    protected uint ReadUInt32()
+    {
+        Span<byte> buffer = stackalloc byte[4];
 
-    protected ushort ReadUInt16() => this.TryReadSpan(this.buf2)
-            ? this.ConvertToShort(this.buf2)
+        return this.TryReadSpan(buffer)
+            ? this.ConvertToUInt32(buffer)
             : default;
+    }
+
+    protected ushort ReadUInt16()
+    {
+        Span<byte> buffer = stackalloc byte[2];
+
+        return this.TryReadSpan(buffer)
+            ? this.ConvertToShort(buffer)
+            : default;
+    }
 
     private long ConvertToInt64(ReadOnlySpan<byte> buffer)
     {

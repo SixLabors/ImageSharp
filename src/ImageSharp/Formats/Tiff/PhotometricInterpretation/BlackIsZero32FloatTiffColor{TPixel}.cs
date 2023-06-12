@@ -24,9 +24,9 @@ internal class BlackIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
+        TPixel color = default;
         color.FromScaledVector4(Vector4.Zero);
-        byte[] buffer = new byte[4];
+        Span<byte> buffer = stackalloc byte[4];
 
         int offset = 0;
         for (int y = top; y < top + height; y++)
@@ -37,8 +37,8 @@ internal class BlackIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 4).CopyTo(buffer);
-                    Array.Reverse(buffer);
-                    float intensity = BitConverter.ToSingle(buffer, 0);
+                    buffer.Reverse();
+                    float intensity = BitConverter.ToSingle(buffer);
                     offset += 4;
 
                     var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
@@ -50,8 +50,7 @@ internal class BlackIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    data.Slice(offset, 4).CopyTo(buffer);
-                    float intensity = BitConverter.ToSingle(buffer, 0);
+                    float intensity = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
                     var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);

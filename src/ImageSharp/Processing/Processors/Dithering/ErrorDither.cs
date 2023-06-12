@@ -114,8 +114,8 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
 
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
-                TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
-                Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, (uint)x);
+                Unsafe.Add(ref destinationRowRef, (uint)(x - offsetX)) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                 this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
             }
         }
@@ -142,7 +142,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
             ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
-                ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, (uint)x);
                 TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
                 this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 sourcePixel = transformed;

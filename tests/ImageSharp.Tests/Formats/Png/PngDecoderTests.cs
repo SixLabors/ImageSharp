@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -122,13 +122,50 @@ public partial class PngDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
 
-        // Floating point differences result in minor pixel differences.
+        // Floating point differences in FMA used in the ResizeKernel result in minor pixel differences.
         // Output have been manually verified.
+        // For more details see discussion: https://github.com/SixLabors/ImageSharp/pull/1513#issuecomment-763643594
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0005F : 0.0003F),
+            ImageComparer.TolerantPercentage(Fma.IsSupported ? 0.0003F : 0.0005F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+    public void PngDecoder_Decode_Resize_ScalarResizeKernel(TestImageProvider<Rgba32> provider)
+    {
+        HwIntrinsics intrinsicsFilter = HwIntrinsics.DisableHWIntrinsic;
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunTest,
+            intrinsicsFilter,
+            provider,
+            string.Empty);
+
+        static void RunTest(string arg1, string notUsed)
+        {
+            TestImageProvider<Rgba32> provider =
+                FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(arg1);
+
+            DecoderOptions options = new()
+            {
+                TargetSize = new() { Width = 150, Height = 150 }
+            };
+
+            using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance, options);
+
+            FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
+
+            image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
+
+            image.CompareToReferenceOutput(
+                ImageComparer.TolerantPercentage(0.0005F),
+                provider,
+                testOutputDetails: details,
+                appendPixelTypeToFileName: false);
+        }
     }
 
     [Theory]

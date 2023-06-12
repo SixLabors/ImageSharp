@@ -41,9 +41,9 @@ internal partial struct Block8x8F
         ref Vector256<float> bBase = ref b.V0;
 
         ref Vector256<short> destRef = ref dest.V01;
-        var multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
+        Vector256<int> multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
 
-        for (nint i = 0; i < 8; i += 2)
+        for (nuint i = 0; i < 8; i += 2)
         {
             Vector256<int> row0 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
             Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
@@ -51,7 +51,7 @@ internal partial struct Block8x8F
             Vector256<short> row = Avx2.PackSignedSaturate(row0, row1);
             row = Avx2.PermuteVar8x32(row.AsInt32(), multiplyIntoInt16ShuffleMask).AsInt16();
 
-            Unsafe.Add(ref destRef, (IntPtr)((uint)i / 2)) = row;
+            Unsafe.Add(ref destRef, i / 2) = row;
         }
     }
 
@@ -64,13 +64,13 @@ internal partial struct Block8x8F
 
         ref Vector128<short> destBase = ref Unsafe.As<Block8x8, Vector128<short>>(ref dest);
 
-        for (int i = 0; i < 16; i += 2)
+        for (nuint i = 0; i < 16; i += 2)
         {
             Vector128<int> left = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
             Vector128<int> right = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
 
             Vector128<short> row = Sse2.PackSignedSaturate(left, right);
-            Unsafe.Add(ref destBase, (IntPtr)((uint)i / 2)) = row;
+            Unsafe.Add(ref destBase, i / 2) = row;
         }
     }
 

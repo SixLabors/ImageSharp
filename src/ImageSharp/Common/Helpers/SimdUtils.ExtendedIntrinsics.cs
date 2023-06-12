@@ -97,12 +97,12 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, Vector<byte>.Count);
 
-            int n = dest.Length / Vector<byte>.Count;
+            nuint n = dest.VectorCount<byte>();
 
             ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(source));
             ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dest));
 
-            for (int i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
                 Vector<byte> b = Unsafe.Add(ref sourceBase, i);
 
@@ -132,13 +132,13 @@ internal static partial class SimdUtils
         {
             VerifySpanInput(source, dest, Vector<byte>.Count);
 
-            int n = dest.Length / Vector<byte>.Count;
+            nuint n = dest.VectorCount<byte>();
 
             ref Vector<float> sourceBase =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
             ref Vector<byte> destBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference(dest));
 
-            for (int i = 0; i < n; i++)
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 

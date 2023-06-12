@@ -128,7 +128,7 @@ public partial class ResizeKernelMapTests
 
         for (int i = 0; i < kernelMap.DestinationLength; i++)
         {
-            ResizeKernel kernel = kernelMap.GetKernel(i);
+            ResizeKernel kernel = kernelMap.GetKernel((uint)i);
 
             ReferenceKernel referenceKernel = referenceMap.GetKernel(i);
 
@@ -153,7 +153,7 @@ public partial class ResizeKernelMapTests
     }
 
     private static string PrintKernelMap(ResizeKernelMap kernelMap)
-        => PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
+        => PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel((uint)i));
 
     private static string PrintKernelMap(ReferenceKernelMap kernelMap)
         => PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));

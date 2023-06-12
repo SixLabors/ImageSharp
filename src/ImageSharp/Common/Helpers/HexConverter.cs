@@ -16,21 +16,19 @@ internal static class HexConverter
     /// <returns>The number of bytes written to <paramref name="bytes"/>.</returns>
     public static int HexStringToBytes(ReadOnlySpan<char> chars, Span<byte> bytes)
     {
-        if ((chars.Length % 2) != 0)
+        if (Numerics.Modulo2(chars.Length) != 0)
         {
             throw new ArgumentException("Input string length must be a multiple of 2", nameof(chars));
         }
 
-        if ((bytes.Length * 2) < chars.Length)
+        if ((bytes.Length << 1 /* bit-hack for *2 */) < chars.Length)
         {
             throw new ArgumentException("Output span must be at least half the length of the input string");
         }
-        else
-        {
-            // Slightly better performance in the loop below, allows us to skip a bounds check
-            // while still supporting output buffers that are larger than necessary
-            bytes = bytes[..(chars.Length / 2)];
-        }
+
+        // Slightly better performance in the loop below, allows us to skip a bounds check
+        // while still supporting output buffers that are larger than necessary
+        bytes = bytes[..(chars.Length >> 1)];   // bit-hack for / 2
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static int FromChar(int c)
@@ -57,7 +55,7 @@ internal static class HexConverter
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 255
             };
 
-            return c >= charToHexLookup.Length ? 0xFF : charToHexLookup[c];
+            return (uint)c >= (uint)charToHexLookup.Length ? 0xFF : charToHexLookup[c];
         }
 
         // See https://source.dot.net/#System.Private.CoreLib/HexConverter.cs,4681d45a0aa0b361

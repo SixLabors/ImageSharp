@@ -15,24 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 /// 8x8 matrix of <see cref="short"/> coefficients.
 /// </summary>
 // ReSharper disable once InconsistentNaming
-[StructLayout(LayoutKind.Explicit)]
-internal unsafe partial struct Block8x8
+[StructLayout(LayoutKind.Explicit, Size = 2 * Size)]
+internal partial struct Block8x8
 {
     /// <summary>
     /// A number of scalar coefficients in a <see cref="Block8x8F"/>
     /// </summary>
     public const int Size = 64;
-
-#pragma warning disable IDE0051 // Remove unused private member
-    /// <summary>
-    /// A placeholder buffer so the actual struct occupies exactly 64 * 2 bytes.
-    /// </summary>
-    /// <remarks>
-    /// This is not used directly in the code.
-    /// </remarks>
-    [FieldOffset(0)]
-    private fixed short data[Size];
-#pragma warning restore IDE0051
 
     /// <summary>
     /// Gets or sets a <see cref="short"/> value at the given index
@@ -47,7 +36,7 @@ internal unsafe partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            return Unsafe.Add(ref selfRef, idx);
+            return Unsafe.Add(ref selfRef, (uint)idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -56,7 +45,7 @@ internal unsafe partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            Unsafe.Add(ref selfRef, idx) = value;
+            Unsafe.Add(ref selfRef, (uint)idx) = value;
         }
     }
 
@@ -74,9 +63,10 @@ internal unsafe partial struct Block8x8
 
     public static Block8x8 Load(Span<short> data)
     {
-        Unsafe.SkipInit(out Block8x8 result);
-        result.LoadFrom(data);
-        return result;
+        DebugGuard.MustBeGreaterThanOrEqualTo(data.Length, Size, "data is too small");
+
+        ref byte src = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(data));
+        return Unsafe.ReadUnaligned<Block8x8>(ref src);
     }
 
     /// <summary>
@@ -104,9 +94,10 @@ internal unsafe partial struct Block8x8
     /// </summary>
     public void CopyTo(Span<short> destination)
     {
-        ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
-        ref byte destRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<short, byte>(destination));
-        Unsafe.CopyBlockUnaligned(ref destRef, ref selfRef, Size * sizeof(short));
+        DebugGuard.MustBeGreaterThanOrEqualTo(destination.Length, Size, "destination is too small");
+
+        ref byte destRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(destination));
+        Unsafe.WriteUnaligned(ref destRef, this);
     }
 
     /// <summary>
@@ -133,19 +124,6 @@ internal unsafe partial struct Block8x8
         {
             this[i] = source[i];
         }
-    }
-
-    /// <summary>
-    /// Load raw 16bit integers from source.
-    /// </summary>
-    /// <param name="source">Source</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void LoadFrom(Span<short> source)
-    {
-        ref byte sourceRef = ref Unsafe.As<short, byte>(ref MemoryMarshal.GetReference(source));
-        ref byte destRef = ref Unsafe.As<Block8x8, byte>(ref this);
-
-        Unsafe.CopyBlockUnaligned(ref destRef, ref sourceRef, Size * sizeof(short));
     }
 
     /// <summary>
@@ -207,12 +185,12 @@ internal unsafe partial struct Block8x8
 
                     // Given mask is not actually suitable for lzcnt as 1's represent zero elements and 0's represent non-zero elements
                     // So we need to invert it
-                    int lzcnt = BitOperations.LeadingZeroCount(~(uint)areEqual);
+                    uint lzcnt = (uint)BitOperations.LeadingZeroCount(~(uint)areEqual);
 
                     // As input number is represented by 2 bits in the mask, we need to divide lzcnt result by 2
                     // to get the exact number of zero elements in the stride
-                    int strideRelativeIndex = 15 - (lzcnt / 2);
-                    return (i * 16) + strideRelativeIndex;
+                    uint strideRelativeIndex = 15 - (lzcnt / 2);
+                    return (i * 16) + (nint)strideRelativeIndex;
                 }
             }
 

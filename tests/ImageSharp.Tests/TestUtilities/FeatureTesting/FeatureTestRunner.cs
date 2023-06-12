@@ -62,7 +62,7 @@ public static class FeatureTestRunner
             ProcessStartInfo processStartInfo = new();
             if (intrinsic.Key != HwIntrinsics.AllowAll)
             {
-                processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
+                processStartInfo.Environment[$"DOTNET_{intrinsic.Value}"] = "0";
 
                 RemoteExecutor.Invoke(
                     action,

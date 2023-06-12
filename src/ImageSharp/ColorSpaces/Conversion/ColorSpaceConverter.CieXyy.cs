@@ -36,7 +36,7 @@ public partial class ColorSpaceConverter
         ref CieLab sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieLab sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -69,7 +69,7 @@ public partial class ColorSpaceConverter
         ref CieLch sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieLch sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -102,7 +102,7 @@ public partial class ColorSpaceConverter
         ref CieLchuv sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieLchuv sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -135,7 +135,7 @@ public partial class ColorSpaceConverter
         ref CieLuv sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieLuv sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -163,7 +163,7 @@ public partial class ColorSpaceConverter
         ref CieXyz sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -196,7 +196,7 @@ public partial class ColorSpaceConverter
         ref Cmyk sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Cmyk sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -229,7 +229,7 @@ public partial class ColorSpaceConverter
         ref Hsl sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Hsl sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -262,7 +262,7 @@ public partial class ColorSpaceConverter
         ref Hsv sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Hsv sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -295,7 +295,7 @@ public partial class ColorSpaceConverter
         ref HunterLab sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref HunterLab sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -328,7 +328,7 @@ public partial class ColorSpaceConverter
         ref LinearRgb sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref LinearRgb sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -361,7 +361,7 @@ public partial class ColorSpaceConverter
         ref Lms sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Lms sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -394,7 +394,7 @@ public partial class ColorSpaceConverter
         ref Rgb sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref Rgb sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);
@@ -427,7 +427,7 @@ public partial class ColorSpaceConverter
         ref YCbCr sourceRef = ref MemoryMarshal.GetReference(source);
         ref CieXyy destRef = ref MemoryMarshal.GetReference(destination);
 
-        for (int i = 0; i < count; i++)
+        for (nuint i = 0; i < (uint)count; i++)
         {
             ref YCbCr sp = ref Unsafe.Add(ref sourceRef, i);
             ref CieXyy dp = ref Unsafe.Add(ref destRef, i);

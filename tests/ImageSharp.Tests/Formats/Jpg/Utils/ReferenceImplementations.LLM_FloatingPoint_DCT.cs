@@ -36,8 +36,7 @@ internal static partial class ReferenceImplementations
             float[] temp = new float[64];
 
             IDCT2D_llm(s, d, temp);
-            Block8x8F result = default;
-            result.LoadFrom(d);
+            Block8x8F result = Block8x8F.Load(d);
             return result;
         }
 
@@ -49,8 +48,7 @@ internal static partial class ReferenceImplementations
             float[] temp = new float[64];
 
             FDCT2D_llm(s, d, temp);
-            Block8x8F result = default;
-            result.LoadFrom(d);
+            Block8x8F result = Block8x8F.Load(d);
             return result;
         }
 

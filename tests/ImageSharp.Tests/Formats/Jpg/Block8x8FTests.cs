@@ -99,8 +99,7 @@ public partial class Block8x8FTests : JpegFixture
             Times,
             () =>
             {
-                var b = default(Block8x8F);
-                b.LoadFrom(data);
+                Block8x8F b = Block8x8F.Load(data);
                 b.ScaledCopyTo(mirror);
             });
 
@@ -117,8 +116,7 @@ public partial class Block8x8FTests : JpegFixture
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            var block8x8 = default(Block8x8F);
-            block8x8.LoadFrom(Create8x8FloatData());
+            Block8x8F block8x8 = Block8x8F.Load(Create8x8FloatData());
 
             block8x8.TransposeInplace();
 
@@ -153,9 +151,8 @@ public partial class Block8x8FTests : JpegFixture
     [Fact]
     public void NormalizeColors()
     {
-        var block = default(Block8x8F);
         float[] input = Create8x8ColorCropTestData();
-        block.LoadFrom(input);
+        Block8x8F block = Block8x8F.Load(input);
         this.Output.WriteLine("Input:");
         this.PrintLinearData(input);
 
@@ -242,8 +239,7 @@ public partial class Block8x8FTests : JpegFixture
     {
         float[] data = Create8x8RandomFloatData(-1000, 1000);
 
-        var source = default(Block8x8F);
-        source.LoadFrom(data);
+        Block8x8F source = Block8x8F.Load(data);
         var dest = default(Block8x8);
 
         source.RoundInto(ref dest);

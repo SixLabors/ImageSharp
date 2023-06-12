@@ -123,8 +123,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
 
-        short bpp = (short)this.bitsPerPixel;
-        int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
+        ushort bpp = (ushort)this.bitsPerPixel;
+        int bytesPerLine = (int)(4 * ((((uint)image.Width * bpp) + 31) / 32));
         this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 
         int colorPaletteSize = this.bitsPerPixel switch
@@ -176,7 +176,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="metadata">The metadata.</param>
     /// <param name="iccProfileData">The icc profile data.</param>
     /// <returns>The bitmap information header.</returns>
-    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, short bpp, int bytesPerLine, ImageMetadata metadata, byte[]? iccProfileData)
+    private BmpInfoHeader CreateBmpInfoHeader(int width, int height, int infoHeaderSize, ushort bpp, int bytesPerLine, ImageMetadata metadata, byte[]? iccProfileData)
     {
         int hResolution = 0;
         int vResolution = 0;

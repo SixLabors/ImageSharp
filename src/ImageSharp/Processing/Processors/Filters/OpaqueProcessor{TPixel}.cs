@@ -61,7 +61,7 @@ internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                ref Vector4 v = ref Unsafe.Add(ref baseRef, (uint)x);
                 v.W = 1F;
             }
 

@@ -195,7 +195,7 @@ public struct Rectangle : IEquatable<Rectangle>
     /// <param name="rectangle">The rectangle.</param>
     /// <returns>The <see cref="Point"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Point Center(Rectangle rectangle) => new(rectangle.Left + (rectangle.Width / 2), rectangle.Top + (rectangle.Height / 2));
+    public static Point Center(Rectangle rectangle) => new(rectangle.Left + (rectangle.Width >> 1), rectangle.Top + (rectangle.Height >> 1));     // >> 1 is bit-hack for / 2
 
     /// <summary>
     /// Creates a rectangle that represents the intersection between <paramref name="a"/> and

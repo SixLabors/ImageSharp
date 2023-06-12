@@ -131,6 +131,11 @@ internal readonly struct LongRational : IEquatable<LongRational>
     /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
     public static LongRational FromDouble(double value, bool bestPrecision)
     {
+        if (value == 0.0)
+        {
+            return new LongRational(0, 1);
+        }
+
         if (double.IsNaN(value))
         {
             return new LongRational(0, 0);
@@ -152,10 +157,6 @@ internal readonly struct LongRational : IEquatable<LongRational>
         double val = Math.Abs(value);
         double df = numerator / (double)denominator;
         double epsilon = bestPrecision ? double.Epsilon : .000001;
-
-        if(val < epsilon) {
-            return new LongRational(0, 1);
-        }
 
         while (Math.Abs(df - val) > epsilon)
         {

@@ -14,23 +14,41 @@ public class DrawImageProcessor : IImageProcessor
     /// <summary>
     /// Initializes a new instance of the <see cref="DrawImageProcessor"/> class.
     /// </summary>
-    /// <param name="image">The image to blend.</param>
+    /// <param name="foreground">The image to blend.</param>
     /// <param name="backgroundLocation">The location to draw the foreground image on the background.</param>
-    /// <param name="foregoundRectangle">The rectangular portion of the foreground image to draw.</param>
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend.</param>
     public DrawImageProcessor(
-        Image image,
+        Image foreground,
         Point backgroundLocation,
-        Rectangle foregoundRectangle,
+        PixelColorBlendingMode colorBlendingMode,
+        PixelAlphaCompositionMode alphaCompositionMode,
+        float opacity)
+        : this(foreground, backgroundLocation, foreground.Bounds, colorBlendingMode, alphaCompositionMode, opacity)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DrawImageProcessor"/> class.
+    /// </summary>
+    /// <param name="foreground">The image to blend.</param>
+    /// <param name="backgroundLocation">The location to draw the foreground image on the background.</param>
+    /// <param name="foregroundRectangle">The rectangular portion of the foreground image to draw.</param>
+    /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
+    /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
+    /// <param name="opacity">The opacity of the image to blend.</param>
+    public DrawImageProcessor(
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
         float opacity)
     {
-        this.Image = image;
+        this.ForeGround = foreground;
         this.BackgroundLocation = backgroundLocation;
-        this.ForegroundRectangle = foregoundRectangle;
+        this.ForegroundRectangle = foregroundRectangle;
         this.ColorBlendingMode = colorBlendingMode;
         this.AlphaCompositionMode = alphaCompositionMode;
         this.Opacity = opacity;
@@ -39,7 +57,7 @@ public class DrawImageProcessor : IImageProcessor
     /// <summary>
     /// Gets the image to blend.
     /// </summary>
-    public Image Image { get; }
+    public Image ForeGround { get; }
 
     /// <summary>
     /// Gets the location to draw the foreground image on the background.
@@ -71,7 +89,7 @@ public class DrawImageProcessor : IImageProcessor
         where TPixelBg : unmanaged, IPixel<TPixelBg>
     {
         ProcessorFactoryVisitor<TPixelBg> visitor = new(configuration, this, source);
-        this.Image.AcceptVisitor(visitor);
+        this.ForeGround.AcceptVisitor(visitor);
         return visitor.Result!;
     }
 

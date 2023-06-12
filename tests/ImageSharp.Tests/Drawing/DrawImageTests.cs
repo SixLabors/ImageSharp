@@ -112,9 +112,9 @@ public class DrawImageTests
     }
 
     [Theory]
-    //[WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 0, 0)]
-    //[WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 25, 25)]
-    //[WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 75, 50)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 0, 0)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 25, 25)]
+    [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, 75, 50)]
     [WithSolidFilledImages(100, 100, "White", PixelTypes.Rgba32, -25, -30)]
     public void WorksWithDifferentLocations(TestImageProvider<Rgba32> provider, int x, int y)
     {

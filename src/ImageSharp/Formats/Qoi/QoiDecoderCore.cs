@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -48,47 +50,67 @@ internal class QoiDecoderCore : IImageDecoderInternals
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         ImageMetadata metadata = new();
+        QoiMetadata qoiMetadata = metadata.GetQoiMetadata();
 
-        byte[] magicBytes = new byte[4], widthBytes = new byte[4], heightBytes = new byte[4];
+        Span<byte> magicBytes = stackalloc byte[4];
+        Span<byte> widthBytes = stackalloc byte[4];
+        Span<byte> heightBytes = stackalloc byte[4];
 
         // Read magic bytes
         int read = stream.Read(magicBytes);
         if (read != 4 || !magicBytes.SequenceEqual(QoiConstants.Magic.ToArray()))
         {
-            throw new InvalidImageContentException("The image is not a QOI image");
+            ThrowInvalidImageContentException();
         }
 
         // If it's a qoi image, read the rest of properties
         read = stream.Read(widthBytes);
         if (read != 4)
         {
-            throw new InvalidImageContentException("The image is not a QOI image");
+            ThrowInvalidImageContentException();
         }
 
         read = stream.Read(heightBytes);
         if (read != 4)
         {
-            throw new InvalidImageContentException("The image is not a QOI image");
+            ThrowInvalidImageContentException();
         }
 
-        widthBytes = widthBytes.Reverse().ToArray();
-        heightBytes = heightBytes.Reverse().ToArray();
-        Size size = new((int)BitConverter.ToUInt32(widthBytes), (int)BitConverter.ToUInt32(heightBytes));
+        // These numbers are in Big Endian so we have to reverse them to get the real number
+        uint width = BinaryPrimitives.ReadUInt32BigEndian(widthBytes),
+            height = BinaryPrimitives.ReadUInt32BigEndian(heightBytes);
+        if (width == 0 || height == 0)
+        {
+            throw new InvalidImageContentException(
+                $"The image has an invalid size: width = {width}, height = {height}");
+        }
+
+        qoiMetadata.Width = width;
+        qoiMetadata.Height = height;
+
+        Size size = new((int)width, (int)height);
 
         int channels = stream.ReadByte();
-        if (channels == -1)
+        if (channels is -1 or (not 3 and not 4))
         {
-            throw new InvalidImageContentException("The image is not a QOI image");
+            ThrowInvalidImageContentException();
         }
 
         PixelTypeInfo pixelType = new(8 * channels);
+        qoiMetadata.Channels = (QoiChannels)channels;
 
         int colorSpace = stream.ReadByte();
-        if (colorSpace == -1)
+        if (colorSpace is -1 or (not 0 and not 1))
         {
-            throw new InvalidImageContentException("The image is not a QOI image");
+            ThrowInvalidImageContentException();
         }
+
+        qoiMetadata.ColorSpace = (QoiColorSpace)colorSpace;
 
         return new ImageInfo(pixelType, size, metadata);
     }
+
+    [DoesNotReturn]
+    private static void ThrowInvalidImageContentException()
+        => throw new InvalidImageContentException("The image is not a valid QOI image.");
 }

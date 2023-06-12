@@ -7,19 +7,21 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 
 internal static class QoiConstants
 {
+    private static readonly byte[] SMagic = Encoding.UTF8.GetBytes("qoif");
+
     /// <summary>
     /// Gets the bytes that indicates the image is QOI
     /// </summary>
-    public static ReadOnlySpan<byte> Magic => Encoding.UTF8.GetBytes("qoif");
+    public static ReadOnlySpan<byte> Magic => SMagic;
 
     /// <summary>
     /// The list of mimetypes that equate to a QOI.
     /// See https://github.com/phoboslab/qoi/issues/167
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
+    public static readonly string[] MimeTypes = { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
 
     /// <summary>
     /// The list of file extensions that equate to a QOI.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "qoi" };
+    public static readonly string[] FileExtensions = { "qoi" };
 }

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -537,7 +538,6 @@ public partial class PngDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        image.DebugSave(provider);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.True(metadata.HasTransparency);
     }

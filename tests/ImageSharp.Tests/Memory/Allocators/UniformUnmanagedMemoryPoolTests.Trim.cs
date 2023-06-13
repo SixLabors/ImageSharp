@@ -113,9 +113,15 @@ public partial class UniformUnmanagedMemoryPoolTests
         public static readonly bool Is32BitProcess = !Environment.Is64BitProcess;
         private static readonly List<byte[]> PressureArrays = new();
 
-        [ConditionalFact(nameof(Is32BitProcess))]
+        [Fact]
         public static void GC_Collect_OnHighLoad_TrimsEntirePool()
         {
+            if (!Is32BitProcess)
+            {
+                // This test is only relevant for 32-bit processes.
+                return;
+            }
+
             RemoteExecutor.Invoke(RunTest).Dispose();
 
             static void RunTest()

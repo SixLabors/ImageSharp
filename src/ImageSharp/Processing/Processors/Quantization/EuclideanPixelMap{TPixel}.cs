@@ -149,13 +149,13 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// The granularity of the cache has been determined based upon the current
     /// suite of test images and provides the lowest possible memory usage while
     /// providing enough match accuracy.
-    /// Entry count is currently limited to 1185921 entries (2371842 bytes ~2.26MB).
+    /// Entry count is currently limited to 2335905 entries (4671810 bytes ~4.45MB).
     /// </para>
     /// </remarks>
     private unsafe struct ColorDistanceCache : IDisposable
     {
         private const int IndexBits = 5;
-        private const int IndexAlphaBits = 5;
+        private const int IndexAlphaBits = 6;
         private const int IndexCount = (1 << IndexBits) + 1;
         private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
         private const int RgbShift = 8 - IndexBits;

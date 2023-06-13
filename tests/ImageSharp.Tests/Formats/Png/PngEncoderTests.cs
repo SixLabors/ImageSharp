@@ -548,6 +548,20 @@ public partial class PngEncoderTests
         image.Save(ms, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2469
+    [Theory]
+    [WithFile(TestImages.Png.Issue2469, PixelTypes.Rgba32)]
+    public void Issue2469_Quantized_Encode_Artifacts<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Palette };
+
+        string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(actualOutputFile);
+        encoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
     private static void TestPngEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,
         PngColorType pngColorType,

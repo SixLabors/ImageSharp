@@ -129,8 +129,11 @@ public static class TestImages
         // Issue 2209: https://github.com/SixLabors/ImageSharp/issues/2209
         public const string Issue2209IndexedWithTransparency = "Png/issues/Issue_2209.png";
 
-        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2259
+        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2469
         public const string Issue2259 = "Png/issues/Issue_2259.png";
+
+        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2469
+        public const string Issue2469 = "Png/issues/issue_2469.png";
 
         // Issue 2447: https://github.com/SixLabors/ImageSharp/issues/2447
         public const string Issue2447 = "Png/issues/issue_2447.png";

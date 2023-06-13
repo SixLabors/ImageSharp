@@ -24,5 +24,6 @@ public class QoiDecoderTests
         ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
+        Assert.Equal(imageInfo.Metadata.DecodedImageFormat, ImageSharp.Formats.Qoi.QoiFormat.Instance);
     }
 }

@@ -23,5 +23,5 @@ public class QoiImageFormatDetector : IImageFormatDetector
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-        => header.Length == this.HeaderSize && header[..4] == QoiConstants.Magic;
+        => header.Length >= this.HeaderSize && QoiConstants.Magic.SequenceEqual(header[..4]);
 }

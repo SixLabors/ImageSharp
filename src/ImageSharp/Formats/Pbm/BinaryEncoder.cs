@@ -33,9 +33,13 @@ internal class BinaryEncoder
             {
                 WriteGrayscale(configuration, stream, image);
             }
-            else
+            else if (componentType == PbmComponentType.Short)
             {
                 WriteWideGrayscale(configuration, stream, image);
+            }
+            else
+            {
+                throw new ImageFormatException("Component type not supported for Grayscale PBM.");
             }
         }
         else if (colorType == PbmColorType.Rgb)
@@ -44,14 +48,25 @@ internal class BinaryEncoder
             {
                 WriteRgb(configuration, stream, image);
             }
-            else
+            else if (componentType == PbmComponentType.Short)
             {
                 WriteWideRgb(configuration, stream, image);
+            }
+            else
+            {
+                throw new ImageFormatException("Component type not supported for Color PBM.");
             }
         }
         else
         {
-            WriteBlackAndWhite(configuration, stream, image);
+            if (componentType == PbmComponentType.Bit)
+            {
+                WriteBlackAndWhite(configuration, stream, image);
+            }
+            else
+            {
+                throw new ImageFormatException("Component type not supported for Black & White PBM.");
+            }
         }
     }
 
@@ -165,7 +180,6 @@ internal class BinaryEncoder
         Span<L8> rowSpan = row.GetSpan();
 
         int previousValue = 0;
-        int startBit = 0;
         for (int y = 0; y < height; y++)
         {
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
@@ -178,7 +192,7 @@ internal class BinaryEncoder
             for (int x = 0; x < width;)
             {
                 int value = previousValue;
-                for (int i = startBit; i < 8; i++)
+                for (int i = 0; i < 8; i++)
                 {
                     if (rowSpan[x].PackedValue < 128)
                     {
@@ -186,19 +200,15 @@ internal class BinaryEncoder
                     }
 
                     x++;
+                    // End each row on a byte boundary.
                     if (x == width)
                     {
-                        previousValue = value;
-                        startBit = (i + 1) & 7; // Round off to below 8.
                         break;
                     }
                 }
 
-                if (startBit == 0)
-                {
-                    stream.WriteByte((byte)value);
-                    previousValue = 0;
-                }
+                stream.WriteByte((byte)value);
+                previousValue = 0;
             }
         }
     }

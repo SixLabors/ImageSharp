@@ -201,6 +201,7 @@ internal class BinaryEncoder
                     }
 
                     x++;
+
                     // End each row on a byte boundary.
                     if (x == width)
                     {

@@ -179,7 +179,6 @@ internal class BinaryEncoder
         using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();
 
-        int previousValue = 0;
         for (int y = 0; y < height; y++)
         {
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
@@ -191,7 +190,7 @@ internal class BinaryEncoder
 
             for (int x = 0; x < width;)
             {
-                int value = previousValue;
+                int value = 0;
                 int stopBit = Math.Min(8, width - x);
                 for (int i = 0; i < stopBit; i++)
                 {
@@ -201,16 +200,9 @@ internal class BinaryEncoder
                     }
 
                     x++;
-
-                    // End each row on a byte boundary.
-                    if (x == width)
-                    {
-                        break;
-                    }
                 }
 
                 stream.WriteByte((byte)value);
-                previousValue = 0;
             }
         }
     }

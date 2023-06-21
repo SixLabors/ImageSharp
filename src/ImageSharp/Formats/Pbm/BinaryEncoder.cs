@@ -192,7 +192,8 @@ internal class BinaryEncoder
             for (int x = 0; x < width;)
             {
                 int value = previousValue;
-                for (int i = 0; i < 8; i++)
+                int stopBit = Math.Min(8, width - x);
+                for (int i = 0; i < stopBit; i++)
                 {
                     if (rowSpan[x].PackedValue < 128)
                     {

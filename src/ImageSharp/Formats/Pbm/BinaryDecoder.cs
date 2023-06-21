@@ -161,7 +161,8 @@ internal class BinaryDecoder
             for (int x = 0; x < width;)
             {
                 int raw = stream.ReadByte();
-                for (int bit = 0; bit < 8; bit++)
+                int stopBit = Math.Min(8, width - x);
+                for (int bit = 0; bit < stopBit; bit++)
                 {
                     bool bitValue = (raw & (0x80 >> bit)) != 0;
                     rowSpan[x] = bitValue ? black : white;

@@ -152,7 +152,6 @@ internal class BinaryDecoder
     {
         int width = pixels.Width;
         int height = pixels.Height;
-        int startBit = 0;
         MemoryAllocator allocator = configuration.MemoryAllocator;
         using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
         Span<L8> rowSpan = row.GetSpan();
@@ -162,23 +161,11 @@ internal class BinaryDecoder
             for (int x = 0; x < width;)
             {
                 int raw = stream.ReadByte();
-                int bit = startBit;
-                startBit = 0;
-                for (; bit < 8; bit++)
+                for (int bit = 0; bit < 8; bit++)
                 {
                     bool bitValue = (raw & (0x80 >> bit)) != 0;
                     rowSpan[x] = bitValue ? black : white;
                     x++;
-                    if (x == width)
-                    {
-                        startBit = (bit + 1) & 7; // Round off to below 8.
-                        if (startBit != 0)
-                        {
-                            stream.Seek(-1, System.IO.SeekOrigin.Current);
-                        }
-
-                        break;
-                    }
                 }
             }
 

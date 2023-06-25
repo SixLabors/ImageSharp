@@ -251,7 +251,17 @@ public readonly partial struct Color : IEquatable<Color>
     /// </summary>
     /// <returns>A hexadecimal string representation of the value.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public string ToHex() => this.data.ToRgba32().ToHex();
+    public string ToHex()
+    {
+        if (this.boxedHighPrecisionPixel is not null)
+        {
+            Rgba32 rgba = default;
+            this.boxedHighPrecisionPixel.ToRgba32(ref rgba);
+            return rgba.ToHex();
+        }
+
+        return this.data.ToRgba32().ToHex();
+    }
 
     /// <inheritdoc />
     public override string ToString() => this.ToHex();

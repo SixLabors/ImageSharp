@@ -449,44 +449,15 @@ public partial class PngEncoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
         PngMetadata inMeta = input.Metadata.GetPngMetadata();
-        Assert.True(inMeta.HasTransparency);
+        Assert.True(inMeta.TransparentColor.HasValue);
 
         using MemoryStream memStream = new();
         input.Save(memStream, PngEncoder);
         memStream.Position = 0;
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         PngMetadata outMeta = output.Metadata.GetPngMetadata();
-        Assert.True(outMeta.HasTransparency);
-
-        switch (pngColorType)
-        {
-            case PngColorType.Grayscale:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentL16.HasValue);
-                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentL8.HasValue);
-                    Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
-                }
-
-                break;
-            case PngColorType.Rgb:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentRgb48.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentRgb24.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
-                }
-
-                break;
-        }
+        Assert.True(outMeta.TransparentColor.HasValue);
+        Assert.Equal(inMeta.TransparentColor, outMeta.TransparentColor);
     }
 
     [Theory]

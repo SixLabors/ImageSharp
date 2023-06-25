@@ -539,7 +539,8 @@ public partial class PngDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -551,7 +552,8 @@ public partial class PngDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410

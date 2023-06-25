@@ -127,7 +127,7 @@ internal sealed class T6BitReader : T4BitReader
                         this.Code = Len7Code0000000;
 
                         // We do not support Extensions1D codes, but some encoders (scanner from epson) write a premature EOL code,
-                        // which at this point cannot be distinguished from a distinguish, because we read the data bit by bit.
+                        // which at this point cannot be distinguished from the marker, because we read the data bit by bit.
                         // Read the next 5 bit, if its a EOL code return true, indicating its the end of the image.
                         if (this.ReadValue(5) == 1)
                         {

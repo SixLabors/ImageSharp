@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
-using SixLabors.ImageSharp.Formats.Png;
 
 namespace SixLabors.ImageSharp.Formats.Qoi;
 

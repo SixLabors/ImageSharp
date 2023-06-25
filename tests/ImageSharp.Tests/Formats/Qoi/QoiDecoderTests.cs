@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Qoi;
 
 [Trait("Format", "Qoi")]
@@ -25,5 +27,23 @@ public class QoiDecoderTests
 
         Assert.NotNull(imageInfo);
         Assert.Equal(imageInfo.Metadata.DecodedImageFormat, ImageSharp.Formats.Qoi.QoiFormat.Instance);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Qoi.Dice, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.EdgeCase, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.Kodim10, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.Kodim23, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.QoiLogo, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.TestCard, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.TestCardRGBA, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Qoi.Wikipedia008, PixelTypes.Rgba32)]
+    public void Decode<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider);
+
+        image.CompareToReferenceOutput(provider);
     }
 }

@@ -1038,5 +1038,6 @@ public static class TestImages
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
+        public const string Issue2477 = "Pbm/issue2477.pbm";
     }
 }

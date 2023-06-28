@@ -125,13 +125,29 @@ internal sealed class T6BitReader : T4BitReader
                     if (value == Len7Code0000000.Code)
                     {
                         this.Code = Len7Code0000000;
-                        return false;
+
+                        // We do not support Extensions1D codes, but some encoders (scanner from epson) write a premature EOL code,
+                        // which at this point cannot be distinguished from the marker, because we read the data bit by bit.
+                        // Read the next 5 bit, if its a EOL code return true, indicating its the end of the image.
+                        if (this.ReadValue(5) == 1)
+                        {
+                            return true;
+                        }
+
+                        throw new NotSupportedException("ccitt extensions 1D codes are not supported.");
                     }
 
                     if (value == Len7Code0000001.Code)
                     {
                         this.Code = Len7Code0000001;
-                        return false;
+
+                        // Same as above, we do not support Extensions2D codes, but it could be a EOL instead.
+                        if (this.ReadValue(5) == 1)
+                        {
+                            return true;
+                        }
+
+                        throw new NotSupportedException("ccitt extensions 2D codes are not supported.");
                     }
 
                     if (value == Len7Code0000011.Code)

@@ -15,277 +15,277 @@ public static class DrawImageExtensions
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
+        Image foreground,
         float opacity)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, image, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
     }
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Rectangle rectangle,
+        Image foreground,
+        Rectangle foregroundRectangle,
         float opacity)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, image, rectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
     }
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="colorBlending">The color blending mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
+        Image foreground,
         PixelColorBlendingMode colorBlending,
         float opacity)
-        => DrawImage(source, image, Point.Empty, colorBlending, opacity);
+        => DrawImage(source, foreground, Point.Empty, colorBlending, opacity);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="colorBlending">The color blending mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Rectangle rectangle,
+        Image foreground,
+        Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         float opacity)
-        => DrawImage(source, image, rectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        => DrawImage(source, foreground, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="colorBlending">The color blending mode.</param>
-    /// <param name="alphaComposition">The alpha composition mode.</param>
-    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
-    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DrawImage(
-        this IImageProcessingContext source,
-        Image image,
-        PixelColorBlendingMode colorBlending,
-        PixelAlphaCompositionMode alphaComposition,
-        float opacity)
-        => DrawImage(source, image, Point.Empty, colorBlending, alphaComposition, opacity);
-
-    /// <summary>
-    /// Draws the given image together with the currently processing image by blending their pixels.
-    /// </summary>
-    /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="colorBlending">The color blending mode.</param>
     /// <param name="alphaComposition">The alpha composition mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Rectangle rectangle,
+        Image foreground,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity)
-        => DrawImage(source, image, Point.Empty, rectangle, colorBlending, alphaComposition, opacity);
+        => DrawImage(source, foreground, Point.Empty, colorBlending, alphaComposition, opacity);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="colorBlending">The color blending mode.</param>
+    /// <param name="alphaComposition">The alpha composition mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Rectangle foregroundRectangle,
+        PixelColorBlendingMode colorBlending,
+        PixelAlphaCompositionMode alphaComposition,
+        float opacity)
+        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, alphaComposition, opacity);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="options">The options, including the blending type and blending amount.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
+        Image foreground,
         GraphicsOptions options)
-        => DrawImage(source, image, Point.Empty, options);
+        => DrawImage(source, foreground, Point.Empty, options);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="options">The options, including the blending type and blending amount.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Rectangle rectangle,
+        Image foreground,
+        Rectangle foregroundRectangle,
         GraphicsOptions options)
-        => DrawImage(source, image, Point.Empty, rectangle, options);
+        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, options);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
+        Image foreground,
+        Point backgroundLocation,
         float opacity)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, image, location, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
     }
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
-        Rectangle rectangle,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         float opacity)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, image, location, rectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
     }
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
+        Image foreground,
+        Point backgroundLocation,
         PixelColorBlendingMode colorBlending,
         float opacity)
-        => DrawImage(source, image, location, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        => DrawImage(source, foreground, backgroundLocation, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
-        Rectangle rectangle,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         float opacity)
-        => DrawImage(source, image, location, rectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="options">The options containing the blend mode and opacity.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
+        Image foreground,
+        Point backgroundLocation,
         GraphicsOptions options)
-        => DrawImage(source, image, location, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
+        => DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="options">The options containing the blend mode and opacity.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
-        Rectangle rectangle,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         GraphicsOptions options)
-        => DrawImage(source, image, location, rectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="alphaComposition">The alpha composition mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
+        Image foreground,
+        Point backgroundLocation,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity)
-        => source.ApplyProcessor(new DrawImageProcessor(image, location, colorBlending, alphaComposition, opacity));
+        => source.ApplyProcessor(new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity));
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="image">The image to draw on the currently processing image.</param>
-    /// <param name="location">The location on the currenty processing image at which to draw.</param>
-    /// <param name="rectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="alphaComposition">The alpha composition mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
-        Image image,
-        Point location,
-        Rectangle rectangle,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity) =>
         source.ApplyProcessor(
-            new DrawImageProcessor(image, location, colorBlending, alphaComposition, opacity),
-            rectangle);
+            new DrawImageProcessor(foreground, backgroundLocation, foregroundRectangle, colorBlending, alphaComposition, opacity),
+            foregroundRectangle);
 }

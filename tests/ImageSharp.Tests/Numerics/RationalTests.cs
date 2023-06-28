@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Tests;
@@ -14,15 +14,15 @@ public class RationalTests
     [Fact]
     public void AreEqual()
     {
-        var r1 = new Rational(3, 2);
-        var r2 = new Rational(3, 2);
+        Rational r1 = new(3, 2);
+        Rational r2 = new(3, 2);
 
         Assert.Equal(r1, r2);
         Assert.True(r1 == r2);
 
-        var r3 = new Rational(7.55);
-        var r4 = new Rational(755, 100);
-        var r5 = new Rational(151, 20);
+        Rational r3 = new(7.55);
+        Rational r4 = new(755, 100);
+        Rational r5 = new(151, 20);
 
         Assert.Equal(r3, r4);
         Assert.Equal(r4, r5);
@@ -34,11 +34,30 @@ public class RationalTests
     [Fact]
     public void AreNotEqual()
     {
-        var first = new Rational(0, 100);
-        var second = new Rational(100, 100);
+        Rational first = new(0, 100);
+        Rational second = new(100, 100);
 
         Assert.NotEqual(first, second);
         Assert.True(first != second);
+    }
+
+    /// <summary>
+    /// Tests known out-of-range values.
+    /// </summary>
+    /// <param name="value">The input value.</param>
+    /// <param name="numerator">The expected numerator.</param>
+    /// <param name="denominator">The expected denominator.</param>
+    [Theory]
+    [InlineData(0, 0, 1)]
+    [InlineData(double.NaN, 0, 0)]
+    [InlineData(double.PositiveInfinity, 1, 0)]
+    [InlineData(double.NegativeInfinity, 1, 0)]
+    public void FromDoubleOutOfRange(double value, uint numerator, uint denominator)
+    {
+        Rational r = Rational.FromDouble(value);
+
+        Assert.Equal(numerator, r.Numerator);
+        Assert.Equal(denominator, r.Denominator);
     }
 
     /// <summary>
@@ -47,7 +66,7 @@ public class RationalTests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var rational = new Rational(7, 55);
+        Rational rational = new(7, 55);
         Assert.Equal(7U, rational.Numerator);
         Assert.Equal(55U, rational.Denominator);
 
@@ -71,15 +90,15 @@ public class RationalTests
     [Fact]
     public void Fraction()
     {
-        var first = new Rational(1.0 / 1600);
-        var second = new Rational(1.0 / 1600, true);
+        Rational first = new(1.0 / 1600);
+        Rational second = new(1.0 / 1600, true);
         Assert.False(first.Equals(second));
     }
 
     [Fact]
     public void ToDouble()
     {
-        var rational = new Rational(0, 0);
+        Rational rational = new(0, 0);
         Assert.Equal(double.NaN, rational.ToDouble());
 
         rational = new Rational(2, 0);
@@ -89,7 +108,7 @@ public class RationalTests
     [Fact]
     public void ToStringRepresentation()
     {
-        var rational = new Rational(0, 0);
+        Rational rational = new(0, 0);
         Assert.Equal("[ Indeterminate ]", rational.ToString());
 
         rational = new Rational(double.PositiveInfinity);

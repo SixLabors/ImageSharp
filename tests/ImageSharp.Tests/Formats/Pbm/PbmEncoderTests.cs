@@ -26,6 +26,7 @@ public class PbmEncoderTests
         {
             { BlackAndWhiteBinary, PbmColorType.BlackAndWhite },
             { BlackAndWhitePlain, PbmColorType.BlackAndWhite },
+            { Issue2477, PbmColorType.BlackAndWhite },
             { GrayscaleBinary, PbmColorType.Grayscale },
             { GrayscaleBinaryWide, PbmColorType.Grayscale },
             { GrayscalePlain, PbmColorType.Grayscale },
@@ -94,6 +95,11 @@ public class PbmEncoderTests
     [Theory]
     [WithFile(BlackAndWhiteBinary, PixelTypes.Rgb24)]
     public void PbmEncoder_P4_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.BlackAndWhite, PbmEncoding.Binary);
+
+    [Theory]
+    [WithFile(Issue2477, PixelTypes.Rgb24)]
+    public void PbmEncoder_P4_Irregular_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.BlackAndWhite, PbmEncoding.Binary);
 
     [Theory]

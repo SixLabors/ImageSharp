@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Qoi;
 internal class QoiDecoder : ImageDecoder
 {
@@ -10,6 +12,7 @@ internal class QoiDecoder : ImageDecoder
 
     public static QoiDecoder Instance { get; } = new();
 
+    /// <inheritdoc />
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
@@ -23,11 +26,12 @@ internal class QoiDecoder : ImageDecoder
         return image;
     }
 
+    /// <inheritdoc />
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
-        throw new NotImplementedException();
+        return this.Decode<Rgba32>(options, stream, cancellationToken);
     }
 
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)

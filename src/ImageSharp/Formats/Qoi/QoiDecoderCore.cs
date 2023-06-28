@@ -141,11 +141,11 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private static void ThrowInvalidImageContentException()
         => throw new InvalidImageContentException("The image is not a valid QOI image.");
 
-    private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
+    private void ProcessPixels<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32[] previouslySeenPixels = new Rgba32[64];
-        Rgba32 previousPixel = new (0,0,0,255);
+        Rgba32 previousPixel = new(0,0,0,255);
 
         // We save the pixel to avoid loosing the fully opaque black pixel
         // See https://github.com/phoboslab/qoi/issues/258
@@ -258,11 +258,27 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                 ThrowInvalidImageContentException();
                                 return;
                         }
+
                         break;
                 }
+
                 pixels[j,i] = pixel;
                 previousPixel = readPixel;
             }
+        }
+
+        // Check stream end
+        for (int i = 0; i < 7; i++)
+        {
+            if (stream.ReadByte() != 0)
+            {
+                ThrowInvalidImageContentException();
+            }
+        }
+
+        if (stream.ReadByte() != 1)
+        {
+            ThrowInvalidImageContentException();
         }
     }
 

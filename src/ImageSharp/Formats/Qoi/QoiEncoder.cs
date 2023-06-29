@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Text;
+
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
 /// <summary>
@@ -8,10 +10,24 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// </summary>
 public class QoiEncoder : ImageEncoder
 {
+    /// <summary>
+    /// Gets the color channels on the image that can be
+    /// RGB or RGBA. This is purely informative. It doesn't
+    /// change the way data chunks are encoded.
+    /// </summary>
+    public QoiChannels? Channels { get; init; }
+
+    /// <summary>
+    /// Gets the color space of the image that can be sRGB with
+    /// linear alpha or all channels linear. This is purely
+    /// informative. It doesn't change the way data chunks are encoded.
+    /// </summary>
+    public QoiColorSpace? ColorSpace { get; init; }
+
     /// <inheritdoc />
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        QoiEncoderCore encoder = new();
+        QoiEncoderCore encoder = new(this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

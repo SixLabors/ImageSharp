@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Qoi;
 
@@ -24,12 +25,12 @@ public class QoiEncoderTests
     private static void Encode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder());
         using MemoryStream stream = new();
         QoiEncoder encoder = new();
         image.Save(stream, encoder);
         stream.Position = 0;
         using Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(stream);
-        ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage);
+        ImageComparer.Exact.CompareImages(image, encodedImage);
     }
 }

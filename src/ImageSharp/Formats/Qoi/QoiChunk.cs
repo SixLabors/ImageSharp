@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// Enum that contains the operations that encoder and decoder must process, written
 /// in binary to be easier to compare them in the reference
 /// </summary>
-public enum QoiChunkEnum
+internal enum QoiChunk
 {
     /// <summary>
     /// Indicates that the operation is QOI_OP_RGB where the RGB values are written

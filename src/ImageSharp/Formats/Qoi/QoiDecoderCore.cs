@@ -160,10 +160,10 @@ internal class QoiDecoderCore : IImageDecoderInternals
                 byte[] pixelBytes;
                 Rgba32 readPixel;
                 TPixel pixel = default;
-                switch ((QoiChunkEnum)operationByte)
+                switch ((QoiChunk)operationByte)
                 {
                     // Reading one pixel with previous alpha intact
-                    case QoiChunkEnum.QoiOpRgb:
+                    case QoiChunk.QoiOpRgb:
                         pixelBytes = new byte[3];
                         if (stream.Read(pixelBytes) < 3)
                         {
@@ -177,7 +177,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                         break;
 
                     // Reading one pixel with new alpha
-                    case QoiChunkEnum.QoiOpRgba:
+                    case QoiChunk.QoiOpRgba:
                         pixelBytes = new byte[4];
                         if (stream.Read(pixelBytes) < 4)
                         {
@@ -191,16 +191,16 @@ internal class QoiDecoderCore : IImageDecoderInternals
                         break;
 
                     default:
-                        switch ((QoiChunkEnum)(operationByte & 0b11000000))
+                        switch ((QoiChunk)(operationByte & 0b11000000))
                         {
                             // Getting one pixel from previously seen pixels
-                            case QoiChunkEnum.QoiOpIndex:
+                            case QoiChunk.QoiOpIndex:
                                 readPixel = previouslySeenPixels[operationByte];
                                 pixel.FromRgba32(readPixel);
                                 break;
 
                             // Get one pixel from the difference (-2..1) of the previous pixel
-                            case QoiChunkEnum.QoiOpDiff:
+                            case QoiChunk.QoiOpDiff:
                                 byte redDifference = (byte)((operationByte & 0b00110000) >> 4),
                                     greenDifference = (byte)((operationByte & 0b00001100) >> 2),
                                     blueDifference = (byte)(operationByte & 0b00000011);
@@ -217,7 +217,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
 
                             // Get green difference in 6 bits and red and blue differences
                             // depending on the green one
-                            case QoiChunkEnum.QoiOpLuma:
+                            case QoiChunk.QoiOpLuma:
                                 byte diffGreen = (byte)(operationByte & 0b00111111),
                                     currentGreen = (byte)((previousPixel.G + (diffGreen - 32)) % 256),
                                     nextByte = (byte)stream.ReadByte(),
@@ -232,7 +232,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                 break;
 
                             // Repeating the previous pixel 1..63 times
-                            case QoiChunkEnum.QoiOpRun:
+                            case QoiChunk.QoiOpRun:
                                 byte repetitions = (byte)(operationByte & 0b00111111);
                                 if (repetitions is 62 or 63)
                                 {

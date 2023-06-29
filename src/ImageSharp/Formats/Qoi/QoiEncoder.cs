@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
-
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
 /// <summary>
@@ -13,7 +11,7 @@ public class QoiEncoder : ImageEncoder
     /// <inheritdoc />
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        QoiEncoderCore encoder = new(image.GetConfiguration(), this);
+        QoiEncoderCore encoder = new();
         encoder.Encode(image, stream, cancellationToken);
     }
 }

@@ -15,13 +15,13 @@ internal static class QoiConstants
     public static ReadOnlySpan<byte> Magic => SMagic;
 
     /// <summary>
-    /// The list of mimetypes that equate to a QOI.
+    /// Gets the list of mimetypes that equate to a QOI.
     /// See https://github.com/phoboslab/qoi/issues/167
     /// </summary>
-    public static readonly string[] MimeTypes = { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
+    public static string[] MimeTypes { get; } = { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
 
     /// <summary>
-    /// The list of file extensions that equate to a QOI.
+    /// Gets the list of file extensions that equate to a QOI.
     /// </summary>
-    public static readonly string[] FileExtensions = { "qoi" };
+    public static string[] FileExtensions { get; } = { "qoi" };
 }

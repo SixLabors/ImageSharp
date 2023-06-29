@@ -19,27 +19,27 @@ internal readonly struct QoiHeader
     }
 
     /// <summary>
-    /// Magic bytes "qoif"
+    /// Gets the magic bytes "qoif"
     /// </summary>
     public byte[] Magic { get; } = Encoding.UTF8.GetBytes("qoif");
 
     /// <summary>
-    /// Image width in pixels (BE)
+    /// Gets the image width in pixels (Big Endian)
     /// </summary>
     public uint Width { get; }
 
     /// <summary>
-    /// Image height in pixels (BE)
+    /// Gets the image height in pixels (Big Endian)
     /// </summary>
     public uint Height { get; }
 
     /// <summary>
-    /// Color channels of the image. 3 = RGB, 4 = RGBA.
+    /// Gets the color channels of the image. 3 = RGB, 4 = RGBA.
     /// </summary>
     public QoiChannels Channels { get; }
 
     /// <summary>
-    /// Color space of the image. 0 = sRGB with linear alpha, 1 = All channels linear
+    /// Gets the color space of the image. 0 = sRGB with linear alpha, 1 = All channels linear
     /// </summary>
     public QoiColorSpace ColorSpace { get; }
 }

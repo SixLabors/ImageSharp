@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.Runtime.InteropServices.ComTypes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -14,24 +13,10 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 public class QoiEncoderCore : IImageEncoderInternals
 {
     /// <summary>
-    /// The global configuration.
-    /// </summary>
-    private Configuration configuration;
-
-    /// <summary>
-    /// The encoder with options.
-    /// </summary>
-    private readonly QoiEncoder encoder;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="QoiEncoderCore"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration.</param>
-    /// <param name="encoder">The encoder with options.</param>
-    public QoiEncoderCore(Configuration configuration, QoiEncoder encoder)
+    public QoiEncoderCore()
     {
-        this.configuration = configuration;
-        this.encoder = encoder;
     }
 
     /// <inheritdoc />
@@ -67,7 +52,8 @@ public class QoiEncoderCore : IImageEncoderInternals
         stream.WriteByte((byte)qoiColorSpace);
     }
 
-    private static void WritePixels<TPixel>(Image<TPixel> image, Stream stream) where TPixel : unmanaged, IPixel<TPixel>
+    private static void WritePixels<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         // Start image encoding
         Rgba32[] previouslySeenPixels = new Rgba32[64];
@@ -76,7 +62,7 @@ public class QoiEncoderCore : IImageEncoderInternals
         previouslySeenPixels[pixelArrayPosition] = previousPixel;
 
         Buffer2D<TPixel> pixels = image.Frames[0].PixelBuffer;
-        Rgba32 currentRgba32 = new();
+        Rgba32 currentRgba32 = default;
         for (int i = 0; i < pixels.Height; i++)
         {
             for (int j = 0; j < pixels.Width && i < pixels.Height; j++)
@@ -115,10 +101,11 @@ public class QoiEncoderCore : IImageEncoderInternals
 
                         currentPixel = pixels[j, i];
                         currentPixel.ToRgba32(ref currentRgba32);
-                    } while (currentRgba32.Equals(previousPixel) && repetitions < 62);
+                    }
+                    while (currentRgba32.Equals(previousPixel) && repetitions < 62);
 
                     j--;
-                    stream.WriteByte((byte)((byte)QoiChunkEnum.QOI_OP_RUN | (repetitions - 1)));
+                    stream.WriteByte((byte)((byte)QoiChunkEnum.QoiOpRun | (repetitions - 1)));
 
                     /* If it's a QOI_OP_RUN, we don't overwrite the previous pixel since
                      * it will be taken and compared on the next iteration
@@ -153,7 +140,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                         byte dr = (byte)(diffRed + 2),
                             dg = (byte)(diffGreen + 2),
                             db = (byte)(diffBlue + 2),
-                            valueToWrite = (byte)((byte)QoiChunkEnum.QOI_OP_DIFF | (dr << 4) | (dg << 2) | db);
+                            valueToWrite = (byte)((byte)QoiChunkEnum.QoiOpDiff | (dr << 4) | (dg << 2) | db);
                         stream.WriteByte(valueToWrite);
                     }
                     else
@@ -169,7 +156,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                         {
                             byte dr_dg = (byte)(diffRedGreen + 8),
                                 db_dg = (byte)(diffBlueGreen + 8),
-                                byteToWrite1 = (byte)((byte)QoiChunkEnum.QOI_OP_LUMA | (diffGreen + 32)),
+                                byteToWrite1 = (byte)((byte)QoiChunkEnum.QoiOpLuma | (diffGreen + 32)),
                                 byteToWrite2 = (byte)((dr_dg << 4) | db_dg);
                             stream.WriteByte(byteToWrite1);
                             stream.WriteByte(byteToWrite2);
@@ -180,7 +167,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                             // If so, we do a QOI_OP_RGB
                             if (currentRgba32.A == previousPixel.A)
                             {
-                                stream.WriteByte((byte)QoiChunkEnum.QOI_OP_RGB);
+                                stream.WriteByte((byte)QoiChunkEnum.QoiOpRgb);
                                 stream.WriteByte(currentRgba32.R);
                                 stream.WriteByte(currentRgba32.G);
                                 stream.WriteByte(currentRgba32.B);
@@ -188,7 +175,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                             else
                             {
                                 // else, we do a QOI_OP_RGBA
-                                stream.WriteByte((byte)QoiChunkEnum.QOI_OP_RGBA);
+                                stream.WriteByte((byte)QoiChunkEnum.QoiOpRgba);
                                 stream.WriteByte(currentRgba32.R);
                                 stream.WriteByte(currentRgba32.G);
                                 stream.WriteByte(currentRgba32.B);

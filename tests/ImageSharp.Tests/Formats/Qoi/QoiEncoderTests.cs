@@ -20,7 +20,9 @@ public class QoiEncoderTests
     [WithFile(TestImages.Qoi.TestCard, PixelTypes.Rgba32)]
     [WithFile(TestImages.Qoi.TestCardRGBA, PixelTypes.Rgba32)]
     [WithFile(TestImages.Qoi.Wikipedia008, PixelTypes.Rgba32)]
-    private static void Encode<TPixel>(TestImageProvider<TPixel> provider) where TPixel : unmanaged, IPixel<TPixel>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Quitar miembros privados no utilizados", Justification = "Function implicitly in tests")]
+    private static void Encode<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
         using MemoryStream stream = new();

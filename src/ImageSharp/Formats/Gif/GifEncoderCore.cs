@@ -583,7 +583,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         if (metadata is null)
         {
             metadata = new();
-            hasTransparency = transparencyIndex > -1;
+            hasTransparency = transparencyIndex >= 0;
         }
         else
         {

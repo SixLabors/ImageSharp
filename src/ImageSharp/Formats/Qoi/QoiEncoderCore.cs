@@ -70,10 +70,10 @@ public class QoiEncoderCore : IImageEncoderInternals
         for (int i = 0; i < pixels.Height; i++)
         {
             Span<TPixel> row = pixels.DangerousGetRowSpan(i);
-            for (int j = 0; j < pixels.Width && i < pixels.Height; j++)
+            for (int j = 0; j < row.Length && i < pixels.Height; j++)
             {
                 // We get the RGBA value from pixels
-                TPixel currentPixel = pixels[j, i];
+                TPixel currentPixel = row[j];
                 currentPixel.ToRgba32(ref currentRgba32);
 
                 // First, we check if the current pixel is equal to the previous one
@@ -93,7 +93,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                     {
                         repetitions++;
                         j++;
-                        if (j == pixels.Width)
+                        if (j == row.Length)
                         {
                             j = 0;
                             i++;
@@ -137,9 +137,9 @@ public class QoiEncoderCore : IImageEncoderInternals
                         diffBlue = (sbyte)(currentRgba32.B - previousPixel.B);
 
                     // If so, we do a QOI_OP_DIFF
-                    if (diffRed is > -3 and < 2 &&
-                        diffGreen is > -3 and < 2 &&
-                        diffBlue is > -3 and < 2 &&
+                    if (diffRed is >= -2 and <= 1 &&
+                        diffGreen is >= -2 and <= 1 &&
+                        diffBlue is >= -2 and <= 1 &&
                         currentRgba32.A == previousPixel.A)
                     {
                         // Bottom limit is -2, so we add 2 to make it equal to 0
@@ -155,9 +155,9 @@ public class QoiEncoderCore : IImageEncoderInternals
                         // If so, we do a QOI_OP_LUMA
                         sbyte diffRedGreen = (sbyte)(diffRed - diffGreen),
                             diffBlueGreen = (sbyte)(diffBlue - diffGreen);
-                        if (diffGreen is > -33 and < 8 &&
-                            diffRedGreen is > -9 and < 8 &&
-                            diffBlueGreen is > -9 and < 8 &&
+                        if (diffGreen is >= -32 and <= 31 &&
+                            diffRedGreen is >= -8 and <= 7 &&
+                            diffBlueGreen is >= -8 and <= 7 &&
                             currentRgba32.A == previousPixel.A)
                         {
                             byte dr_dg = (byte)(diffRedGreen + 8),

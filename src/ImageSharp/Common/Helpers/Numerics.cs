@@ -77,25 +77,25 @@ internal static class Numerics
     /// Calculates <paramref name="x"/> % 64
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Modulo64(int value) => value & 63;
+    public static int Modulo64(int x) => x & 63;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 64
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static nint Modulo64(nint value) => value & 63;
+    public static nint Modulo64(nint x) => x & 63;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 256
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Modulo256(int value) => value & 255;
+    public static int Modulo256(int x) => x & 255;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 256
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static nint Modulo256(nint value) => value & 255;
+    public static nint Modulo256(nint x) => x & 255;
 
     /// <summary>
     /// Fast (x mod m) calculator, with the restriction that
@@ -1063,5 +1063,4 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
-
 }

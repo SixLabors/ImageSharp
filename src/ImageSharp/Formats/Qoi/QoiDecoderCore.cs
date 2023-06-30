@@ -146,7 +146,6 @@ internal class QoiDecoderCore : IImageDecoderInternals
     {
         using IMemoryOwner<Rgba32> previouslySeenPixelsBuffer = this.memoryAllocator.Allocate<Rgba32>(64, AllocationOptions.Clean);
         Span<Rgba32> previouslySeenPixels = previouslySeenPixelsBuffer.GetSpan();
-        //Rgba32[] previouslySeenPixels = new Rgba32[64];
         Rgba32 previousPixel = new(0, 0, 0, 255);
 
         // We save the pixel to avoid loosing the fully opaque black pixel

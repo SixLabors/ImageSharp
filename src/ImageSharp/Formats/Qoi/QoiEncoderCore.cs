@@ -14,12 +14,21 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// </summary>
 public class QoiEncoderCore : IImageEncoderInternals
 {
+    /// <summary>
+    /// The encoder with options
+    /// </summary>
     private readonly QoiEncoder encoder;
+
+    /// <summary>
+    /// Used the manage memory allocations.
+    /// </summary>
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QoiEncoderCore"/> class.
     /// </summary>
+    /// <param name="encoder">The encoder with options.</param>
+    /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
     public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator)
     {
         this.encoder = encoder;
@@ -101,9 +110,9 @@ public class QoiEncoderCore : IImageEncoderInternals
                             {
                                 break;
                             }
+
                             row = pixels.DangerousGetRowSpan(i);
                         }
-
 
                         currentPixel = row[j];
                         currentPixel.ToRgba32(ref currentRgba32);

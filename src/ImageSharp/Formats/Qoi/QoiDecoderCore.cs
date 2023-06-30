@@ -72,11 +72,14 @@ internal class QoiDecoderCore : IImageDecoderInternals
     /// <inheritdoc />
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        ImageMetadata metadata = new();
-
         this.ProcessHeader(stream);
         PixelTypeInfo pixelType = new(8 * (int)this.header.Channels);
         Size size = new((int)this.header.Width, (int)this.header.Height);
+
+        ImageMetadata metadata = new();
+        QoiMetadata qoiMetadata = metadata.GetQoiMetadata();
+        qoiMetadata.Channels = this.header.Channels;
+        qoiMetadata.ColorSpace = this.header.ColorSpace;
 
         return new ImageInfo(pixelType, size, metadata);
     }

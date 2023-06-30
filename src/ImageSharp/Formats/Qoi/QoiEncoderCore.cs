@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -14,10 +15,16 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 public class QoiEncoderCore : IImageEncoderInternals
 {
     private readonly QoiEncoder encoder;
+    private readonly MemoryAllocator memoryAllocator;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="QoiEncoderCore"/> class.
     /// </summary>
-    public QoiEncoderCore(QoiEncoder encoder) => this.encoder = encoder;
+    public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator)
+    {
+        this.encoder = encoder;
+        this.memoryAllocator = memoryAllocator;
+    }
 
     /// <inheritdoc />
     public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
@@ -27,7 +34,7 @@ public class QoiEncoderCore : IImageEncoderInternals
         Guard.NotNull(stream, nameof(stream));
 
         this.WriteHeader(image, stream);
-        WritePixels(image, stream);
+        this.WritePixels(image, stream);
         WriteEndOfStream(stream);
         stream.Flush();
     }
@@ -50,21 +57,22 @@ public class QoiEncoderCore : IImageEncoderInternals
         stream.WriteByte((byte)qoiColorSpace);
     }
 
-    private static void WritePixels<TPixel>(Image<TPixel> image, Stream stream)
+    private void WritePixels<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Start image encoding
-        Rgba32[] previouslySeenPixels = new Rgba32[64];
+        using IMemoryOwner<Rgba32> previouslySeenPixelsBuffer = this.memoryAllocator.Allocate<Rgba32>(64);
+        Span<Rgba32> previouslySeenPixels = previouslySeenPixelsBuffer.GetSpan();
         Rgba32 previousPixel = new(0, 0, 0, 255);
         Rgba32 currentRgba32 = default;
         Buffer2D<TPixel> pixels = image.Frames[0].PixelBuffer;
 
         for (int i = 0; i < pixels.Height; i++)
         {
+            Span<TPixel> row = pixels.DangerousGetRowSpan(i);
             for (int j = 0; j < pixels.Width && i < pixels.Height; j++)
             {
                 // We get the RGBA value from pixels
-                Span<TPixel> row = pixels.DangerousGetRowSpan(i);
                 TPixel currentPixel = pixels[j, i];
                 currentPixel.ToRgba32(ref currentRgba32);
 

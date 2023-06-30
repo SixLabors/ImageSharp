@@ -18,9 +18,13 @@ public class LocalFileSystemTests
 
             LocalFileSystem fs = new();
 
-            using (Stream stream = fs.OpenRead(path))
+            using (FileStream stream = (FileStream)fs.OpenRead(path))
             using (StreamReader reader = new(stream))
             {
+                Assert.False(stream.IsAsync);
+                Assert.True(stream.CanRead);
+                Assert.False(stream.CanWrite);
+
                 string data = reader.ReadToEnd();
 
                 Assert.Equal(testData, data);
@@ -43,9 +47,13 @@ public class LocalFileSystemTests
 
             LocalFileSystem fs = new();
 
-            await using (Stream stream = fs.OpenReadAsynchronous(path))
+            await using (FileStream stream = (FileStream)fs.OpenReadAsynchronous(path))
             using (StreamReader reader = new(stream))
             {
+                Assert.True(stream.IsAsync);
+                Assert.True(stream.CanRead);
+                Assert.False(stream.CanWrite);
+
                 string data = await reader.ReadToEndAsync();
 
                 Assert.Equal(testData, data);
@@ -66,9 +74,13 @@ public class LocalFileSystemTests
             string testData = Guid.NewGuid().ToString();
             LocalFileSystem fs = new();
 
-            using (Stream stream = fs.Create(path))
+            using (FileStream stream = (FileStream)fs.Create(path))
             using (StreamWriter writer = new(stream))
             {
+                Assert.False(stream.IsAsync);
+                Assert.True(stream.CanRead);
+                Assert.True(stream.CanWrite);
+
                 writer.Write(testData);
             }
 
@@ -90,9 +102,13 @@ public class LocalFileSystemTests
             string testData = Guid.NewGuid().ToString();
             LocalFileSystem fs = new();
 
-            await using (Stream stream = fs.CreateAsynchronous(path))
+            await using (FileStream stream = (FileStream)fs.CreateAsynchronous(path))
             await using (StreamWriter writer = new(stream))
             {
+                Assert.True(stream.IsAsync);
+                Assert.True(stream.CanRead);
+                Assert.True(stream.CanWrite);
+
                 await writer.WriteAsync(testData);
             }
 

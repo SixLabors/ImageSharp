@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -25,11 +26,6 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    ///     Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-    /// </summary>
-    private readonly bool skipMetadata;
-
-    /// <summary>
     ///     The QOI header.
     /// </summary>
     private QoiHeader header;
@@ -38,7 +34,6 @@ internal class QoiDecoderCore : IImageDecoderInternals
     {
         this.Options = options;
         this.configuration = options.Configuration;
-        this.skipMetadata = options.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
@@ -149,7 +144,9 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32[] previouslySeenPixels = new Rgba32[64];
+        using IMemoryOwner<Rgba32> previouslySeenPixelsBuffer = this.memoryAllocator.Allocate<Rgba32>(64, AllocationOptions.Clean);
+        Span<Rgba32> previouslySeenPixels = previouslySeenPixelsBuffer.GetSpan();
+        //Rgba32[] previouslySeenPixels = new Rgba32[64];
         Rgba32 previousPixel = new(0, 0, 0, 255);
 
         // We save the pixel to avoid loosing the fully opaque black pixel
@@ -163,9 +160,9 @@ internal class QoiDecoderCore : IImageDecoderInternals
 
         for (int i = 0; i < this.header.Height; i++)
         {
-            for (int j = 0; j < this.header.Width; j++)
+            Span<TPixel> row = pixels.DangerousGetRowSpan(i);
+            for (int j = 0; j < row.Length; j++)
             {
-                Span<TPixel> row = pixels.DangerousGetRowSpan(i);
                 operationByte = (byte)stream.ReadByte();
                 switch ((QoiChunk)operationByte)
                 {
@@ -247,7 +244,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                 pixel.FromRgba32(readPixel);
                                 for (int k = -1; k < repetitions; k++, j++)
                                 {
-                                    if (j == this.header.Width)
+                                    if (j == row.Length)
                                     {
                                         j = 0;
                                         i++;

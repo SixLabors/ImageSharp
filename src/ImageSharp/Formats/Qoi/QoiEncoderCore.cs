@@ -61,7 +61,7 @@ public class QoiEncoderCore : IImageEncoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Start image encoding
-        using IMemoryOwner<Rgba32> previouslySeenPixelsBuffer = this.memoryAllocator.Allocate<Rgba32>(64);
+        using IMemoryOwner<Rgba32> previouslySeenPixelsBuffer = this.memoryAllocator.Allocate<Rgba32>(64, AllocationOptions.Clean);
         Span<Rgba32> previouslySeenPixels = previouslySeenPixelsBuffer.GetSpan();
         Rgba32 previousPixel = new(0, 0, 0, 255);
         Rgba32 currentRgba32 = default;

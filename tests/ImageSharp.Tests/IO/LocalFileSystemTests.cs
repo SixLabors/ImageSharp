@@ -91,7 +91,7 @@ public class LocalFileSystemTests
             LocalFileSystem fs = new();
 
             await using (Stream stream = fs.CreateAsynchronous(path))
-            using (StreamWriter writer = new(stream))
+            await using (StreamWriter writer = new(stream))
             {
                 await writer.WriteAsync(testData);
             }

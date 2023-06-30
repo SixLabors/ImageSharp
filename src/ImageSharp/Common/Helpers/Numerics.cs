@@ -74,6 +74,30 @@ internal static class Numerics
     public static nint Modulo8(nint x) => x & 7;
 
     /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo64(int value) => value & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo64(nint value) => value & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo256(int value) => value & 255;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo256(nint value) => value & 255;
+
+    /// <summary>
     /// Fast (x mod m) calculator, with the restriction that
     /// <paramref name="m"/> should be power of 2.
     /// </summary>
@@ -1039,4 +1063,5 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
+
 }

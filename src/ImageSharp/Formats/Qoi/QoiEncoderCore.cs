@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -63,6 +64,7 @@ public class QoiEncoderCore : IImageEncoderInternals
             for (int j = 0; j < pixels.Width && i < pixels.Height; j++)
             {
                 // We get the RGBA value from pixels
+                Span<TPixel> row = pixels.DangerousGetRowSpan(i);
                 TPixel currentPixel = pixels[j, i];
                 currentPixel.ToRgba32(ref currentRgba32);
 
@@ -87,14 +89,15 @@ public class QoiEncoderCore : IImageEncoderInternals
                         {
                             j = 0;
                             i++;
+                            if (i == pixels.Height)
+                            {
+                                break;
+                            }
+                            row = pixels.DangerousGetRowSpan(i);
                         }
 
-                        if (i == pixels.Height)
-                        {
-                            break;
-                        }
 
-                        currentPixel = pixels[j, i];
+                        currentPixel = row[j];
                         currentPixel.ToRgba32(ref currentRgba32);
                     }
                     while (currentRgba32.Equals(previousPixel) && repetitions < 62);
@@ -196,6 +199,7 @@ public class QoiEncoderCore : IImageEncoderInternals
         stream.WriteByte(1);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetArrayPosition(Rgba32 pixel)
-        => ((pixel.R * 3) + (pixel.G * 5) + (pixel.B * 7) + (pixel.A * 11)) % 64;
+        => Numerics.Modulo64((pixel.R * 3) + (pixel.G * 5) + (pixel.B * 7) + (pixel.A * 11));
 }

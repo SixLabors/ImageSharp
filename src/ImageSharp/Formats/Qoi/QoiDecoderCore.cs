@@ -3,6 +3,8 @@
 
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -85,7 +87,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The stream where the bytes are being read</param>
     /// <exception cref="InvalidImageContentException">If the stream doesn't store a qoi image</exception>
-    private void ProcessHeader(Stream stream)
+    private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> magicBytes = stackalloc byte[4];
         Span<byte> widthBytes = stackalloc byte[4];
@@ -141,7 +143,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private static void ThrowInvalidImageContentException()
         => throw new InvalidImageContentException("The image is not a valid QOI image.");
 
-    private void ProcessPixels<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
+    private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32[] previouslySeenPixels = new Rgba32[64];
@@ -151,26 +153,27 @@ internal class QoiDecoderCore : IImageDecoderInternals
         // See https://github.com/phoboslab/qoi/issues/258
         int pixelArrayPosition = GetArrayPosition(previousPixel);
         previouslySeenPixels[pixelArrayPosition] = previousPixel;
+        byte operationByte;
+        Rgba32 readPixel = default;
+        Span<byte> pixelBytes = MemoryMarshal.CreateSpan(ref Unsafe.As<Rgba32, byte>(ref readPixel), 4);
+        TPixel pixel = default;
 
         for (int i = 0; i < this.header.Height; i++)
         {
             for (int j = 0; j < this.header.Width; j++)
             {
-                byte operationByte = (byte)stream.ReadByte();
-                byte[] pixelBytes;
-                Rgba32 readPixel;
-                TPixel pixel = default;
+                Span<TPixel> row = pixels.DangerousGetRowSpan(i);
+                operationByte = (byte)stream.ReadByte();
                 switch ((QoiChunk)operationByte)
                 {
                     // Reading one pixel with previous alpha intact
                     case QoiChunk.QoiOpRgb:
-                        pixelBytes = new byte[3];
-                        if (stream.Read(pixelBytes) < 3)
+                        if (stream.Read(pixelBytes[..3]) < 3)
                         {
                             ThrowInvalidImageContentException();
                         }
 
-                        readPixel = previousPixel with { R = pixelBytes[0], G = pixelBytes[1], B = pixelBytes[2] };
+                        readPixel.A = previousPixel.A;
                         pixel.FromRgba32(readPixel);
                         pixelArrayPosition = GetArrayPosition(readPixel);
                         previouslySeenPixels[pixelArrayPosition] = readPixel;
@@ -178,13 +181,11 @@ internal class QoiDecoderCore : IImageDecoderInternals
 
                     // Reading one pixel with new alpha
                     case QoiChunk.QoiOpRgba:
-                        pixelBytes = new byte[4];
                         if (stream.Read(pixelBytes) < 4)
                         {
                             ThrowInvalidImageContentException();
                         }
 
-                        readPixel = new Rgba32(pixelBytes[0], pixelBytes[1], pixelBytes[2], pixelBytes[3]);
                         pixel.FromRgba32(readPixel);
                         pixelArrayPosition = GetArrayPosition(readPixel);
                         previouslySeenPixels[pixelArrayPosition] = readPixel;
@@ -206,9 +207,9 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                     blueDifference = (byte)(operationByte & 0b00000011);
                                 readPixel = previousPixel with
                                 {
-                                    R = (byte)((previousPixel.R + (redDifference - 2)) % 256),
-                                    G = (byte)((previousPixel.G + (greenDifference - 2)) % 256),
-                                    B = (byte)((previousPixel.B + (blueDifference - 2)) % 256)
+                                    R = (byte)Numerics.Modulo256(previousPixel.R + (redDifference - 2)),
+                                    G = (byte)Numerics.Modulo256(previousPixel.G + (greenDifference - 2)),
+                                    B = (byte)Numerics.Modulo256(previousPixel.B + (blueDifference - 2))
                                 };
                                 pixel.FromRgba32(readPixel);
                                 pixelArrayPosition = GetArrayPosition(readPixel);
@@ -219,12 +220,12 @@ internal class QoiDecoderCore : IImageDecoderInternals
                             // depending on the green one
                             case QoiChunk.QoiOpLuma:
                                 byte diffGreen = (byte)(operationByte & 0b00111111),
-                                    currentGreen = (byte)((previousPixel.G + (diffGreen - 32)) % 256),
+                                    currentGreen = (byte)Numerics.Modulo256(previousPixel.G + (diffGreen - 32)),
                                     nextByte = (byte)stream.ReadByte(),
                                     diffRedDG = (byte)(nextByte >> 4),
                                     diffBlueDG = (byte)(nextByte & 0b00001111),
-                                    currentRed = (byte)((diffRedDG - 8 + (diffGreen - 32) + previousPixel.R) % 256),
-                                    currentBlue = (byte)((diffBlueDG - 8 + (diffGreen - 32) + previousPixel.B) % 256);
+                                    currentRed = (byte)Numerics.Modulo256(diffRedDG - 8 + (diffGreen - 32) + previousPixel.R),
+                                    currentBlue = (byte)Numerics.Modulo256(diffBlueDG - 8 + (diffGreen - 32) + previousPixel.B);
                                 readPixel = previousPixel with { R = currentRed, B = currentBlue, G = currentGreen };
                                 pixel.FromRgba32(readPixel);
                                 pixelArrayPosition = GetArrayPosition(readPixel);
@@ -233,7 +234,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
 
                             // Repeating the previous pixel 1..63 times
                             case QoiChunk.QoiOpRun:
-                                byte repetitions = (byte)(operationByte & 0b00111111);
+                                int repetitions = operationByte & 0b00111111;
                                 if (repetitions is 62 or 63)
                                 {
                                     ThrowInvalidImageContentException();
@@ -247,9 +248,10 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                     {
                                         j = 0;
                                         i++;
+                                        row = pixels.DangerousGetRowSpan(i);
                                     }
 
-                                    pixels[j, i] = pixel;
+                                    row[j] = pixel;
                                 }
 
                                 j--;
@@ -263,7 +265,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                         break;
                 }
 
-                pixels[j, i] = pixel;
+                row[j] = pixel;
                 previousPixel = readPixel;
             }
         }
@@ -283,5 +285,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
         }
     }
 
-    private static int GetArrayPosition(Rgba32 pixel) => ((pixel.R * 3) + (pixel.G * 5) + (pixel.B * 7) + (pixel.A * 11)) % 64;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetArrayPosition(Rgba32 pixel)
+        => Numerics.Modulo64((pixel.R * 3) + (pixel.G * 5) + (pixel.B * 7) + (pixel.A * 11));
 }

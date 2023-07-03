@@ -13,24 +13,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Qoi;
 public class QoiEncoderTests
 {
     [Theory]
-    [WithFile(TestImages.Qoi.Dice, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.EdgeCase, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.Kodim10, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.Kodim23, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.QoiLogo, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.TestCard, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.TestCardRGBA, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Qoi.Wikipedia008, PixelTypes.Rgba32)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Quitar miembros privados no utilizados", Justification = "Function implicitly in tests")]
-    private static void Encode<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Qoi.Dice, PixelTypes.Rgba32, QoiChannels.Rgba, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.EdgeCase, PixelTypes.Rgba32, QoiChannels.Rgba, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.Kodim10, PixelTypes.Rgba32, QoiChannels.Rgb, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.Kodim23, PixelTypes.Rgba32, QoiChannels.Rgb, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.QoiLogo, PixelTypes.Rgba32, QoiChannels.Rgba, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.TestCard, PixelTypes.Rgba32, QoiChannels.Rgba, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.TestCardRGBA, PixelTypes.Rgba32, QoiChannels.Rgba, QoiColorSpace.SrgbWithLinearAlpha)]
+    [WithFile(TestImages.Qoi.Wikipedia008, PixelTypes.Rgba32, QoiChannels.Rgb, QoiColorSpace.SrgbWithLinearAlpha)]
+    public static void Encode<TPixel>(TestImageProvider<TPixel> provider, QoiChannels channels, QoiColorSpace colorSpace)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder());
         using MemoryStream stream = new();
-        QoiEncoder encoder = new();
+        QoiEncoder encoder = new()
+        {
+            Channels = channels,
+            ColorSpace = colorSpace
+        };
         image.Save(stream, encoder);
         stream.Position = 0;
+
         using Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(stream);
+        QoiMetadata qoiMetadata = encodedImage.Metadata.GetQoiMetadata();
+
         ImageComparer.Exact.CompareImages(image, encodedImage);
+        Assert.Equal(qoiMetadata.Channels, channels);
+        Assert.Equal(qoiMetadata.ColorSpace, colorSpace);
     }
 }

@@ -141,9 +141,9 @@ public class QoiEncoderCore : IImageEncoderInternals
                     // Since it wasn't found on the previously seen pixels, we save it
                     previouslySeenPixels[pixelArrayPosition] = currentRgba32;
 
-                    sbyte diffRed = (sbyte)(currentRgba32.R - previousPixel.R),
-                        diffGreen = (sbyte)(currentRgba32.G - previousPixel.G),
-                        diffBlue = (sbyte)(currentRgba32.B - previousPixel.B);
+                    sbyte diffRed = (sbyte)(currentRgba32.R - previousPixel.R);
+                    sbyte diffGreen = (sbyte)(currentRgba32.G - previousPixel.G);
+                    sbyte diffBlue = (sbyte)(currentRgba32.B - previousPixel.B);
 
                     // If so, we do a QOI_OP_DIFF
                     if (diffRed is >= -2 and <= 1 &&
@@ -152,27 +152,27 @@ public class QoiEncoderCore : IImageEncoderInternals
                         currentRgba32.A == previousPixel.A)
                     {
                         // Bottom limit is -2, so we add 2 to make it equal to 0
-                        byte dr = (byte)(diffRed + 2),
-                            dg = (byte)(diffGreen + 2),
-                            db = (byte)(diffBlue + 2),
-                            valueToWrite = (byte)((byte)QoiChunk.QoiOpDiff | (dr << 4) | (dg << 2) | db);
+                        byte dr = (byte)(diffRed + 2);
+                        byte dg = (byte)(diffGreen + 2);
+                        byte db = (byte)(diffBlue + 2);
+                        byte valueToWrite = (byte)((byte)QoiChunk.QoiOpDiff | (dr << 4) | (dg << 2) | db);
                         stream.WriteByte(valueToWrite);
                     }
                     else
                     {
                         // else, we check if the green difference is less than -32..31 and the rest -8..7
                         // If so, we do a QOI_OP_LUMA
-                        sbyte diffRedGreen = (sbyte)(diffRed - diffGreen),
-                            diffBlueGreen = (sbyte)(diffBlue - diffGreen);
+                        sbyte diffRedGreen = (sbyte)(diffRed - diffGreen);
+                        sbyte diffBlueGreen = (sbyte)(diffBlue - diffGreen);
                         if (diffGreen is >= -32 and <= 31 &&
                             diffRedGreen is >= -8 and <= 7 &&
                             diffBlueGreen is >= -8 and <= 7 &&
                             currentRgba32.A == previousPixel.A)
                         {
-                            byte dr_dg = (byte)(diffRedGreen + 8),
-                                db_dg = (byte)(diffBlueGreen + 8),
-                                byteToWrite1 = (byte)((byte)QoiChunk.QoiOpLuma | (diffGreen + 32)),
-                                byteToWrite2 = (byte)((dr_dg << 4) | db_dg);
+                            byte dr_dg = (byte)(diffRedGreen + 8);
+                            byte db_dg = (byte)(diffBlueGreen + 8);
+                            byte byteToWrite1 = (byte)((byte)QoiChunk.QoiOpLuma | (diffGreen + 32));
+                            byte byteToWrite2 = (byte)((dr_dg << 4) | db_dg);
                             stream.WriteByte(byteToWrite1);
                             stream.WriteByte(byteToWrite2);
                         }

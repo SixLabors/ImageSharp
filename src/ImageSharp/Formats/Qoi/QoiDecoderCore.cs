@@ -202,9 +202,9 @@ internal class QoiDecoderCore : IImageDecoderInternals
 
                             // Get one pixel from the difference (-2..1) of the previous pixel
                             case QoiChunk.QoiOpDiff:
-                                byte redDifference = (byte)((operationByte & 0b00110000) >> 4);
-                                byte greenDifference = (byte)((operationByte & 0b00001100) >> 2);
-                                byte blueDifference = (byte)(operationByte & 0b00000011);
+                                int redDifference = (operationByte & 0b00110000) >> 4;
+                                int greenDifference = (operationByte & 0b00001100) >> 2;
+                                int blueDifference = operationByte & 0b00000011;
                                 readPixel = previousPixel with
                                 {
                                     R = (byte)Numerics.Modulo256(previousPixel.R + (redDifference - 2)),
@@ -219,14 +219,14 @@ internal class QoiDecoderCore : IImageDecoderInternals
                             // Get green difference in 6 bits and red and blue differences
                             // depending on the green one
                             case QoiChunk.QoiOpLuma:
-                                byte diffGreen = (byte)(operationByte & 0b00111111);
-                                byte currentGreen = (byte)Numerics.Modulo256(previousPixel.G + (diffGreen - 32));
-                                byte nextByte = (byte)stream.ReadByte();
-                                byte diffRedDG = (byte)(nextByte >> 4);
-                                byte diffBlueDG = (byte)(nextByte & 0b00001111);
-                                byte currentRed = (byte)Numerics.Modulo256(diffRedDG - 8 + (diffGreen - 32) + previousPixel.R);
-                                byte currentBlue = (byte)Numerics.Modulo256(diffBlueDG - 8 + (diffGreen - 32) + previousPixel.B);
-                                readPixel = previousPixel with { R = currentRed, B = currentBlue, G = currentGreen };
+                                int diffGreen = operationByte & 0b00111111;
+                                int currentGreen = Numerics.Modulo256(previousPixel.G + (diffGreen - 32));
+                                int nextByte = stream.ReadByte();
+                                int diffRedDG = nextByte >> 4;
+                                int diffBlueDG = nextByte & 0b00001111;
+                                int currentRed = Numerics.Modulo256(diffRedDG - 8 + (diffGreen - 32) + previousPixel.R);
+                                int currentBlue = Numerics.Modulo256(diffBlueDG - 8 + (diffGreen - 32) + previousPixel.B);
+                                readPixel = previousPixel with { R = (byte)currentRed, B = (byte)currentBlue, G = (byte)currentGreen };
                                 pixel.FromRgba32(readPixel);
                                 pixelArrayPosition = GetArrayPosition(readPixel);
                                 previouslySeenPixels[pixelArrayPosition] = readPixel;

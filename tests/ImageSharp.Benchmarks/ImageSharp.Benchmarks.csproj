@@ -69,8 +69,5 @@
     <Compile Remove="PixelBlenders\**" />
     <Compile Remove="Processing\Resize.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Codecs\Qoi\" />
-  </ItemGroup>
 
 </Project>

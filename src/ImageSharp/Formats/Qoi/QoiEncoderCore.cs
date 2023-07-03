@@ -25,14 +25,20 @@ public class QoiEncoderCore : IImageEncoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
+    /// The configuration instance for the encoding operation.
+    /// </summary>
+    private readonly Configuration configuration;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="QoiEncoderCore"/> class.
     /// </summary>
     /// <param name="encoder">The encoder with options.</param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
-    public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator)
+    public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator, Configuration configuration)
     {
         this.encoder = encoder;
         this.memoryAllocator = memoryAllocator;
+        this.configuration = configuration;
     }
 
     /// <inheritdoc />
@@ -75,15 +81,17 @@ public class QoiEncoderCore : IImageEncoderInternals
         Rgba32 previousPixel = new(0, 0, 0, 255);
         Rgba32 currentRgba32 = default;
         Buffer2D<TPixel> pixels = image.Frames[0].PixelBuffer;
+        using IMemoryOwner<Rgba32> rgbaRowBuffer = this.memoryAllocator.Allocate<Rgba32>(pixels.Width);
+        Span<Rgba32> rgbaRow = rgbaRowBuffer.GetSpan();
 
         for (int i = 0; i < pixels.Height; i++)
         {
             Span<TPixel> row = pixels.DangerousGetRowSpan(i);
+            PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, row, rgbaRow);
             for (int j = 0; j < row.Length && i < pixels.Height; j++)
             {
                 // We get the RGBA value from pixels
-                TPixel currentPixel = row[j];
-                currentPixel.ToRgba32(ref currentRgba32);
+                currentRgba32 = rgbaRow[j];
 
                 // First, we check if the current pixel is equal to the previous one
                 // If so, we do a QOI_OP_RUN
@@ -97,7 +105,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                      * and we should discuss what to do about this approach and
                      * if it's correct
                      */
-                    byte repetitions = 0;
+                    int repetitions = 0;
                     do
                     {
                         repetitions++;
@@ -112,15 +120,15 @@ public class QoiEncoderCore : IImageEncoderInternals
                             }
 
                             row = pixels.DangerousGetRowSpan(i);
+                            PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, row, rgbaRow);
                         }
 
-                        currentPixel = row[j];
-                        currentPixel.ToRgba32(ref currentRgba32);
+                        currentRgba32 = rgbaRow[j];
                     }
                     while (currentRgba32.Equals(previousPixel) && repetitions < 62);
 
                     j--;
-                    stream.WriteByte((byte)((byte)QoiChunk.QoiOpRun | (repetitions - 1)));
+                    stream.WriteByte((byte)((int)QoiChunk.QoiOpRun | (repetitions - 1)));
 
                     /* If it's a QOI_OP_RUN, we don't overwrite the previous pixel since
                      * it will be taken and compared on the next iteration
@@ -131,7 +139,7 @@ public class QoiEncoderCore : IImageEncoderInternals
                 // else, we check if it exists in the previously seen pixels
                 // If so, we do a QOI_OP_INDEX
                 int pixelArrayPosition = GetArrayPosition(currentRgba32);
-                if (previouslySeenPixels[pixelArrayPosition].Equals(currentPixel))
+                if (previouslySeenPixels[pixelArrayPosition].Equals(currentRgba32))
                 {
                     stream.WriteByte((byte)pixelArrayPosition);
                 }
@@ -141,9 +149,9 @@ public class QoiEncoderCore : IImageEncoderInternals
                     // Since it wasn't found on the previously seen pixels, we save it
                     previouslySeenPixels[pixelArrayPosition] = currentRgba32;
 
-                    sbyte diffRed = (sbyte)(currentRgba32.R - previousPixel.R);
-                    sbyte diffGreen = (sbyte)(currentRgba32.G - previousPixel.G);
-                    sbyte diffBlue = (sbyte)(currentRgba32.B - previousPixel.B);
+                    int diffRed = currentRgba32.R - previousPixel.R;
+                    int diffGreen = currentRgba32.G - previousPixel.G;
+                    int diffBlue = currentRgba32.B - previousPixel.B;
 
                     // If so, we do a QOI_OP_DIFF
                     if (diffRed is >= -2 and <= 1 &&
@@ -152,26 +160,26 @@ public class QoiEncoderCore : IImageEncoderInternals
                         currentRgba32.A == previousPixel.A)
                     {
                         // Bottom limit is -2, so we add 2 to make it equal to 0
-                        byte dr = (byte)(diffRed + 2);
-                        byte dg = (byte)(diffGreen + 2);
-                        byte db = (byte)(diffBlue + 2);
-                        byte valueToWrite = (byte)((byte)QoiChunk.QoiOpDiff | (dr << 4) | (dg << 2) | db);
+                        int dr = diffRed + 2;
+                        int dg = diffGreen + 2;
+                        int db = diffBlue + 2;
+                        byte valueToWrite = (byte)((int)QoiChunk.QoiOpDiff | (dr << 4) | (dg << 2) | db);
                         stream.WriteByte(valueToWrite);
                     }
                     else
                     {
                         // else, we check if the green difference is less than -32..31 and the rest -8..7
                         // If so, we do a QOI_OP_LUMA
-                        sbyte diffRedGreen = (sbyte)(diffRed - diffGreen);
-                        sbyte diffBlueGreen = (sbyte)(diffBlue - diffGreen);
+                        int diffRedGreen = diffRed - diffGreen;
+                        int diffBlueGreen = diffBlue - diffGreen;
                         if (diffGreen is >= -32 and <= 31 &&
                             diffRedGreen is >= -8 and <= 7 &&
                             diffBlueGreen is >= -8 and <= 7 &&
                             currentRgba32.A == previousPixel.A)
                         {
-                            byte dr_dg = (byte)(diffRedGreen + 8);
-                            byte db_dg = (byte)(diffBlueGreen + 8);
-                            byte byteToWrite1 = (byte)((byte)QoiChunk.QoiOpLuma | (diffGreen + 32));
+                            int dr_dg = diffRedGreen + 8;
+                            int db_dg = diffBlueGreen + 8;
+                            byte byteToWrite1 = (byte)((int)QoiChunk.QoiOpLuma | (diffGreen + 32));
                             byte byteToWrite2 = (byte)((dr_dg << 4) | db_dg);
                             stream.WriteByte(byteToWrite1);
                             stream.WriteByte(byteToWrite2);

@@ -27,7 +27,7 @@ public class QoiEncoder : ImageEncoder
     /// <inheritdoc />
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        QoiEncoderCore encoder = new(this, image.GetMemoryAllocator());
+        QoiEncoderCore encoder = new(this, image.GetMemoryAllocator(), image.GetConfiguration());
         encoder.Encode(image, stream, cancellationToken);
     }
 }

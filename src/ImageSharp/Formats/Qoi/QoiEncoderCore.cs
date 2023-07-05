@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// <summary>
 /// Image encoder for writing an image to a stream as a QOi image
 /// </summary>
-public class QoiEncoderCore : IImageEncoderInternals
+internal class QoiEncoderCore : IImageEncoderInternals
 {
     /// <summary>
     /// The encoder with options
@@ -34,6 +34,7 @@ public class QoiEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <param name="encoder">The encoder with options.</param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
+    /// <param name="configuration">The configuration of the Encoder.</param>
     public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator, Configuration configuration)
     {
         this.encoder = encoder;

@@ -640,7 +640,7 @@ internal static partial class SimdUtils
         /// <param name="mask">The mask vector.</param>
         /// <returns>The <see cref="Vector256{T}"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<byte> BlendVariable(in Vector128<byte> left, in Vector128<byte> right, in Vector128<byte> mask)
+        public static Vector128<byte> BlendVariable(Vector128<byte> left, Vector128<byte> right, Vector128<byte> mask)
         {
             if (Sse41.IsSupported)
             {

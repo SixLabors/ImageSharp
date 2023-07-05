@@ -122,6 +122,7 @@ public partial class ImageTests
             Stream StreamFactory() => this.DataStream;
 
             this.LocalFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(StreamFactory);
+            this.LocalFileSystemMock.Setup(x => x.OpenReadAsynchronous(this.MockFilePath)).Returns(StreamFactory);
             this.topLevelFileSystem.AddFile(this.MockFilePath, StreamFactory);
             this.LocalConfiguration.FileSystem = this.LocalFileSystemMock.Object;
             this.TopLevelConfiguration.FileSystem = this.topLevelFileSystem;
@@ -132,6 +133,11 @@ public partial class ImageTests
             // Clean up the global object;
             this.localStreamReturnImageRgba32?.Dispose();
             this.localStreamReturnImageAgnostic?.Dispose();
+
+            if (this.dataStreamLazy.IsValueCreated)
+            {
+                this.dataStreamLazy.Value.Dispose();
+            }
         }
 
         protected virtual Stream CreateStream() => this.TestFormat.CreateStream(this.Marker);

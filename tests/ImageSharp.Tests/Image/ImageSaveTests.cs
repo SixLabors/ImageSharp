@@ -44,7 +44,7 @@ public class ImageSaveTests : IDisposable
     [Fact]
     public void SavePath()
     {
-        var stream = new MemoryStream();
+        using MemoryStream stream = new();
         this.fileSystem.Setup(x => x.Create("path.png")).Returns(stream);
         this.image.Save("path.png");
 
@@ -54,7 +54,7 @@ public class ImageSaveTests : IDisposable
     [Fact]
     public void SavePathWithEncoder()
     {
-        var stream = new MemoryStream();
+        using MemoryStream stream = new();
         this.fileSystem.Setup(x => x.Create("path.jpg")).Returns(stream);
 
         this.image.Save("path.jpg", this.encoderNotInFormat.Object);
@@ -73,7 +73,7 @@ public class ImageSaveTests : IDisposable
     [Fact]
     public void SaveStreamWithMime()
     {
-        var stream = new MemoryStream();
+        using MemoryStream stream = new();
         this.image.Save(stream, this.localImageFormat.Object);
 
         this.encoder.Verify(x => x.Encode(this.image, stream));
@@ -82,7 +82,7 @@ public class ImageSaveTests : IDisposable
     [Fact]
     public void SaveStreamWithEncoder()
     {
-        var stream = new MemoryStream();
+        using MemoryStream stream = new();
 
         this.image.Save(stream, this.encoderNotInFormat.Object);
 

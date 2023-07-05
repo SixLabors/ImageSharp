@@ -186,7 +186,7 @@ internal sealed class LzwEncoder : IDisposable
     /// </summary>
     /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
     /// <param name="stream">The stream to write to.</param>
-    public void Encode(Buffer2D<byte> indexedPixels, Stream stream)
+    public void Encode(Buffer2DRegion<byte> indexedPixels, Stream stream)
     {
         // Write "initial code size" byte
         stream.WriteByte((byte)this.initialCodeSize);
@@ -249,7 +249,7 @@ internal sealed class LzwEncoder : IDisposable
     /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
     /// <param name="initialBits">The initial bits.</param>
     /// <param name="stream">The stream to write to.</param>
-    private void Compress(Buffer2D<byte> indexedPixels, int initialBits, Stream stream)
+    private void Compress(Buffer2DRegion<byte> indexedPixels, int initialBits, Stream stream)
     {
         // Set up the globals: globalInitialBits - initial number of bits
         this.globalInitialBits = initialBits;

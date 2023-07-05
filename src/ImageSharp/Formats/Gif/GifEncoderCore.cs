@@ -291,20 +291,20 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         this.WriteGraphicalControlExtension(metadata, transparencyIndex, stream);
 
-        // TODO: Consider an optimization that trims down the buffer to the minimum size required.
-        // We would use a process similar to entropy crop where we trim the buffer from the edges
-        // until we hit a non-transparent pixel.
-        this.WriteImageDescriptor(frame, useLocal, stream);
+        // Assign the correct buffer to compress.
+        // If we are using a local palette or it's the first run then we want to use the quantized frame.
+        Buffer2D<byte> buffer = useLocal || frameIndex == 0 ? ((IPixelSource)quantized).PixelBuffer : indices;
+
+        // Trim down the buffer to the minimum size required.
+        Buffer2DRegion<byte> region = TrimTransparentPixels(buffer, transparencyIndex);
+        this.WriteImageDescriptor(region.Rectangle, useLocal, stream);
 
         if (useLocal)
         {
             this.WriteColorTable(quantized, stream);
         }
 
-        // Assign the correct buffer to compress.
-        // If we are using a local palette or it's the first run then we want to use the quantized frame.
-        Buffer2D<byte> buffer = useLocal || frameIndex == 0 ? ((IPixelSource)quantized).PixelBuffer : indices;
-        this.WriteImageData(buffer, stream);
+        this.WriteImageData(region, stream);
 
         // Swap the buffers.
         (quantized, previousQuantized) = (previousQuantized, quantized);
@@ -384,6 +384,44 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 i = (b == s) ? replacementIndex : s;
             }
         }
+    }
+
+    private static Buffer2DRegion<byte> TrimTransparentPixels(Buffer2D<byte> buffer, int transparencyIndex)
+    {
+        if (transparencyIndex < 0)
+        {
+            return buffer.GetRegion();
+        }
+
+        byte trimmableIndex = unchecked((byte)transparencyIndex);
+
+        int top = int.MaxValue;
+        int bottom = int.MinValue;
+        int left = int.MaxValue;
+        int right = int.MinValue;
+
+        for (int y = 0; y < buffer.Height; y++)
+        {
+            Span<byte> rowSpan = buffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < rowSpan.Length; x++)
+            {
+                if (rowSpan[x] != trimmableIndex)
+                {
+                    top = Math.Min(top, y);
+                    bottom = Math.Max(bottom, y);
+                    left = Math.Min(left, x);
+                    right = Math.Max(right, x);
+                }
+            }
+        }
+
+        if (top == int.MaxValue || bottom == int.MinValue)
+        {
+            // No valid rectangle found
+            return buffer.GetRegion();
+        }
+
+        return buffer.GetRegion(Rectangle.FromLTRB(left, top, right, bottom));
     }
 
     /// <summary>
@@ -619,7 +657,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         }
 
         IMemoryOwner<byte>? owner = null;
-        Span<byte> extensionBuffer = stackalloc byte[0];    // workaround compiler limitation
+        Span<byte> extensionBuffer = stackalloc byte[0]; // workaround compiler limitation
         if (extensionSize > 128)
         {
             owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);
@@ -642,14 +680,12 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
-    /// Writes the image descriptor to the stream.
+    /// Writes the image frame descriptor to the stream.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
+    /// <param name="rectangle">The frame location and size.</param>
     /// <param name="hasColorTable">Whether to use the global color table.</param>
     /// <param name="stream">The stream to write to.</param>
-    private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, bool hasColorTable, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private void WriteImageDescriptor(Rectangle rectangle, bool hasColorTable, Stream stream)
     {
         byte packedValue = GifImageDescriptor.GetPackedValue(
             localColorTableFlag: hasColorTable,
@@ -658,10 +694,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             localColorTableSize: this.bitDepth - 1);
 
         GifImageDescriptor descriptor = new(
-            left: 0,
-            top: 0,
-            width: (ushort)image.Width,
-            height: (ushort)image.Height,
+            left: (ushort)rectangle.X,
+            top: (ushort)rectangle.Y,
+            width: (ushort)rectangle.Width,
+            height: (ushort)rectangle.Height,
             packed: packedValue);
 
         Span<byte> buffer = stackalloc byte[20];
@@ -697,9 +733,9 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes the image pixel data to the stream.
     /// </summary>
-    /// <param name="indices">The <see cref="Buffer2D{Byte}"/> containing indexed pixels.</param>
+    /// <param name="indices">The <see cref="Buffer2DRegion{Byte}"/> containing indexed pixels.</param>
     /// <param name="stream">The stream to write to.</param>
-    private void WriteImageData(Buffer2D<byte> indices, Stream stream)
+    private void WriteImageData(Buffer2DRegion<byte> indices, Stream stream)
     {
         using LzwEncoder encoder = new(this.memoryAllocator, (byte)this.bitDepth);
         encoder.Encode(indices, stream);

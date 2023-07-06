@@ -14,9 +14,10 @@ using SixLabors.ImageSharp.Advanced;
         "Jpeg",
         "Pbm",
         "Png",
+        "Qoi",
         "Tga",
-        "Webp",
         "Tiff",
+        "Webp",
     };
 
     foreach (string fmt in formats)

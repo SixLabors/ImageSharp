@@ -9,9 +9,10 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace SixLabors.ImageSharp;
 
@@ -531,6 +532,108 @@ public static partial class ImageExtensions
               cancellationToken);
 
     /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    public static void SaveAsQoi(this Image source, string path) => SaveAsQoi(source, path, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsQoiAsync(this Image source, string path) => SaveAsQoiAsync(source, path, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsQoiAsync(this Image source, string path, CancellationToken cancellationToken)
+        => SaveAsQoiAsync(source, path, default, cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    public static void SaveAsQoi(this Image source, string path, QoiEncoder encoder) =>
+        source.Save(
+            path,
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(QoiFormat.Instance));
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsQoiAsync(this Image source, string path, QoiEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(QoiFormat.Instance),
+              cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    public static void SaveAsQoi(this Image source, Stream stream)
+        => SaveAsQoi(source, stream, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsQoiAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
+        => SaveAsQoiAsync(source, stream, default, cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    public static void SaveAsQoi(this Image source, Stream stream, QoiEncoder encoder)
+        => source.Save(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(QoiFormat.Instance));
+
+    /// <summary>
+    /// Saves the image to the given stream with the Qoi format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsQoiAsync(this Image source, Stream stream, QoiEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(QoiFormat.Instance),
+              cancellationToken);
+
+    /// <summary>
     /// Saves the image to the given stream with the Tga format.
     /// </summary>
     /// <param name="source">The image this method extends.</param>
@@ -633,108 +736,6 @@ public static partial class ImageExtensions
               cancellationToken);
 
     /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="path">The file path to save the image to.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsWebp(this Image source, string path) => SaveAsWebp(source, path, default);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="path">The file path to save the image to.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, string path) => SaveAsWebpAsync(source, path, default);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="path">The file path to save the image to.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, string path, CancellationToken cancellationToken)
-        => SaveAsWebpAsync(source, path, default, cancellationToken);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="path">The file path to save the image to.</param>
-    /// <param name="encoder">The encoder to save the image with.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    public static void SaveAsWebp(this Image source, string path, WebpEncoder encoder) =>
-        source.Save(
-            path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="path">The file path to save the image to.</param>
-    /// <param name="encoder">The encoder to save the image with.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default)
-        => source.SaveAsync(
-              path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
-              cancellationToken);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="stream">The stream to save the image to.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-    public static void SaveAsWebp(this Image source, Stream stream)
-        => SaveAsWebp(source, stream, default);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="stream">The stream to save the image to.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-        => SaveAsWebpAsync(source, stream, default, cancellationToken);
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="stream">The stream to save the image to.</param>
-    /// <param name="encoder">The encoder to save the image with.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-    public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
-        => source.Save(
-              stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
-
-    /// <summary>
-    /// Saves the image to the given stream with the Webp format.
-    /// </summary>
-    /// <param name="source">The image this method extends.</param>
-    /// <param name="stream">The stream to save the image to.</param>
-    /// <param name="encoder">The encoder to save the image with.</param>
-    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default)
-        => source.SaveAsync(
-              stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
-              cancellationToken);
-
-    /// <summary>
     /// Saves the image to the given stream with the Tiff format.
     /// </summary>
     /// <param name="source">The image this method extends.</param>
@@ -834,6 +835,108 @@ public static partial class ImageExtensions
         => source.SaveAsync(
               stream,
               encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(TiffFormat.Instance),
+              cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    public static void SaveAsWebp(this Image source, string path) => SaveAsWebp(source, path, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsWebpAsync(this Image source, string path) => SaveAsWebpAsync(source, path, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsWebpAsync(this Image source, string path, CancellationToken cancellationToken)
+        => SaveAsWebpAsync(source, path, default, cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    public static void SaveAsWebp(this Image source, string path, WebpEncoder encoder) =>
+        source.Save(
+            path,
+            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="path">The file path to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              path,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
+              cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    public static void SaveAsWebp(this Image source, Stream stream)
+        => SaveAsWebp(source, stream, default);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsWebpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
+        => SaveAsWebpAsync(source, stream, default, cancellationToken);
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
+        => source.Save(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance));
+
+    /// <summary>
+    /// Saves the image to the given stream with the Webp format.
+    /// </summary>
+    /// <param name="source">The image this method extends.</param>
+    /// <param name="stream">The stream to save the image to.</param>
+    /// <param name="encoder">The encoder to save the image with.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default)
+        => source.SaveAsync(
+              stream,
+              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(WebpFormat.Instance),
               cancellationToken);
 
 }

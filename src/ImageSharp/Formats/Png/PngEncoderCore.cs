@@ -34,7 +34,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The configuration instance for the decoding operation.
+    /// The configuration instance for the encoding operation.
     /// </summary>
     private readonly Configuration configuration;
 

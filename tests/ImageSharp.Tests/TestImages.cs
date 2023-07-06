@@ -1041,4 +1041,16 @@ public static class TestImages
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
         public const string Issue2477 = "Pbm/issue2477.pbm";
     }
+
+    public static class Qoi
+    {
+        public const string Dice = "Qoi/dice.qoi";
+        public const string EdgeCase = "Qoi/edgecase.qoi";
+        public const string Kodim10 = "Qoi/kodim10.qoi";
+        public const string Kodim23 = "Qoi/kodim23.qoi";
+        public const string QoiLogo = "Qoi/qoi_logo.qoi";
+        public const string TestCard = "Qoi/testcard.qoi";
+        public const string TestCardRGBA = "Qoi/testcard_rgba.qoi";
+        public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
+    }
 }

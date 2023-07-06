@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -212,6 +213,7 @@ public sealed class Configuration
     /// <see cref="TgaConfigurationModule"/>.
     /// <see cref="TiffConfigurationModule"/>.
     /// <see cref="WebpConfigurationModule"/>.
+    /// <see cref="QoiConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -222,5 +224,6 @@ public sealed class Configuration
             new PbmConfigurationModule(),
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
-            new WebpConfigurationModule());
+            new WebpConfigurationModule(),
+            new QoiConfigurationModule());
 }

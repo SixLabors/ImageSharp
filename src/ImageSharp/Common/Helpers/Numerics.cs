@@ -74,6 +74,30 @@ internal static class Numerics
     public static nint Modulo8(nint x) => x & 7;
 
     /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo64(int x) => x & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo64(nint x) => x & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo256(int x) => x & 255;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo256(nint x) => x & 255;
+
+    /// <summary>
     /// Fast (x mod m) calculator, with the restriction that
     /// <paramref name="m"/> should be power of 2.
     /// </summary>

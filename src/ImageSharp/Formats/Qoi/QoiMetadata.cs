@@ -19,7 +19,7 @@ public class QoiMetadata : IDeepCloneable
     /// Initializes a new instance of the <see cref="QoiMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    public QoiMetadata(QoiMetadata other)
+    private QoiMetadata(QoiMetadata other)
     {
         this.Channels = other.Channels;
         this.ColorSpace = other.ColorSpace;

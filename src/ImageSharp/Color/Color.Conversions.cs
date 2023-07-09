@@ -139,7 +139,7 @@ public readonly partial struct Color
     /// </summary>
     /// <param name="color">The <see cref="Color"/>.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
-    public static explicit operator Vector4(Color color) => color.ToVector4();
+    public static explicit operator Vector4(Color color) => color.ToScaledVector4();
 
     /// <summary>
     /// Converts an <see cref="Vector4"/> to <see cref="Color"/>.
@@ -228,7 +228,7 @@ public readonly partial struct Color
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal Vector4 ToVector4()
+    internal Vector4 ToScaledVector4()
     {
         if (this.boxedHighPrecisionPixel is null)
         {

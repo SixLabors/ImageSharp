@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 public class PaletteQuantizer : IQuantizer
 {
     private readonly ReadOnlyMemory<Color> colorPalette;
+    private readonly int transparentIndex;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
@@ -27,12 +28,24 @@ public class PaletteQuantizer : IQuantizer
     /// <param name="palette">The color palette.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     public PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options)
+        : this(palette, options, -1)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
+    /// </summary>
+    /// <param name="palette">The color palette.</param>
+    /// <param name="options">The quantizer options defining quantization rules.</param>
+    /// <param name="transparentIndex">An explicit index at which to match transparent pixels.</param>
+    internal PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options, int transparentIndex)
     {
         Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
         Guard.NotNull(options, nameof(options));
 
         this.colorPalette = palette;
         this.Options = options;
+        this.transparentIndex = transparentIndex;
     }
 
     /// <inheritdoc />
@@ -52,6 +65,6 @@ public class PaletteQuantizer : IQuantizer
         // Always use the palette length over options since the palette cannot be reduced.
         TPixel[] palette = new TPixel[this.colorPalette.Length];
         Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
-        return new PaletteQuantizer<TPixel>(configuration, options, palette);
+        return new PaletteQuantizer<TPixel>(configuration, options, palette, this.transparentIndex);
     }
 }

@@ -38,7 +38,7 @@ public class GifEncoderTests
 
     [Theory]
     [WithTestPatternImages(100, 100, TestPixelTypes, false)]
-    [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+    [WithTestPatternImages(100, 100, TestPixelTypes, true)]
     public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider, bool limitAllocationBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {

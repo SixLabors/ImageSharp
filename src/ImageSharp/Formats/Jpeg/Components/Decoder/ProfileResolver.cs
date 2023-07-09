@@ -17,6 +17,14 @@ internal static class ProfileResolver
     };
 
     /// <summary>
+    /// Gets the JFXX specific markers.
+    /// </summary>
+    public static ReadOnlySpan<byte> JFxxMarker => new[]
+    {
+        (byte)'J', (byte)'F', (byte)'X', (byte)'X', (byte)'\0'
+    };
+
+    /// <summary>
     /// Gets the ICC specific markers.
     /// </summary>
     public static ReadOnlySpan<byte> IccMarker => new[]

@@ -118,6 +118,7 @@
 *.bmp               filter=lfs diff=lfs merge=lfs -text
 *.gif               filter=lfs diff=lfs merge=lfs -text
 *.png               filter=lfs diff=lfs merge=lfs -text
+*.qoi               filter=lfs diff=lfs merge=lfs -text
 *.tif               filter=lfs diff=lfs merge=lfs -text
 *.tiff              filter=lfs diff=lfs merge=lfs -text
 *.tga               filter=lfs diff=lfs merge=lfs -text

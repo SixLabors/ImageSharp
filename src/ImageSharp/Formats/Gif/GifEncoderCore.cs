@@ -364,7 +364,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
             uint x = 0;
             int remaining = background.Length;
-            if (Avx.IsSupported && remaining >= 2)
+            if (Axv2.IsSupported && remaining >= 2)
             {
                 Vector256<float> replacement256 = Vector256.Create(replacement.X, replacement.Y, replacement.Z, replacement.W, replacement.X, replacement.Y, replacement.Z, replacement.W);
 

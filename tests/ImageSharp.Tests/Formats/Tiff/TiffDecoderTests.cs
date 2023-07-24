@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -309,6 +308,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Cmyk, PixelTypes.Rgba32)]
     [WithFile(CmykLzwPredictor, PixelTypes.Rgba32)]
+    [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

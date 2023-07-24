@@ -36,7 +36,9 @@ internal sealed class TiffJpegSpectralConverter<TPixel> : SpectralConverter<TPix
     }
 
     /// <summary>
-    /// This converter must be used only for RGB and YCbCr color spaces for performance reasons.
+    /// Photometric interpretation Rgb and YCbCr will be mapped to RGB colorspace, which means the jpeg decompression will leave the data as is (no color conversion).
+    /// The color conversion will be done after the decompression. For Separated/CMYK, the jpeg color converter will handle the color conversion,
+    /// since the jpeg color converter needs to return RGB data and cannot return 4 component data.
     /// For grayscale images <see cref="GrayJpegSpectralConverter{TPixel}"/> must be used.
     /// </summary>
     private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation)
@@ -44,6 +46,7 @@ internal sealed class TiffJpegSpectralConverter<TPixel> : SpectralConverter<TPix
         {
             TiffPhotometricInterpretation.Rgb => JpegColorSpace.RGB,
             TiffPhotometricInterpretation.YCbCr => JpegColorSpace.RGB,
+            TiffPhotometricInterpretation.Separated => JpegColorSpace.TiffCmyk,
             _ => throw new InvalidImageContentException($"Invalid tiff photometric interpretation for jpeg encoding: {interpretation}"),
         };
 }

@@ -80,6 +80,7 @@ internal sealed class JpegTiffCompression : TiffBaseDecompressor
 
             case TiffPhotometricInterpretation.YCbCr:
             case TiffPhotometricInterpretation.Rgb:
+            case TiffPhotometricInterpretation.Separated:
             {
                 using SpectralConverter<Rgb24> spectralConverter = new TiffJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
                 HuffmanScanDecoder scanDecoder = new(stream, spectralConverter, cancellationToken);

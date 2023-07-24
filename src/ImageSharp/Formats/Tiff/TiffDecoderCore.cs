@@ -703,6 +703,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
             this.ReferenceBlackAndWhite,
             this.YcbcrCoefficients,
             this.YcbcrSubSampling,
+            this.CompressionType,
             this.byteOrder);
 
     private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>()

@@ -105,8 +105,8 @@ internal abstract partial class JpegColorConverterBase
     /// </summary>
     private static JpegColorConverterBase[] CreateConverters()
     {
-        // 5 color types with 2 supported precisions: 8 bit & 12 bit
-        const int colorConvertersCount = 5 * 2;
+        // 6 color types with 2 supported precisions: 8 bit & 12 bit
+        const int colorConvertersCount = 6 * 2;
 
         JpegColorConverterBase[] converters = new JpegColorConverterBase[colorConvertersCount];
 
@@ -116,13 +116,15 @@ internal abstract partial class JpegColorConverterBase
         converters[2] = GetCmykConverter(8);
         converters[3] = GetGrayScaleConverter(8);
         converters[4] = GetRgbConverter(8);
+        converters[5] = GetTiffCmykConverter(8);
 
         // 12-bit converters
-        converters[5] = GetYCbCrConverter(12);
-        converters[6] = GetYccKConverter(12);
-        converters[7] = GetCmykConverter(12);
-        converters[8] = GetGrayScaleConverter(12);
-        converters[9] = GetRgbConverter(12);
+        converters[6] = GetYCbCrConverter(12);
+        converters[7] = GetYccKConverter(12);
+        converters[8] = GetCmykConverter(12);
+        converters[9] = GetGrayScaleConverter(12);
+        converters[10] = GetRgbConverter(12);
+        converters[11] = GetTiffCmykConverter(12);
 
         return converters;
     }
@@ -246,6 +248,8 @@ internal abstract partial class JpegColorConverterBase
 
         return new RgbScalar(precision);
     }
+
+    private static JpegColorConverterBase GetTiffCmykConverter(int precision) => new TiffCmykScalar(precision);
 
     /// <summary>
     /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

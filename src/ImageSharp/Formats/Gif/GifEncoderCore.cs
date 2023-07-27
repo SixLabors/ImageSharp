@@ -435,11 +435,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                     {
                         Vector256<byte> vec = Vector256.LoadUnsafe(ref rowPtr, (nuint)x);
                         Vector256<byte> notEquals = ~Vector256.Equals(vec, trimmableVec256);
+                        uint mask = notEquals.ExtractMostSignificantBits();
 
-                        if (notEquals != Vector256<byte>.Zero)
+                        if (mask != 0)
                         {
                             isTransparentRow = false;
-                            uint mask = notEquals.ExtractMostSignificantBits();
                             nint start = x + (nint)uint.TrailingZeroCount(mask);
                             nint end = (nint)uint.LeadingZeroCount(mask);
 
@@ -463,11 +463,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 {
                     Vector128<byte> vec = Vector128.LoadUnsafe(ref rowPtr, (nuint)x);
                     Vector128<byte> notEquals = ~Vector128.Equals(vec, trimmableVec);
+                    uint mask = notEquals.ExtractMostSignificantBits();
 
-                    if (notEquals != Vector128<byte>.Zero)
+                    if (mask != 0)
                     {
                         isTransparentRow = false;
-                        uint mask = notEquals.ExtractMostSignificantBits();
                         nint start = x + (nint)uint.TrailingZeroCount(mask);
                         nint end = (nint)uint.LeadingZeroCount(mask) - Vector128<byte>.Count;
 
@@ -493,11 +493,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                         Vector256<byte> vec = Unsafe.ReadUnaligned<Vector256<byte>>(ref Unsafe.Add(ref rowPtr, x));
                         Vector256<byte> notEquals = Avx2.CompareEqual(vec, trimmableVec256);
                         notEquals = Avx2.Xor(notEquals, Vector256<byte>.AllBitsSet);
+                        int mask = Avx2.MoveMask(notEquals);
 
-                        if (!Avx.TestZ(notEquals, notEquals))
+                        if (mask != 0)
                         {
                             isTransparentRow = false;
-                            int mask = Avx2.MoveMask(notEquals);
                             nint start = x + (nint)(uint)BitOperations.TrailingZeroCount(mask);
                             nint end = (nint)(uint)BitOperations.LeadingZeroCount((uint)mask);
 
@@ -522,11 +522,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                     Vector128<byte> vec = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref rowPtr, x));
                     Vector128<byte> notEquals = Sse2.CompareEqual(vec, trimmableVec);
                     notEquals = Sse2.Xor(notEquals, Vector128<byte>.AllBitsSet);
+                    int mask = Sse2.MoveMask(notEquals);
 
-                    if (!Sse41.TestZ(notEquals, notEquals))
+                    if (mask != 0)
                     {
                         isTransparentRow = false;
-                        int mask = Sse2.MoveMask(notEquals);
                         nint start = x + (nint)(uint)BitOperations.TrailingZeroCount(mask);
                         nint end = (nint)(uint)BitOperations.LeadingZeroCount((uint)mask) - Vector128<byte>.Count;
 

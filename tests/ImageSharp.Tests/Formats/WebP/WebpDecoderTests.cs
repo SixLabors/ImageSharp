@@ -358,6 +358,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             }
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/2243
+        [Theory]
+        [WithFile(Lossy.Issue2243, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Issue2243<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ReferenceDecoder);
+        }
+
         [Theory]
         [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
         public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)

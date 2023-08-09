@@ -412,23 +412,142 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         int bottom = int.MaxValue;
         int left = int.MaxValue;
         int right = int.MinValue;
-
-        // Run through th buffer in a single pass. Use variables to track the min/max values.
         int minY = -1;
         bool isTransparentRow = true;
+
+        // Run through the buffer in a single pass. Use variables to track the min/max values.
         for (int y = 0; y < buffer.Height; y++)
         {
             isTransparentRow = true;
             Span<byte> rowSpan = buffer.DangerousGetRowSpan(y);
+            ref byte rowPtr = ref MemoryMarshal.GetReference(rowSpan);
+            nint rowLength = (nint)(uint)rowSpan.Length;
+            nint x = 0;
 
-            // TODO: It may be possible to optimize this inner loop using SIMD.
-            for (int x = 0; x < rowSpan.Length; x++)
+#if NET7_0_OR_GREATER
+            if (Vector128.IsHardwareAccelerated && rowLength >= Vector128<byte>.Count)
             {
-                if (rowSpan[x] != trimmableIndex)
+                Vector256<byte> trimmableVec256 = Vector256.Create(trimmableIndex);
+
+                if (Vector256.IsHardwareAccelerated && rowLength >= Vector256<byte>.Count)
+                {
+                    do
+                    {
+                        Vector256<byte> vec = Vector256.LoadUnsafe(ref rowPtr, (nuint)x);
+                        Vector256<byte> notEquals = ~Vector256.Equals(vec, trimmableVec256);
+                        uint mask = notEquals.ExtractMostSignificantBits();
+
+                        if (mask != 0)
+                        {
+                            isTransparentRow = false;
+                            nint start = x + (nint)uint.TrailingZeroCount(mask);
+                            nint end = (nint)uint.LeadingZeroCount(mask);
+
+                            // end is from the end, but we need the index from the beginning
+                            end = x + Vector256<byte>.Count - 1 - end;
+
+                            left = Math.Min(left, (int)start);
+                            right = Math.Max(right, (int)end);
+                        }
+
+                        x += Vector256<byte>.Count;
+                    }
+                    while (x <= rowLength - Vector256<byte>.Count);
+                }
+
+                Vector128<byte> trimmableVec = Vector256.IsHardwareAccelerated
+                    ? trimmableVec256.GetLower()
+                    : Vector128.Create(trimmableIndex);
+
+                while (x <= rowLength - Vector128<byte>.Count)
+                {
+                    Vector128<byte> vec = Vector128.LoadUnsafe(ref rowPtr, (nuint)x);
+                    Vector128<byte> notEquals = ~Vector128.Equals(vec, trimmableVec);
+                    uint mask = notEquals.ExtractMostSignificantBits();
+
+                    if (mask != 0)
+                    {
+                        isTransparentRow = false;
+                        nint start = x + (nint)uint.TrailingZeroCount(mask);
+                        nint end = (nint)uint.LeadingZeroCount(mask) - Vector128<byte>.Count;
+
+                        // end is from the end, but we need the index from the beginning
+                        end = x + Vector128<byte>.Count - 1 - end;
+
+                        left = Math.Min(left, (int)start);
+                        right = Math.Max(right, (int)end);
+                    }
+
+                    x += Vector128<byte>.Count;
+                }
+            }
+#else
+            if (Sse41.IsSupported && rowLength >= Vector128<byte>.Count)
+            {
+                Vector256<byte> trimmableVec256 = Vector256.Create(trimmableIndex);
+
+                if (Avx2.IsSupported && rowLength >= Vector256<byte>.Count)
+                {
+                    do
+                    {
+                        Vector256<byte> vec = Unsafe.ReadUnaligned<Vector256<byte>>(ref Unsafe.Add(ref rowPtr, x));
+                        Vector256<byte> notEquals = Avx2.CompareEqual(vec, trimmableVec256);
+                        notEquals = Avx2.Xor(notEquals, Vector256<byte>.AllBitsSet);
+                        int mask = Avx2.MoveMask(notEquals);
+
+                        if (mask != 0)
+                        {
+                            isTransparentRow = false;
+                            nint start = x + (nint)(uint)BitOperations.TrailingZeroCount(mask);
+                            nint end = (nint)(uint)BitOperations.LeadingZeroCount((uint)mask);
+
+                            // end is from the end, but we need the index from the beginning
+                            end = x + Vector256<byte>.Count - 1 - end;
+
+                            left = Math.Min(left, (int)start);
+                            right = Math.Max(right, (int)end);
+                        }
+
+                        x += Vector256<byte>.Count;
+                    }
+                    while (x <= rowLength - Vector256<byte>.Count);
+                }
+
+                Vector128<byte> trimmableVec = Sse41.IsSupported
+                    ? trimmableVec256.GetLower()
+                    : Vector128.Create(trimmableIndex);
+
+                while (x <= rowLength - Vector128<byte>.Count)
+                {
+                    Vector128<byte> vec = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref rowPtr, x));
+                    Vector128<byte> notEquals = Sse2.CompareEqual(vec, trimmableVec);
+                    notEquals = Sse2.Xor(notEquals, Vector128<byte>.AllBitsSet);
+                    int mask = Sse2.MoveMask(notEquals);
+
+                    if (mask != 0)
+                    {
+                        isTransparentRow = false;
+                        nint start = x + (nint)(uint)BitOperations.TrailingZeroCount(mask);
+                        nint end = (nint)(uint)BitOperations.LeadingZeroCount((uint)mask) - Vector128<byte>.Count;
+
+                        // end is from the end, but we need the index from the beginning
+                        end = x + Vector128<byte>.Count - 1 - end;
+
+                        left = Math.Min(left, (int)start);
+                        right = Math.Max(right, (int)end);
+                    }
+
+                    x += Vector128<byte>.Count;
+                }
+            }
+#endif
+            for (; x < rowLength; ++x)
+            {
+                if (Unsafe.Add(ref rowPtr, x) != trimmableIndex)
                 {
                     isTransparentRow = false;
-                    left = Math.Min(left, x);
-                    right = Math.Max(right, x);
+                    left = Math.Min(left, (int)x);
+                    right = Math.Max(right, (int)x);
                 }
             }
 

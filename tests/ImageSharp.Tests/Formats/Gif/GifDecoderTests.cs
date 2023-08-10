@@ -40,9 +40,12 @@ public class GifDecoderTests
     public void Decode_Issue2450<TPixel>(TestImageProvider<TPixel> provider)
     where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Images have many frames, only compare a selection of them.
+        static bool Predicate(int i, int _) => i % 8 == 0;
+
         using Image<TPixel> image = provider.GetImage();
-        image.DebugSaveMultiFrame(provider);
-        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        image.DebugSaveMultiFrame(provider, predicate: Predicate);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact, predicate: Predicate);
     }
 
     [Theory]

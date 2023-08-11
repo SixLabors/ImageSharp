@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     {
                         innerValue = stream.ReadByte();
                     }
-                    while (innerValue != 0x0a);
+                    while (innerValue is not 0x0a and not -0x1);
 
                     // Continue searching for whitespace.
                     val = innerValue;

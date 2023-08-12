@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Memory;
@@ -647,9 +648,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             return;
         }
 
-        PhysicalChunkData.FromMetadata(meta).WriteTo(this.chunkDataBuffer.Span);
+        PngPhysical.FromMetadata(meta).WriteTo(this.chunkDataBuffer.Span);
 
-        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer.Span, 0, PhysicalChunkData.Size);
+        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer.Span, 0, PngPhysical.Size);
     }
 
     /// <summary>

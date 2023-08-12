@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
@@ -32,6 +34,7 @@ public class PngMetadata : IDeepCloneable
         this.TransparentL16 = other.TransparentL16;
         this.TransparentRgb24 = other.TransparentRgb24;
         this.TransparentRgb48 = other.TransparentRgb48;
+        this.NumberPlays = other.NumberPlays;
 
         for (int i = 0; i < other.TextData.Count; i++)
         {
@@ -94,6 +97,11 @@ public class PngMetadata : IDeepCloneable
     /// Used for conveying textual information associated with the image.
     /// </summary>
     public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
+
+    /// <summary>
+    /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
+    /// </summary>
+    public int NumberPlays { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);

@@ -123,12 +123,12 @@ internal sealed class ZlibInflateStream : Stream
     /// <inheritdoc/>
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if (this.currentDataRemaining == 0)
+        if (this.currentDataRemaining is 0)
         {
             // Last buffer was read in its entirety, let's make sure we don't actually have more in additional IDAT chunks.
             this.currentDataRemaining = this.getData();
 
-            if (this.currentDataRemaining == 0)
+            if (this.currentDataRemaining is 0)
             {
                 return 0;
             }
@@ -142,11 +142,11 @@ internal sealed class ZlibInflateStream : Stream
         // Keep reading data until we've reached the end of the stream or filled the buffer.
         int bytesRead = 0;
         offset += totalBytesRead;
-        while (this.currentDataRemaining == 0 && totalBytesRead < count)
+        while (this.currentDataRemaining is 0 && totalBytesRead < count)
         {
             this.currentDataRemaining = this.getData();
 
-            if (this.currentDataRemaining == 0)
+            if (this.currentDataRemaining is 0)
             {
                 return totalBytesRead;
             }

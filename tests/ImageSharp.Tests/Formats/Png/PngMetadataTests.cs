@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -130,6 +132,34 @@ public class PngMetadataTests
         Assert.NotNull(image.Metadata.ExifProfile);
         ExifProfile exif = image.Metadata.ExifProfile;
         VerifyExifDataIsPresent(exif);
+    }
+
+    [Theory]
+    [WithFile(@"C:\WorkSpace\App1\App1\Assets\7.png", PixelTypes.Rgba32)]
+    public void Decode_ReadsExifData2<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            SkipMetadata = false
+        };
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
+        TPixel pixel = image.Frames.RootFrame[5, 5];
+        TPixel pixel2 = image.Frames[1][5, 5];
+    }
+
+    [Theory]
+    [WithFile(@"Png\pl.png", PixelTypes.Rgba32)]
+    public void Decode_ReadsExifData3<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            SkipMetadata = false
+        };
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
     }
 
     [Theory]

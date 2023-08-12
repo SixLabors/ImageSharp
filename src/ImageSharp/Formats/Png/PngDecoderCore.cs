@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Png;
 internal sealed class PngDecoderCore : IImageDecoderInternals
 {
     /// <summary>
+    /// Indicate whether the file is a simple PNG.
+    /// </summary>
+    private bool isSimplePng;
+
+    /// <summary>
     /// The general decoder options.
     /// </summary>
     private readonly Configuration configuration;
@@ -51,12 +56,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The stream to decode from.
     /// </summary>
-    private BufferedReadStream currentStream;
+    private BufferedReadStream currentStream = null!;
 
     /// <summary>
     /// The png header.
     /// </summary>
     private PngHeader header;
+
+    /// <summary>
+    /// The png animation control.
+    /// </summary>
+    private APngAnimationControl? animationControl;
 
     /// <summary>
     /// The number of bytes per pixel.
@@ -76,32 +86,22 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The palette containing color information for indexed png's.
     /// </summary>
-    private byte[] palette;
+    private byte[] palette = null!;
 
     /// <summary>
     /// The palette containing alpha channel color information for indexed png's.
     /// </summary>
-    private byte[] paletteAlpha;
+    private byte[] paletteAlpha = null!;
 
     /// <summary>
     /// Previous scanline processed.
     /// </summary>
-    private IMemoryOwner<byte> previousScanline;
+    private IMemoryOwner<byte> previousScanline = null!;
 
     /// <summary>
     /// The current scanline that is being processed.
     /// </summary>
-    private IMemoryOwner<byte> scanline;
-
-    /// <summary>
-    /// The index of the current scanline being processed.
-    /// </summary>
-    private int currentRow = Adam7.FirstRow[0];
-
-    /// <summary>
-    /// The current number of bytes read in the current scanline.
-    /// </summary>
-    private int currentRowBytesRead;
+    private IMemoryOwner<byte> scanline = null!;
 
     /// <summary>
     /// Gets or sets the png color type.
@@ -148,7 +148,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
         this.currentStream.Skip(8);
-        Image<TPixel> image = null;
+        Image<TPixel>? image = null;
+        APngFrameControl? lastFrameControl = null;
+        ImageFrame<TPixel>? currentFrame = null;
         Span<byte> buffer = stackalloc byte[20];
 
         try
@@ -160,7 +162,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
+                            if (!Equals(this.header, default(PngHeader)))
+                            {
+                                PngThrowHelper.ThrowInvalidHeader();
+                            }
+
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            break;
+                        case PngChunkType.AnimationControl:
+                            if (this.isSimplePng || this.animationControl is not null)
+                            {
+                                PngThrowHelper.ThrowInvalidAnimationControl();
+                            }
+
+                            this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Physical:
                             ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
@@ -168,14 +183,63 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Gamma:
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
-                        case PngChunkType.Data:
-                            if (image is null)
+                        case PngChunkType.FrameControl:
+                            if (this.isSimplePng)
                             {
-                                this.InitializeImage(metadata, out image);
+                                continue;
                             }
 
-                            this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata, cancellationToken);
+                            currentFrame = null;
+                            lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            break;
+                        case PngChunkType.FrameData:
+                            if (image is null)
+                            {
+                                PngThrowHelper.ThrowMissingDefaultData();
+                            }
 
+                            if (lastFrameControl is null)
+                            {
+                                PngThrowHelper.ThrowMissingFrameControl();
+                            }
+
+                            if (currentFrame is null)
+                            {
+                                this.InitializeFrame(lastFrameControl.Value, image, out currentFrame);
+                            }
+
+                            this.currentStream.Position += 4;
+                            this.ReadScanlines(
+                                chunk.Length - 4,
+                                currentFrame,
+                                pngMetadata,
+                                () =>
+                                {
+                                    int length = this.ReadNextDataChunk();
+                                    if (this.ReadNextDataChunk() is 0)
+                                    {
+                                        return length;
+                                    }
+
+                                    this.currentStream.Position += 4; // Skip sequence number
+                                    return length - 4;
+                                },
+                                cancellationToken);
+                            lastFrameControl = null;
+                            break;
+                        case PngChunkType.Data:
+                            if (this.animationControl is null)
+                            {
+                                this.isSimplePng = true;
+                            }
+
+                            if (image is null)
+                            {
+                                this.InitializeImage(metadata, lastFrameControl, out image);
+                            }
+
+                            this.ReadScanlines(chunk.Length, image.Frames.RootFrame, pngMetadata, this.ReadNextDataChunk, cancellationToken);
+                            lastFrameControl = null;
                             break;
                         case PngChunkType.Palette:
                             byte[] pal = new byte[chunk.Length];
@@ -249,6 +313,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
+        APngFrameControl? lastFrameControl = null;
         Span<byte> buffer = stackalloc byte[20];
 
         this.currentStream.Skip(8);
@@ -263,6 +328,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     {
                         case PngChunkType.Header:
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            break;
+                        case PngChunkType.AnimationControl:
+                            if (this.isSimplePng || this.animationControl is not null)
+                            {
+                                PngThrowHelper.ThrowInvalidAnimationControl();
+                            }
+
+                            this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Physical:
                             if (this.colorMetadataOnly)
@@ -282,7 +355,34 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
+                        case PngChunkType.FrameControl:
+                            if (this.isSimplePng)
+                            {
+                                continue;
+                            }
+
+                            lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            break;
+                        case PngChunkType.FrameData:
+                            if (this.colorMetadataOnly)
+                            {
+                                goto EOF;
+                            }
+
+                            if (lastFrameControl is null)
+                            {
+                                PngThrowHelper.ThrowMissingFrameControl();
+                            }
+
+                            // Skip sequence number
+                            this.currentStream.Skip(4);
+                            this.SkipChunkDataAndCrc(chunk);
+                            break;
                         case PngChunkType.Data:
+                            if (this.animationControl is null)
+                            {
+                                this.isSimplePng = true;
+                            }
 
                             // Spec says tRNS must be before IDAT so safe to exit.
                             if (this.colorMetadataOnly)
@@ -365,9 +465,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
 
             EOF:
-            if (this.header.Width == 0 && this.header.Height == 0)
+            if (this.header is { Width: 0, Height: 0 })
             {
-                PngThrowHelper.ThrowNoHeader();
+                PngThrowHelper.ThrowInvalidHeader();
             }
 
             return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata);
@@ -398,7 +498,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="bits">The number of bits per value.</param>
     /// <param name="buffer">The new array.</param>
     /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
-    private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IMemoryOwner<byte> buffer)
+    private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, [NotNullWhen(true)] out IMemoryOwner<byte>? buffer)
     {
         if (bits >= 8)
         {
@@ -433,7 +533,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="data">The data containing physical data.</param>
     private static void ReadPhysicalChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
     {
-        PhysicalChunkData physicalChunk = PhysicalChunkData.Parse(data);
+        PngPhysical physicalChunk = PngPhysical.Parse(data);
 
         metadata.ResolutionUnits = physicalChunk.UnitSpecifier == byte.MinValue
             ? PixelResolutionUnit.AspectRatio
@@ -466,8 +566,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <typeparam name="TPixel">The type the pixels will be</typeparam>
     /// <param name="metadata">The metadata information for the image</param>
+    /// <param name="frameControl">The frame control information for the frame</param>
     /// <param name="image">The image that we will populate</param>
-    private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
+    private void InitializeImage<TPixel>(ImageMetadata metadata, APngFrameControl? frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         image = Image.CreateUninitialized<TPixel>(
@@ -476,6 +577,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             this.header.Height,
             metadata);
 
+        if (frameControl is { } control)
+        {
+            APngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAPngFrameMetadata();
+            frameMetadata.FromChunk(control);
+        }
+
         this.bytesPerPixel = this.CalculateBytesPerPixel();
         this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
         this.bytesPerSample = 1;
@@ -483,6 +590,27 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             this.bytesPerSample = this.header.BitDepth / 8;
         }
+
+        this.previousScanline?.Dispose();
+        this.scanline?.Dispose();
+        this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
+        this.scanline = this.configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
+    }
+
+    /// <summary>
+    /// Initializes the image and various buffers needed for processing
+    /// </summary>
+    /// <typeparam name="TPixel">The type the pixels will be</typeparam>
+    /// <param name="frameControl">The frame control information for the frame</param>
+    /// <param name="image">The image that we will populate</param>
+    private void InitializeFrame<TPixel>(APngFrameControl frameControl, Image<TPixel> image, out ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        frame = image.Frames.CreateFrame();
+
+        APngFrameMetadata frameMetadata = frame.Metadata.GetAPngFrameMetadata();
+
+        frameMetadata.FromChunk(frameControl);
 
         this.previousScanline?.Dispose();
         this.scanline?.Dispose();
@@ -553,18 +681,19 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Reads the scanlines within the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="chunk">The png chunk containing the compressed scanline data.</param>
+    /// <param name="chunkLength">The length of the chunk that containing the compressed scanline data.</param>
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
+    /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
+    private void ReadScanlines<TPixel>(int chunkLength, ImageFrame<TPixel> image, PngMetadata pngMetadata, Func<int> getData, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using ZlibInflateStream deframeStream = new(this.currentStream, this.ReadNextDataChunk);
-        deframeStream.AllocateNewBytes(chunk.Length, true);
-        DeflateStream dataStream = deframeStream.CompressedStream;
+        using ZlibInflateStream deframeStream = new(this.currentStream, getData);
+        deframeStream.AllocateNewBytes(chunkLength, true);
+        DeflateStream dataStream = deframeStream.CompressedStream!;
 
-        if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
+        if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
         {
             this.DecodeInterlacedPixelData(dataStream, image, pngMetadata, cancellationToken);
         }
@@ -585,22 +714,25 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void DecodePixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        while (this.currentRow < this.header.Height)
+        int currentRow = Adam7.FirstRow[0];
+        int currentRowBytesRead = 0;
+        int height = image.Metadata.TryGetAPngFrameMetadata(out APngFrameMetadata? frameMetadata) ? frameMetadata.Height : this.header.Height;
+        while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Span<byte> scanlineSpan = this.scanline.GetSpan();
-            while (this.currentRowBytesRead < this.bytesPerScanline)
+            while (currentRowBytesRead < this.bytesPerScanline)
             {
-                int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanlineSpan, currentRowBytesRead, this.bytesPerScanline - currentRowBytesRead);
                 if (bytesRead <= 0)
                 {
                     return;
                 }
 
-                this.currentRowBytesRead += bytesRead;
+                currentRowBytesRead += bytesRead;
             }
 
-            this.currentRowBytesRead = 0;
+            currentRowBytesRead = 0;
 
             switch ((FilterType)scanlineSpan[0])
             {
@@ -628,10 +760,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
             }
 
-            this.ProcessDefilteredScanline(scanlineSpan, image, pngMetadata);
+            this.ProcessDefilteredScanline(currentRow, scanlineSpan, image, pngMetadata);
 
             this.SwapScanlineBuffers();
-            this.currentRow++;
+            ++currentRow;
         }
     }
 
@@ -647,8 +779,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void DecodeInterlacedPixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        int currentRow = Adam7.FirstRow[0];
+        int currentRowBytesRead = 0;
         int pass = 0;
         int width = this.header.Width;
+        int height = this.header.Height;
+        if (image.Metadata.TryGetAPngFrameMetadata(out APngFrameMetadata? frameMetadata))
+        {
+            width = frameMetadata.Width;
+            height = frameMetadata.Height;
+        }
+
         Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
         while (true)
         {
@@ -656,7 +797,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             if (numColumns == 0)
             {
-                pass++;
+                ++pass;
 
                 // This pass contains no data; skip to next pass
                 continue;
@@ -664,21 +805,21 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
 
-            while (this.currentRow < this.header.Height)
+            while (currentRow < height)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                while (this.currentRowBytesRead < bytesPerInterlaceScanline)
+                while (currentRowBytesRead < bytesPerInterlaceScanline)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
                     if (bytesRead <= 0)
                     {
                         return;
                     }
 
-                    this.currentRowBytesRead += bytesRead;
+                    currentRowBytesRead += bytesRead;
                 }
 
-                this.currentRowBytesRead = 0;
+                currentRowBytesRead = 0;
 
                 Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
                 Span<byte> prevSpan = this.previousScanline.Slice(0, bytesPerInterlaceScanline);
@@ -709,12 +850,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         break;
                 }
 
-                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(this.currentRow);
+                Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
                 this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
 
                 this.SwapScanlineBuffers();
 
-                this.currentRow += Adam7.RowIncrement[pass];
+                currentRow += Adam7.RowIncrement[pass];
             }
 
             pass++;
@@ -722,7 +863,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             if (pass < 7)
             {
-                this.currentRow = Adam7.FirstRow[pass];
+                currentRow = Adam7.FirstRow[pass];
             }
             else
             {
@@ -736,19 +877,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Processes the de-filtered scanline filling the image pixel data
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="currentRow">The index of the current scanline being processed.</param>
     /// <param name="defilteredScanline">The de-filtered scanline</param>
     /// <param name="pixels">The image</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
+    private void ProcessDefilteredScanline<TPixel>(int currentRow, ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(this.currentRow);
+        Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
 
         // Trim the first marker byte from the buffer
         ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte> buffer = null;
+        IMemoryOwner<byte>? buffer = null;
         try
         {
             ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
@@ -840,7 +982,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         ReadOnlySpan<byte> trimmed = defilteredScanline[1..];
 
         // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-        IMemoryOwner<byte> buffer = null;
+        IMemoryOwner<byte>? buffer = null;
         try
         {
             ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(
@@ -976,6 +1118,31 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
+    /// Reads a animation control chunk from the data.
+    /// </summary>
+    /// <param name="pngMetadata">The png metadata.</param>
+    /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
+    private void ReadAnimationControlChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
+    {
+        this.animationControl = APngAnimationControl.Parse(data);
+
+        pngMetadata.NumberPlays = this.animationControl.NumberPlays;
+    }
+
+    /// <summary>
+    /// Reads a header chunk from the data.
+    /// </summary>
+    /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
+    private APngFrameControl ReadFrameControlChunk(ReadOnlySpan<byte> data)
+    {
+        APngFrameControl fcTL = APngFrameControl.Parse(data);
+
+        fcTL.Validate(this.header);
+
+        return fcTL;
+    }
+
+    /// <summary>
     /// Reads a header chunk from the data.
     /// </summary>
     /// <param name="pngMetadata">The png metadata.</param>
@@ -1062,7 +1229,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string uncompressed)
+        if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
         {
             metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
@@ -1355,7 +1522,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             ReadOnlySpan<byte> compressedData = data[dataStartIdx..];
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string uncompressed))
+            if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string? uncompressed))
             {
                 pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
             }
@@ -1378,7 +1545,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="encoding">The string encoding to use.</param>
     /// <param name="value">The uncompressed value.</param>
     /// <returns>The <see cref="bool"/>.</returns>
-    private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
+    private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)] out string? value)
     {
         if (this.TryUncompressZlibData(compressedData, out byte[] uncompressedData))
         {
@@ -1407,7 +1574,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         if (this.TryReadChunk(buffer, out PngChunk chunk))
         {
-            if (chunk.Type == PngChunkType.Data)
+            if (chunk.Type is PngChunkType.Data or PngChunkType.FrameData)
             {
                 chunk.Data?.Dispose();
                 return chunk.Length;
@@ -1461,7 +1628,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
         // We can skip all other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency)
+        if (this.colorMetadataOnly && type is not PngChunkType.Header and not PngChunkType.Transparency)
         {
             chunk = new PngChunk(length, type);
 
@@ -1476,9 +1643,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         this.ValidateChunk(chunk, buffer);
 
-        // Restore the stream position for IDAT chunks, because it will be decoded later and
+        // Restore the stream position for IDAT and fdAT chunks, because it will be decoded later and
         // was only read to verifying the CRC is correct.
-        if (type == PngChunkType.Data)
+        if (type is PngChunkType.Data or PngChunkType.FrameData)
         {
             this.currentStream.Position = pos;
         }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 
@@ -14,7 +15,23 @@ public static partial class MetadataExtensions
     /// <summary>
     /// Gets the png format specific metadata for the image.
     /// </summary>
-    /// <param name="metadata">The metadata this method extends.</param>
+    /// <param name="source">The metadata this method extends.</param>
     /// <returns>The <see cref="PngMetadata"/>.</returns>
-    public static PngMetadata GetPngMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(PngFormat.Instance);
+    public static PngMetadata GetPngMetadata(this ImageMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
+
+    /// <summary>
+    /// Gets the aPng format specific metadata for the image frame.
+    /// </summary>
+    /// <param name="source">The metadata this method extends.</param>
+    /// <returns>The <see cref="APngFrameMetadata"/>.</returns>
+    public static APngFrameMetadata GetAPngFrameMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
+
+    /// <summary>
+    /// Gets the aPng format specific metadata for the image frame.
+    /// </summary>
+    /// <param name="source">The metadata this method extends.</param>
+    /// <param name="metadata">The metadata.</param>
+    /// <returns>The <see cref="APngFrameMetadata"/>.</returns>
+    public static bool TryGetAPngFrameMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out APngFrameMetadata? metadata) => source.TryGetFormatMetadata(PngFormat.Instance, out metadata);
+
 }

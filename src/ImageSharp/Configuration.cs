@@ -43,7 +43,7 @@ public sealed class Configuration
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
     /// <param name="configurationModules">A collection of configuration modules to register.</param>
-    public Configuration(params IImageFormatConfigurationModule[] configurationModules)
+    public Configuration(params IImageFormatConfigurationModule[]? configurationModules)
     {
         if (configurationModules != null)
         {

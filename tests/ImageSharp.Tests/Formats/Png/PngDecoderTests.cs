@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -105,6 +104,27 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Decode_APng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.SaveAsPng("C:\\WorkSpace\\1.png");
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ImageComparer.Exact);
+        // TODO test
+    }
+
+    [Theory]
+    [WithFile("C:\\WorkSpace\\Fuck.png", PixelTypes.Rgba32)]
+    public void Decode_APng2<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.SaveAsPng("C:\\WorkSpace\\1.png");
     }
 
     [Theory]

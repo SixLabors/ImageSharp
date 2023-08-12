@@ -116,6 +116,26 @@ internal readonly struct APngFrameControl
     }
 
     /// <summary>
+    /// Parses the APngFrameControl from the given metadata.
+    /// </summary>
+    /// <param name="frameMetadata">The metadata to parse.</param>
+    /// <param name="sequenceNumber">Sequence number.</param>
+    public static APngFrameControl FromMetadata(APngFrameMetadata frameMetadata, int sequenceNumber)
+    {
+        APngFrameControl fcTL = new(
+            sequenceNumber,
+            frameMetadata.Width,
+            frameMetadata.Height,
+            frameMetadata.XOffset,
+            frameMetadata.YOffset,
+            frameMetadata.DelayNumber,
+            frameMetadata.DelayDenominator,
+            frameMetadata.DisposeOperation,
+            frameMetadata.BlendOperation);
+        return fcTL;
+    }
+
+    /// <summary>
     /// Writes the fcTL to the given buffer.
     /// </summary>
     /// <param name="buffer">The buffer to write to.</param>
@@ -126,8 +146,8 @@ internal readonly struct APngFrameControl
         BinaryPrimitives.WriteInt32BigEndian(buffer[8..12], this.Height);
         BinaryPrimitives.WriteInt32BigEndian(buffer[12..16], this.XOffset);
         BinaryPrimitives.WriteInt32BigEndian(buffer[16..20], this.YOffset);
-        BinaryPrimitives.WriteInt32BigEndian(buffer[20..22], this.DelayNumber);
-        BinaryPrimitives.WriteInt32BigEndian(buffer[12..24], this.DelayDenominator);
+        BinaryPrimitives.WriteInt16BigEndian(buffer[20..22], this.DelayNumber);
+        BinaryPrimitives.WriteInt16BigEndian(buffer[22..24], this.DelayDenominator);
 
         buffer[24] = (byte)this.DisposeOperation;
         buffer[25] = (byte)this.BlendOperation;

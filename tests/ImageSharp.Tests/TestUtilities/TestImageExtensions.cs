@@ -534,10 +534,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }
@@ -560,10 +558,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }

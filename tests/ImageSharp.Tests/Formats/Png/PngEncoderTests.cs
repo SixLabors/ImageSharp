@@ -440,6 +440,19 @@ public partial class PngEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Encode_APng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+    }
+
+    [Theory]
     [MemberData(nameof(PngTrnsFiles))]
     public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
     {

@@ -208,7 +208,7 @@ public class ImagingTestCaseUtility
         bool appendPixelTypeToFileName = true)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        encoder = encoder ?? TestEnvironment.GetReferenceEncoder($"foo.{extension}");
+        encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
         string[] files = this.GetTestOutputFileNamesMultiFrame(
             image.Frames.Count,
@@ -218,14 +218,10 @@ public class ImagingTestCaseUtility
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
-            using (Image<TPixel> frameImage = image.Frames.CloneFrame(i))
-            {
-                string filePath = files[i];
-                using (FileStream stream = File.OpenWrite(filePath))
-                {
-                    frameImage.Save(stream, encoder);
-                }
-            }
+            using Image<TPixel> frameImage = image.Frames.CloneFrame(i);
+            string filePath = files[i];
+            using FileStream stream = File.OpenWrite(filePath);
+            frameImage.Save(stream, encoder);
         }
 
         return files;

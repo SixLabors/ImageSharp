@@ -9,22 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 internal enum PngChunkType : uint
 {
     /// <summary>
-    /// </summary>
-    /// <remarks>acTL (Single)</remarks>
-    AnimationControl = 0x6163544cU,
-
-    /// <summary>
-    /// </summary>
-    /// <remarks>fcTL (Multiple)</remarks>
-    FrameControl = 0x6663544cU,
-
-    /// <summary>
-    /// </summary>
-    /// <remarks>fdAT (Multiple)</remarks>
-    FrameData = 0x66644154U,
-
-    /// <summary>
-    /// The IDAT chunk contains the actual image data. The image can contains more
+    /// This chunk contains the actual image data. The image can contains more
     /// than one chunk of this type. All chunks together are the whole image.
     /// </summary>
     /// <remarks>IDAT (Multiple)</remarks>
@@ -154,6 +139,27 @@ internal enum PngChunkType : uint
     /// </summary>
     /// <remarks>cHRM (Single)</remarks>
     Chroma = 0x6348524d,
+
+    /// <summary>
+    /// This chunk is an ancillary chunk as defined in the PNG Specification.
+    /// It must appear before the first IDAT chunk within a valid PNG stream.
+    /// </summary>
+    /// <remarks>acTL (Single, APNG)</remarks>
+    AnimationControl = 0x6163544cU,
+
+    /// <summary>
+    /// This chunk is an ancillary chunk as defined in the PNG Specification.
+    /// It must appear before the IDAT or fdAT chunks of the frame to which it applies.
+    /// </summary>
+    /// <remarks>fcTL (Multiple, APNG)</remarks>
+    FrameControl = 0x6663544cU,
+
+    /// <summary>
+    /// This chunk has the same purpose as an IDAT chunk.
+    /// It has the same structure as an IDAT chunk, except preceded by a sequence number.
+    /// </summary>
+    /// <remarks>fdAT (Multiple, APNG)</remarks>
+    FrameData = 0x66644154U,
 
     /// <summary>
     /// Malformed chunk named CgBI produced by apple, which is not conform to the specification.

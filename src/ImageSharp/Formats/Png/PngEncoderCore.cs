@@ -168,7 +168,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.WriteXmpChunk(stream, metadata);
         this.WriteTextChunks(stream, pngMetadata);
 
-        if (this.encoder.IsSimplePng is not true && targetImage.Frames.Count > 1)
+        if ((this.encoder.IsSimplePng is null && targetImage.Frames.Count > 1)
+            || this.encoder.IsSimplePng is false)
         {
             this.WriteAnimationControlChunk(stream, targetImage.Frames.Count, pngMetadata.NumberPlays);
 
@@ -642,7 +643,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPaletteSpan);
 
         // Loop, assign, and extract alpha values from the palette.
-        for (int i = 0; i < paletteLength; i++)
+        for (int i = 0; i < paletteLength; ++i)
         {
             Rgba32 rgba = Unsafe.Add(ref rgbaPaletteRef, (uint)i);
             byte alpha = rgba.A;
@@ -674,7 +675,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="meta">The image metadata.</param>
     private void WritePhysicalChunk(Stream stream, ImageMetadata meta)
     {
-        if ((this.chunkFilter & PngChunkFilter.ExcludePhysicalChunk) == PngChunkFilter.ExcludePhysicalChunk)
+        if (this.chunkFilter.HasFlag(PngChunkFilter.ExcludePhysicalChunk))
         {
             return;
         }

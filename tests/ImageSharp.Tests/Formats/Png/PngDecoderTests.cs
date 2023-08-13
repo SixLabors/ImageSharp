@@ -111,20 +111,7 @@ public partial class PngDecoderTests
     public void Decode_APng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        image.SaveAsPng("C:\\WorkSpace\\1.png");
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider, ImageComparer.Exact);
-        // TODO test
-    }
-
-    [Theory]
-    [WithFile("C:\\WorkSpace\\Fuck.png", PixelTypes.Rgba32)]
-    public void Decode_APng2<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        image.SaveAsPng("C:\\WorkSpace\\1.png");
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance); // MagickReferenceDecoder cannot decode APNGs
     }
 
     [Theory]

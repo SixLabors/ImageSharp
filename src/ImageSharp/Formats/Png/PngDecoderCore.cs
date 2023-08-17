@@ -228,6 +228,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                     this.currentStream.Position += 4; // Skip sequence number
                                     return length - 4;
                                 },
+                                lastFrameControl.Value,
                                 cancellationToken);
                             lastFrameControl = null;
                             break;
@@ -237,7 +238,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.InitializeImage(metadata, lastFrameControl, out image);
                             }
 
-                            this.ReadScanlines(chunk.Length, image.Frames.RootFrame, pngMetadata, this.ReadNextDataChunk, cancellationToken);
+                            FrameControl frameControl = lastFrameControl ?? new(0, this.header.Width, this.header.Height, 0, 0, 0, 0, default, default);
+
+                            this.ReadScanlines(chunk.Length, image.Frames.RootFrame, pngMetadata, this.ReadNextDataChunk, frameControl, cancellationToken);
                             lastFrameControl = null;
                             break;
                         case PngChunkType.Palette:
@@ -682,8 +685,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
     /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void ReadScanlines<TPixel>(int chunkLength, ImageFrame<TPixel> image, PngMetadata pngMetadata, Func<int> getData, CancellationToken cancellationToken)
+    private void ReadScanlines<TPixel>(int chunkLength, ImageFrame<TPixel> image, PngMetadata pngMetadata, Func<int> getData, FrameControl frameControl, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using ZlibInflateStream deframeStream = new(this.currentStream, getData);
@@ -692,11 +696,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
         {
-            this.DecodeInterlacedPixelData(dataStream, image, pngMetadata, cancellationToken);
+            this.DecodeInterlacedPixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);
         }
         else
         {
-            this.DecodePixelData(dataStream, image, pngMetadata, cancellationToken);
+            this.DecodePixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);
         }
     }
 
@@ -704,16 +708,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Decodes the raw pixel data row by row
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="image">The image to decode to.</param>
     /// <param name="pngMetadata">The png metadata</param>
     /// <param name="cancellationToken">The CancellationToken</param>
-    private void DecodePixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
+    private void DecodePixelData<TPixel>(FrameControl frameControl, DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int currentRow = Adam7.FirstRow[0];
+        int currentRow = frameControl.YOffset;
         int currentRowBytesRead = 0;
-        int height = image.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? frameMetadata) ? frameMetadata.Height : this.header.Height;
+        int height = frameControl.Height;
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -757,7 +762,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
             }
 
-            this.ProcessDefilteredScanline(currentRow, scanlineSpan, image, pngMetadata);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanlineSpan, image, pngMetadata);
 
             this.SwapScanlineBuffers();
             currentRow++;
@@ -769,23 +774,19 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <see href="https://github.com/juehv/DentalImageViewer/blob/8a1a4424b15d6cc453b5de3f273daf3ff5e3a90d/DentalImageViewer/lib/jiu-0.14.3/net/sourceforge/jiu/codecs/PNGCodec.java"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="image">The current image.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeInterlacedPixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
+    private void DecodeInterlacedPixelData<TPixel>(FrameControl frameControl, DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int currentRow = Adam7.FirstRow[0];
+        int currentRow = Adam7.FirstRow[0] + frameControl.YOffset;
         int currentRowBytesRead = 0;
         int pass = 0;
-        int width = this.header.Width;
-        int height = this.header.Height;
-        if (image.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? frameMetadata))
-        {
-            width = frameMetadata.Width;
-            height = frameMetadata.Height;
-        }
+        int width = frameControl.Width;
+        int height = frameControl.Height;
 
         Buffer2D<TPixel> imageBuffer = image.PixelBuffer;
         while (true)
@@ -848,7 +849,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 }
 
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
-                this.ProcessInterlacedDefilteredScanline(this.scanline.GetSpan(), rowSpan, pngMetadata, Adam7.FirstColumn[pass], Adam7.ColumnIncrement[pass]);
+                this.ProcessInterlacedDefilteredScanline(frameControl, this.scanline.GetSpan(), rowSpan, pngMetadata, pixelOffset: Adam7.FirstColumn[pass], increment: Adam7.ColumnIncrement[pass]);
 
                 this.SwapScanlineBuffers();
 
@@ -874,11 +875,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Processes the de-filtered scanline filling the image pixel data
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="currentRow">The index of the current scanline being processed.</param>
     /// <param name="defilteredScanline">The de-filtered scanline</param>
     /// <param name="pixels">The image</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private void ProcessDefilteredScanline<TPixel>(int currentRow, ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
+    private void ProcessDefilteredScanline<TPixel>(FrameControl frameControl, int currentRow, ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
@@ -902,7 +904,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 case PngColorType.Grayscale:
                     PngScanlineProcessor.ProcessGrayscaleScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         pngMetadata.HasTransparency,
@@ -913,7 +916,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.GrayscaleWithAlpha:
                     PngScanlineProcessor.ProcessGrayscaleWithAlphaScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)this.bytesPerPixel,
@@ -923,7 +927,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.Palette:
                     PngScanlineProcessor.ProcessPaletteScanline(
-                        this.header,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         this.palette,
@@ -933,8 +937,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.Rgb:
                     PngScanlineProcessor.ProcessRgbScanline(
-                        this.configuration,
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         this.bytesPerPixel,
@@ -947,8 +951,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
-                        this.configuration,
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         this.bytesPerPixel,
@@ -967,12 +971,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Processes the interlaced de-filtered scanline filling the image pixel data
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="defilteredScanline">The de-filtered scanline</param>
     /// <param name="rowSpan">The current image row.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
     /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-    private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
+    private void ProcessInterlacedDefilteredScanline<TPixel>(FrameControl frameControl, ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Trim the first marker byte from the buffer
@@ -994,7 +999,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 case PngColorType.Grayscale:
                     PngScanlineProcessor.ProcessInterlacedGrayscaleScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)pixelOffset,
@@ -1007,7 +1013,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.GrayscaleWithAlpha:
                     PngScanlineProcessor.ProcessInterlacedGrayscaleWithAlphaScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)pixelOffset,
@@ -1019,7 +1026,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.Palette:
                     PngScanlineProcessor.ProcessInterlacedPaletteScanline(
-                        this.header,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)pixelOffset,
@@ -1031,7 +1038,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.Rgb:
                     PngScanlineProcessor.ProcessInterlacedRgbScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)pixelOffset,
@@ -1046,7 +1054,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                        this.header,
+                        this.header.BitDepth,
+                        frameControl,
                         scanlineSpan,
                         rowSpan,
                         (uint)pixelOffset,

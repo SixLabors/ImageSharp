@@ -172,23 +172,24 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             this.WriteAnimationControlChunk(stream, targetImage.Frames.Count, pngMetadata.NumberPlays);
 
-            this.WriteFrameControlChunk(stream, targetImage.Frames.RootFrame.Metadata.GetPngFrameMetadata(), 0);
-            _ = this.WriteDataChunks(targetImage.Frames.RootFrame, rootQuantized, stream, false);
+            FrameControl frameControl = this.WriteFrameControlChunk(stream, targetImage.Frames.RootFrame.Metadata.GetPngFrameMetadata(), 0);
+            _ = this.WriteDataChunks(frameControl, targetImage.Frames.RootFrame, rootQuantized, stream, false);
 
             int index = 1;
 
             foreach (ImageFrame<TPixel> imageFrame in ((IEnumerable<ImageFrame<TPixel>>)targetImage.Frames).Skip(1))
             {
-                this.WriteFrameControlChunk(stream, imageFrame.Metadata.GetPngFrameMetadata(), index);
+                frameControl = this.WriteFrameControlChunk(stream, imageFrame.Metadata.GetPngFrameMetadata(), index);
                 index++;
                 IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(imageFrame);
-                index += this.WriteDataChunks(imageFrame, quantized, stream, true, index);
+                index += this.WriteDataChunks(frameControl, imageFrame, quantized, stream, true);
                 quantized?.Dispose();
             }
         }
         else
         {
-            _ = this.WriteDataChunks(targetImage.Frames.RootFrame, rootQuantized, stream, false);
+            FrameControl frameControl = new(0, this.width, this.height, 0, 0, 0, 0, default, default);
+            _ = this.WriteDataChunks(frameControl, targetImage.Frames.RootFrame, rootQuantized, stream, false);
             rootQuantized?.Dispose();
         }
 
@@ -962,25 +963,27 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="frameMetadata">Provides APng specific metadata information for the image frame.</param>
     /// <param name="sequenceNumber">Sequence number.</param>
-    private void WriteFrameControlChunk(Stream stream, PngFrameMetadata frameMetadata, int sequenceNumber)
+    private FrameControl WriteFrameControlChunk(Stream stream, PngFrameMetadata frameMetadata, int sequenceNumber)
     {
         FrameControl fcTL = FrameControl.FromMetadata(frameMetadata, sequenceNumber);
 
         fcTL.WriteTo(this.chunkDataBuffer.Span);
 
         this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer.Span, 0, FrameControl.Size);
+
+        return fcTL;
     }
 
     /// <summary>
     /// Writes the pixel information to the stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="pixels">The frame.</param>
     /// <param name="quantized">The quantized pixel data. Can be null.</param>
     /// <param name="stream">The stream.</param>
     /// <param name="isFrame">Is writing fdAT or IDAT.</param>
-    /// <param name="startSequenceNumber">Start sequence number.</param>
-    private int WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame, int startSequenceNumber = 0)
+    private int WriteDataChunks<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] buffer;
@@ -994,16 +997,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 {
                     if (quantized is not null)
                     {
-                        this.EncodeAdam7IndexedPixels(quantized, deflateStream);
+                        this.EncodeAdam7IndexedPixels(frameControl, quantized, deflateStream);
                     }
                     else
                     {
-                        this.EncodeAdam7Pixels(pixels, deflateStream);
+                        this.EncodeAdam7Pixels(frameControl, pixels, deflateStream);
                     }
                 }
                 else
                 {
-                    this.EncodePixels(pixels, quantized, deflateStream);
+                    this.EncodePixels(frameControl, pixels, quantized, deflateStream);
                 }
             }
 
@@ -1038,7 +1041,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             if (isFrame)
             {
                 byte[] chunkBuffer = new byte[MaxBlockSize];
-                BinaryPrimitives.WriteInt32BigEndian(chunkBuffer, startSequenceNumber + i);
+                BinaryPrimitives.WriteInt32BigEndian(chunkBuffer, frameControl.SequenceNumber + 1 + i);
                 buffer.AsSpan().Slice(i * maxBlockSize, length).CopyTo(chunkBuffer.AsSpan(4, length));
 
                 this.WriteChunk(stream, PngChunkType.FrameData, chunkBuffer, 0, length + 4);
@@ -1069,19 +1072,15 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Encodes the pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="pixels">The pixels.</param>
     /// <param name="quantized">The quantized pixels span.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
+    private void EncodePixels<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = this.width;
-        int height = this.height;
-        if (pixels.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? pngMetadata))
-        {
-            width = pngMetadata.Width;
-            height = pngMetadata.Height;
-        }
+        int width = frameControl.Width;
+        int height = frameControl.Height;
 
         int bytesPerScanline = this.CalculateScanlineLength(width);
         int filterLength = bytesPerScanline + 1;
@@ -1094,7 +1093,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
-            for (int y = 0; y < height; y++)
+            for (int y = frameControl.YOffset; y < frameControl.YLimit; y++)
             {
                 this.CollectAndFilterPixelRow(accessor.GetRowSpan(y), ref filter, ref attempt, quantized, y);
                 deflateStream.Write(filter);
@@ -1107,18 +1106,19 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Interlaced encoding the pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="frame">The image frame.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7Pixels<TPixel>(ImageFrame<TPixel> frame, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7Pixels<TPixel>(FrameControl frameControl, ImageFrame<TPixel> frame, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = frame.Width;
-        int height = frame.Height;
+        int width = frameControl.Width;
+        int height = frameControl.Height;
         Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
         for (int pass = 0; pass < 7; pass++)
         {
-            int startRow = Adam7.FirstRow[pass];
-            int startCol = Adam7.FirstColumn[pass];
+            int startRow = Adam7.FirstRow[pass] + frameControl.YOffset;
+            int startCol = Adam7.FirstColumn[pass] + frameControl.XOffset;
             int blockWidth = Adam7.ComputeBlockWidth(width, pass);
 
             int bytesPerScanline = this.bytesPerPixel <= 1
@@ -1136,11 +1136,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
 
-            for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
+            for (int row = startRow; row < frameControl.YLimit; row += Adam7.RowIncrement[pass])
             {
                 // Collect pixel data
                 Span<TPixel> srcRow = pixelBuffer.DangerousGetRowSpan(row);
-                for (int col = startCol, i = 0; col < width; col += Adam7.ColumnIncrement[pass])
+                for (int col = startCol, i = 0; col < frameControl.XLimit; col += Adam7.ColumnIncrement[pass])
                 {
                     block[i++] = srcRow[col];
                 }
@@ -1160,17 +1160,18 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Interlaced encoding the quantized (indexed, with palette) pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="frameControl">The frame control</param>
     /// <param name="quantized">The quantized.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7IndexedPixels<TPixel>(FrameControl frameControl, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = quantized.Width;
-        int height = quantized.Height;
+        int width = frameControl.Width;
+        int height = frameControl.Height;
         for (int pass = 0; pass < 7; pass++)
         {
-            int startRow = Adam7.FirstRow[pass];
-            int startCol = Adam7.FirstColumn[pass];
+            int startRow = Adam7.FirstRow[pass] + frameControl.YOffset;
+            int startCol = Adam7.FirstColumn[pass] + frameControl.XOffset;
             int blockWidth = Adam7.ComputeBlockWidth(width, pass);
 
             int bytesPerScanline = this.bytesPerPixel <= 1
@@ -1190,13 +1191,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             Span<byte> attempt = attemptBuffer.GetSpan();
 
             for (int row = startRow;
-                row < height;
+                row < frameControl.YLimit;
                 row += Adam7.RowIncrement[pass])
             {
                 // Collect data
                 ReadOnlySpan<byte> srcRow = quantized.DangerousGetRowSpan(row);
                 for (int col = startCol, i = 0;
-                    col < width;
+                    col < frameControl.XLimit;
                     col += Adam7.ColumnIncrement[pass])
                 {
                     block[i] = srcRow[col];

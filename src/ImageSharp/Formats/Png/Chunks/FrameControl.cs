@@ -57,6 +57,16 @@ internal readonly struct FrameControl
     public int YOffset { get; }
 
     /// <summary>
+    /// Gets the X limit at which to render the following frame
+    /// </summary>
+    public uint XLimit => (uint)(this.XOffset + this.Width);
+
+    /// <summary>
+    /// Gets the Y limit at which to render the following frame
+    /// </summary>
+    public uint YLimit => (uint)(this.YOffset + this.Height);
+
+    /// <summary>
     /// Gets the frame delay fraction numerator
     /// </summary>
     public short DelayNumber { get; }
@@ -104,14 +114,14 @@ internal readonly struct FrameControl
             PngThrowHelper.ThrowInvalidParameter(this.Height, "Expected > 0");
         }
 
-        if (this.XOffset + this.Width > hdr.Width)
+        if (this.XLimit > hdr.Width)
         {
-            PngThrowHelper.ThrowInvalidParameter(this.XOffset, this.Width, $"The sum > {nameof(PngHeader)}.{nameof(PngHeader.Width)}");
+            PngThrowHelper.ThrowInvalidParameter(this.XOffset, this.Width, $"The sum of them > {nameof(PngHeader)}.{nameof(PngHeader.Width)}");
         }
 
-        if (this.YOffset + this.Height > hdr.Height)
+        if (this.YLimit > hdr.Height)
         {
-            PngThrowHelper.ThrowInvalidParameter(this.YOffset, this.Height, "The sum > PngHeader.Height");
+            PngThrowHelper.ThrowInvalidParameter(this.YOffset, this.Height, $"The sum of them > {nameof(PngHeader)}.{nameof(PngHeader.Height)}");
         }
     }
 

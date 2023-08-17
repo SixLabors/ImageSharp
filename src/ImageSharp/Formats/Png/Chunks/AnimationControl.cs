@@ -5,21 +5,25 @@ using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 
-internal record AnimationControl(
-    int NumberFrames,
-    int NumberPlays)
+internal readonly struct AnimationControl
 {
     public const int Size = 8;
+
+    public AnimationControl(int numberFrames, int numberPlays)
+    {
+        this.NumberFrames = numberFrames;
+        this.NumberPlays = numberPlays;
+    }
 
     /// <summary>
     /// Gets the number of frames
     /// </summary>
-    public int NumberFrames { get; } = NumberFrames;
+    public int NumberFrames { get; }
 
     /// <summary>
     /// Gets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public int NumberPlays { get; } = NumberPlays;
+    public int NumberPlays { get; }
 
     /// <summary>
     /// Writes the acTL to the given buffer.
@@ -38,6 +42,6 @@ internal record AnimationControl(
     /// <returns>The parsed acTL.</returns>
     public static AnimationControl Parse(ReadOnlySpan<byte> data)
         => new(
-            NumberFrames: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
-            NumberPlays: BinaryPrimitives.ReadInt32BigEndian(data[4..8]));
+            numberFrames: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
+            numberPlays: BinaryPrimitives.ReadInt32BigEndian(data[4..8]));
 }

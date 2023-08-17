@@ -1077,7 +1077,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         int width = this.width;
         int height = this.height;
-        if (pixels.Metadata.TryGetAPngFrameMetadata(out PngFrameMetadata? pngMetadata))
+        if (pixels.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? pngMetadata))
         {
             width = pngMetadata.Width;
             height = pngMetadata.Height;

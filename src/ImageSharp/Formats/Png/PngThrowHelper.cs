@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -37,6 +38,14 @@ internal static class PngThrowHelper
 
     [DoesNotReturn]
     public static void ThrowInvalidChunkCrc(string chunkTypeName) => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
+
+    [DoesNotReturn]
+    public static void ThrowInvalidParameter(object value, string message, [CallerArgumentExpression(nameof(value))] string name = "")
+        => throw new NotSupportedException($"Invalid {name}. {message}. Was '{value}'.");
+
+    [DoesNotReturn]
+    public static void ThrowInvalidParameter(object value1, object value2, string message, [CallerArgumentExpression(nameof(value1))] string name1 = "", [CallerArgumentExpression(nameof(value1))] string name2 = "")
+        => throw new NotSupportedException($"Invalid {name1} or {name2}. {message}. Was '{value1}' and '{value2}'.");
 
     [DoesNotReturn]
     public static void ThrowNotSupportedColor() => throw new NotSupportedException("Unsupported PNG color type.");

@@ -34,12 +34,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private readonly Configuration configuration;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+    /// Whether the metadata should be ignored when the image is being decoded.
+    /// </summary>
+    private readonly uint maxFrames;
+
+    /// <summary>
+    /// Whether the metadata should be ignored when the image is being decoded.
     /// </summary>
     private readonly bool skipMetadata;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to read the IHDR and tRNS chunks only.
+    /// Whether to read the IHDR and tRNS chunks only.
     /// </summary>
     private readonly bool colorMetadataOnly;
 
@@ -61,7 +66,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The png animation control.
     /// </summary>
-    private AnimationControl? animationControl;
+    private AnimationControl animationControl;
 
     /// <summary>
     /// The number of bytes per pixel.
@@ -116,6 +121,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         this.Options = options;
         this.configuration = options.Configuration;
+        this.maxFrames = options.MaxFrames;
         this.skipMetadata = options.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
@@ -124,6 +130,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         this.Options = options;
         this.colorMetadataOnly = colorMetadataOnly;
+        this.maxFrames = options.MaxFrames;
         this.skipMetadata = true;
         this.configuration = options.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
@@ -139,6 +146,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        uint frameCount = 0;
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
@@ -174,10 +182,21 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
+                            ++frameCount;
+                            if (frameCount == this.maxFrames)
+                            {
+                                break;
+                            }
+
                             currentFrame = null;
                             lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
+                            if (frameCount == this.maxFrames)
+                            {
+                                break;
+                            }
+
                             if (image is null)
                             {
                                 PngThrowHelper.ThrowMissingDefaultData();
@@ -290,6 +309,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <inheritdoc/>
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        uint frameCount = 0;
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
@@ -331,9 +351,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
+                            ++frameCount;
+                            if (frameCount == this.maxFrames)
+                            {
+                                break;
+                            }
+
                             lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
+                            if (frameCount == this.maxFrames)
+                            {
+                                break;
+                            }
+
                             if (this.colorMetadataOnly)
                             {
                                 goto EOF;

@@ -86,32 +86,32 @@ internal readonly struct FrameControl
     {
         if (this.XOffset < 0)
         {
-            throw new NotSupportedException($"Invalid XOffset. Expected >= 0. Was '{this.XOffset}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.XOffset, "Expected >= 0");
         }
 
         if (this.YOffset < 0)
         {
-            throw new NotSupportedException($"Invalid YOffset. Expected >= 0. Was '{this.YOffset}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.YOffset, "Expected >= 0");
         }
 
         if (this.Width <= 0)
         {
-            throw new NotSupportedException($"Invalid Width. Expected > 0. Was '{this.Width}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.Width, "Expected > 0");
         }
 
         if (this.Height <= 0)
         {
-            throw new NotSupportedException($"Invalid Height. Expected > 0. Was '{this.Height}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.Height, "Expected > 0");
         }
 
         if (this.XOffset + this.Width > hdr.Width)
         {
-            throw new NotSupportedException($"Invalid XOffset or Width. The sum > PngHeader.Width. Was '{this.XOffset + this.Width}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.XOffset, this.Width, $"The sum > {nameof(PngHeader)}.{nameof(PngHeader.Width)}");
         }
 
         if (this.YOffset + this.Height > hdr.Height)
         {
-            throw new NotSupportedException($"Invalid YOffset or Height. The sum > PngHeader.Height. Was '{this.YOffset + this.Height}'.");
+            PngThrowHelper.ThrowInvalidParameter(this.YOffset, this.Height, "The sum > PngHeader.Height");
         }
     }
 

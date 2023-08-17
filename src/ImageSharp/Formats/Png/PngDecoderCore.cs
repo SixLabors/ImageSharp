@@ -213,23 +213,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             }
 
                             this.currentStream.Position += 4;
-                            this.ReadScanlines(
-                                chunk.Length - 4,
-                                currentFrame,
-                                pngMetadata,
-                                () =>
-                                {
-                                    int length = this.ReadNextDataChunk();
-                                    if (this.ReadNextDataChunk() is 0)
-                                    {
-                                        return length;
-                                    }
-
-                                    this.currentStream.Position += 4; // Skip sequence number
-                                    return length - 4;
-                                },
-                                lastFrameControl.Value,
-                                cancellationToken);
+                            this.ReadScanlines(chunk.Length - 4, currentFrame, pngMetadata, this.ReadNextDataChunkAndSkipSeq, lastFrameControl.Value, cancellationToken);
                             lastFrameControl = null;
                             break;
                         case PngChunkType.Data:
@@ -1576,7 +1560,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         Span<byte> buffer = stackalloc byte[20];
 
-        this.currentStream.Read(buffer, 0, 4);
+        _ = this.currentStream.Read(buffer, 0, 4);
 
         if (this.TryReadChunk(buffer, out PngChunk chunk))
         {
@@ -1590,6 +1574,22 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Reads the next data chunk and skip sequence number.
+    /// </summary>
+    /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
+    private int ReadNextDataChunkAndSkipSeq()
+    {
+        int length = this.ReadNextDataChunk();
+        if (this.ReadNextDataChunk() is 0)
+        {
+            return length;
+        }
+
+        this.currentStream.Position += 4; // Skip sequence number
+        return length - 4;
     }
 
     /// <summary>

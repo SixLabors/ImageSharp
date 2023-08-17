@@ -240,7 +240,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 }
             });
         }
-
     }
 
     /// <summary>

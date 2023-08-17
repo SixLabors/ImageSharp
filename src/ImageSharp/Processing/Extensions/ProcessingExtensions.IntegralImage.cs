@@ -54,7 +54,7 @@ public static partial class ProcessingExtensions
     public static Buffer2D<ulong> CalculateIntegralImage<TPixel>(this ImageFrame<TPixel> source, Rectangle bounds)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = source.GetConfiguration();
+        Configuration configuration = source.Configuration;
 
         var interest = Rectangle.Intersect(bounds, source.Bounds());
         int startY = interest.Y;

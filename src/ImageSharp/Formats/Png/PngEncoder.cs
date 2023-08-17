@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using SixLabors.ImageSharp.Advanced;
-
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
@@ -77,7 +75,7 @@ public class PngEncoder : QuantizingImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        using PngEncoderCore encoder = new(image.GetMemoryAllocator(), image.GetConfiguration(), this);
+        using PngEncoderCore encoder = new(image.Configuration, this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
-
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
@@ -26,7 +24,7 @@ public sealed class BmpEncoder : QuantizingImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        BmpEncoderCore encoder = new(this, image.GetMemoryAllocator());
+        BmpEncoderCore encoder = new(this, image.Configuration.MemoryAllocator);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

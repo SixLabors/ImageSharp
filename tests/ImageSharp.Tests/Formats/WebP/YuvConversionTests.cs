@@ -42,7 +42,7 @@ public class YuvConversionTests
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        Configuration config = image.GetConfiguration();
+        Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
         int uvWidth = (image.Width + 1) >> 1;
@@ -158,7 +158,7 @@ public class YuvConversionTests
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        Configuration config = image.GetConfiguration();
+        Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
         int uvWidth = (image.Width + 1) >> 1;

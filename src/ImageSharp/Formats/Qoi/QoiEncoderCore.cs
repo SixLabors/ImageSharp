@@ -33,13 +33,12 @@ internal class QoiEncoderCore : IImageEncoderInternals
     /// Initializes a new instance of the <see cref="QoiEncoderCore"/> class.
     /// </summary>
     /// <param name="encoder">The encoder with options.</param>
-    /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
     /// <param name="configuration">The configuration of the Encoder.</param>
-    public QoiEncoderCore(QoiEncoder encoder, MemoryAllocator memoryAllocator, Configuration configuration)
+    public QoiEncoderCore(QoiEncoder encoder, Configuration configuration)
     {
         this.encoder = encoder;
-        this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
+        this.memoryAllocator = configuration.MemoryAllocator;
     }
 
     /// <inheritdoc />

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 
@@ -42,7 +41,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        TiffEncoderCore encode = new(this, image.GetMemoryAllocator());
+        TiffEncoderCore encode = new(this, image.Configuration.MemoryAllocator);
         encode.Encode(image, stream, cancellationToken);
     }
 }

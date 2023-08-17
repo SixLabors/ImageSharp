@@ -112,7 +112,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         }
         else
         {
-            this.WriteImage(image.GetConfiguration(), stream, image.Frames.RootFrame);
+            this.WriteImage(image.Configuration, stream, image.Frames.RootFrame);
         }
 
         stream.Flush();

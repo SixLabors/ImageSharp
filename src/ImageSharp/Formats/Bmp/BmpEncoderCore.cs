@@ -118,7 +118,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         ImageMetadata metadata = image.Metadata;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;

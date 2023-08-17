@@ -29,11 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Png;
 internal sealed class PngDecoderCore : IImageDecoderInternals
 {
     /// <summary>
-    /// Indicate whether the file is a simple PNG.
-    /// </summary>
-    private bool isSimplePng;
-
-    /// <summary>
     /// The general decoder options.
     /// </summary>
     private readonly Configuration configuration;
@@ -66,7 +61,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The png animation control.
     /// </summary>
-    private APngAnimationControl? animationControl;
+    private AnimationControl? animationControl;
 
     /// <summary>
     /// The number of bytes per pixel.
@@ -149,7 +144,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.currentStream = stream;
         this.currentStream.Skip(8);
         Image<TPixel>? image = null;
-        APngFrameControl? lastFrameControl = null;
+        FrameControl? lastFrameControl = null;
         ImageFrame<TPixel>? currentFrame = null;
         Span<byte> buffer = stackalloc byte[20];
 
@@ -170,11 +165,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.AnimationControl:
-                            if (this.isSimplePng || this.animationControl is not null)
-                            {
-                                PngThrowHelper.ThrowInvalidAnimationControl();
-                            }
-
                             this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Physical:
@@ -184,11 +174,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
-                            if (this.isSimplePng)
-                            {
-                                continue;
-                            }
-
                             currentFrame = null;
                             lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
@@ -228,11 +213,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             lastFrameControl = null;
                             break;
                         case PngChunkType.Data:
-                            if (this.animationControl is null)
-                            {
-                                this.isSimplePng = true;
-                            }
-
                             if (image is null)
                             {
                                 this.InitializeImage(metadata, lastFrameControl, out image);
@@ -313,7 +293,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         ImageMetadata metadata = new();
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
-        APngFrameControl? lastFrameControl = null;
+        FrameControl? lastFrameControl = null;
         Span<byte> buffer = stackalloc byte[20];
 
         this.currentStream.Skip(8);
@@ -330,11 +310,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.AnimationControl:
-                            if (this.isSimplePng || this.animationControl is not null)
-                            {
-                                PngThrowHelper.ThrowInvalidAnimationControl();
-                            }
-
                             this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.Physical:
@@ -356,11 +331,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
-                            if (this.isSimplePng)
-                            {
-                                continue;
-                            }
-
                             lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
@@ -379,11 +349,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             this.SkipChunkDataAndCrc(chunk);
                             break;
                         case PngChunkType.Data:
-                            if (this.animationControl is null)
-                            {
-                                this.isSimplePng = true;
-                            }
-
                             // Spec says tRNS must be before IDAT so safe to exit.
                             if (this.colorMetadataOnly)
                             {
@@ -465,7 +430,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
 
             EOF:
-            if (this.header is { Width: 0, Height: 0 })
+            if (this.header.Width == 0 && this.header.Height == 0)
             {
                 PngThrowHelper.ThrowInvalidHeader();
             }
@@ -568,7 +533,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="metadata">The metadata information for the image</param>
     /// <param name="frameControl">The frame control information for the frame</param>
     /// <param name="image">The image that we will populate</param>
-    private void InitializeImage<TPixel>(ImageMetadata metadata, APngFrameControl? frameControl, out Image<TPixel> image)
+    private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl? frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         image = Image.CreateUninitialized<TPixel>(
@@ -579,7 +544,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         if (frameControl is { } control)
         {
-            APngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetAPngFrameMetadata();
+            PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngFrameMetadata();
             frameMetadata.FromChunk(control);
         }
 
@@ -603,12 +568,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <typeparam name="TPixel">The type the pixels will be</typeparam>
     /// <param name="frameControl">The frame control information for the frame</param>
     /// <param name="image">The image that we will populate</param>
-    private void InitializeFrame<TPixel>(APngFrameControl frameControl, Image<TPixel> image, out ImageFrame<TPixel> frame)
+    /// <param name="frame">The created frame</param>
+    private void InitializeFrame<TPixel>(FrameControl frameControl, Image<TPixel> image, out ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         frame = image.Frames.CreateFrame();
 
-        APngFrameMetadata frameMetadata = frame.Metadata.GetAPngFrameMetadata();
+        PngFrameMetadata frameMetadata = frame.Metadata.GetPngFrameMetadata();
 
         frameMetadata.FromChunk(frameControl);
 
@@ -716,7 +682,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         int currentRow = Adam7.FirstRow[0];
         int currentRowBytesRead = 0;
-        int height = image.Metadata.TryGetAPngFrameMetadata(out APngFrameMetadata? frameMetadata) ? frameMetadata.Height : this.header.Height;
+        int height = image.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? frameMetadata) ? frameMetadata.Height : this.header.Height;
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -763,7 +729,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             this.ProcessDefilteredScanline(currentRow, scanlineSpan, image, pngMetadata);
 
             this.SwapScanlineBuffers();
-            ++currentRow;
+            currentRow++;
         }
     }
 
@@ -784,7 +750,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int pass = 0;
         int width = this.header.Width;
         int height = this.header.Height;
-        if (image.Metadata.TryGetAPngFrameMetadata(out APngFrameMetadata? frameMetadata))
+        if (image.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? frameMetadata))
         {
             width = frameMetadata.Width;
             height = frameMetadata.Height;
@@ -797,7 +763,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             if (numColumns == 0)
             {
-                ++pass;
+                pass++;
 
                 // This pass contains no data; skip to next pass
                 continue;
@@ -1124,7 +1090,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
     private void ReadAnimationControlChunk(PngMetadata pngMetadata, ReadOnlySpan<byte> data)
     {
-        this.animationControl = APngAnimationControl.Parse(data);
+        this.animationControl = AnimationControl.Parse(data);
 
         pngMetadata.NumberPlays = this.animationControl.NumberPlays;
     }
@@ -1133,9 +1099,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Reads a header chunk from the data.
     /// </summary>
     /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
-    private APngFrameControl ReadFrameControlChunk(ReadOnlySpan<byte> data)
+    private FrameControl ReadFrameControlChunk(ReadOnlySpan<byte> data)
     {
-        APngFrameControl fcTL = APngFrameControl.Parse(data);
+        FrameControl fcTL = FrameControl.Parse(data);
 
         fcTL.Validate(this.header);
 

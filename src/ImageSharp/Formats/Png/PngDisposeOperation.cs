@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Specifies how the output buffer should be changed at the end of the delay (before rendering the next frame).
 /// </summary>
-public enum APngDisposeOperation
+public enum PngDisposeOperation
 {
     /// <summary>
     /// No disposal is done on this frame before rendering the next; the contents of the output buffer are left as is.

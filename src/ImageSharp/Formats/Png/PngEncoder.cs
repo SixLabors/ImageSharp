@@ -20,11 +20,6 @@ public class PngEncoder : QuantizingImageEncoder
         this.Quantizer = null!;
 
     /// <summary>
-    /// Gets whether the file is a simple PNG.
-    /// </summary>
-    public bool? IsSimplePng { get; init; }
-
-    /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType" /> values.
     /// </summary>

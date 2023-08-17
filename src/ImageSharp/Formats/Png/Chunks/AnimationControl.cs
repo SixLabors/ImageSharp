@@ -5,7 +5,7 @@ using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 
-internal record APngAnimationControl(
+internal record AnimationControl(
     int NumberFrames,
     int NumberPlays)
 {
@@ -36,7 +36,7 @@ internal record APngAnimationControl(
     /// </summary>
     /// <param name="data">The data to parse.</param>
     /// <returns>The parsed acTL.</returns>
-    public static APngAnimationControl Parse(ReadOnlySpan<byte> data)
+    public static AnimationControl Parse(ReadOnlySpan<byte> data)
         => new(
             NumberFrames: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
             NumberPlays: BinaryPrimitives.ReadInt32BigEndian(data[4..8]));

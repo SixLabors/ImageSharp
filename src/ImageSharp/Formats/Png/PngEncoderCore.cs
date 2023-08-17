@@ -25,7 +25,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <summary>
     /// The maximum block size, defaults at 64k for uncompressed blocks.
     /// </summary>
-    private const int MaxBlockSize = (1 << 16) - 1;
+    private const int MaxBlockSize = 65535;
 
     /// <summary>
     /// Used the manage memory allocations.
@@ -168,20 +168,19 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.WriteXmpChunk(stream, metadata);
         this.WriteTextChunks(stream, pngMetadata);
 
-        if ((this.encoder.IsSimplePng is null && targetImage.Frames.Count > 1)
-            || this.encoder.IsSimplePng is false)
+        if (targetImage.Frames.Count > 1)
         {
             this.WriteAnimationControlChunk(stream, targetImage.Frames.Count, pngMetadata.NumberPlays);
 
-            this.WriteFrameControlChunk(stream, targetImage.Frames.RootFrame.Metadata.GetAPngFrameMetadata(), 0);
+            this.WriteFrameControlChunk(stream, targetImage.Frames.RootFrame.Metadata.GetPngFrameMetadata(), 0);
             _ = this.WriteDataChunks(targetImage.Frames.RootFrame, rootQuantized, stream, false);
 
             int index = 1;
 
             foreach (ImageFrame<TPixel> imageFrame in ((IEnumerable<ImageFrame<TPixel>>)targetImage.Frames).Skip(1))
             {
-                this.WriteFrameControlChunk(stream, imageFrame.Metadata.GetAPngFrameMetadata(), index);
-                ++index;
+                this.WriteFrameControlChunk(stream, imageFrame.Metadata.GetPngFrameMetadata(), index);
+                index++;
                 IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(imageFrame);
                 index += this.WriteDataChunks(imageFrame, quantized, stream, true, index);
                 quantized?.Dispose();
@@ -225,10 +224,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 // TODO: We should be able to speed this up with SIMD and masking.
                 Rgba32 rgba32 = default;
                 Rgba32 transparent = Color.Transparent;
-                for (int y = 0; y < accessor.Height; ++y)
+                for (int y = 0; y < accessor.Height; y++)
                 {
                     Span<TPixel> span = accessor.GetRowSpan(y);
-                    for (int x = 0; x < accessor.Width; ++x)
+                    for (int x = 0; x < accessor.Width; x++)
                     {
                         span[x].ToRgba32(ref rgba32);
 
@@ -278,7 +277,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 PixelOperations<TPixel>.Instance.ToL16(this.configuration, rowSpan, luminanceSpan);
 
                 // Can't map directly to byte array as it's big-endian.
-                for (int x = 0, o = 0; x < luminanceSpan.Length; ++x, o += 2)
+                for (int x = 0, o = 0; x < luminanceSpan.Length; x++, o += 2)
                 {
                     L16 luminance = Unsafe.Add(ref luminanceRef, (uint)x);
                     BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance.PackedValue);
@@ -318,7 +317,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             PixelOperations<TPixel>.Instance.ToLa32(this.configuration, rowSpan, laSpan);
 
             // Can't map directly to byte array as it's big endian.
-            for (int x = 0, o = 0; x < laSpan.Length; ++x, o += 4)
+            for (int x = 0, o = 0; x < laSpan.Length; x++, o += 4)
             {
                 La32 la = Unsafe.Add(ref laRef, (uint)x);
                 BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), la.L);
@@ -602,11 +601,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="playsCount">The number of times to loop this APNG.</param>
     private void WriteAnimationControlChunk(Stream stream, int framesCount, int playsCount)
     {
-        APngAnimationControl acTL = new(framesCount, playsCount);
+        AnimationControl acTL = new(framesCount, playsCount);
 
         acTL.WriteTo(this.chunkDataBuffer.Span);
 
-        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer.Span, 0, APngAnimationControl.Size);
+        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer.Span, 0, AnimationControl.Size);
     }
 
     /// <summary>
@@ -643,7 +642,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPaletteSpan);
 
         // Loop, assign, and extract alpha values from the palette.
-        for (int i = 0; i < paletteLength; ++i)
+        for (int i = 0; i < paletteLength; i++)
         {
             Rgba32 rgba = Unsafe.Add(ref rgbaPaletteRef, (uint)i);
             byte alpha = rgba.A;
@@ -963,13 +962,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="frameMetadata">Provides APng specific metadata information for the image frame.</param>
     /// <param name="sequenceNumber">Sequence number.</param>
-    private void WriteFrameControlChunk(Stream stream, APngFrameMetadata frameMetadata, int sequenceNumber)
+    private void WriteFrameControlChunk(Stream stream, PngFrameMetadata frameMetadata, int sequenceNumber)
     {
-        APngFrameControl fcTL = APngFrameControl.FromMetadata(frameMetadata, sequenceNumber);
+        FrameControl fcTL = FrameControl.FromMetadata(frameMetadata, sequenceNumber);
 
         fcTL.WriteTo(this.chunkDataBuffer.Span);
 
-        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer.Span, 0, APngFrameControl.Size);
+        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer.Span, 0, FrameControl.Size);
     }
 
     /// <summary>
@@ -1024,10 +1023,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (bufferLength % maxBlockSize != 0)
         {
-            ++numChunks;
+            numChunks++;
         }
 
-        for (int i = 0; i < numChunks; ++i)
+        for (int i = 0; i < numChunks; i++)
         {
             int length = bufferLength - (i * maxBlockSize);
 
@@ -1078,7 +1077,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         int width = this.width;
         int height = this.height;
-        if (pixels.Metadata.TryGetAPngFrameMetadata(out APngFrameMetadata? pngMetadata))
+        if (pixels.Metadata.TryGetAPngFrameMetadata(out PngFrameMetadata? pngMetadata))
         {
             width = pngMetadata.Width;
             height = pngMetadata.Height;
@@ -1095,7 +1094,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
-            for (int y = 0; y < height; ++y)
+            for (int y = 0; y < height; y++)
             {
                 this.CollectAndFilterPixelRow(accessor.GetRowSpan(y), ref filter, ref attempt, quantized, y);
                 deflateStream.Write(filter);
@@ -1201,7 +1200,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                     col += Adam7.ColumnIncrement[pass])
                 {
                     block[i] = srcRow[col];
-                    ++i;
+                    i++;
                 }
 
                 // Encode data

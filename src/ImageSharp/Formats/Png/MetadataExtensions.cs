@@ -23,15 +23,14 @@ public static partial class MetadataExtensions
     /// Gets the aPng format specific metadata for the image frame.
     /// </summary>
     /// <param name="source">The metadata this method extends.</param>
-    /// <returns>The <see cref="APngFrameMetadata"/>.</returns>
-    public static APngFrameMetadata GetAPngFrameMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
+    /// <returns>The <see cref="PngFrameMetadata"/>.</returns>
+    public static PngFrameMetadata GetPngFrameMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
 
     /// <summary>
     /// Gets the aPng format specific metadata for the image frame.
     /// </summary>
     /// <param name="source">The metadata this method extends.</param>
     /// <param name="metadata">The metadata.</param>
-    /// <returns>The <see cref="APngFrameMetadata"/>.</returns>
-    public static bool TryGetAPngFrameMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out APngFrameMetadata? metadata) => source.TryGetFormatMetadata(PngFormat.Instance, out metadata);
-
+    /// <returns>The <see cref="PngFrameMetadata"/>.</returns>
+    public static bool TryGetPngFrameMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out PngFrameMetadata? metadata) => source.TryGetFormatMetadata(PngFormat.Instance, out metadata);
 }

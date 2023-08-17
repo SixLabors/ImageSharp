@@ -5,11 +5,11 @@ using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 
-internal readonly struct APngFrameControl
+internal readonly struct FrameControl
 {
     public const int Size = 26;
 
-    public APngFrameControl(
+    public FrameControl(
         int sequenceNumber,
         int width,
         int height,
@@ -17,8 +17,8 @@ internal readonly struct APngFrameControl
         int yOffset,
         short delayNumber,
         short delayDenominator,
-        APngDisposeOperation disposeOperation,
-        APngBlendOperation blendOperation)
+        PngDisposeOperation disposeOperation,
+        PngBlendOperation blendOperation)
     {
         this.SequenceNumber = sequenceNumber;
         this.Width = width;
@@ -69,12 +69,12 @@ internal readonly struct APngFrameControl
     /// <summary>
     /// Gets the type of frame area disposal to be done after rendering this frame
     /// </summary>
-    public APngDisposeOperation DisposeOperation { get; }
+    public PngDisposeOperation DisposeOperation { get; }
 
     /// <summary>
     /// Gets the type of frame area rendering for this frame
     /// </summary>
-    public APngBlendOperation BlendOperation { get; }
+    public PngBlendOperation BlendOperation { get; }
 
     /// <summary>
     /// Validates the APng fcTL.
@@ -120,9 +120,9 @@ internal readonly struct APngFrameControl
     /// </summary>
     /// <param name="frameMetadata">The metadata to parse.</param>
     /// <param name="sequenceNumber">Sequence number.</param>
-    public static APngFrameControl FromMetadata(APngFrameMetadata frameMetadata, int sequenceNumber)
+    public static FrameControl FromMetadata(PngFrameMetadata frameMetadata, int sequenceNumber)
     {
-        APngFrameControl fcTL = new(
+        FrameControl fcTL = new(
             sequenceNumber,
             frameMetadata.Width,
             frameMetadata.Height,
@@ -158,7 +158,7 @@ internal readonly struct APngFrameControl
     /// </summary>
     /// <param name="data">The data to parse.</param>
     /// <returns>The parsed fcTL.</returns>
-    public static APngFrameControl Parse(ReadOnlySpan<byte> data)
+    public static FrameControl Parse(ReadOnlySpan<byte> data)
         => new(
             sequenceNumber: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
             width: BinaryPrimitives.ReadInt32BigEndian(data[4..8]),
@@ -167,6 +167,6 @@ internal readonly struct APngFrameControl
             yOffset: BinaryPrimitives.ReadInt32BigEndian(data[16..20]),
             delayNumber: BinaryPrimitives.ReadInt16BigEndian(data[20..22]),
             delayDenominator: BinaryPrimitives.ReadInt16BigEndian(data[22..24]),
-            disposeOperation: (APngDisposeOperation)data[24],
-            blendOperation: (APngBlendOperation)data[25]);
+            disposeOperation: (PngDisposeOperation)data[24],
+            blendOperation: (PngBlendOperation)data[25]);
 }

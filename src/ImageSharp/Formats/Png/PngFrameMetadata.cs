@@ -8,20 +8,20 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Provides APng specific metadata information for the image frame.
 /// </summary>
-public class APngFrameMetadata : IDeepCloneable
+public class PngFrameMetadata : IDeepCloneable
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="APngFrameMetadata"/> class.
+    /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
     /// </summary>
-    public APngFrameMetadata()
+    public PngFrameMetadata()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="APngFrameMetadata"/> class.
+    /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private APngFrameMetadata(APngFrameMetadata other)
+    private PngFrameMetadata(PngFrameMetadata other)
     {
         this.Width = other.Width;
         this.Height = other.Height;
@@ -66,18 +66,18 @@ public class APngFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the type of frame area disposal to be done after rendering this frame
     /// </summary>
-    public APngDisposeOperation DisposeOperation { get; set; }
+    public PngDisposeOperation DisposeOperation { get; set; }
 
     /// <summary>
     /// Gets or sets the type of frame area rendering for this frame
     /// </summary>
-    public APngBlendOperation BlendOperation { get; set; }
+    public PngBlendOperation BlendOperation { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="APngFrameMetadata"/> class.
+    /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
     /// </summary>
     /// <param name="frameControl">The chunk to create an instance from.</param>
-    internal void FromChunk(APngFrameControl frameControl)
+    internal void FromChunk(FrameControl frameControl)
     {
         this.Width = frameControl.Width;
         this.Height = frameControl.Height;
@@ -90,5 +90,5 @@ public class APngFrameMetadata : IDeepCloneable
     }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new APngFrameMetadata(this);
+    public IDeepCloneable DeepClone() => new PngFrameMetadata(this);
 }

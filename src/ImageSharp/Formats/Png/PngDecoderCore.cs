@@ -671,7 +671,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
     /// <param name="frameControl">The frame control</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void ReadScanlines<TPixel>(int chunkLength, ImageFrame<TPixel> image, PngMetadata pngMetadata, Func<int> getData, FrameControl frameControl, CancellationToken cancellationToken)
+    private void ReadScanlines<TPixel>(int chunkLength, ImageFrame<TPixel> image, PngMetadata pngMetadata, Func<int> getData, in FrameControl frameControl, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using ZlibInflateStream deframeStream = new(this.currentStream, getData);
@@ -763,7 +763,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="image">The current image.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private void DecodeInterlacedPixelData<TPixel>(FrameControl frameControl, DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
+    private void DecodeInterlacedPixelData<TPixel>(in FrameControl frameControl, DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int currentRow = Adam7.FirstRow[0] + frameControl.YOffset;
@@ -864,7 +864,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="defilteredScanline">The de-filtered scanline</param>
     /// <param name="pixels">The image</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    private void ProcessDefilteredScanline<TPixel>(FrameControl frameControl, int currentRow, ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
+    private void ProcessDefilteredScanline<TPixel>(in FrameControl frameControl, int currentRow, ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> rowSpan = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
@@ -961,7 +961,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
     /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-    private void ProcessInterlacedDefilteredScanline<TPixel>(FrameControl frameControl, ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
+    private void ProcessInterlacedDefilteredScanline<TPixel>(in FrameControl frameControl, ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Trim the first marker byte from the buffer

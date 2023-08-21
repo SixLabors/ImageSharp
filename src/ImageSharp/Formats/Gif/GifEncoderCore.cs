@@ -135,7 +135,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         byte backgroundIndex = unchecked((byte)transparencyIndex);
         if (transparencyIndex == -1)
         {
-            backgroundIndex = gifMetadata.BackgroundColor;
+            backgroundIndex = gifMetadata.BackgroundColorIndex;
         }
 
         // Get the number of bits.
@@ -236,18 +236,19 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     {
         this.WriteGraphicalControlExtension(metadata, transparencyIndex, stream);
 
-        Buffer2DRegion<byte> region = ((IPixelSource)quantized).PixelBuffer.GetRegion();
+        Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
+        Rectangle interest = indices.FullRectangle();
         bool useLocal = this.colorTableMode == GifColorTableMode.Local || (metadata?.ColorTableMode == GifColorTableMode.Local);
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
-        this.WriteImageDescriptor(region.Rectangle, useLocal, bitDepth, stream);
+        this.WriteImageDescriptor(interest, useLocal, bitDepth, stream);
 
         if (useLocal)
         {
             this.WriteColorTable(quantized, bitDepth, stream);
         }
 
-        this.WriteImageData(region, stream, quantized.Palette.Length, transparencyIndex);
+        this.WriteImageData(indices, interest, stream, quantized.Palette.Length, transparencyIndex);
     }
 
     private void EncodeAdditionalFrame<TPixel>(
@@ -322,20 +323,20 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         transparencyIndex = GetTransparentIndex(quantized, metadata);
 
         // Trim down the buffer to the minimum size required.
-        // Buffer2DRegion<byte> region = ((IPixelSource)quantized).PixelBuffer.GetRegion();
-        Buffer2DRegion<byte> region = TrimTransparentPixels(((IPixelSource)quantized).PixelBuffer, transparencyIndex);
+        Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
+        Rectangle interest = TrimTransparentPixels(indices, transparencyIndex);
 
         this.WriteGraphicalControlExtension(metadata, transparencyIndex, stream);
 
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-        this.WriteImageDescriptor(region.Rectangle, useLocal, bitDepth, stream);
+        this.WriteImageDescriptor(interest, useLocal, bitDepth, stream);
 
         if (useLocal)
         {
             this.WriteColorTable(quantized, bitDepth, stream);
         }
 
-        this.WriteImageData(region, stream, quantized.Palette.Length, transparencyIndex);
+        this.WriteImageData(indices, interest, stream, quantized.Palette.Length, transparencyIndex);
     }
 
     private void DeDuplicatePixels<TPixel>(
@@ -399,11 +400,11 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         }
     }
 
-    private static Buffer2DRegion<byte> TrimTransparentPixels(Buffer2D<byte> buffer, int transparencyIndex)
+    private static Rectangle TrimTransparentPixels(Buffer2D<byte> buffer, int transparencyIndex)
     {
         if (transparencyIndex < 0)
         {
-            return buffer.GetRegion();
+            return buffer.FullRectangle();
         }
 
         byte trimmableIndex = unchecked((byte)transparencyIndex);
@@ -596,7 +597,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         if (top == bottom || left == right)
         {
             // The entire image is transparent.
-            return buffer.GetRegion();
+            return buffer.FullRectangle();
         }
 
         if (!isTransparentRow)
@@ -605,7 +606,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             bottom = buffer.Height;
         }
 
-        return buffer.GetRegion(Rectangle.FromLTRB(left, top, Math.Min(right + 1, buffer.Width), Math.Min(bottom + 1, buffer.Height)));
+        return Rectangle.FromLTRB(left, top, Math.Min(right + 1, buffer.Width), Math.Min(bottom + 1, buffer.Height));
     }
 
     /// <summary>
@@ -923,11 +924,14 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// Writes the image pixel data to the stream.
     /// </summary>
     /// <param name="indices">The <see cref="Buffer2DRegion{Byte}"/> containing indexed pixels.</param>
+    /// <param name="interest">The region of interest.</param>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="paletteLength">The length of the frame color palette.</param>
     /// <param name="transparencyIndex">The index of the color used to represent transparency.</param>
-    private void WriteImageData(Buffer2DRegion<byte> indices, Stream stream, int paletteLength, int transparencyIndex)
+    private void WriteImageData(Buffer2D<byte> indices, Rectangle interest, Stream stream, int paletteLength, int transparencyIndex)
     {
+        Buffer2DRegion<byte> region = indices.GetRegion(interest);
+
         // Pad the bit depth when required for encoding the image data.
         // This is a common trick which allows to use out of range indexes for transparency and avoid allocating a larger color palette
         // as decoders skip indexes that are out of range.
@@ -936,6 +940,6 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             : 0;
 
         using LzwEncoder encoder = new(this.memoryAllocator, ColorNumerics.GetBitsNeededForColorDepth(paletteLength + padding));
-        encoder.Encode(indices, stream);
+        encoder.Encode(region, stream);
     }
 }

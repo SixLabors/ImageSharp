@@ -206,8 +206,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
-        this.previousScanline = null!;
-        this.currentScanline = null!;
     }
 
     /// <summary>

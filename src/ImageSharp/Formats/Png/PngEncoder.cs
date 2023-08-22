@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+#nullable disable
 
 using SixLabors.ImageSharp.Advanced;
 
@@ -13,11 +14,9 @@ public class PngEncoder : QuantizingImageEncoder
     /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoder"/> class.
     /// </summary>
-    public PngEncoder() =>
-
-        // We set the quantizer to null here to allow the underlying encoder to create a
-        // quantizer with options appropriate to the encoding bit depth.
-        this.Quantizer = null!;
+    // We set the quantizer to null here to allow the underlying encoder to create a
+    // quantizer with options appropriate to the encoding bit depth.
+    public PngEncoder() => this.Quantizer = null;
 
     /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).

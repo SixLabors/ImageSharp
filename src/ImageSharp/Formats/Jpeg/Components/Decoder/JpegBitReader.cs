@@ -212,7 +212,7 @@ internal struct JpegBitReader
     private int ReadStream()
     {
         int value = this.badData ? 0 : this.stream.ReadByte();
-        if (value == -1 || this.stream.Position == this.stream.Length)
+        if (value == -1 || this.stream.Position >= this.stream.Length)
         {
             // We've encountered the end of the file stream which means there's no EOI marker
             // in the image or the SOS marker has the wrong dimensions set.

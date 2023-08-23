@@ -314,4 +314,14 @@ public partial class JpegDecoderTests
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
+    public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        Assert.Equal(65503, image.Width);
+        Assert.Equal(65503, image.Height);
+    }
 }

@@ -321,10 +321,9 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (TestEnvironment.IsWindows &&
-            TestEnvironment.RunsOnCI &&
-            TestEnvironment.NetCoreVersion.Major == 6)
+            TestEnvironment.RunsOnCI)
         {
-            // Windows CI runs on .NET 6 consistently fail with OOM.
+            // Windows CI runs consistently fail with OOM.
             return;
         }
 

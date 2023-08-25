@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -97,7 +98,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
              * are cleared for each loop iteration, to avoid the repeated allocation for each processed pixel. */
             using IMemoryOwner<Vector4> sourceRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
             using IMemoryOwner<Vector4> targetRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
-            using IMemoryOwner<float> bins = this.configuration.MemoryAllocator.Allocate<float>(this.levels * 4);
+            using IMemoryOwner<float> bins = this.configuration.MemoryAllocator.Allocate<float>(this.levels * 256 * 4);
 
             Span<Vector4> sourceRowVector4Span = sourceRowBuffer.Memory.Span;
             Span<Vector4> sourceRowAreaVector4Span = sourceRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
@@ -105,11 +106,11 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> targetRowVector4Span = targetRowBuffer.Memory.Span;
             Span<Vector4> targetRowAreaVector4Span = targetRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
 
-            ref float binsRef = ref bins.GetReference();
-            ref int intensityBinRef = ref Unsafe.As<float, int>(ref binsRef);
-            ref float redBinRef = ref Unsafe.Add(ref binsRef, (uint)this.levels);
-            ref float blueBinRef = ref Unsafe.Add(ref redBinRef, (uint)this.levels);
-            ref float greenBinRef = ref Unsafe.Add(ref blueBinRef, (uint)this.levels);
+            Span<float> binsSpan = bins.GetSpan();
+            Span<int> intensityBinsSpan = MemoryMarshal.Cast<float, int>(binsSpan);
+            Span<float> redBinSpan = binsSpan[this.levels..];
+            Span<float> blueBinSpan = redBinSpan[this.levels..];
+            Span<float> greenBinSpan = blueBinSpan[this.levels..];
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
@@ -148,21 +149,21 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                             int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (this.levels - 1));
 
-                            Unsafe.Add(ref intensityBinRef, (uint)currentIntensity)++;
-                            Unsafe.Add(ref redBinRef, (uint)currentIntensity) += sourceRed;
-                            Unsafe.Add(ref blueBinRef, (uint)currentIntensity) += sourceBlue;
-                            Unsafe.Add(ref greenBinRef, (uint)currentIntensity) += sourceGreen;
+                            intensityBinsSpan[currentIntensity]++;
+                            redBinSpan[currentIntensity] += sourceRed;
+                            blueBinSpan[currentIntensity] += sourceBlue;
+                            greenBinSpan[currentIntensity] += sourceGreen;
 
-                            if (Unsafe.Add(ref intensityBinRef, (uint)currentIntensity) > maxIntensity)
+                            if (intensityBinsSpan[currentIntensity] > maxIntensity)
                             {
-                                maxIntensity = Unsafe.Add(ref intensityBinRef, (uint)currentIntensity);
+                                maxIntensity = intensityBinsSpan[currentIntensity];
                                 maxIndex = currentIntensity;
                             }
                         }
 
-                        float red = MathF.Abs(Unsafe.Add(ref redBinRef, (uint)maxIndex) / maxIntensity);
-                        float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, (uint)maxIndex) / maxIntensity);
-                        float green = MathF.Abs(Unsafe.Add(ref greenBinRef, (uint)maxIndex) / maxIntensity);
+                        float red = MathF.Abs(redBinSpan[maxIndex] / maxIntensity);
+                        float blue = MathF.Abs(blueBinSpan[maxIndex] / maxIntensity);
+                        float green = MathF.Abs(greenBinSpan[maxIndex] / maxIntensity);
                         float alpha = sourceRowVector4Span[x].W;
 
                         targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);

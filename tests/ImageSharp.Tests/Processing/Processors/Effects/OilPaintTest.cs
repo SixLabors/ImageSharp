@@ -49,4 +49,11 @@ public class OilPaintTest
             $"{levels}-{brushSize}",
             ImageComparer.TolerantPercentage(0.01F));
     }
+
+    [Fact]
+    public void Issue2518()
+    {
+        using Image<RgbaVector> image = new Image<RgbaVector>(1920, 1200, new(127, 191, 255));
+        image.Mutate(ctx => ctx.OilPaint());
+    }
 }

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using Castle.Core.Configuration;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -404,6 +405,32 @@ public class ParallelRowIteratorTests
             () => ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
 
         Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
+    }
+
+    [Fact]
+    public void CanIterateWithoutIntOverflow()
+    {
+        ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(Configuration.Default);
+
+        Rectangle rect = new(0, 0, 65535, 65535);
+
+        static void RowAction(RowInterval rows, Span<Rgba32> memory)
+        {
+        }
+
+        TestRowOperation operation = default;
+        TestRowIntervalOperation<Rgba32> intervalOperation = new(RowAction);
+
+        ParallelRowIterator.IterateRows(Configuration.Default, rect, in operation);
+
+        ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in intervalOperation);
+    }
+
+    private readonly struct TestRowOperation : IRowOperation
+    {
+        public void Invoke(int y)
+        {
+        }
     }
 
     private readonly struct TestRowIntervalOperation : IRowIntervalOperation

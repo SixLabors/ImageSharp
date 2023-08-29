@@ -99,7 +99,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
              * are cleared for each loop iteration, to avoid the repeated allocation for each processed pixel. */
             using IMemoryOwner<Vector4> sourceRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
             using IMemoryOwner<Vector4> targetRowBuffer = this.configuration.MemoryAllocator.Allocate<Vector4>(this.source.Width);
-            using IMemoryOwner<float> bins = this.configuration.MemoryAllocator.Allocate<float>(this.levels * 256 * 4);
+            using IMemoryOwner<float> bins = this.configuration.MemoryAllocator.Allocate<float>(this.levels * 4);
 
             Span<Vector4> sourceRowVector4Span = sourceRowBuffer.Memory.Span;
             Span<Vector4> sourceRowAreaVector4Span = sourceRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
@@ -142,7 +142,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             int offsetX = x + fxr;
                             offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
-                            Vector4 vector = sourceOffsetRow[offsetX].ToScaledVector4();
+                            Vector4 vector = Vector4.Clamp(sourceOffsetRow[offsetX].ToScaledVector4(), Vector4.Zero, Vector4.One);
 
                             float sourceRed = vector.X;
                             float sourceBlue = vector.Z;

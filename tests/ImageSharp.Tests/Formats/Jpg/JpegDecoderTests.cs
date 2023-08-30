@@ -261,5 +261,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
             }
         }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
+        public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (TestEnvironment.IsWindows &&
+                TestEnvironment.RunsOnCI)
+            {
+                // Windows CI runs consistently fail with OOM.
+                return;
+            }
+
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            Assert.Equal(65503, image.Width);
+            Assert.Equal(65503, image.Height);
+        }
     }
 }

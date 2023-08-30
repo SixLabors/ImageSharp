@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -408,6 +409,41 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 () => ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
 
             Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
+        }
+
+        [Fact]
+        public void CanIterateWithoutIntOverflow()
+        {
+            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(Configuration.Default);
+            const int max = 100_000;
+
+            Rectangle rect = new(0, 0, max, max);
+            int intervalMaxY = 0;
+            void RowAction(RowInterval rows, Span<Rgba32> memory) => intervalMaxY = Math.Max(rows.Max, intervalMaxY);
+
+            TestRowOperation operation = new(0);
+            TestRowIntervalOperation<Rgba32> intervalOperation = new(RowAction);
+
+            ParallelRowIterator.IterateRows(Configuration.Default, rect, in operation);
+            Assert.Equal(max - 1, operation.MaxY.Value);
+
+            ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in intervalOperation);
+            Assert.Equal(max, intervalMaxY);
+        }
+
+        private readonly struct TestRowOperation : IRowOperation
+        {
+            public TestRowOperation(int _) => this.MaxY = new StrongBox<int>();
+
+            public StrongBox<int> MaxY { get; }
+
+            public void Invoke(int y)
+            {
+                lock (this.MaxY)
+                {
+                    this.MaxY.Value = Math.Max(y, this.MaxY.Value);
+                }
+            }
         }
 
         private readonly struct TestRowIntervalOperation : IRowIntervalOperation

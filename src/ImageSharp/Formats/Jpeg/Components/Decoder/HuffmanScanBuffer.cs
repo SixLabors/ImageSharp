@@ -211,7 +211,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private int ReadStream()
         {
             int value = this.badData ? 0 : this.stream.ReadByte();
-            if (value == -1)
+
+            // We've encountered the end of the file stream which means there's no EOI marker or the marker has been read
+            // during decoding of the SOS marker.
+            // When reading individual bits 'badData' simply means we have hit a marker, When data is '0' and the stream is exhausted
+            // we know we have hit the EOI and completed decoding the scan buffer.
+            if (value == -1 || (this.badData && this.data == 0 && this.stream.Position >= this.stream.Length))
             {
                 // We've encountered the end of the file stream which means there's no EOI marker
                 // in the image or the SOS marker has the wrong dimensions set.

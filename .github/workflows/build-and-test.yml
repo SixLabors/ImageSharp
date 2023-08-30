@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+      - release/*
     types: [ labeled, opened, synchronize, reopened ]
 jobs:
   Build:

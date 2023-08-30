@@ -291,6 +291,7 @@ public static class TestImages
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
 
             public static class Fuzz
             {

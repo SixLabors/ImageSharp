@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Advanced
             int width = rectangle.Width;
             int height = rectangle.Height;
 
-            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
 
             // Avoid TPL overhead in this trivial case:
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Advanced
             int width = rectangle.Width;
             int height = rectangle.Height;
 
-            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
             MemoryAllocator allocator = parallelSettings.MemoryAllocator;
 
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Advanced
             int width = rectangle.Width;
             int height = rectangle.Height;
 
-            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
 
             // Avoid TPL overhead in this trivial case:
@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Advanced
             int width = rectangle.Width;
             int height = rectangle.Height;
 
-            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
             int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
             MemoryAllocator allocator = parallelSettings.MemoryAllocator;
 
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int DivideCeil(int dividend, int divisor) => 1 + ((dividend - 1) / divisor);
+        private static int DivideCeil(long dividend, int divisor) => (int)Math.Min(1 + ((dividend - 1) / divisor), int.MaxValue);
 
         private static void ValidateRectangle(Rectangle rectangle)
         {

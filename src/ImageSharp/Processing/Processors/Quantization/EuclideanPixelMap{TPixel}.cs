@@ -53,21 +53,16 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.rgbaPalette = new Rgba32[palette.Length];
         this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
-        this.transparentIndex = transparentIndex;
+
+        // If the provided transparentIndex is outside of the palette, silently ignore it.
+        this.transparentIndex = transparentIndex < this.Palette.Length ? transparentIndex : -1;
     }
 
     /// <summary>
     /// Gets the color palette of this <see cref="EuclideanPixelMap{TPixel}"/>.
     /// The palette memory is owned by the palette source that created it.
     /// </summary>
-    public ReadOnlyMemory<TPixel> Palette
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private set;
-    }
+    public ReadOnlyMemory<TPixel> Palette { get; private set; }
 
     /// <summary>
     /// Returns the closest color in the palette and the index of that pixel.
@@ -106,10 +101,10 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     }
 
     /// <summary>
-    /// Allows setting the transparent index after construction.
+    /// Allows setting the transparent index after construction. If the provided transparentIndex is outside of the palette, silently ignore it.
     /// </summary>
     /// <param name="index">An explicit index at which to match transparent pixels.</param>
-    public void SetTransparentIndex(int index) => this.transparentIndex = index;
+    public void SetTransparentIndex(int index) => this.transparentIndex = index < this.Palette.Length ? index : -1;
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private int GetClosestColorSlow(Rgba32 rgba, ref TPixel paletteRef, out TPixel match)
@@ -122,19 +117,9 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         {
             // We have explicit instructions. No need to search.
             index = this.transparentIndex;
+            DebugGuard.MustBeLessThan(index, this.Palette.Length, nameof(index));
             this.cache.Add(rgba, (byte)index);
-
-            if (index >= 0 && index < this.Palette.Length)
-            {
-                match = Unsafe.Add(ref paletteRef, (uint)index);
-            }
-            else
-            {
-                Unsafe.SkipInit(out TPixel pixel);
-                pixel.FromScaledVector4(Vector4.Zero);
-                match = pixel;
-            }
-
+            match = Unsafe.Add(ref paletteRef, (uint)index);
             return index;
         }
 

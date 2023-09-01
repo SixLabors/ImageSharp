@@ -27,8 +27,7 @@ public class OilPaintTest
     [WithFileCollection(nameof(InputImages), nameof(OilPaintValues), PixelTypes.Rgba32)]
     public void FullImage<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        provider.RunValidatingProcessorTest(
+        => provider.RunValidatingProcessorTest(
             x =>
             {
                 x.OilPaint(levels, brushSize);
@@ -36,24 +35,21 @@ public class OilPaintTest
             },
             ImageComparer.TolerantPercentage(0.01F),
             appendPixelTypeToFileName: false);
-    }
 
     [Theory]
     [WithFileCollection(nameof(InputImages), nameof(OilPaintValues), PixelTypes.Rgba32)]
     [WithTestPatternImages(nameof(OilPaintValues), 100, 100, PixelTypes.Rgba32)]
     public void InBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        provider.RunRectangleConstrainedValidatingProcessorTest(
+        => provider.RunRectangleConstrainedValidatingProcessorTest(
             (x, rect) => x.OilPaint(levels, brushSize, rect),
             $"{levels}-{brushSize}",
             ImageComparer.TolerantPercentage(0.01F));
-    }
 
     [Fact]
-    public void Issue2518()
+    public void Issue2518_PixelComponentOutsideOfRange_ThrowsImageProcessingException()
     {
-        using Image<RgbaVector> image = new Image<RgbaVector>(1920, 1200, new(127, 191, 255));
-        image.Mutate(ctx => ctx.OilPaint());
+        using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, 100));
+        Assert.Throws<ImageProcessingException>(() => image.Mutate(ctx => ctx.OilPaint()));
     }
 }

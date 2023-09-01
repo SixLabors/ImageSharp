@@ -43,10 +43,17 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
         source.CopyTo(targetPixels);
 
         RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, levels);
-        ParallelRowIterator.IterateRowIntervals(
+        try
+        {
+            ParallelRowIterator.IterateRowIntervals(
             this.Configuration,
             this.SourceRectangle,
             in operation);
+        }
+        catch (Exception ex)
+        {
+            throw new ImageProcessingException("The OilPaintProcessor failed. The most likely reason is that a pixel component was outside of its' allowed range.", ex);
+        }
 
         Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
     }
@@ -142,7 +149,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             int offsetX = x + fxr;
                             offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
-                            Vector4 vector = Vector4.Clamp(sourceOffsetRow[offsetX].ToScaledVector4(), Vector4.Zero, Vector4.One);
+                            Vector4 vector = sourceOffsetRow[offsetX].ToScaledVector4();
 
                             float sourceRed = vector.X;
                             float sourceBlue = vector.Z;

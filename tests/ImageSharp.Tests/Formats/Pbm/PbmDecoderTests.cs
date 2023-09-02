@@ -81,6 +81,7 @@ public class PbmDecoderTests
     [Theory]
     [WithFile(BlackAndWhitePlain, PixelTypes.L8, "pbm")]
     [WithFile(BlackAndWhiteBinary, PixelTypes.L8, "pbm")]
+    [WithFile(Issue2477, PixelTypes.L8, "pbm")]
     [WithFile(GrayscalePlain, PixelTypes.L8, "pgm")]
     [WithFile(GrayscalePlainNormalized, PixelTypes.L8, "pgm")]
     [WithFile(GrayscaleBinary, PixelTypes.L8, "pgm")]

@@ -129,8 +129,14 @@ public static class TestImages
         // Issue 2209: https://github.com/SixLabors/ImageSharp/issues/2209
         public const string Issue2209IndexedWithTransparency = "Png/issues/Issue_2209.png";
 
-        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2259
+        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2469
         public const string Issue2259 = "Png/issues/Issue_2259.png";
+
+        // Issue 2259: https://github.com/SixLabors/ImageSharp/issues/2469
+        public const string Issue2469 = "Png/issues/issue_2469.png";
+
+        // Issue 2447: https://github.com/SixLabors/ImageSharp/issues/2447
+        public const string Issue2447 = "Png/issues/issue_2447.png";
 
         public static class Bad
         {
@@ -295,6 +301,8 @@ public static class TestImages
             public const string Issue2315_NotEnoughBytes = "Jpg/issues/issue-2315.jpg";
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
+            public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
 
             public static class Fuzz
             {
@@ -417,6 +425,8 @@ public static class TestImages
         public const string Rgb32h52AdobeV3 = "Bmp/rgb32h52.bmp";
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
+
+        public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
         public static readonly string[] BitFields =
         {
@@ -969,12 +979,14 @@ public static class TestImages
 
         public const string Cmyk = "Tiff/Cmyk.tiff";
         public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
+        public const string CmykLzwPredictor = "Tiff/Cmyk-lzw-predictor.tiff";
 
         public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
         public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
+        public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -1039,5 +1051,18 @@ public static class TestImages
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";
+        public const string Issue2477 = "Pbm/issue2477.pbm";
+    }
+
+    public static class Qoi
+    {
+        public const string Dice = "Qoi/dice.qoi";
+        public const string EdgeCase = "Qoi/edgecase.qoi";
+        public const string Kodim10 = "Qoi/kodim10.qoi";
+        public const string Kodim23 = "Qoi/kodim23.qoi";
+        public const string QoiLogo = "Qoi/qoi_logo.qoi";
+        public const string TestCard = "Qoi/testcard.qoi";
+        public const string TestCardRGBA = "Qoi/testcard_rgba.qoi";
+        public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
     }
 }

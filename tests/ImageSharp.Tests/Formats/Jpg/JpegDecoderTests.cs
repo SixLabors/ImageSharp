@@ -314,4 +314,32 @@ public partial class JpegDecoderTests
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2478
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2478_JFXX, PixelTypes.Rgba32)]
+    public void Issue2478_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
+    public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.IsWindows &&
+            TestEnvironment.RunsOnCI)
+        {
+            // Windows CI runs consistently fail with OOM.
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        Assert.Equal(65503, image.Width);
+        Assert.Equal(65503, image.Height);
+    }
 }

@@ -29,7 +29,7 @@ public abstract partial class Image
     /// </summary>
     /// <param name="options">The general decoder options.</param>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <returns><see langword="true"/> if a match is found; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="IImageFormat"/>.</returns>
     /// <exception cref="ArgumentNullException">The options are null.</exception>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
@@ -79,7 +79,7 @@ public abstract partial class Image
     /// Reads the raw image information from the specified stream without fully decoding it.
     /// </summary>
     /// <param name="stream">The image stream to read the header from.</param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
     /// <exception cref="ArgumentNullException">The stream is null.</exception>
     /// <exception cref="NotSupportedException">The stream is not readable or the image format is not supported.</exception>
     /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>

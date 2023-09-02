@@ -18,6 +18,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_root", "_root", "{C317F1B1
 		Directory.Build.targets = Directory.Build.targets
 		LICENSE = LICENSE
 		README.md = README.md
+		SixLabors.ImageSharp.props = SixLabors.ImageSharp.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799C43E-5C54-4A8F-8D64-B1475241DB0D}"
@@ -28,7 +29,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1799
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{FBE8C1AD-5AEC-4514-9B64-091D8E145865}"
 	ProjectSection(SolutionItems) = preProject
-		.github\ISSUE_TEMPLATE\commercial-bug-report.yml = .github\ISSUE_TEMPLATE\commercial-bug-report.yml
 		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
 		.github\ISSUE_TEMPLATE\oss-bug-report.yml = .github\ISSUE_TEMPLATE\oss-bug-report.yml
 	EndProjectSection
@@ -647,6 +647,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tga", "Tga", "{5DFC394F-136
 		tests\Images\Input\Tga\targa_8bit_rle.tga = tests\Images\Input\Tga\targa_8bit_rle.tga
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Qoi", "Qoi", "{E801B508-4935-41CD-BA85-CF11BFF55A45}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Qoi\dice.qoi = tests\Images\Input\Qoi\dice.qoi
+		tests\Images\Input\Qoi\edgecase.qoi = tests\Images\Input\Qoi\edgecase.qoi
+		tests\Images\Input\Qoi\kodim10.qoi = tests\Images\Input\Qoi\kodim10.qoi
+		tests\Images\Input\Qoi\kodim23.qoi = tests\Images\Input\Qoi\kodim23.qoi
+		tests\Images\Input\Qoi\qoi_logo.qoi = tests\Images\Input\Qoi\qoi_logo.qoi
+		tests\Images\Input\Qoi\testcard.qoi = tests\Images\Input\Qoi\testcard.qoi
+		tests\Images\Input\Qoi\testcard_rgba.qoi = tests\Images\Input\Qoi\testcard_rgba.qoi
+		tests\Images\Input\Qoi\wikipedia_008.qoi = tests\Images\Input\Qoi\wikipedia_008.qoi
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -699,6 +711,7 @@ Global
 		{FC527290-2F22-432C-B77B-6E815726B02C} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{670DD46C-82E9-499A-B2D2-00A802ED0141} = {E1C42A6F-913B-4A7B-B1A8-2BB62843B254}
 		{5DFC394F-136F-4B76-9BCA-3BA786515EFC} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{E801B508-4935-41CD-BA85-CF11BFF55A45} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5F8B9D1F-CD8B-4CC5-8216-D531E25BD795}

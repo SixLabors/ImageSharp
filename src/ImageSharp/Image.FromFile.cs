@@ -72,7 +72,7 @@ public abstract partial class Image
     {
         Guard.NotNull(options, nameof(options));
 
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await DetectFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -81,7 +81,7 @@ public abstract partial class Image
     /// A return value indicates whether the operation succeeded.
     /// </summary>
     /// <param name="path">The image file to open and to read the header from.</param>
-    /// <returns><see langword="true"/> if the information can be read; otherwise, <see langword="false"/></returns>
+    /// <returns>The <see cref="ImageInfo"/>.</returns>
     /// <exception cref="ArgumentNullException">The path is null.</exception>
     /// <exception cref="NotSupportedException">The file stream is not readable or the image format is not supported.</exception>
     /// <exception cref="InvalidImageContentException">The encoded image contains invalid content.</exception>
@@ -144,7 +144,7 @@ public abstract partial class Image
         CancellationToken cancellationToken = default)
     {
         Guard.NotNull(options, nameof(options));
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -214,7 +214,7 @@ public abstract partial class Image
         string path,
         CancellationToken cancellationToken = default)
     {
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await LoadAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -291,7 +291,7 @@ public abstract partial class Image
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(path, nameof(path));
 
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await LoadAsync<TPixel>(options, stream, cancellationToken).ConfigureAwait(false);
     }
 }

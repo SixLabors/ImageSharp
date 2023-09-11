@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Gif;
 
 /// <summary>
@@ -51,6 +53,7 @@ public class GifMetadata : IDeepCloneable
 
     /// <summary>
     /// Gets or sets the global color table, if any.
+    /// The underlying pixel format is represented by <see cref="Rgb24"/>.
     /// </summary>
     public ReadOnlyMemory<Color>? GlobalColorTable { get; set; }
 

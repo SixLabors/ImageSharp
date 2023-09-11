@@ -710,10 +710,10 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             gifMeta.ColorTableMode = GifColorTableMode.Local;
 
             Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
-            ref Rgb24 localBase = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]));
+            ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
             for (int i = 0; i < colorTable.Length; i++)
             {
-                colorTable[i] = new Color(Unsafe.Add(ref localBase, (uint)i));
+                colorTable[i] = new Color(rgbTable[i]);
             }
 
             gifMeta.LocalColorTable = colorTable;
@@ -784,13 +784,14 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 this.globalColorTable = this.memoryAllocator.Allocate<byte>(globalColorTableLength, AllocationOptions.Clean);
 
                 // Read the global color table data from the stream and preserve it in the gif metadata
-                stream.Read(this.globalColorTable.GetSpan());
+                Span<byte> globalColorTableSpan = this.globalColorTable.GetSpan();
+                stream.Read(globalColorTableSpan);
 
                 Color[] colorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
-                ref Rgb24 globalBase = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, Rgb24>(this.globalColorTable.GetSpan()));
+                ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(globalColorTableSpan);
                 for (int i = 0; i < colorTable.Length; i++)
                 {
-                    colorTable[i] = new Color(Unsafe.Add(ref globalBase, (uint)i));
+                    colorTable[i] = new Color(rgbTable[i]);
                 }
 
                 this.gifMetadata.GlobalColorTable = colorTable;

@@ -11,7 +11,7 @@
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release</Configurations>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
-    <!--<SignAssembly>false</SignAssembly>-->    
+    <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -23,12 +23,12 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>

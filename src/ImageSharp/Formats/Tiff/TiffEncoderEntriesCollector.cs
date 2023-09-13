@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -18,6 +19,9 @@ internal class TiffEncoderEntriesCollector
 
     public void ProcessMetadata(Image image, bool skipMetadata)
         => new MetadataProcessor(this).Process(image, skipMetadata);
+
+    public void ProcessMetadata(ImageFrame frame, bool skipMetadata)
+        => new MetadataProcessor(this).Process(frame, skipMetadata);
 
     public void ProcessFrameInfo(ImageFrame frame, ImageMetadata imageMetadata)
         => new FrameInfoProcessor(this).Process(frame, imageMetadata);
@@ -56,15 +60,30 @@ internal class TiffEncoderEntriesCollector
 
         public void Process(Image image, bool skipMetadata)
         {
-            ImageFrame rootFrame = image.Frames.RootFrame;
-            ExifProfile rootFrameExifProfile = rootFrame.Metadata.ExifProfile;
-            XmpProfile rootFrameXmpProfile = rootFrame.Metadata.XmpProfile;
-
-            this.ProcessProfiles(image.Metadata, skipMetadata, rootFrameExifProfile, rootFrameXmpProfile);
+            this.ProcessProfiles(image.Metadata, skipMetadata);
 
             if (!skipMetadata)
             {
-                this.ProcessMetadata(rootFrameExifProfile ?? new ExifProfile());
+                this.ProcessMetadata(image.Metadata.ExifProfile ?? new ExifProfile());
+            }
+
+            if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
+            {
+                this.Collector.Add(new ExifString(ExifTagValue.Software)
+                {
+                    Value = SoftwareValue
+                });
+            }
+        }
+
+
+        public void Process(ImageFrame frame, bool skipMetadata)
+        {
+            this.ProcessProfiles(frame.Metadata, skipMetadata);
+
+            if (!skipMetadata)
+            {
+                this.ProcessMetadata(frame.Metadata.ExifProfile ?? new ExifProfile());
             }
 
             if (!this.Collector.Entries.Exists(t => t.Tag == ExifTag.Software))
@@ -150,16 +169,16 @@ internal class TiffEncoderEntriesCollector
             }
         }
 
-        private void ProcessProfiles(ImageMetadata imageMetadata, bool skipMetadata, ExifProfile exifProfile, XmpProfile xmpProfile)
+        private void ProcessProfiles(ImageMetadata imageMetadata, bool skipMetadata)
         {
-            if (!skipMetadata && (exifProfile != null && exifProfile.Parts != ExifParts.None))
+            if (!skipMetadata && (imageMetadata.ExifProfile != null && imageMetadata.ExifProfile.Parts != ExifParts.None))
             {
-                foreach (IExifValue entry in exifProfile.Values)
+                foreach (IExifValue entry in imageMetadata.ExifProfile.Values)
                 {
                     if (!this.Collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
                     {
                         ExifParts entryPart = ExifTags.GetPart(entry.Tag);
-                        if (entryPart != ExifParts.None && exifProfile.Parts.HasFlag(entryPart))
+                        if (entryPart != ExifParts.None && imageMetadata.ExifProfile.Parts.HasFlag(entryPart))
                         {
                             this.Collector.AddOrReplace(entry.DeepClone());
                         }
@@ -168,7 +187,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile?.RemoveValue(ExifTag.SubIFDOffset);
+                imageMetadata.ExifProfile?.RemoveValue(ExifTag.SubIFDOffset);
             }
 
             if (!skipMetadata && imageMetadata.IptcProfile != null)
@@ -183,7 +202,7 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile?.RemoveValue(ExifTag.IPTC);
+                imageMetadata.ExifProfile?.RemoveValue(ExifTag.IPTC);
             }
 
             if (imageMetadata.IccProfile != null)
@@ -197,21 +216,86 @@ internal class TiffEncoderEntriesCollector
             }
             else
             {
-                exifProfile?.RemoveValue(ExifTag.IccProfile);
+                imageMetadata.ExifProfile?.RemoveValue(ExifTag.IccProfile);
             }
 
-            if (!skipMetadata && xmpProfile != null)
+            if (!skipMetadata && imageMetadata.XmpProfile != null)
             {
                 ExifByteArray xmp = new(ExifTagValue.XMP, ExifDataType.Byte)
                 {
-                    Value = xmpProfile.Data
+                    Value = imageMetadata.XmpProfile.Data
                 };
 
                 this.Collector.AddOrReplace(xmp);
             }
             else
             {
-                exifProfile?.RemoveValue(ExifTag.XMP);
+                imageMetadata.ExifProfile?.RemoveValue(ExifTag.XMP);
+            }
+        }
+
+        private void ProcessProfiles(ImageFrameMetadata frameMetadata, bool skipMetadata)
+        {
+            if (!skipMetadata && (frameMetadata.ExifProfile != null && frameMetadata.ExifProfile.Parts != ExifParts.None))
+            {
+                foreach (IExifValue entry in frameMetadata.ExifProfile.Values)
+                {
+                    if (!this.Collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
+                    {
+                        ExifParts entryPart = ExifTags.GetPart(entry.Tag);
+                        if (entryPart != ExifParts.None && frameMetadata.ExifProfile.Parts.HasFlag(entryPart))
+                        {
+                            this.Collector.AddOrReplace(entry.DeepClone());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                frameMetadata.ExifProfile?.RemoveValue(ExifTag.SubIFDOffset);
+            }
+
+            if (!skipMetadata && frameMetadata.IptcProfile != null)
+            {
+                frameMetadata.IptcProfile.UpdateData();
+                ExifByteArray iptc = new(ExifTagValue.IPTC, ExifDataType.Byte)
+                {
+                    Value = frameMetadata.IptcProfile.Data
+                };
+
+                this.Collector.AddOrReplace(iptc);
+            }
+            else
+            {
+                frameMetadata.ExifProfile?.RemoveValue(ExifTag.IPTC);
+            }
+
+            if (frameMetadata.IccProfile != null)
+            {
+                ExifByteArray icc = new(ExifTagValue.IccProfile, ExifDataType.Undefined)
+                {
+                    Value = frameMetadata.IccProfile.ToByteArray()
+                };
+
+                this.Collector.AddOrReplace(icc);
+            }
+            else
+            {
+                frameMetadata.ExifProfile?.RemoveValue(ExifTag.IccProfile);
+            }
+
+            if (!skipMetadata && frameMetadata.XmpProfile != null)
+            {
+                ExifByteArray xmp = new(ExifTagValue.XMP, ExifDataType.Byte)
+                {
+                    Value = frameMetadata.XmpProfile.Data
+                };
+
+                this.Collector.AddOrReplace(xmp);
+            }
+            else
+            {
+                frameMetadata.ExifProfile?.RemoveValue(ExifTag.XMP);
             }
         }
     }

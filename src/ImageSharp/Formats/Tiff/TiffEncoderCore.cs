@@ -157,6 +157,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         long ifdMarker = WriteHeader(writer, buffer);
 
         Image<TPixel> metadataImage = image;
+
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -235,8 +236,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
 
         if (image != null)
         {
+            // Write the metadata for the root image
             entriesCollector.ProcessMetadata(image, this.skipMetadata);
         }
+
+        // Write the metadata for the frame
+        entriesCollector.ProcessMetadata(frame, this.skipMetadata);
 
         entriesCollector.ProcessFrameInfo(frame, imageMetadata);
         entriesCollector.ProcessImageFormat(this);

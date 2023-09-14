@@ -336,8 +336,7 @@ public class TiffMetadataTests
         iptcProfile.SetValue(IptcTag.Name, "Test name");
         rootFrameInput.Metadata.IptcProfile = iptcProfile;
 
-        IccProfileHeader iccProfileHeader = new IccProfileHeader();
-        iccProfileHeader.Class = IccProfileClass.ColorSpace;
+        IccProfileHeader iccProfileHeader = new() { Class = IccProfileClass.ColorSpace };
         IccProfile iccProfile = new();
         rootFrameInput.Metadata.IccProfile = iccProfile;
 
@@ -406,6 +405,7 @@ public class TiffMetadataTests
         Assert.Equal(exifProfileInput.GetValue(ExifTag.Model).Value, encodedImageExifProfile.GetValue(ExifTag.Model).Value);
 
         Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
+
         // Adding the IPTC and ICC profiles dynamically increments the number of values in the original EXIF profile by 2
         Assert.Equal(exifProfileInput.Values.Count + 2, encodedImageExifProfile.Values.Count);
     }

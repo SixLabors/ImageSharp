@@ -99,6 +99,9 @@ public partial class PngEncoderTests
         { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };
 
+    [Fact]
+    public void PngEncoderDefaultInstanceHasNullQuantizer() => Assert.Null(PngEncoder.Quantizer);
+
     [Theory]
     [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
     [WithTestPatternImages(nameof(PngColorTypes), 48, 24, PixelTypes.Rgba32)]
@@ -595,7 +598,7 @@ public partial class PngEncoderTests
         string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
         string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
 
-        string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
+        string debugInfo = pngColorTypeInfo + pngFilterMethodInfo + compressionLevelInfo + paletteSizeInfo + pngBitDepthInfo + pngInterlaceModeInfo;
 
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 

@@ -11,21 +11,22 @@ public class GifFrameMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new GifFrameMetadata
+        GifFrameMetadata meta = new()
         {
             FrameDelay = 1,
             DisposalMethod = GifDisposalMethod.RestoreToBackground,
-            ColorTableLength = 2
+            LocalColorTable = new[] { Color.Black, Color.White }
         };
 
-        var clone = (GifFrameMetadata)meta.DeepClone();
+        GifFrameMetadata clone = (GifFrameMetadata)meta.DeepClone();
 
         clone.FrameDelay = 2;
         clone.DisposalMethod = GifDisposalMethod.RestoreToPrevious;
-        clone.ColorTableLength = 1;
+        clone.LocalColorTable = new[] { Color.Black };
 
         Assert.False(meta.FrameDelay.Equals(clone.FrameDelay));
         Assert.False(meta.DisposalMethod.Equals(clone.DisposalMethod));
-        Assert.False(meta.ColorTableLength.Equals(clone.ColorTableLength));
+        Assert.False(meta.LocalColorTable.Value.Length == clone.LocalColorTable.Value.Length);
+        Assert.Equal(1, clone.LocalColorTable.Value.Length);
     }
 }

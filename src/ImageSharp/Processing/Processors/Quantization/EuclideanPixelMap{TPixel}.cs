@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -14,13 +15,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
 /// <para>
-/// This class is not threadsafe and should not be accessed in parallel.
+/// This class is not thread safe and should not be accessed in parallel.
 /// Doing so will result in non-idempotent results.
 /// </para>
 internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private Rgba32[] rgbaPalette;
+    private int transparentIndex;
 
     /// <summary>
     /// Do not make this readonly! Struct value would be always copied on non-readonly method calls.
@@ -34,26 +36,33 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// <param name="configuration">The configuration.</param>
     /// <param name="palette">The color palette to map from.</param>
     public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette)
+        : this(configuration, palette, -1)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="palette">The color palette to map from.</param>
+    /// <param name="transparentIndex">An explicit index at which to match transparent pixels.</param>
+    public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette, int transparentIndex = -1)
     {
         this.configuration = configuration;
         this.Palette = palette;
         this.rgbaPalette = new Rgba32[palette.Length];
         this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
+
+        // If the provided transparentIndex is outside of the palette, silently ignore it.
+        this.transparentIndex = transparentIndex < this.Palette.Length ? transparentIndex : -1;
     }
 
     /// <summary>
     /// Gets the color palette of this <see cref="EuclideanPixelMap{TPixel}"/>.
     /// The palette memory is owned by the palette source that created it.
     /// </summary>
-    public ReadOnlyMemory<TPixel> Palette
-    {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        get;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private set;
-    }
+    public ReadOnlyMemory<TPixel> Palette { get; private set; }
 
     /// <summary>
     /// Returns the closest color in the palette and the index of that pixel.
@@ -91,16 +100,33 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.cache.Clear();
     }
 
+    /// <summary>
+    /// Allows setting the transparent index after construction. If the provided transparentIndex is outside of the palette, silently ignore it.
+    /// </summary>
+    /// <param name="index">An explicit index at which to match transparent pixels.</param>
+    public void SetTransparentIndex(int index) => this.transparentIndex = index < this.Palette.Length ? index : -1;
+
     [MethodImpl(InliningOptions.ShortMethod)]
     private int GetClosestColorSlow(Rgba32 rgba, ref TPixel paletteRef, out TPixel match)
     {
         // Loop through the palette and find the nearest match.
         int index = 0;
         float leastDistance = float.MaxValue;
+
+        if (this.transparentIndex >= 0 && rgba == default)
+        {
+            // We have explicit instructions. No need to search.
+            index = this.transparentIndex;
+            DebugGuard.MustBeLessThan(index, this.Palette.Length, nameof(index));
+            this.cache.Add(rgba, (byte)index);
+            match = Unsafe.Add(ref paletteRef, (uint)index);
+            return index;
+        }
+
         for (int i = 0; i < this.rgbaPalette.Length; i++)
         {
             Rgba32 candidate = this.rgbaPalette[i];
-            int distance = DistanceSquared(rgba, candidate);
+            float distance = DistanceSquared(rgba, candidate);
 
             // If it's an exact match, exit the loop
             if (distance == 0)
@@ -130,12 +156,12 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// <param name="b">The second point.</param>
     /// <returns>The distance squared.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int DistanceSquared(Rgba32 a, Rgba32 b)
+    private static float DistanceSquared(Rgba32 a, Rgba32 b)
     {
-        int deltaR = a.R - b.R;
-        int deltaG = a.G - b.G;
-        int deltaB = a.B - b.B;
-        int deltaA = a.A - b.A;
+        float deltaR = a.R - b.R;
+        float deltaG = a.G - b.G;
+        float deltaB = a.B - b.B;
+        float deltaA = a.A - b.A;
         return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
     }
 

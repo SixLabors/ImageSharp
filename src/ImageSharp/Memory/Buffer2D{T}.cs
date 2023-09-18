@@ -173,13 +173,15 @@ public sealed class Buffer2D<T> : IDisposable
     /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
     /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
     /// </summary>
+    /// <param name="destination">The destination buffer.</param>
+    /// <param name="source">The source buffer.</param>
+    /// <exception cref="InvalidMemoryOperationException">Attempt to copy/swap incompatible buffers.</exception>
     internal static bool SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
     {
         bool swapped = false;
         if (MemoryGroup<T>.CanSwapContent(destination.FastMemoryGroup, source.FastMemoryGroup))
         {
-            (destination.FastMemoryGroup, source.FastMemoryGroup) =
-                (source.FastMemoryGroup, destination.FastMemoryGroup);
+            (destination.FastMemoryGroup, source.FastMemoryGroup) = (source.FastMemoryGroup, destination.FastMemoryGroup);
             destination.FastMemoryGroup.RecreateViewAfterSwap();
             source.FastMemoryGroup.RecreateViewAfterSwap();
             swapped = true;
@@ -201,7 +203,6 @@ public sealed class Buffer2D<T> : IDisposable
     }
 
     [MethodImpl(InliningOptions.ColdPath)]
-    private void ThrowYOutOfRangeException(int y) =>
-        throw new ArgumentOutOfRangeException(
-            $"DangerousGetRowSpan({y}). Y was out of range. Height={this.Height}");
+    private void ThrowYOutOfRangeException(int y)
+        => throw new ArgumentOutOfRangeException($"DangerousGetRowSpan({y}). Y was out of range. Height={this.Height}");
 }

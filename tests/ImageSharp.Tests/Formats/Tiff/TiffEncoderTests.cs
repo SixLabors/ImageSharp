@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public class TiffEncoderTests : TiffEncoderBaseTester
 {
+    [Fact]
+    public void TiffEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(new TiffEncoder().Quantizer);
+
     [Theory]
     [InlineData(null, TiffBitsPerPixel.Bit24)]
     [InlineData(TiffPhotometricInterpretation.Rgb, TiffBitsPerPixel.Bit24)]
@@ -28,18 +31,18 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void EncoderOptions_SetPhotometricInterpretation_Works(TiffPhotometricInterpretation? photometricInterpretation, TiffBitsPerPixel expectedBitsPerPixel)
     {
         // arrange
-        var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation };
+        TiffEncoder tiffEncoder = new() { PhotometricInterpretation = photometricInterpretation };
         using Image input = expectedBitsPerPixel is TiffBitsPerPixel.Bit16
             ? new Image<L16>(10, 10)
             : new Image<Rgb24>(10, 10);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
         Assert.Equal(TiffCompression.None, frameMetaData.Compression);
@@ -54,16 +57,17 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void EncoderOptions_SetBitPerPixel_Works(TiffBitsPerPixel bitsPerPixel)
     {
         // arrange
-        var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+        TiffEncoder tiffEncoder = new()
+        { BitsPerPixel = bitsPerPixel };
         using Image input = new Image<Rgb24>(10, 10);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
 
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(bitsPerPixel, frameMetaData.BitsPerPixel);
@@ -81,16 +85,17 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void EncoderOptions_UnsupportedBitPerPixel_DefaultTo24Bits(TiffBitsPerPixel bitsPerPixel)
     {
         // arrange
-        var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+        TiffEncoder tiffEncoder = new()
+        { BitsPerPixel = bitsPerPixel };
         using Image input = new Image<Rgb24>(10, 10);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
 
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
@@ -103,16 +108,17 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void EncoderOptions_WithInvalidCompressionAndPixelTypeCombination_DefaultsToRgb(TiffPhotometricInterpretation photometricInterpretation, TiffCompression compression)
     {
         // arrange
-        var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
+        TiffEncoder tiffEncoder = new()
+        { PhotometricInterpretation = photometricInterpretation, Compression = compression };
         using Image input = new Image<Rgb24>(10, 10);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
 
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(TiffBitsPerPixel.Bit24, frameMetaData.BitsPerPixel);
@@ -149,18 +155,19 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         TiffCompression expectedCompression)
     {
         // arrange
-        var tiffEncoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation, Compression = compression };
+        TiffEncoder tiffEncoder = new()
+        { PhotometricInterpretation = photometricInterpretation, Compression = compression };
         using Image input = expectedBitsPerPixel is TiffBitsPerPixel.Bit16
             ? new Image<L16>(10, 10)
             : new Image<Rgb24>(10, 10);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata rootFrameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(expectedBitsPerPixel, rootFrameMetaData.BitsPerPixel);
         Assert.Equal(expectedCompression, rootFrameMetaData.Compression);
@@ -178,16 +185,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var tiffEncoder = new TiffEncoder();
+        TiffEncoder tiffEncoder = new();
         using Image<TPixel> input = provider.GetImage();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
     }
@@ -196,17 +203,17 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_PreservesBitsPerPixel_WhenInputIsL8()
     {
         // arrange
-        var tiffEncoder = new TiffEncoder();
+        TiffEncoder tiffEncoder = new();
         using Image input = new Image<L8>(10, 10);
-        using var memStream = new MemoryStream();
-        TiffBitsPerPixel expectedBitsPerPixel = TiffBitsPerPixel.Bit8;
+        using MemoryStream memStream = new();
+        const TiffBitsPerPixel expectedBitsPerPixel = TiffBitsPerPixel.Bit8;
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(expectedBitsPerPixel, frameMetaData.BitsPerPixel);
     }
@@ -220,16 +227,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var tiffEncoder = new TiffEncoder();
+        TiffEncoder tiffEncoder = new();
         using Image<TPixel> input = provider.GetImage();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         Assert.Equal(expectedCompression, output.Frames.RootFrame.Metadata.GetTiffMetadata().Compression);
     }
 
@@ -242,16 +249,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var tiffEncoder = new TiffEncoder();
+        TiffEncoder tiffEncoder = new();
         using Image<TPixel> input = provider.GetImage();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata frameMetadata = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(expectedPredictor, frameMetadata.Predictor);
     }
@@ -261,8 +268,8 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_WritesIfdOffsetAtWordBoundary()
     {
         // arrange
-        var tiffEncoder = new TiffEncoder();
-        using var memStream = new MemoryStream();
+        TiffEncoder tiffEncoder = new();
+        using MemoryStream memStream = new();
         using Image<Rgba32> image = new(1, 1);
         byte[] expectedIfdOffsetBytes = { 12, 0 };
 
@@ -286,16 +293,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var encoder = new TiffEncoder() { Compression = compression, BitsPerPixel = TiffBitsPerPixel.Bit1 };
+        TiffEncoder encoder = new() { Compression = compression, BitsPerPixel = TiffBitsPerPixel.Bit1 };
         using Image<TPixel> input = provider.GetImage();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, encoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         Assert.Equal(TiffBitsPerPixel.Bit1, frameMetaData.BitsPerPixel);
         Assert.Equal(expectedCompression, frameMetaData.Compression);
@@ -545,7 +552,8 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
         using Image<TPixel> image = provider.GetImage();
 
-        var encoder = new TiffEncoder { PhotometricInterpretation = photometricInterpretation };
+        TiffEncoder encoder = new()
+        { PhotometricInterpretation = photometricInterpretation };
         image.DebugSave(provider, encoder);
     }
 }

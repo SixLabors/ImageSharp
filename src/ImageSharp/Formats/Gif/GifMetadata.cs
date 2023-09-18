@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Gif;
 
 /// <summary>
@@ -23,7 +25,7 @@ public class GifMetadata : IDeepCloneable
     {
         this.RepeatCount = other.RepeatCount;
         this.ColorTableMode = other.ColorTableMode;
-        this.BackgroundColor = other.BackgroundColor;
+        this.BackgroundColorIndex = other.BackgroundColorIndex;
 
         if (other.GlobalColorTable?.Length > 0)
         {
@@ -51,6 +53,7 @@ public class GifMetadata : IDeepCloneable
 
     /// <summary>
     /// Gets or sets the global color table, if any.
+    /// The underlying pixel format is represented by <see cref="Rgb24"/>.
     /// </summary>
     public ReadOnlyMemory<Color>? GlobalColorTable { get; set; }
 
@@ -58,7 +61,7 @@ public class GifMetadata : IDeepCloneable
     /// Gets or sets the index at the <see cref="GlobalColorTable"/> for the background color.
     /// The background color is the color used for those pixels on the screen that are not covered by an image.
     /// </summary>
-    public byte BackgroundColor { get; set; }
+    public byte BackgroundColorIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of comments about the graphics, credits, descriptions or any

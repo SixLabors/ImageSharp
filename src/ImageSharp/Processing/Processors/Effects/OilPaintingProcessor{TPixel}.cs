@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -34,17 +35,25 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
+        int levels = Math.Clamp(this.definition.Levels, 1, 255);
         int brushSize = Math.Clamp(this.definition.BrushSize, 1, Math.Min(source.Width, source.Height));
 
         using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size());
 
         source.CopyTo(targetPixels);
 
-        RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, this.definition.Levels);
-        ParallelRowIterator.IterateRowIntervals(
+        RowIntervalOperation operation = new(this.SourceRectangle, targetPixels, source.PixelBuffer, this.Configuration, brushSize >> 1, levels);
+        try
+        {
+            ParallelRowIterator.IterateRowIntervals(
             this.Configuration,
             this.SourceRectangle,
             in operation);
+        }
+        catch (Exception ex)
+        {
+            throw new ImageProcessingException("The OilPaintProcessor failed. The most likely reason is that a pixel component was outside of its' allowed range.", ex);
+        }
 
         Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
     }
@@ -105,18 +114,18 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> targetRowVector4Span = targetRowBuffer.Memory.Span;
             Span<Vector4> targetRowAreaVector4Span = targetRowVector4Span.Slice(this.bounds.X, this.bounds.Width);
 
-            ref float binsRef = ref bins.GetReference();
-            ref int intensityBinRef = ref Unsafe.As<float, int>(ref binsRef);
-            ref float redBinRef = ref Unsafe.Add(ref binsRef, (uint)this.levels);
-            ref float blueBinRef = ref Unsafe.Add(ref redBinRef, (uint)this.levels);
-            ref float greenBinRef = ref Unsafe.Add(ref blueBinRef, (uint)this.levels);
+            Span<float> binsSpan = bins.GetSpan();
+            Span<int> intensityBinsSpan = MemoryMarshal.Cast<float, int>(binsSpan);
+            Span<float> redBinSpan = binsSpan[this.levels..];
+            Span<float> blueBinSpan = redBinSpan[this.levels..];
+            Span<float> greenBinSpan = blueBinSpan[this.levels..];
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
                 Span<TPixel> sourceRowPixelSpan = this.source.DangerousGetRowSpan(y);
                 Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(this.bounds.X, this.bounds.Width);
 
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span, PixelConversionModifiers.Scale);
 
                 for (int x = this.bounds.X; x < this.bounds.Right; x++)
                 {
@@ -140,7 +149,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             int offsetX = x + fxr;
                             offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
-                            Vector4 vector = sourceOffsetRow[offsetX].ToVector4();
+                            Vector4 vector = sourceOffsetRow[offsetX].ToScaledVector4();
 
                             float sourceRed = vector.X;
                             float sourceBlue = vector.Z;
@@ -148,21 +157,21 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                             int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (this.levels - 1));
 
-                            Unsafe.Add(ref intensityBinRef, (uint)currentIntensity)++;
-                            Unsafe.Add(ref redBinRef, (uint)currentIntensity) += sourceRed;
-                            Unsafe.Add(ref blueBinRef, (uint)currentIntensity) += sourceBlue;
-                            Unsafe.Add(ref greenBinRef, (uint)currentIntensity) += sourceGreen;
+                            intensityBinsSpan[currentIntensity]++;
+                            redBinSpan[currentIntensity] += sourceRed;
+                            blueBinSpan[currentIntensity] += sourceBlue;
+                            greenBinSpan[currentIntensity] += sourceGreen;
 
-                            if (Unsafe.Add(ref intensityBinRef, (uint)currentIntensity) > maxIntensity)
+                            if (intensityBinsSpan[currentIntensity] > maxIntensity)
                             {
-                                maxIntensity = Unsafe.Add(ref intensityBinRef, (uint)currentIntensity);
+                                maxIntensity = intensityBinsSpan[currentIntensity];
                                 maxIndex = currentIntensity;
                             }
                         }
 
-                        float red = MathF.Abs(Unsafe.Add(ref redBinRef, (uint)maxIndex) / maxIntensity);
-                        float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, (uint)maxIndex) / maxIntensity);
-                        float green = MathF.Abs(Unsafe.Add(ref greenBinRef, (uint)maxIndex) / maxIntensity);
+                        float red = redBinSpan[maxIndex] / maxIntensity;
+                        float blue = blueBinSpan[maxIndex] / maxIntensity;
+                        float green = greenBinSpan[maxIndex] / maxIntensity;
                         float alpha = sourceRowVector4Span[x].W;
 
                         targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);
@@ -171,7 +180,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                 Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan, PixelConversionModifiers.Scale);
             }
         }
     }

@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
@@ -85,7 +86,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
         this.memoryAllocator = memoryAllocator;
         this.PhotometricInterpretation = options.PhotometricInterpretation;
-        this.quantizer = options.Quantizer;
+        this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = options.PixelSamplingStrategy;
         this.BitsPerPixel = options.BitsPerPixel;
         this.HorizontalPredictor = options.HorizontalPredictor;
@@ -157,6 +158,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         long ifdMarker = WriteHeader(writer, buffer);
 
         Image<TPixel> metadataImage = image;
+
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -235,8 +237,12 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
 
         if (image != null)
         {
+            // Write the metadata for the root image
             entriesCollector.ProcessMetadata(image, this.skipMetadata);
         }
+
+        // Write the metadata for the frame
+        entriesCollector.ProcessMetadata(frame, this.skipMetadata);
 
         entriesCollector.ProcessFrameInfo(frame, imageMetadata);
         entriesCollector.ProcessImageFormat(this);
@@ -320,7 +326,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
             {
                 int sz = ExifWriter.WriteValue(entry, buffer, 0);
                 DebugGuard.IsTrue(sz == length, "Incorrect number of bytes written");
-                writer.WritePadded(buffer.Slice(0, sz));
+                writer.WritePadded(buffer[..sz]);
             }
             else
             {

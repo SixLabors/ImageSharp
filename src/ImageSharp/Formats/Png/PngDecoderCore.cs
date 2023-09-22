@@ -933,10 +933,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         }
 
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
-        ref Rgb24 paletteBase = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, Rgb24>(palette));
+        ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
         for (int i = 0; i < colorTable.Length; i++)
         {
-            colorTable[i] = new Color(Unsafe.Add(ref paletteBase, (uint)i));
+            colorTable[i] = new Color(rgbTable[i]);
         }
 
         if (alpha.Length > 0)

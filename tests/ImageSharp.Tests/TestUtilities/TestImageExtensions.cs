@@ -107,7 +107,8 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         object testOutputDetails = null,
         string extension = "png",
-        bool appendPixelTypeToFileName = true)
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (TestEnvironment.RunsWithCodeCoverage)
@@ -119,7 +120,8 @@ public static class TestImageExtensions
             image,
             extension,
             testOutputDetails: testOutputDetails,
-            appendPixelTypeToFileName: appendPixelTypeToFileName);
+            appendPixelTypeToFileName: appendPixelTypeToFileName,
+            predicate: predicate);
 
         return image;
     }
@@ -237,7 +239,6 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         FormattableString testOutputDetails,
         string extension = "png",
-        bool grayscale = false,
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -246,7 +247,6 @@ public static class TestImageExtensions
             provider,
             (object)testOutputDetails,
             extension,
-            grayscale,
             appendPixelTypeToFileName,
             appendSourceFileOrDescription);
 
@@ -256,12 +256,11 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         object testOutputDetails = null,
         string extension = "png",
-        bool grayscale = false,
         bool appendPixelTypeToFileName = true,
         bool appendSourceFileOrDescription = true)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
+        using (Image<TPixel> firstFrameOnlyImage = new(image.Width, image.Height))
         using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
             provider,
             testOutputDetails,
@@ -284,8 +283,8 @@ public static class TestImageExtensions
         ImageComparer comparer,
         object testOutputDetails = null,
         string extension = "png",
-        bool grayscale = false,
-        bool appendPixelTypeToFileName = true)
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using (Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
@@ -293,9 +292,10 @@ public static class TestImageExtensions
             image.Frames.Count,
             testOutputDetails,
             extension,
-            appendPixelTypeToFileName))
+            appendPixelTypeToFileName,
+            predicate: predicate))
         {
-            comparer.VerifySimilarity(referenceImage, image);
+            comparer.VerifySimilarity(referenceImage, image, predicate);
         }
 
         return image;
@@ -332,16 +332,18 @@ public static class TestImageExtensions
         int frameCount,
         object testOutputDetails = null,
         string extension = "png",
-        bool appendPixelTypeToFileName = true)
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
             frameCount,
             extension,
             testOutputDetails,
-            appendPixelTypeToFileName);
+            appendPixelTypeToFileName,
+            predicate);
 
-        var temporaryFrameImages = new List<Image<TPixel>>();
+        List<Image<TPixel>> temporaryFrameImages = new();
 
         IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
 
@@ -359,7 +361,7 @@ public static class TestImageExtensions
 
         Image<TPixel> firstTemp = temporaryFrameImages[0];
 
-        var result = new Image<TPixel>(firstTemp.Width, firstTemp.Height);
+        Image<TPixel> result = new(firstTemp.Width, firstTemp.Height);
 
         foreach (Image<TPixel> fi in temporaryFrameImages)
         {

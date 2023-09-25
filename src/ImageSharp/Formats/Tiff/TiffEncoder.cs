@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
@@ -12,6 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// </summary>
 public class TiffEncoder : QuantizingImageEncoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TiffEncoder"/> class.
+    /// </summary>
+    public TiffEncoder() => this.Quantizer = KnownQuantizers.Octree;
+
     /// <summary>
     /// Gets the number of bits per pixel.
     /// </summary>

@@ -25,8 +25,8 @@ public class QuantizerOptions
     /// </summary>
     public float DitherScale
     {
-        get { return this.ditherScale; }
-        set { this.ditherScale = Numerics.Clamp(value, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale); }
+        get => this.ditherScale;
+        set => this.ditherScale = Numerics.Clamp(value, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public class QuantizerOptions
     /// </summary>
     public int MaxColors
     {
-        get { return this.maxColors; }
-        set { this.maxColors = Numerics.Clamp(value, QuantizerConstants.MinColors, QuantizerConstants.MaxColors); }
+        get => this.maxColors;
+        set => this.maxColors = Numerics.Clamp(value, QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
     }
 }

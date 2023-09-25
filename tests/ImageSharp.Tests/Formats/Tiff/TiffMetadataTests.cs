@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -317,5 +318,95 @@ public class TiffMetadataTests
 
         Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
         Assert.Equal(exifProfileInput.Values.Count, encodedImageExifProfile.Values.Count);
+    }
+
+    [Theory]
+    [WithFile(SampleMetadata, PixelTypes.Rgba32)]
+    public void Encode_PreservesMetadata_IptcAndIcc<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Load Tiff image
+        DecoderOptions options = new() { SkipMetadata = false };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+
+        ImageMetadata inputMetaData = image.Metadata;
+        ImageFrame<TPixel> rootFrameInput = image.Frames.RootFrame;
+
+        IptcProfile iptcProfile = new();
+        iptcProfile.SetValue(IptcTag.Name, "Test name");
+        rootFrameInput.Metadata.IptcProfile = iptcProfile;
+
+        IccProfileHeader iccProfileHeader = new() { Class = IccProfileClass.ColorSpace };
+        IccProfile iccProfile = new();
+        rootFrameInput.Metadata.IccProfile = iccProfile;
+
+        TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();
+        XmpProfile xmpProfileInput = rootFrameInput.Metadata.XmpProfile;
+        ExifProfile exifProfileInput = rootFrameInput.Metadata.ExifProfile;
+        IptcProfile iptcProfileInput = rootFrameInput.Metadata.IptcProfile;
+        IccProfile iccProfileInput = rootFrameInput.Metadata.IccProfile;
+
+        Assert.Equal(TiffCompression.Lzw, frameMetaInput.Compression);
+        Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaInput.BitsPerPixel);
+
+        // Save to Tiff
+        TiffEncoder tiffEncoder = new() { PhotometricInterpretation = TiffPhotometricInterpretation.Rgb };
+        using MemoryStream ms = new();
+        image.Save(ms, tiffEncoder);
+
+        // Assert
+        ms.Position = 0;
+        using Image<Rgba32> encodedImage = Image.Load<Rgba32>(ms);
+
+        ImageMetadata encodedImageMetaData = encodedImage.Metadata;
+        ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
+        TiffFrameMetadata tiffMetaDataEncodedRootFrame = rootFrameEncodedImage.Metadata.GetTiffMetadata();
+        ExifProfile encodedImageExifProfile = rootFrameEncodedImage.Metadata.ExifProfile;
+        XmpProfile encodedImageXmpProfile = rootFrameEncodedImage.Metadata.XmpProfile;
+        IptcProfile encodedImageIptcProfile = rootFrameEncodedImage.Metadata.IptcProfile;
+        IccProfile encodedImageIccProfile = rootFrameEncodedImage.Metadata.IccProfile;
+
+        Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaDataEncodedRootFrame.BitsPerPixel);
+        Assert.Equal(TiffCompression.Lzw, tiffMetaDataEncodedRootFrame.Compression);
+
+        Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);
+        Assert.Equal(inputMetaData.VerticalResolution, encodedImageMetaData.VerticalResolution);
+        Assert.Equal(inputMetaData.ResolutionUnits, encodedImageMetaData.ResolutionUnits);
+
+        Assert.Equal(rootFrameInput.Width, rootFrameEncodedImage.Width);
+        Assert.Equal(rootFrameInput.Height, rootFrameEncodedImage.Height);
+
+        PixelResolutionUnit resolutionUnitInput = UnitConverter.ExifProfileToResolutionUnit(exifProfileInput);
+        PixelResolutionUnit resolutionUnitEncoded = UnitConverter.ExifProfileToResolutionUnit(encodedImageExifProfile);
+        Assert.Equal(resolutionUnitInput, resolutionUnitEncoded);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.XResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.YResolution).Value.ToDouble(), encodedImageExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
+
+        Assert.NotNull(xmpProfileInput);
+        Assert.NotNull(encodedImageXmpProfile);
+        Assert.Equal(xmpProfileInput.Data, encodedImageXmpProfile.Data);
+
+        Assert.NotNull(iptcProfileInput);
+        Assert.NotNull(encodedImageIptcProfile);
+        Assert.Equal(iptcProfileInput.Data, encodedImageIptcProfile.Data);
+        Assert.Equal(iptcProfileInput.GetValues(IptcTag.Name)[0].Value, encodedImageIptcProfile.GetValues(IptcTag.Name)[0].Value);
+
+        Assert.NotNull(iccProfileInput);
+        Assert.NotNull(encodedImageIccProfile);
+        Assert.Equal(iccProfileInput.Entries.Length, encodedImageIccProfile.Entries.Length);
+        Assert.Equal(iccProfileInput.Header.Class, encodedImageIccProfile.Header.Class);
+
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Software).Value, encodedImageExifProfile.GetValue(ExifTag.Software).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.ImageDescription).Value, encodedImageExifProfile.GetValue(ExifTag.ImageDescription).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Make).Value, encodedImageExifProfile.GetValue(ExifTag.Make).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Copyright).Value, encodedImageExifProfile.GetValue(ExifTag.Copyright).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Artist).Value, encodedImageExifProfile.GetValue(ExifTag.Artist).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Orientation).Value, encodedImageExifProfile.GetValue(ExifTag.Orientation).Value);
+        Assert.Equal(exifProfileInput.GetValue(ExifTag.Model).Value, encodedImageExifProfile.GetValue(ExifTag.Model).Value);
+
+        Assert.Equal((ushort)TiffPlanarConfiguration.Chunky, encodedImageExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value);
+
+        // Adding the IPTC and ICC profiles dynamically increments the number of values in the original EXIF profile by 2
+        Assert.Equal(exifProfileInput.Values.Count + 2, encodedImageExifProfile.Values.Count);
     }
 }

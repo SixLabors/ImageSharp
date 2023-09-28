@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using ExifProfile = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifProfile;
 using ExifTag = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
@@ -22,17 +23,17 @@ public class ImageFrameMetadataTests
         const int colorTableLength = 128;
         const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
 
-        var metaData = new ImageFrameMetadata();
+        ImageFrameMetadata metaData = new();
         GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();
         gifFrameMetadata.FrameDelay = frameDelay;
-        gifFrameMetadata.ColorTableLength = colorTableLength;
+        gifFrameMetadata.LocalColorTable = Enumerable.Repeat(Color.HotPink, colorTableLength).ToArray();
         gifFrameMetadata.DisposalMethod = disposalMethod;
 
-        var clone = new ImageFrameMetadata(metaData);
+        ImageFrameMetadata clone = new(metaData);
         GifFrameMetadata cloneGifFrameMetadata = clone.GetGifMetadata();
 
         Assert.Equal(frameDelay, cloneGifFrameMetadata.FrameDelay);
-        Assert.Equal(colorTableLength, cloneGifFrameMetadata.ColorTableLength);
+        Assert.Equal(colorTableLength, cloneGifFrameMetadata.LocalColorTable.Value.Length);
         Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMethod);
     }
 
@@ -40,19 +41,19 @@ public class ImageFrameMetadataTests
     public void CloneIsDeep()
     {
         // arrange
-        var exifProfile = new ExifProfile();
+        ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "UnitTest");
         exifProfile.SetValue(ExifTag.Artist, "UnitTest");
-        var xmpProfile = new XmpProfile(new byte[0]);
-        var iccProfile = new IccProfile()
+        XmpProfile xmpProfile = new(Array.Empty<byte>());
+        IccProfile iccProfile = new()
         {
             Header = new IccProfileHeader()
             {
                 CmmType = "Unittest"
             }
         };
-        var iptcProfile = new ImageSharp.Metadata.Profiles.Iptc.IptcProfile();
-        var metaData = new ImageFrameMetadata()
+        IptcProfile iptcProfile = new();
+        ImageFrameMetadata metaData = new()
         {
             XmpProfile = xmpProfile,
             ExifProfile = exifProfile,

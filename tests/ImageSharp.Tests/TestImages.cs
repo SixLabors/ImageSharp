@@ -291,6 +291,7 @@ public static class TestImages
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
 
             public static class Fuzz
             {
@@ -491,6 +492,9 @@ public static class TestImages
             public const string Issue2288_B = "Gif/issues/issue_2288_2.gif";
             public const string Issue2288_C = "Gif/issues/issue_2288_3.gif";
             public const string Issue2288_D = "Gif/issues/issue_2288_4.gif";
+            public const string Issue2450_A = "Gif/issues/issue_2450.gif";
+            public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
+            public const string Issue2198 = "Gif/issues/issue_2198.gif";
         }
 
         public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

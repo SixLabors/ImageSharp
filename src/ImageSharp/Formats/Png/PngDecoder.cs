@@ -61,24 +61,24 @@ public sealed class PngDecoder : ImageDecoder
             case PngColorType.Grayscale:
                 if (bits == PngBitDepth.Bit16)
                 {
-                    return !meta.HasTransparency
+                    return !meta.TransparentColor.HasValue
                         ? this.Decode<L16>(options, stream, cancellationToken)
                         : this.Decode<La32>(options, stream, cancellationToken);
                 }
 
-                return !meta.HasTransparency
+                return !meta.TransparentColor.HasValue
                     ? this.Decode<L8>(options, stream, cancellationToken)
                     : this.Decode<La16>(options, stream, cancellationToken);
 
             case PngColorType.Rgb:
                 if (bits == PngBitDepth.Bit16)
                 {
-                    return !meta.HasTransparency
+                    return !meta.TransparentColor.HasValue
                         ? this.Decode<Rgb48>(options, stream, cancellationToken)
                         : this.Decode<Rgba64>(options, stream, cancellationToken);
                 }
 
-                return !meta.HasTransparency
+                return !meta.TransparentColor.HasValue
                     ? this.Decode<Rgb24>(options, stream, cancellationToken)
                     : this.Decode<Rgba32>(options, stream, cancellationToken);
 

@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
+
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
@@ -9,6 +12,16 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// </summary>
 public class PngEncoder : QuantizingImageEncoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PngEncoder"/> class.
+    /// </summary>
+    public PngEncoder()
+
+        // Hack. TODO: Investigate means to fix/optimize the Wu quantizer.
+        // The Wu quantizer does not handle the default sampling strategy well for some larger images.
+        // It's expensive and the results are not better than the extensive strategy.
+        => this.PixelSamplingStrategy = new ExtensivePixelSamplingStrategy();
+
     /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType" /> values.

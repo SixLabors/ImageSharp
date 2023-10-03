@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Processing;
+
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
 /// <summary>
@@ -8,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// </summary>
 public sealed class BmpEncoder : QuantizingImageEncoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BmpEncoder"/> class.
+    /// </summary>
+    public BmpEncoder() => this.Quantizer = KnownQuantizers.Octree;
+
     /// <summary>
     /// Gets the number of bits per pixel.
     /// </summary>

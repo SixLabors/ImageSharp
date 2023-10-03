@@ -10,15 +10,6 @@ namespace SixLabors.ImageSharp.Formats.Png;
 public class PngEncoder : QuantizingImageEncoder
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="PngEncoder"/> class.
-    /// </summary>
-    public PngEncoder() =>
-
-        // We set the quantizer to null here to allow the underlying encoder to create a
-        // quantizer with options appropriate to the encoding bit depth.
-        this.Quantizer = null;
-
-    /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType" /> values.
     /// </summary>

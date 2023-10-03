@@ -25,6 +25,16 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="size">The <see cref="Size"/> of the frame.</param>
+    internal ImageFrame(Configuration configuration, Size size)
+        : this(configuration, size.Width, size.Height, new ImageFrameMetadata())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+    /// </summary>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="width">The width of the image in pixels.</param>
     /// <param name="height">The height of the image in pixels.</param>
     internal ImageFrame(Configuration configuration, int width, int height)

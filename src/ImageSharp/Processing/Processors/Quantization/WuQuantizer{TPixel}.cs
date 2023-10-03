@@ -111,7 +111,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette
+    public readonly ReadOnlyMemory<TPixel> Palette
     {
         get
         {
@@ -362,7 +362,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="source">The source data.</param>
     /// <param name="bounds">The bounds within the source image to quantize.</param>
-    private void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
+    private readonly void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
     {
         Span<Moment> momentSpan = this.momentsOwner.GetSpan();
 
@@ -393,7 +393,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
     /// </summary>
     /// <param name="allocator">The memory allocator used for allocating buffers.</param>
-    private void Get3DMoments(MemoryAllocator allocator)
+    private readonly void Get3DMoments(MemoryAllocator allocator)
     {
         using IMemoryOwner<Moment> volume = allocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
         using IMemoryOwner<Moment> area = allocator.Allocate<Moment>(IndexAlphaCount);
@@ -462,7 +462,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private double Variance(ref Box cube)
+    private readonly double Variance(ref Box cube)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
 
@@ -503,7 +503,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="cut">The cutting point.</param>
     /// <param name="whole">The whole moment.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
+    private readonly float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment bottom = Bottom(ref cube, direction, momentSpan);
@@ -634,7 +634,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <param name="label">A label.</param>
-    private void Mark(ref Box cube, byte label)
+    private readonly void Mark(ref Box cube, byte label)
     {
         Span<byte> tagSpan = this.tagsOwner.GetSpan();
 

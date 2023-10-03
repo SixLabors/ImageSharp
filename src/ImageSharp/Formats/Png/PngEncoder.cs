@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png;

@@ -144,8 +144,6 @@ internal static partial class ExifValues
                 return new ExifLongArray(ExifTag.StripRowCounts);
             case ExifTagValue.IntergraphRegisters:
                 return new ExifLongArray(ExifTag.IntergraphRegisters);
-            case ExifTagValue.TimeZoneOffset:
-                return new ExifLongArray(ExifTag.TimeZoneOffset);
             case ExifTagValue.SubIFDs:
                 return new ExifLongArray(ExifTag.SubIFDs);
 
@@ -416,6 +414,9 @@ internal static partial class ExifValues
 
             case ExifTagValue.Decode:
                 return new ExifSignedRationalArray(ExifTag.Decode);
+
+            case ExifTagValue.TimeZoneOffset:
+                return new ExifSignedShortArray(ExifTag.TimeZoneOffset);
 
             case ExifTagValue.ImageDescription:
                 return new ExifString(ExifTag.ImageDescription);

@@ -458,6 +458,8 @@ public partial class PngEncoderTests
         PngMetadata outMeta = output.Metadata.GetPngMetadata();
         Assert.True(outMeta.TransparentColor.HasValue);
         Assert.Equal(inMeta.TransparentColor, outMeta.TransparentColor);
+        Assert.Equal(pngBitDepth, outMeta.BitDepth);
+        Assert.Equal(pngColorType, outMeta.ColorType);
     }
 
     [Theory]

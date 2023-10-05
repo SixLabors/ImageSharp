@@ -136,7 +136,7 @@ public partial class ImageTests
                 ref Rgba32 pixel0 = ref imageMem.Span[0];
                 Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
-                Assert.Equal(cfg, image.GetConfiguration());
+                Assert.Equal(cfg, image.Configuration);
                 Assert.Equal(metaData, image.Metadata);
             }
         }
@@ -239,7 +239,7 @@ public partial class ImageTests
                 ref Rgba32 pixel0 = ref imageMem.Span[0];
                 Assert.True(Unsafe.AreSame(ref Unsafe.As<byte, Rgba32>(ref array[0]), ref pixel0));
 
-                Assert.Equal(cfg, image.GetConfiguration());
+                Assert.Equal(cfg, image.Configuration);
                 Assert.Equal(metaData, image.Metadata);
             }
         }
@@ -336,7 +336,7 @@ public partial class ImageTests
                     ref Rgba32 pixel_1 = ref imageSpan[imageSpan.Length - 1];
                     Assert.True(Unsafe.AreSame(ref array[array.Length - 1], ref pixel_1));
 
-                    Assert.Equal(cfg, image.GetConfiguration());
+                    Assert.Equal(cfg, image.Configuration);
                     Assert.Equal(metaData, image.Metadata);
                 }
             }

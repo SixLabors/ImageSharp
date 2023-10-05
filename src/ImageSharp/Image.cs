@@ -17,7 +17,6 @@ namespace SixLabors.ImageSharp;
 public abstract partial class Image : IDisposable, IConfigurationProvider
 {
     private bool isDisposed;
-    private readonly Configuration configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
@@ -26,12 +25,12 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="size">The size in px units.</param>
-    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata? metadata, Size size)
+    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
     {
-        this.configuration = configuration;
+        this.Configuration = configuration;
         this.PixelType = pixelType;
         this.Size = size;
-        this.Metadata = metadata ?? new ImageMetadata();
+        this.Metadata = metadata;
     }
 
     /// <summary>
@@ -45,7 +44,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     internal Image(
         Configuration configuration,
         PixelTypeInfo pixelType,
-        ImageMetadata? metadata,
+        ImageMetadata metadata,
         int width,
         int height)
         : this(configuration, pixelType, metadata, new Size(width, height))
@@ -53,7 +52,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     }
 
     /// <inheritdoc/>
-    Configuration IConfigurationProvider.Configuration => this.configuration;
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets information about the image pixels.
@@ -147,7 +146,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <typeparam name="TPixel2">The pixel format.</typeparam>
     /// <returns>The <see cref="Image{TPixel2}"/></returns>
     public Image<TPixel2> CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
+        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image in the given pixel format.

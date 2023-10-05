@@ -18,7 +18,7 @@ public sealed class GifEncoder : QuantizingImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        GifEncoderCore encoder = new(image.GetConfiguration(), this);
+        GifEncoderCore encoder = new(image.Configuration, this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

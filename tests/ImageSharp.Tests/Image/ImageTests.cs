@@ -31,7 +31,7 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(default(Rgba32));
 
-                Assert.Equal(Configuration.Default, image.GetConfiguration());
+                Assert.Equal(Configuration.Default, image.Configuration);
             }
         }
 
@@ -48,7 +48,7 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(default(Rgba32));
 
-                Assert.Equal(configuration, image.GetConfiguration());
+                Assert.Equal(configuration, image.Configuration);
             }
         }
 
@@ -66,7 +66,7 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(color);
 
-                Assert.Equal(configuration, image.GetConfiguration());
+                Assert.Equal(configuration, image.Configuration);
             }
         }
 
@@ -83,7 +83,7 @@ public partial class ImageTests
             {
                 Assert.Equal(21, image.Width);
                 Assert.Equal(22, image.Height);
-                Assert.Same(configuration, image.GetConfiguration());
+                Assert.Same(configuration, image.Configuration);
                 Assert.Same(metadata, image.Metadata);
 
                 Assert.Equal(dirtyValue, image[5, 5].PackedValue);

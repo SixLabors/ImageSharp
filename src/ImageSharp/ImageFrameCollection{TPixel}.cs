@@ -24,7 +24,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
         // Frames are already cloned within the caller
-        this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
+        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, backgroundColor));
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemoryGroup<TPixel> memorySource)
@@ -32,7 +32,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
         // Frames are already cloned within the caller
-        this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, memorySource));
+        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, memorySource));
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
@@ -138,7 +138,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.EnsureNotDisposed();
 
         this.ValidateFrame(source);
-        ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
+        ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.Configuration);
         this.frames.Insert(index, clonedFrame);
         return clonedFrame;
     }
@@ -153,7 +153,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.EnsureNotDisposed();
 
         this.ValidateFrame(source);
-        ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
+        ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.Configuration);
         this.frames.Add(clonedFrame);
         return clonedFrame;
     }
@@ -169,7 +169,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.EnsureNotDisposed();
 
         ImageFrame<TPixel> frame = ImageFrame.LoadPixelData(
-            this.parent.GetConfiguration(),
+            this.parent.Configuration,
             source,
             this.RootFrame.Width,
             this.RootFrame.Height);
@@ -270,7 +270,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         this.frames.Remove(frame);
 
-        return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.Metadata.DeepClone(), new[] { frame });
+        return new Image<TPixel>(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { frame });
     }
 
     /// <summary>
@@ -285,7 +285,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         ImageFrame<TPixel> frame = this[index];
         ImageFrame<TPixel> clonedFrame = frame.Clone();
-        return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.Metadata.DeepClone(), new[] { clonedFrame });
+        return new Image<TPixel>(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { clonedFrame });
     }
 
     /// <summary>
@@ -299,7 +299,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.EnsureNotDisposed();
 
         ImageFrame<TPixel> frame = new(
-            this.parent.GetConfiguration(),
+            this.parent.Configuration,
             this.RootFrame.Width,
             this.RootFrame.Height);
         this.frames.Add(frame);
@@ -365,7 +365,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     public ImageFrame<TPixel> CreateFrame(TPixel backgroundColor)
     {
         ImageFrame<TPixel> frame = new(
-            this.parent.GetConfiguration(),
+            this.parent.Configuration,
             this.RootFrame.Width,
             this.RootFrame.Height,
             backgroundColor);
@@ -414,7 +414,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     private ImageFrame<TPixel> CopyNonCompatibleFrame(ImageFrame source)
     {
         ImageFrame<TPixel> result = new(
-            this.parent.GetConfiguration(),
+            this.parent.Configuration,
             source.Size(),
             source.Metadata.DeepClone());
         source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);

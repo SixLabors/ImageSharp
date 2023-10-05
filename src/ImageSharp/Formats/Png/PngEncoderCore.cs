@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -116,13 +115,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
     /// </summary>
-    /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="encoder">The encoder with options.</param>
-    public PngEncoderCore(MemoryAllocator memoryAllocator, Configuration configuration, PngEncoder encoder)
+    public PngEncoderCore(Configuration configuration, PngEncoder encoder)
     {
-        this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
+        this.memoryAllocator = configuration.MemoryAllocator;
         this.encoder = encoder;
     }
 
@@ -1308,7 +1306,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         }
 
         // Create quantized frame returning the palette and set the bit depth.
-        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration());
+        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(image.Configuration);
 
         frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, image);
         return frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);

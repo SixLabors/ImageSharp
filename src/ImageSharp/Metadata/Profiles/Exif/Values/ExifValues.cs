@@ -241,6 +241,8 @@ internal static partial class ExifValues
                 return new ExifRational(ExifTag.GPSDestBearing);
             case ExifTagValue.GPSDestDistance:
                 return new ExifRational(ExifTag.GPSDestDistance);
+            case ExifTagValue.GPSHPositioningError:
+                return new ExifRational(ExifTag.GPSHPositioningError);
 
             case ExifTagValue.WhitePoint:
                 return new ExifRationalArray(ExifTag.WhitePoint);

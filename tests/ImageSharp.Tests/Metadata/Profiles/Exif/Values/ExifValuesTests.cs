@@ -128,6 +128,7 @@ public class ExifValuesTests
         { ExifTag.GPSImgDirection },
         { ExifTag.GPSDestBearing },
         { ExifTag.GPSDestDistance },
+        { ExifTag.GPSHPositioningError },
     };
 
     public static TheoryData<ExifTag> RationalArrayTags => new TheoryData<ExifTag>

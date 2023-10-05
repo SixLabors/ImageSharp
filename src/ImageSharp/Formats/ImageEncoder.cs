@@ -42,7 +42,7 @@ public abstract class ImageEncoder : IImageEncoder
     private void EncodeWithSeekableStream<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         if (stream.CanSeek)
         {
             this.Encode(image, stream, cancellationToken);
@@ -59,7 +59,7 @@ public abstract class ImageEncoder : IImageEncoder
     private async Task EncodeWithSeekableStreamAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         if (stream.CanSeek)
         {
             await DoEncodeAsync(stream).ConfigureAwait(false);

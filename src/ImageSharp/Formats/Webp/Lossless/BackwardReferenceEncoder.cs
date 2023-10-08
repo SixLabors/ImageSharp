@@ -50,8 +50,8 @@ internal static class BackwardReferenceEncoder
         double bitCostBest = -1;
         int cacheBitsInitial = cacheBits;
         Vp8LHashChain? hashChainBox = null;
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
         for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
         {
             int cacheBitsTmp = cacheBitsInitial;
@@ -76,21 +76,19 @@ internal static class BackwardReferenceEncoder
             }
 
             // Next, try with a color cache and update the references.
-            cacheBitsTmp = CalculateBestCacheSize(bgra, quality, worst, cacheBitsTmp);
+            cacheBitsTmp = CalculateBestCacheSize(memoryAllocator, bgra, quality, worst, cacheBitsTmp);
             if (cacheBitsTmp > 0)
             {
                 BackwardRefsWithLocalCache(bgra, cacheBitsTmp, worst);
             }
 
             // Keep the best backward references.
-            var histo = new Vp8LHistogram(worst, cacheBitsTmp);
+            using Vp8LHistogram histo = new(memoryAllocator, worst, cacheBitsTmp);
             double bitCost = histo.EstimateBits(stats, bitsEntropy);
 
             if (lz77TypeBest == 0 || bitCost < bitCostBest)
             {
-                Vp8LBackwardRefs tmp = worst;
-                worst = best;
-                best = tmp;
+                (best, worst) = (worst, best);
                 bitCostBest = bitCost;
                 cacheBits = cacheBitsTmp;
                 lz77TypeBest = lz77Type;
@@ -102,7 +100,7 @@ internal static class BackwardReferenceEncoder
         {
             Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox!;
             BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp, best, worst);
-            var histo = new Vp8LHistogram(worst, cacheBits);
+            using Vp8LHistogram histo = new(memoryAllocator, worst, cacheBits);
             double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
             if (bitCostTrace < bitCostBest)
             {
@@ -123,7 +121,12 @@ internal static class BackwardReferenceEncoder
     /// The local color cache is also disabled for the lower (smaller then 25) quality.
     /// </summary>
     /// <returns>Best cache size.</returns>
-    private static int CalculateBestCacheSize(ReadOnlySpan<uint> bgra, uint quality, Vp8LBackwardRefs refs, int bestCacheBits)
+    private static int CalculateBestCacheSize(
+        MemoryAllocator memoryAllocator,
+        ReadOnlySpan<uint> bgra,
+        uint quality,
+        Vp8LBackwardRefs refs,
+        int bestCacheBits)
     {
         int cacheBitsMax = quality <= 25 ? 0 : bestCacheBits;
         if (cacheBitsMax == 0)
@@ -134,11 +137,15 @@ internal static class BackwardReferenceEncoder
 
         double entropyMin = MaxEntropy;
         int pos = 0;
-        var colorCache = new ColorCache[WebpConstants.MaxColorCacheBits + 1];
-        var histos = new Vp8LHistogram[WebpConstants.MaxColorCacheBits + 1];
+
+        // TODO: Pass from outer loop and clear.
+        ColorCache[] colorCache = new ColorCache[WebpConstants.MaxColorCacheBits + 1];
+
+        // TODO: Use fixed size.
+        using Vp8LHistogramSet histos = new(memoryAllocator, WebpConstants.MaxColorCacheBits + 1, 0);
         for (int i = 0; i <= WebpConstants.MaxColorCacheBits; i++)
         {
-            histos[i] = new Vp8LHistogram(paletteCodeBits: i);
+            histos[i].PaletteCodeBits = i;
             colorCache[i] = new ColorCache(i);
         }
 
@@ -149,10 +156,10 @@ internal static class BackwardReferenceEncoder
             if (v.IsLiteral())
             {
                 uint pix = bgra[pos++];
-                uint a = (pix >> 24) & 0xff;
-                uint r = (pix >> 16) & 0xff;
-                uint g = (pix >> 8) & 0xff;
-                uint b = (pix >> 0) & 0xff;
+                int a = (int)(pix >> 24) & 0xff;
+                int r = (int)(pix >> 16) & 0xff;
+                int g = (int)(pix >> 8) & 0xff;
+                int b = (int)(pix >> 0) & 0xff;
 
                 // The keys of the caches can be derived from the longest one.
                 int key = ColorCache.HashPix(pix, 32 - cacheBitsMax);
@@ -218,8 +225,8 @@ internal static class BackwardReferenceEncoder
             }
         }
 
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
         for (int i = 0; i <= cacheBitsMax; i++)
         {
             double entropy = histos[i].EstimateBits(stats, bitsEntropy);
@@ -266,7 +273,7 @@ internal static class BackwardReferenceEncoder
         int pixCount = xSize * ySize;
         bool useColorCache = cacheBits > 0;
         int literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (cacheBits > 0 ? 1 << cacheBits : 0);
-        var costModel = new CostModel(literalArraySize);
+        CostModel costModel = new(memoryAllocator, literalArraySize);
         int offsetPrev = -1;
         int lenPrev = -1;
         double offsetCost = -1;
@@ -280,7 +287,7 @@ internal static class BackwardReferenceEncoder
         }
 
         costModel.Build(xSize, cacheBits, refs);
-        using var costManager = new CostManager(memoryAllocator, distArrayBuffer, pixCount, costModel);
+        using CostManager costManager = new(memoryAllocator, distArrayBuffer, pixCount, costModel);
         Span<float> costManagerCosts = costManager.Costs.GetSpan();
         Span<ushort> distArray = distArrayBuffer.GetSpan();
 

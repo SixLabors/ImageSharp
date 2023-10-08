@@ -589,15 +589,21 @@ internal class Vp8LEncoder : IDisposable
             Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
             this.bitWriter.Reset(bwInit);
-            Vp8LHistogram tmpHisto = new(cacheBits);
-            List<Vp8LHistogram> histogramImage = new(histogramImageXySize);
-            for (int i = 0; i < histogramImageXySize; i++)
-            {
-                histogramImage.Add(new Vp8LHistogram(cacheBits));
-            }
+            using Vp8LHistogram tmpHisto = new(this.memoryAllocator, cacheBits);
+            using Vp8LHistogramSet histogramImage = new(this.memoryAllocator, histogramImageXySize, cacheBits);
 
             // Build histogram image and symbols from backward references.
-            HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, this.HistoBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+            HistogramEncoder.GetHistoImageSymbols(
+                this.memoryAllocator,
+                width,
+                height,
+                refsBest,
+                this.quality,
+                this.HistoBits,
+                cacheBits,
+                histogramImage,
+                tmpHisto,
+                histogramSymbols);
 
             // Create Huffman bit lengths and codes for each histogram image.
             int histogramImageSize = histogramImage.Count;
@@ -678,9 +684,7 @@ internal class Vp8LEncoder : IDisposable
             // Keep track of the smallest image so far.
             if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
             {
-                Vp8LBitWriter tmp = this.bitWriter;
-                this.bitWriter = bitWriterBest;
-                bitWriterBest = tmp;
+                (bitWriterBest, this.bitWriter) = (this.bitWriter, bitWriterBest);
             }
 
             isFirstIteration = false;
@@ -787,13 +791,8 @@ internal class Vp8LEncoder : IDisposable
             refsTmp1,
             refsTmp2);
 
-        List<Vp8LHistogram> histogramImage = new()
-        {
-            new(cacheBits)
-        };
-
         // Build histogram image and symbols from backward references.
-        histogramImage[0].StoreRefs(refs);
+        using Vp8LHistogramSet histogramImage = new(this.memoryAllocator, refs, 1, cacheBits);
 
         // Create Huffman bit lengths and codes for each histogram image.
         GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
@@ -833,7 +832,7 @@ internal class Vp8LEncoder : IDisposable
     private void StoreHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
     {
         int count = 0;
-        Span<int> symbols = this.scratch.Span.Slice(0, 2);
+        Span<int> symbols = this.scratch.Span[..2];
         symbols.Clear();
         const int maxBits = 8;
         const int maxSymbol = 1 << maxBits;
@@ -886,6 +885,7 @@ internal class Vp8LEncoder : IDisposable
 
     private void StoreFullHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
     {
+        // TODO: Allocations.
         int i;
         byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
         short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
@@ -996,7 +996,12 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, Span<ushort> histogramSymbols, HuffmanTreeCode[] huffmanCodes)
+    private void StoreImageToBitMask(
+        int width,
+        int histoBits,
+        Vp8LBackwardRefs backwardRefs,
+        Span<ushort> histogramSymbols,
+        HuffmanTreeCode[] huffmanCodes)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
         int tileMask = histoBits == 0 ? 0 : -(1 << histoBits);
@@ -1008,10 +1013,10 @@ internal class Vp8LEncoder : IDisposable
         int tileY = y & tileMask;
         int histogramIx = histogramSymbols[0];
         Span<HuffmanTreeCode> codes = huffmanCodes.AsSpan(5 * histogramIx);
-        using List<PixOrCopy>.Enumerator c = backwardRefs.Refs.GetEnumerator();
-        while (c.MoveNext())
+
+        for (int i = 0; i < backwardRefs.Refs.Count; i++)
         {
-            PixOrCopy v = c.Current;
+            PixOrCopy v = backwardRefs.Refs[i];
             if (tileX != (x & tileMask) || tileY != (y & tileMask))
             {
                 tileX = x & tileMask;
@@ -1024,7 +1029,7 @@ internal class Vp8LEncoder : IDisposable
             {
                 for (int k = 0; k < 4; k++)
                 {
-                    int code = (int)v.Literal(Order[k]);
+                    int code = v.Literal(Order[k]);
                     this.bitWriter.WriteHuffmanCode(codes[k], code);
                 }
             }
@@ -1379,10 +1384,8 @@ internal class Vp8LEncoder : IDisposable
                         useLut = false;
                         break;
                     }
-                    else
-                    {
-                        buffer[ind] = (uint)j;
-                    }
+
+                    buffer[ind] = (uint)j;
                 }
 
                 if (useLut)
@@ -1591,14 +1594,12 @@ internal class Vp8LEncoder : IDisposable
             }
 
             // Swap color(palette[bestIdx], palette[i]);
-            uint best = palette[bestIdx];
-            palette[bestIdx] = palette[i];
-            palette[i] = best;
+            (palette[i], palette[bestIdx]) = (palette[bestIdx], palette[i]);
             predict = palette[i];
         }
     }
 
-    private static void GetHuffBitLengthsAndCodes(List<Vp8LHistogram> histogramImage, HuffmanTreeCode[] huffmanCodes)
+    private static void GetHuffBitLengthsAndCodes(Vp8LHistogramSet histogramImage, HuffmanTreeCode[] huffmanCodes)
     {
         int maxNumSymbols = 0;
 
@@ -1609,9 +1610,20 @@ internal class Vp8LEncoder : IDisposable
             int startIdx = 5 * i;
             for (int k = 0; k < 5; k++)
             {
-                int numSymbols =
-                    k == 0 ? histo.NumCodes() :
-                    k == 4 ? WebpConstants.NumDistanceCodes : 256;
+                int numSymbols;
+                if (k == 0)
+                {
+                    numSymbols = histo.NumCodes();
+                }
+                else if (k == 4)
+                {
+                    numSymbols = WebpConstants.NumDistanceCodes;
+                }
+                else
+                {
+                    numSymbols = 256;
+                }
+
                 huffmanCodes[startIdx + k].NumSymbols = numSymbols;
             }
         }
@@ -1629,6 +1641,7 @@ internal class Vp8LEncoder : IDisposable
         }
 
         // Create Huffman trees.
+        // TODO: Allocations. Size here has a max and can be sliced.
         bool[] bufRle = new bool[maxNumSymbols];
         Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * maxNumSymbols];
 
@@ -1682,8 +1695,18 @@ internal class Vp8LEncoder : IDisposable
             histoBits++;
         }
 
-        return histoBits < WebpConstants.MinHuffmanBits ? WebpConstants.MinHuffmanBits :
-            histoBits > WebpConstants.MaxHuffmanBits ? WebpConstants.MaxHuffmanBits : histoBits;
+        if (histoBits < WebpConstants.MinHuffmanBits)
+        {
+            return WebpConstants.MinHuffmanBits;
+        }
+        else if (histoBits > WebpConstants.MaxHuffmanBits)
+        {
+            return WebpConstants.MaxHuffmanBits;
+        }
+        else
+        {
+            return histoBits;
+        }
     }
 
     /// <summary>
@@ -1720,11 +1743,7 @@ internal class Vp8LEncoder : IDisposable
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void BitWriterSwap(ref Vp8LBitWriter src, ref Vp8LBitWriter dst)
-    {
-        Vp8LBitWriter tmp = src;
-        src = dst;
-        dst = tmp;
-    }
+        => (dst, src) = (src, dst);
 
     /// <summary>
     /// Calculates the bits used for the transformation.
@@ -1732,9 +1751,21 @@ internal class Vp8LEncoder : IDisposable
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int GetTransformBits(WebpEncodingMethod method, int histoBits)
     {
-        int maxTransformBits = (int)method < 4 ? 6 : method > WebpEncodingMethod.Level4 ? 4 : 5;
-        int res = histoBits > maxTransformBits ? maxTransformBits : histoBits;
-        return res;
+        int maxTransformBits;
+        if ((int)method < 4)
+        {
+            maxTransformBits = 6;
+        }
+        else if (method > WebpEncodingMethod.Level4)
+        {
+            maxTransformBits = 4;
+        }
+        else
+        {
+            maxTransformBits = 5;
+        }
+
+        return histoBits > maxTransformBits ? maxTransformBits : histoBits;
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

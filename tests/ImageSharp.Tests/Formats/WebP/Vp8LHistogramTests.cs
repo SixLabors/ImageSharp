@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp;
@@ -65,7 +66,7 @@ public class Vp8LHistogramTests
         // All remaining values are expected to be zero.
         literals.AsSpan().CopyTo(expectedLiterals);
 
-        var backwardRefs = new Vp8LBackwardRefs(pixelData.Length);
+        Vp8LBackwardRefs backwardRefs = new(pixelData.Length);
         for (int i = 0; i < pixelData.Length; i++)
         {
             backwardRefs.Add(new PixOrCopy()
@@ -76,15 +77,16 @@ public class Vp8LHistogramTests
             });
         }
 
-        var histogram0 = new Vp8LHistogram(backwardRefs, 3);
-        var histogram1 = new Vp8LHistogram(backwardRefs, 3);
+        MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
+        using Vp8LHistogram histogram0 = new(memoryAllocator, backwardRefs, 3);
+        using Vp8LHistogram histogram1 = new(memoryAllocator, backwardRefs, 3);
         for (int i = 0; i < 5; i++)
         {
-            histogram0.IsUsed[i] = true;
-            histogram1.IsUsed[i] = true;
+            histogram0.IsUsed(i, true);
+            histogram1.IsUsed(i, true);
         }
 
-        var output = new Vp8LHistogram(3);
+        using Vp8LHistogram output = new(memoryAllocator, 3);
 
         // act
         histogram0.Add(histogram1, output);

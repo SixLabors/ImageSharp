@@ -11,7 +11,7 @@ public class DominantCostRangeTests
     [Fact]
     public void DominantCost_Constructor()
     {
-        var dominantCostRange = new DominantCostRange();
+        DominantCostRange dominantCostRange = new();
         Assert.Equal(0, dominantCostRange.LiteralMax);
         Assert.Equal(double.MaxValue, dominantCostRange.LiteralMin);
         Assert.Equal(0, dominantCostRange.RedMax);
@@ -24,8 +24,8 @@ public class DominantCostRangeTests
     public void UpdateDominantCostRange_Works()
     {
         // arrange
-        var dominantCostRange = new DominantCostRange();
-        var histogram = new Vp8LHistogram(10)
+        DominantCostRange dominantCostRange = new();
+        using Vp8LHistogram histogram = new(Configuration.Default.MemoryAllocator, 10)
         {
             LiteralCost = 1.0d,
             RedCost = 2.0d,
@@ -50,7 +50,7 @@ public class DominantCostRangeTests
     public void GetHistoBinIndex_Works(int partitions, int expectedIndex)
     {
         // arrange
-        var dominantCostRange = new DominantCostRange()
+        DominantCostRange dominantCostRange = new()
         {
             BlueMax = 253.4625,
             BlueMin = 109.0,
@@ -59,7 +59,7 @@ public class DominantCostRangeTests
             RedMax = 191.0,
             RedMin = 109.0
         };
-        var histogram = new Vp8LHistogram(6)
+        using Vp8LHistogram histogram = new(Configuration.Default.MemoryAllocator, 6)
         {
             LiteralCost = 247.0d,
             RedCost = 112.0d,

@@ -1,63 +1,73 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-internal sealed class Vp8LHistogram : IDeepCloneable
+internal sealed class Vp8LHistogram : IDisposable
 {
     private const uint NonTrivialSym = 0xffffffff;
+    private readonly IMemoryOwner<uint> buffer;
+    private const int RedSize = WebpConstants.NumLiteralCodes;
+    private const int BlueSize = WebpConstants.NumLiteralCodes;
+    private const int AlphaSize = WebpConstants.NumLiteralCodes;
+    private const int DistanceSize = WebpConstants.NumDistanceCodes;
+    public const int LiteralSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits) + 1;
+    private const int UsedSize = 5; // 5 for literal, red, blue, alpha, distance
+    public const int BufferSize = RedSize + BlueSize + AlphaSize + DistanceSize + LiteralSize + UsedSize;
+    private readonly bool isSetMember;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
     /// </summary>
-    /// <param name="other">The histogram to create an instance from.</param>
-    private Vp8LHistogram(Vp8LHistogram other)
-        : this(other.PaletteCodeBits)
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="refs">The backward references to initialize the histogram with.</param>
+    /// <param name="paletteCodeBits">The palette code bits.</param>
+    public Vp8LHistogram(MemoryAllocator memoryAllocator, Vp8LBackwardRefs refs, int paletteCodeBits)
+        : this(memoryAllocator, paletteCodeBits) => this.StoreRefs(refs);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+    /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="paletteCodeBits">The palette code bits.</param>
+    public Vp8LHistogram(MemoryAllocator memoryAllocator, int paletteCodeBits)
     {
-        other.Red.AsSpan().CopyTo(this.Red);
-        other.Blue.AsSpan().CopyTo(this.Blue);
-        other.Alpha.AsSpan().CopyTo(this.Alpha);
-        other.Literal.AsSpan().CopyTo(this.Literal);
-        other.Distance.AsSpan().CopyTo(this.Distance);
-        other.IsUsed.AsSpan().CopyTo(this.IsUsed);
-        this.LiteralCost = other.LiteralCost;
-        this.RedCost = other.RedCost;
-        this.BlueCost = other.BlueCost;
-        this.BitCost = other.BitCost;
-        this.TrivialSymbol = other.TrivialSymbol;
-        this.PaletteCodeBits = other.PaletteCodeBits;
+        this.buffer = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
+        this.PaletteCodeBits = paletteCodeBits;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
     /// </summary>
+    /// <remarks>
+    /// This constructor should be used when the histogram is a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </remarks>
+    /// <param name="buffer">The backing buffer.</param>
     /// <param name="refs">The backward references to initialize the histogram with.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(Vp8LBackwardRefs refs, int paletteCodeBits)
-        : this(paletteCodeBits) => this.StoreRefs(refs);
+    public Vp8LHistogram(IMemoryOwner<uint> buffer, Vp8LBackwardRefs refs, int paletteCodeBits)
+        : this(buffer, paletteCodeBits) => this.StoreRefs(refs);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
     /// </summary>
+    /// <remarks>
+    /// This constructor should be used when the histogram is a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </remarks>
+    /// <param name="buffer">The backing buffer.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(int paletteCodeBits)
+    public Vp8LHistogram(IMemoryOwner<uint> buffer, int paletteCodeBits)
     {
+        this.buffer = buffer;
         this.PaletteCodeBits = paletteCodeBits;
-        this.Red = new uint[WebpConstants.NumLiteralCodes + 1];
-        this.Blue = new uint[WebpConstants.NumLiteralCodes + 1];
-        this.Alpha = new uint[WebpConstants.NumLiteralCodes + 1];
-        this.Distance = new uint[WebpConstants.NumDistanceCodes];
-
-        int literalSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits);
-        this.Literal = new uint[literalSize + 1];
-
-        // 5 for literal, red, blue, alpha, distance.
-        this.IsUsed = new bool[5];
+        this.isSetMember = true;
     }
 
     /// <summary>
@@ -85,22 +95,59 @@ internal sealed class Vp8LHistogram : IDeepCloneable
     /// </summary>
     public double BlueCost { get; set; }
 
-    public uint[] Red { get; }
+    public Span<uint> Red => this.buffer.GetSpan()[..RedSize];
 
-    public uint[] Blue { get; }
+    public Span<uint> Blue => this.buffer.GetSpan().Slice(RedSize, BlueSize);
 
-    public uint[] Alpha { get; }
+    public Span<uint> Alpha => this.buffer.GetSpan().Slice(RedSize + BlueSize, AlphaSize);
 
-    public uint[] Literal { get; }
+    public Span<uint> Distance => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize, DistanceSize);
 
-    public uint[] Distance { get; }
+    public Span<uint> Literal => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize + DistanceSize, LiteralSize);
 
     public uint TrivialSymbol { get; set; }
 
-    public bool[] IsUsed { get; }
+    private Span<uint> IsUsedSpan => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize + DistanceSize + LiteralSize, UsedSize);
 
-    /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new Vp8LHistogram(this);
+    public bool IsDisposed { get; set; }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsUsed(int index) => this.IsUsedSpan[index] == 1u;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IsUsed(int index, bool value) => this.IsUsedSpan[index] = value ? 1u : 0;
+
+    /// <summary>
+    /// Creates a copy of the given <see cref="Vp8LHistogram"/> class.
+    /// </summary>
+    /// <param name="other">The histogram to copy to.</param>
+    public void CopyTo(Vp8LHistogram other)
+    {
+        this.Red.CopyTo(other.Red);
+        this.Blue.CopyTo(other.Blue);
+        this.Alpha.CopyTo(other.Alpha);
+        this.Literal.CopyTo(other.Literal);
+        this.Distance.CopyTo(other.Distance);
+        this.IsUsedSpan.CopyTo(other.IsUsedSpan);
+
+        other.LiteralCost = this.LiteralCost;
+        other.RedCost = this.RedCost;
+        other.BlueCost = this.BlueCost;
+        other.BitCost = this.BitCost;
+        other.TrivialSymbol = this.TrivialSymbol;
+        other.PaletteCodeBits = this.PaletteCodeBits;
+    }
+
+    public void Clear()
+    {
+        this.buffer.Clear();
+        this.PaletteCodeBits = 0;
+        this.BitCost = 0;
+        this.LiteralCost = 0;
+        this.RedCost = 0;
+        this.BlueCost = 0;
+        this.TrivialSymbol = 0;
+    }
 
     /// <summary>
     /// Collect all the references into a histogram (without reset).
@@ -108,10 +155,9 @@ internal sealed class Vp8LHistogram : IDeepCloneable
     /// <param name="refs">The backward references.</param>
     public void StoreRefs(Vp8LBackwardRefs refs)
     {
-        using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
-        while (c.MoveNext())
+        for (int i = 0; i < refs.Refs.Count; i++)
         {
-            this.AddSinglePixOrCopy(c.Current, false);
+            this.AddSinglePixOrCopy(refs.Refs[i], false);
         }
     }
 
@@ -163,12 +209,12 @@ internal sealed class Vp8LHistogram : IDeepCloneable
     {
         uint notUsed = 0;
         return
-            PopulationCost(this.Literal, this.NumCodes(), ref notUsed, ref this.IsUsed[0], stats, bitsEntropy)
-            + PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1], stats, bitsEntropy)
-            + PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2], stats, bitsEntropy)
-            + PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3], stats, bitsEntropy)
-            + PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4], stats, bitsEntropy)
-            + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes)
+            this.PopulationCost(this.Literal, this.NumCodes(), ref notUsed, 0, stats, bitsEntropy)
+            + this.PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref notUsed, 1, stats, bitsEntropy)
+            + this.PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref notUsed, 2, stats, bitsEntropy)
+            + this.PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref notUsed, 3, stats, bitsEntropy)
+            + this.PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, 4, stats, bitsEntropy)
+            + ExtraCost(this.Literal[WebpConstants.NumLiteralCodes..], WebpConstants.NumLengthCodes)
             + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
     }
 
@@ -177,12 +223,12 @@ internal sealed class Vp8LHistogram : IDeepCloneable
         uint alphaSym = 0, redSym = 0, blueSym = 0;
         uint notUsed = 0;
 
-        double alphaCost = PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3], stats, bitsEntropy);
-        double distanceCost = PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4], stats, bitsEntropy) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
+        double alphaCost = this.PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, 3, stats, bitsEntropy);
+        double distanceCost = this.PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, 4, stats, bitsEntropy) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
         int numCodes = this.NumCodes();
-        this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0], stats, bitsEntropy) + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
-        this.RedCost = PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1], stats, bitsEntropy);
-        this.BlueCost = PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2], stats, bitsEntropy);
+        this.LiteralCost = this.PopulationCost(this.Literal, numCodes, ref notUsed, 0, stats, bitsEntropy) + ExtraCost(this.Literal[WebpConstants.NumLiteralCodes..], WebpConstants.NumLengthCodes);
+        this.RedCost = this.PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, 1, stats, bitsEntropy);
+        this.BlueCost = this.PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, 2, stats, bitsEntropy);
         this.BitCost = this.LiteralCost + this.RedCost + this.BlueCost + alphaCost + distanceCost;
         if ((alphaSym | redSym | blueSym) == NonTrivialSym)
         {
@@ -234,7 +280,7 @@ internal sealed class Vp8LHistogram : IDeepCloneable
 
         for (int i = 0; i < 5; i++)
         {
-            output.IsUsed[i] = this.IsUsed[i] | b.IsUsed[i];
+            output.IsUsed(i, this.IsUsed(i) | b.IsUsed(i));
         }
 
         output.TrivialSymbol = this.TrivialSymbol == b.TrivialSymbol
@@ -247,9 +293,9 @@ internal sealed class Vp8LHistogram : IDeepCloneable
         bool trivialAtEnd = false;
         cost = costInitial;
 
-        cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed[0], b.IsUsed[0], false, stats, bitEntropy);
+        cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed(0), b.IsUsed(0), false, stats, bitEntropy);
 
-        cost += ExtraCostCombined(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), b.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
+        cost += ExtraCostCombined(this.Literal[WebpConstants.NumLiteralCodes..], b.Literal[WebpConstants.NumLiteralCodes..], WebpConstants.NumLengthCodes);
 
         if (cost > costThreshold)
         {
@@ -270,155 +316,158 @@ internal sealed class Vp8LHistogram : IDeepCloneable
             }
         }
 
-        cost += GetCombinedEntropy(this.Red, b.Red, WebpConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd, stats, bitEntropy);
+        cost += GetCombinedEntropy(this.Red, b.Red, WebpConstants.NumLiteralCodes, this.IsUsed(1), b.IsUsed(1), trivialAtEnd, stats, bitEntropy);
         if (cost > costThreshold)
         {
             return false;
         }
 
-        cost += GetCombinedEntropy(this.Blue, b.Blue, WebpConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd, stats, bitEntropy);
+        cost += GetCombinedEntropy(this.Blue, b.Blue, WebpConstants.NumLiteralCodes, this.IsUsed(2), b.IsUsed(2), trivialAtEnd, stats, bitEntropy);
         if (cost > costThreshold)
         {
             return false;
         }
 
-        cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebpConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd, stats, bitEntropy);
+        cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebpConstants.NumLiteralCodes, this.IsUsed(3), b.IsUsed(3), trivialAtEnd, stats, bitEntropy);
         if (cost > costThreshold)
         {
             return false;
         }
 
-        cost += GetCombinedEntropy(this.Distance, b.Distance, WebpConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false, stats, bitEntropy);
+        cost += GetCombinedEntropy(this.Distance, b.Distance, WebpConstants.NumDistanceCodes, this.IsUsed(4), b.IsUsed(4), false, stats, bitEntropy);
         if (cost > costThreshold)
         {
             return false;
         }
 
         cost += ExtraCostCombined(this.Distance, b.Distance, WebpConstants.NumDistanceCodes);
-        if (cost > costThreshold)
-        {
-            return false;
-        }
-
-        return true;
+        return cost <= costThreshold;
     }
 
     private void AddLiteral(Vp8LHistogram b, Vp8LHistogram output, int literalSize)
     {
-        if (this.IsUsed[0])
+        if (this.IsUsed(0))
         {
-            if (b.IsUsed[0])
+            if (b.IsUsed(0))
             {
                 AddVector(this.Literal, b.Literal, output.Literal, literalSize);
             }
             else
             {
-                this.Literal.AsSpan(0, literalSize).CopyTo(output.Literal);
+                this.Literal[..literalSize].CopyTo(output.Literal);
             }
         }
-        else if (b.IsUsed[0])
+        else if (b.IsUsed(0))
         {
-            b.Literal.AsSpan(0, literalSize).CopyTo(output.Literal);
+            b.Literal[..literalSize].CopyTo(output.Literal);
         }
         else
         {
-            output.Literal.AsSpan(0, literalSize).Clear();
+            output.Literal[..literalSize].Clear();
         }
     }
 
     private void AddRed(Vp8LHistogram b, Vp8LHistogram output, int size)
     {
-        if (this.IsUsed[1])
+        if (this.IsUsed(1))
         {
-            if (b.IsUsed[1])
+            if (b.IsUsed(1))
             {
                 AddVector(this.Red, b.Red, output.Red, size);
             }
             else
             {
-                this.Red.AsSpan(0, size).CopyTo(output.Red);
+                this.Red[..size].CopyTo(output.Red);
             }
         }
-        else if (b.IsUsed[1])
+        else if (b.IsUsed(1))
         {
-            b.Red.AsSpan(0, size).CopyTo(output.Red);
+            b.Red[..size].CopyTo(output.Red);
         }
         else
         {
-            output.Red.AsSpan(0, size).Clear();
+            output.Red[..size].Clear();
         }
     }
 
     private void AddBlue(Vp8LHistogram b, Vp8LHistogram output, int size)
     {
-        if (this.IsUsed[2])
+        if (this.IsUsed(2))
         {
-            if (b.IsUsed[2])
+            if (b.IsUsed(2))
             {
                 AddVector(this.Blue, b.Blue, output.Blue, size);
             }
             else
             {
-                this.Blue.AsSpan(0, size).CopyTo(output.Blue);
+                this.Blue[..size].CopyTo(output.Blue);
             }
         }
-        else if (b.IsUsed[2])
+        else if (b.IsUsed(2))
         {
-            b.Blue.AsSpan(0, size).CopyTo(output.Blue);
+            b.Blue[..size].CopyTo(output.Blue);
         }
         else
         {
-            output.Blue.AsSpan(0, size).Clear();
+            output.Blue[..size].Clear();
         }
     }
 
     private void AddAlpha(Vp8LHistogram b, Vp8LHistogram output, int size)
     {
-        if (this.IsUsed[3])
+        if (this.IsUsed(3))
         {
-            if (b.IsUsed[3])
+            if (b.IsUsed(3))
             {
                 AddVector(this.Alpha, b.Alpha, output.Alpha, size);
             }
             else
             {
-                this.Alpha.AsSpan(0, size).CopyTo(output.Alpha);
+                this.Alpha[..size].CopyTo(output.Alpha);
             }
         }
-        else if (b.IsUsed[3])
+        else if (b.IsUsed(3))
         {
-            b.Alpha.AsSpan(0, size).CopyTo(output.Alpha);
+            b.Alpha[..size].CopyTo(output.Alpha);
         }
         else
         {
-            output.Alpha.AsSpan(0, size).Clear();
+            output.Alpha[..size].Clear();
         }
     }
 
     private void AddDistance(Vp8LHistogram b, Vp8LHistogram output, int size)
     {
-        if (this.IsUsed[4])
+        if (this.IsUsed(4))
         {
-            if (b.IsUsed[4])
+            if (b.IsUsed(4))
             {
                 AddVector(this.Distance, b.Distance, output.Distance, size);
             }
             else
             {
-                this.Distance.AsSpan(0, size).CopyTo(output.Distance);
+                this.Distance[..size].CopyTo(output.Distance);
             }
         }
-        else if (b.IsUsed[4])
+        else if (b.IsUsed(4))
         {
-            b.Distance.AsSpan(0, size).CopyTo(output.Distance);
+            b.Distance[..size].CopyTo(output.Distance);
         }
         else
         {
-            output.Distance.AsSpan(0, size).Clear();
+            output.Distance[..size].Clear();
         }
     }
 
-    private static double GetCombinedEntropy(uint[] x, uint[] y, int length, bool isXUsed, bool isYUsed, bool trivialAtEnd, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
+    private static double GetCombinedEntropy(
+        Span<uint> x,
+        Span<uint> y,
+        int length,
+        bool isXUsed,
+        bool isYUsed,
+        bool trivialAtEnd,
+        Vp8LStreaks stats,
+        Vp8LBitEntropy bitEntropy)
     {
         stats.Clear();
         bitEntropy.Init();
@@ -450,18 +499,15 @@ internal sealed class Vp8LHistogram : IDeepCloneable
                 bitEntropy.GetEntropyUnrefined(x, length, stats);
             }
         }
+        else if (isYUsed)
+        {
+            bitEntropy.GetEntropyUnrefined(y, length, stats);
+        }
         else
         {
-            if (isYUsed)
-            {
-                bitEntropy.GetEntropyUnrefined(y, length, stats);
-            }
-            else
-            {
-                stats.Counts[0] = 1;
-                stats.Streaks[0][length > 3 ? 1 : 0] = length;
-                bitEntropy.Init();
-            }
+            stats.Counts[0] = 1;
+            stats.Streaks[0][length > 3 ? 1 : 0] = length;
+            bitEntropy.Init();
         }
 
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
@@ -482,7 +528,7 @@ internal sealed class Vp8LHistogram : IDeepCloneable
     /// <summary>
     /// Get the symbol entropy for the distribution 'population'.
     /// </summary>
-    private static double PopulationCost(uint[] population, int length, ref uint trivialSym, ref bool isUsed, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
+    private double PopulationCost(Span<uint> population, int length, ref uint trivialSym, int isUsedIndex, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
     {
         bitEntropy.Init();
         stats.Clear();
@@ -491,7 +537,7 @@ internal sealed class Vp8LHistogram : IDeepCloneable
         trivialSym = (bitEntropy.NoneZeros == 1) ? bitEntropy.NoneZeroCode : NonTrivialSym;
 
         // The histogram is used if there is at least one non-zero streak.
-        isUsed = stats.Streaks[1][0] != 0 || stats.Streaks[1][1] != 0;
+        this.IsUsed(isUsedIndex, stats.Streaks[1][0] != 0 || stats.Streaks[1][1] != 0);
 
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
     }
@@ -554,6 +600,19 @@ internal sealed class Vp8LHistogram : IDeepCloneable
             {
                 output[i] = a[i] + b[i];
             }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (!this.IsDisposed)
+        {
+            if (!this.isSetMember)
+            {
+                this.buffer.Dispose();
+            }
+
+            this.IsDisposed = true;
         }
     }
 }

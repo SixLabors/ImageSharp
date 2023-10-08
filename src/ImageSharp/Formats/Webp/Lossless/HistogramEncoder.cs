@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -45,9 +46,9 @@ internal static class HistogramEncoder
         int imageHistoRawSize = histoXSize * histoYSize;
         const int entropyCombineNumBins = BinSize;
 
-        // TODO: Allocations!
-        ushort[] mapTmp = new ushort[imageHistoRawSize];
-        ushort[] clusterMappings = new ushort[imageHistoRawSize];
+        using IMemoryOwner<ushort> tmp = memoryAllocator.Allocate<ushort>(imageHistoRawSize * 2, AllocationOptions.Clean);
+        Span<ushort> mapTmp = tmp.Slice(0, imageHistoRawSize);
+        Span<ushort> clusterMappings = tmp.Slice(imageHistoRawSize, imageHistoRawSize);
 
         using Vp8LHistogramSet origHisto = new(memoryAllocator, imageHistoRawSize, cacheBits);
 
@@ -60,13 +61,12 @@ internal static class HistogramEncoder
         bool entropyCombine = numUsed > entropyCombineNumBins * 2 && quality < 100;
         if (entropyCombine)
         {
-            ushort[] binMap = mapTmp;
             int numClusters = numUsed;
             double combineCostFactor = GetCombineCostFactor(imageHistoRawSize, quality);
-            HistogramAnalyzeEntropyBin(imageHisto, binMap);
+            HistogramAnalyzeEntropyBin(imageHisto, mapTmp);
 
             // Collapse histograms with similar entropy.
-            HistogramCombineEntropyBin(imageHisto, histogramSymbols, clusterMappings, tmpHisto, binMap, entropyCombineNumBins, combineCostFactor);
+            HistogramCombineEntropyBin(imageHisto, histogramSymbols, clusterMappings, tmpHisto, mapTmp, entropyCombineNumBins, combineCostFactor);
 
             OptimizeHistogramSymbols(clusterMappings, numClusters, mapTmp, histogramSymbols);
         }
@@ -128,7 +128,7 @@ internal static class HistogramEncoder
     /// Partition histograms to different entropy bins for three dominant (literal,
     /// red and blue) symbol costs and compute the histogram aggregate bitCost.
     /// </summary>
-    private static void HistogramAnalyzeEntropyBin(Vp8LHistogramSet histograms, ushort[] binMap)
+    private static void HistogramAnalyzeEntropyBin(Vp8LHistogramSet histograms, Span<ushort> binMap)
     {
         int histoSize = histograms.Count;
         DominantCostRange costRange = new();
@@ -198,9 +198,9 @@ internal static class HistogramEncoder
     private static void HistogramCombineEntropyBin(
         Vp8LHistogramSet histograms,
         Span<ushort> clusters,
-        ushort[] clusterMappings,
+        Span<ushort> clusterMappings,
         Vp8LHistogram curCombo,
-        ushort[] binMap,
+        ReadOnlySpan<ushort> binMap,
         int numBins,
         double combineCostFactor)
     {
@@ -276,7 +276,7 @@ internal static class HistogramEncoder
     /// Given a Histogram set, the mapping of clusters 'clusterMapping' and the
     /// current assignment of the cells in 'symbols', merge the clusters and assign the smallest possible clusters values.
     /// </summary>
-    private static void OptimizeHistogramSymbols(ushort[] clusterMappings, int numClusters, ushort[] clusterMappingsTmp, Span<ushort> symbols)
+    private static void OptimizeHistogramSymbols(Span<ushort> clusterMappings, int numClusters, Span<ushort> clusterMappingsTmp, Span<ushort> symbols)
     {
         bool doContinue = true;
 
@@ -303,7 +303,7 @@ internal static class HistogramEncoder
 
         // Create a mapping from a cluster id to its minimal version.
         int clusterMax = 0;
-        clusterMappingsTmp.AsSpan().Clear();
+        clusterMappingsTmp.Clear();
 
         // Re-map the ids.
         for (int i = 0; i < symbols.Length; i++)
@@ -515,7 +515,6 @@ internal static class HistogramEncoder
             histograms.DisposeAt(idx2);
 
             // Remove pairs intersecting the just combined best pair.
-            // TODO: Reversing this will avoid the need to remove from the end of the list.
             for (int i = 0; i < histoPriorityList.Count;)
             {
                 HistogramPair p = histoPriorityList[i];

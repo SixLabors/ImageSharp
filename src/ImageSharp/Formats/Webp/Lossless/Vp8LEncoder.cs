@@ -885,7 +885,7 @@ internal class Vp8LEncoder : IDisposable
 
     private void StoreFullHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
     {
-        // TODO: Allocations.
+        // TODO: Allocations. This method is called in a loop.
         int i;
         byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
         short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
@@ -1628,6 +1628,7 @@ internal class Vp8LEncoder : IDisposable
             }
         }
 
+        // TODO: Allocations.
         int end = 5 * histogramImage.Count;
         for (int i = 0; i < end; i++)
         {
@@ -1641,9 +1642,9 @@ internal class Vp8LEncoder : IDisposable
         }
 
         // Create Huffman trees.
-        // TODO: Allocations. Size here has a max and can be sliced.
+        // TODO: Allocations.
         bool[] bufRle = new bool[maxNumSymbols];
-        Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * maxNumSymbols];
+        HuffmanTree[] huffTree = new HuffmanTree[3 * maxNumSymbols];
 
         for (int i = 0; i < histogramImage.Count; i++)
         {

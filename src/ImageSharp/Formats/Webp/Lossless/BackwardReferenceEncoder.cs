@@ -52,6 +52,8 @@ internal static class BackwardReferenceEncoder
         Vp8LHashChain? hashChainBox = null;
         Vp8LStreaks stats = new();
         Vp8LBitEntropy bitsEntropy = new();
+
+        ColorCache[] colorCache = new ColorCache[WebpConstants.MaxColorCacheBits + 1];
         for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
         {
             int cacheBitsTmp = cacheBitsInitial;
@@ -76,7 +78,7 @@ internal static class BackwardReferenceEncoder
             }
 
             // Next, try with a color cache and update the references.
-            cacheBitsTmp = CalculateBestCacheSize(memoryAllocator, bgra, quality, worst, cacheBitsTmp);
+            cacheBitsTmp = CalculateBestCacheSize(memoryAllocator, colorCache, bgra, quality, worst, cacheBitsTmp);
             if (cacheBitsTmp > 0)
             {
                 BackwardRefsWithLocalCache(bgra, cacheBitsTmp, worst);
@@ -123,6 +125,7 @@ internal static class BackwardReferenceEncoder
     /// <returns>Best cache size.</returns>
     private static int CalculateBestCacheSize(
         MemoryAllocator memoryAllocator,
+        Span<ColorCache> colorCache,
         ReadOnlySpan<uint> bgra,
         uint quality,
         Vp8LBackwardRefs refs,
@@ -138,12 +141,8 @@ internal static class BackwardReferenceEncoder
         double entropyMin = MaxEntropy;
         int pos = 0;
 
-        // TODO: Pass from outer loop and clear.
-        ColorCache[] colorCache = new ColorCache[WebpConstants.MaxColorCacheBits + 1];
-
-        // TODO: Use fixed size.
-        using Vp8LHistogramSet histos = new(memoryAllocator, WebpConstants.MaxColorCacheBits + 1, 0);
-        for (int i = 0; i <= WebpConstants.MaxColorCacheBits; i++)
+        using Vp8LHistogramSet histos = new(memoryAllocator, colorCache.Length, 0);
+        for (int i = 0; i < colorCache.Length; i++)
         {
             histos[i].PaletteCodeBits = i;
             colorCache[i] = new ColorCache(i);
@@ -448,12 +447,12 @@ internal static class BackwardReferenceEncoder
         int ix = useColorCache ? colorCache!.Contains(color) : -1;
         if (ix >= 0)
         {
-            double mul0 = 0.68;
+            const double mul0 = 0.68;
             costVal += costModel.GetCacheCost((uint)ix) * mul0;
         }
         else
         {
-            double mul1 = 0.82;
+            const double mul1 = 0.82;
             if (useColorCache)
             {
                 colorCache!.Insert(color);
@@ -700,10 +699,8 @@ internal static class BackwardReferenceEncoder
                             bestLength = MaxLength;
                             break;
                         }
-                        else
-                        {
-                            bestLength = currLength;
-                        }
+
+                        bestLength = currLength;
                     }
                 }
             }

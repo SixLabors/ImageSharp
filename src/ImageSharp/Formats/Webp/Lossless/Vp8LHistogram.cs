@@ -10,10 +10,20 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-internal sealed class Vp8LHistogram : IDisposable
+internal sealed unsafe class Vp8LHistogram : IDisposable
 {
     private const uint NonTrivialSym = 0xffffffff;
-    private readonly IMemoryOwner<uint> buffer;
+    private readonly IMemoryOwner<uint>? bufferOwner;
+    private readonly Memory<uint> buffer;
+    private readonly MemoryHandle bufferHandle;
+
+    private readonly uint* red;
+    private readonly uint* blue;
+    private readonly uint* alpha;
+    private readonly uint* distance;
+    private readonly uint* literal;
+    private readonly uint* isUsed;
+
     private const int RedSize = WebpConstants.NumLiteralCodes;
     private const int BlueSize = WebpConstants.NumLiteralCodes;
     private const int AlphaSize = WebpConstants.NumLiteralCodes;
@@ -21,27 +31,6 @@ internal sealed class Vp8LHistogram : IDisposable
     public const int LiteralSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits) + 1;
     private const int UsedSize = 5; // 5 for literal, red, blue, alpha, distance
     public const int BufferSize = RedSize + BlueSize + AlphaSize + DistanceSize + LiteralSize + UsedSize;
-    private readonly bool isSetMember;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
-    /// </summary>
-    /// <param name="memoryAllocator">The memory allocator.</param>
-    /// <param name="refs">The backward references to initialize the histogram with.</param>
-    /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(MemoryAllocator memoryAllocator, Vp8LBackwardRefs refs, int paletteCodeBits)
-        : this(memoryAllocator, paletteCodeBits) => this.StoreRefs(refs);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
-    /// </summary>
-    /// <param name="memoryAllocator">The memory allocator.</param>
-    /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(MemoryAllocator memoryAllocator, int paletteCodeBits)
-    {
-        this.buffer = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
-        this.PaletteCodeBits = paletteCodeBits;
-    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
@@ -52,7 +41,7 @@ internal sealed class Vp8LHistogram : IDisposable
     /// <param name="buffer">The backing buffer.</param>
     /// <param name="refs">The backward references to initialize the histogram with.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(IMemoryOwner<uint> buffer, Vp8LBackwardRefs refs, int paletteCodeBits)
+    public Vp8LHistogram(Memory<uint> buffer, Vp8LBackwardRefs refs, int paletteCodeBits)
         : this(buffer, paletteCodeBits) => this.StoreRefs(refs);
 
     /// <summary>
@@ -63,11 +52,20 @@ internal sealed class Vp8LHistogram : IDisposable
     /// </remarks>
     /// <param name="buffer">The backing buffer.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(IMemoryOwner<uint> buffer, int paletteCodeBits)
+    /// <param name="bufferOwner">Optional buffer owner to dispose.</param>
+    public Vp8LHistogram(Memory<uint> buffer, int paletteCodeBits, IMemoryOwner<uint>? bufferOwner = null)
     {
+        this.bufferOwner = bufferOwner;
         this.buffer = buffer;
+        this.bufferHandle = this.buffer.Pin();
         this.PaletteCodeBits = paletteCodeBits;
-        this.isSetMember = true;
+
+        this.red = (uint*)this.bufferHandle.Pointer;
+        this.blue = this.red + RedSize;
+        this.alpha = this.blue + BlueSize;
+        this.distance = this.alpha + AlphaSize;
+        this.literal = this.distance + DistanceSize;
+        this.isUsed = this.literal + LiteralSize;
     }
 
     /// <summary>
@@ -95,21 +93,42 @@ internal sealed class Vp8LHistogram : IDisposable
     /// </summary>
     public double BlueCost { get; set; }
 
-    public Span<uint> Red => this.buffer.GetSpan()[..RedSize];
+    public Span<uint> Red => new(this.red, RedSize);
 
-    public Span<uint> Blue => this.buffer.GetSpan().Slice(RedSize, BlueSize);
+    public Span<uint> Blue => new(this.blue, BlueSize);
 
-    public Span<uint> Alpha => this.buffer.GetSpan().Slice(RedSize + BlueSize, AlphaSize);
+    public Span<uint> Alpha => new(this.alpha, AlphaSize);
 
-    public Span<uint> Distance => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize, DistanceSize);
+    public Span<uint> Distance => new(this.distance, DistanceSize);
 
-    public Span<uint> Literal => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize + DistanceSize, LiteralSize);
+    public Span<uint> Literal => new(this.literal, LiteralSize);
 
     public uint TrivialSymbol { get; set; }
 
-    private Span<uint> IsUsedSpan => this.buffer.GetSpan().Slice(RedSize + BlueSize + AlphaSize + DistanceSize + LiteralSize, UsedSize);
+    private Span<uint> IsUsedSpan => new(this.isUsed, UsedSize);
+
+    private Span<uint> TotalSpan => new(this.red, BufferSize);
 
     public bool IsDisposed { get; set; }
+
+    /// <summary>
+    /// Creates an <see cref="Vp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </summary>
+    public static Vp8LHistogram Create(MemoryAllocator memoryAllocator, int paletteCodeBits)
+    {
+        IMemoryOwner<uint> bufferOwner = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
+        return new Vp8LHistogram(bufferOwner.Memory, paletteCodeBits, bufferOwner);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="Vp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </summary>
+    public static Vp8LHistogram Create(MemoryAllocator memoryAllocator, Vp8LBackwardRefs refs, int paletteCodeBits)
+    {
+        Vp8LHistogram histogram = Create(memoryAllocator, paletteCodeBits);
+        histogram.StoreRefs(refs);
+        return histogram;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsUsed(int index) => this.IsUsedSpan[index] == 1u;
@@ -140,7 +159,7 @@ internal sealed class Vp8LHistogram : IDisposable
 
     public void Clear()
     {
-        this.buffer.Clear();
+        this.TotalSpan.Clear();
         this.PaletteCodeBits = 0;
         this.BitCost = 0;
         this.LiteralCost = 0;
@@ -607,11 +626,8 @@ internal sealed class Vp8LHistogram : IDisposable
     {
         if (!this.IsDisposed)
         {
-            if (!this.isSetMember)
-            {
-                this.buffer.Dispose();
-            }
-
+            this.bufferHandle.Dispose();
+            this.bufferOwner?.Dispose();
             this.IsDisposed = true;
         }
     }

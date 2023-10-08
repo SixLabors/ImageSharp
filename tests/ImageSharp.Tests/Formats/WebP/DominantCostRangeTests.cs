@@ -25,12 +25,10 @@ public class DominantCostRangeTests
     {
         // arrange
         DominantCostRange dominantCostRange = new();
-        using Vp8LHistogram histogram = new(Configuration.Default.MemoryAllocator, 10)
-        {
-            LiteralCost = 1.0d,
-            RedCost = 2.0d,
-            BlueCost = 3.0d
-        };
+        using Vp8LHistogram histogram = Vp8LHistogram.Create(Configuration.Default.MemoryAllocator, 10);
+        histogram.LiteralCost = 1.0d;
+        histogram.RedCost = 2.0d;
+        histogram.BlueCost = 3.0d;
 
         // act
         dominantCostRange.UpdateDominantCostRange(histogram);
@@ -59,13 +57,12 @@ public class DominantCostRangeTests
             RedMax = 191.0,
             RedMin = 109.0
         };
-        using Vp8LHistogram histogram = new(Configuration.Default.MemoryAllocator, 6)
-        {
-            LiteralCost = 247.0d,
-            RedCost = 112.0d,
-            BlueCost = 202.0d,
-            BitCost = 733.0d
-        };
+        using Vp8LHistogram histogram = Vp8LHistogram.Create(Configuration.Default.MemoryAllocator, 6);
+        histogram.LiteralCost = 247.0d;
+        histogram.RedCost = 112.0d;
+        histogram.BlueCost = 202.0d;
+        histogram.BitCost = 733.0d;
+
         dominantCostRange.UpdateDominantCostRange(histogram);
 
         // act

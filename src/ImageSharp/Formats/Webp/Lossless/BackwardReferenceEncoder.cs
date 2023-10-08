@@ -85,7 +85,7 @@ internal static class BackwardReferenceEncoder
             }
 
             // Keep the best backward references.
-            using Vp8LHistogram histo = new(memoryAllocator, worst, cacheBitsTmp);
+            using Vp8LHistogram histo = Vp8LHistogram.Create(memoryAllocator, worst, cacheBitsTmp);
             double bitCost = histo.EstimateBits(stats, bitsEntropy);
 
             if (lz77TypeBest == 0 || bitCost < bitCostBest)
@@ -102,7 +102,7 @@ internal static class BackwardReferenceEncoder
         {
             Vp8LHashChain hashChainTmp = lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard ? hashChain : hashChainBox!;
             BackwardReferencesTraceBackwards(width, height, memoryAllocator, bgra, cacheBits, hashChainTmp, best, worst);
-            using Vp8LHistogram histo = new(memoryAllocator, worst, cacheBits);
+            using Vp8LHistogram histo = Vp8LHistogram.Create(memoryAllocator, worst, cacheBits);
             double bitCostTrace = histo.EstimateBits(stats, bitsEntropy);
             if (bitCostTrace < bitCostBest)
             {

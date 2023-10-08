@@ -23,8 +23,8 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         this.items = new List<Vp8LHistogram>(capacity);
         for (int i = 0; i < capacity; i++)
         {
-            SetItemMemoryOwner owner = new(this.buffer.Memory.Slice(Vp8LHistogram.BufferSize * i, Vp8LHistogram.BufferSize));
-            this.items.Add(new Vp8LHistogram(owner, cacheBits));
+            Memory<uint> subBuffer = this.buffer.Memory.Slice(Vp8LHistogram.BufferSize * i, Vp8LHistogram.BufferSize);
+            this.items.Add(new Vp8LHistogram(subBuffer, cacheBits));
         }
     }
 
@@ -35,8 +35,8 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         this.items = new List<Vp8LHistogram>(capacity);
         for (int i = 0; i < capacity; i++)
         {
-            SetItemMemoryOwner owner = new(this.buffer.Memory.Slice(Vp8LHistogram.BufferSize * i, Vp8LHistogram.BufferSize));
-            this.items.Add(new Vp8LHistogram(owner, refs, cacheBits));
+            Memory<uint> subBuffer = this.buffer.Memory.Slice(Vp8LHistogram.BufferSize * i, Vp8LHistogram.BufferSize);
+            this.items.Add(new Vp8LHistogram(subBuffer, refs, cacheBits));
         }
     }
 
@@ -82,13 +82,13 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
             return;
         }
 
-        this.buffer.Dispose();
-
         foreach (Vp8LHistogram item in this.items)
         {
+            // First, make sure to unpin individual sub buffers.
             item?.Dispose();
         }
 
+        this.buffer.Dispose();
         this.items.Clear();
         this.isDisposed = true;
     }
@@ -107,16 +107,4 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
     }
 
     private static void ThrowDisposed() => throw new ObjectDisposedException(nameof(Vp8LHistogramSet));
-
-    private sealed class SetItemMemoryOwner : IMemoryOwner<uint>
-    {
-        public SetItemMemoryOwner(Memory<uint> memory) => this.Memory = memory;
-
-        public Memory<uint> Memory { get; }
-
-        public void Dispose()
-        {
-            // Do nothing, the underlying memory is owned by the parent set.
-        }
-    }
 }

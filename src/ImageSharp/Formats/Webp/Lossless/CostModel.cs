@@ -37,7 +37,7 @@ internal class CostModel
 
     public void Build(int xSize, int cacheBits, Vp8LBackwardRefs backwardRefs)
     {
-        using Vp8LHistogram histogram = new(this.memoryAllocator, cacheBits);
+        using Vp8LHistogram histogram = Vp8LHistogram.Create(this.memoryAllocator, cacheBits);
 
         // The following code is similar to HistogramCreate but converts the distance to plane code.
         for (int i = 0; i < backwardRefs.Refs.Count; i++)

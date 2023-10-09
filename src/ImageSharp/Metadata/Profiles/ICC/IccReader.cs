@@ -88,9 +88,9 @@ internal sealed class IccReader
         foreach (IccTagTableEntry tag in tagTable)
         {
             IccTagDataEntry entry;
-            if (store.ContainsKey(tag.Offset))
+            if (store.TryGetValue(tag.Offset, out IccTagDataEntry? value))
             {
-                entry = store[tag.Offset];
+                entry = value;
             }
             else
             {

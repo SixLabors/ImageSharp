@@ -342,8 +342,8 @@ public class TestImageProviderTests
 
             using Image<TPixel> image2 = provider.GetImage();
             using Image<TPixel> image3 = provider.GetImage();
-            Assert.Same(customConfiguration, image2.GetConfiguration());
-            Assert.Same(customConfiguration, image3.GetConfiguration());
+            Assert.Same(customConfiguration, image2.Configuration);
+            Assert.Same(customConfiguration, image3.Configuration);
         }
     }
 

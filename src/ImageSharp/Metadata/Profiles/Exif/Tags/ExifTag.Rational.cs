@@ -165,4 +165,9 @@ public abstract partial class ExifTag
     /// Gets the GPSDestDistance exif tag.
     /// </summary>
     public static ExifTag<Rational> GPSDestDistance { get; } = new ExifTag<Rational>(ExifTagValue.GPSDestDistance);
+
+    /// <summary>
+    /// Gets the GPSHPositioningError exif tag.
+    /// </summary>
+    public static ExifTag<Rational> GPSHPositioningError { get; } = new ExifTag<Rational>(ExifTagValue.GPSHPositioningError);
 }

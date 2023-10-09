@@ -128,7 +128,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        this.configuration = image.GetConfiguration();
+        this.configuration = image.Configuration;
 
         ImageFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata;
         TiffFrameMetadata rootFrameTiffMetaData = rootFrameMetaData.GetTiffMetadata();

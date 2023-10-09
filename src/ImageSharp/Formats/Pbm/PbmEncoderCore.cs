@@ -78,7 +78,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     private void SanitizeAndSetEncoderOptions<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.configuration = image.GetConfiguration();
+        this.configuration = image.Configuration;
         PbmMetadata metadata = image.Metadata.GetPbmMetadata();
         this.encoding = this.encoder.Encoding ?? metadata.Encoding;
         this.colorType = this.encoder.ColorType ?? metadata.ColorType;

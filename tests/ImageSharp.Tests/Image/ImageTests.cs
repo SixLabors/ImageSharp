@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -31,9 +32,13 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(default(Rgba32));
 
-                Assert.Equal(Configuration.Default, image.GetConfiguration());
+                Assert.Equal(Configuration.Default, image.Configuration);
             }
         }
+
+        [Fact]
+        public void Width_Height_SizeNotRepresentable_ThrowsInvalidImageOperationException()
+            => Assert.Throws<InvalidMemoryOperationException>(() => new Image<Rgba32>(int.MaxValue, int.MaxValue));
 
         [Fact]
         public void Configuration_Width_Height()
@@ -48,7 +53,7 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(default(Rgba32));
 
-                Assert.Equal(configuration, image.GetConfiguration());
+                Assert.Equal(configuration, image.Configuration);
             }
         }
 
@@ -66,7 +71,7 @@ public partial class ImageTests
                 Assert.Equal(11 * 23, imageMem.Length);
                 image.ComparePixelBufferTo(color);
 
-                Assert.Equal(configuration, image.GetConfiguration());
+                Assert.Equal(configuration, image.Configuration);
             }
         }
 
@@ -83,7 +88,7 @@ public partial class ImageTests
             {
                 Assert.Equal(21, image.Width);
                 Assert.Equal(22, image.Height);
-                Assert.Same(configuration, image.GetConfiguration());
+                Assert.Same(configuration, image.Configuration);
                 Assert.Same(metadata, image.Metadata);
 
                 Assert.Equal(dirtyValue, image[5, 5].PackedValue);

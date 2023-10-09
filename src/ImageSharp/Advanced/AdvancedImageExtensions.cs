@@ -27,11 +27,11 @@ public static class AdvancedImageExtensions
         Guard.NotNull(filePath, nameof(filePath));
 
         string ext = Path.GetExtension(filePath);
-        if (!source.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat? format))
+        if (!source.Configuration.ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat? format))
         {
             StringBuilder sb = new();
             sb = sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}'. Registered encoders include:");
-            foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
+            foreach (IImageFormat fmt in source.Configuration.ImageFormats)
             {
                 sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
             }
@@ -39,13 +39,13 @@ public static class AdvancedImageExtensions
             throw new UnknownImageFormatException(sb.ToString());
         }
 
-        IImageEncoder? encoder = source.GetConfiguration().ImageFormatsManager.GetEncoder(format);
+        IImageEncoder? encoder = source.Configuration.ImageFormatsManager.GetEncoder(format);
 
         if (encoder is null)
         {
             StringBuilder sb = new();
             sb = sb.AppendLine(CultureInfo.InvariantCulture, $"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
-            foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+            foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.Configuration.ImageFormatsManager.ImageEncoders)
             {
                 sb = sb.AppendFormat(CultureInfo.InvariantCulture, " - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
             }
@@ -75,30 +75,6 @@ public static class AdvancedImageExtensions
     /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
     public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor, CancellationToken cancellationToken = default)
         => source.AcceptAsync(visitor, cancellationToken);
-
-    /// <summary>
-    /// Gets the configuration for the image.
-    /// </summary>
-    /// <param name="source">The source image.</param>
-    /// <returns>Returns the configuration.</returns>
-    public static Configuration GetConfiguration(this Image source)
-        => GetConfiguration((IConfigurationProvider)source);
-
-    /// <summary>
-    /// Gets the configuration for the image frame.
-    /// </summary>
-    /// <param name="source">The source image.</param>
-    /// <returns>Returns the configuration.</returns>
-    public static Configuration GetConfiguration(this ImageFrame source)
-        => GetConfiguration((IConfigurationProvider)source);
-
-    /// <summary>
-    /// Gets the configuration.
-    /// </summary>
-    /// <param name="source">The source image</param>
-    /// <returns>Returns the bounds of the image</returns>
-    private static Configuration GetConfiguration(IConfigurationProvider source)
-        => source?.Configuration ?? Configuration.Default;
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
@@ -167,12 +143,4 @@ public static class AdvancedImageExtensions
 
         return source.Frames.RootFrame.PixelBuffer.GetSafeRowMemory(rowIndex);
     }
-
-    /// <summary>
-    /// Gets the <see cref="MemoryAllocator"/> assigned to 'source'.
-    /// </summary>
-    /// <param name="source">The source image.</param>
-    /// <returns>Returns the configuration.</returns>
-    internal static MemoryAllocator GetMemoryAllocator(this IConfigurationProvider source)
-        => GetConfiguration(source).MemoryAllocator;
 }

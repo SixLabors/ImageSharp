@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
@@ -119,5 +120,12 @@ public class PbmDecoderTests
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
+    }
+
+    [Fact]
+    public void LargeHeader_PrematureEof()
+    {
+        byte[] bytes = Encoding.ASCII.GetBytes($"P1\n100000 100000\n");
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(bytes));
     }
 }

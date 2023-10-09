@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -144,14 +145,22 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
         }
 
-        stream.SkipWhitespaceAndComments();
-        int width = stream.ReadDecimal();
-        stream.SkipWhitespaceAndComments();
-        int height = stream.ReadDecimal();
-        stream.SkipWhitespaceAndComments();
+        if (!stream.TrySkipWhitespaceAndComments() ||
+            !stream.TryReadDecimal(out int width) ||
+            !stream.TrySkipWhitespaceAndComments() ||
+            !stream.TryReadDecimal(out int height) ||
+            !stream.TrySkipWhitespaceAndComments())
+        {
+            ThrowPrematureEof();
+        }
+
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            this.maxPixelValue = stream.ReadDecimal();
+            if (!stream.TryReadDecimal(out this.maxPixelValue))
+            {
+                ThrowPrematureEof();
+            }
+
             if (this.maxPixelValue > 255)
             {
                 this.componentType = PbmComponentType.Short;
@@ -161,7 +170,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 this.componentType = PbmComponentType.Byte;
             }
 
-            stream.SkipWhitespaceAndComments();
+            stream.TrySkipWhitespaceAndComments();
         }
         else
         {
@@ -174,6 +183,9 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
         meta.Encoding = this.encoding;
         meta.ColorType = this.colorType;
         meta.ComponentType = this.componentType;
+
+        [DoesNotReturn]
+        static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
     }
 
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)

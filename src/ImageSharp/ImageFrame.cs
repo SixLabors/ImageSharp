@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
 {
-    private readonly Configuration configuration;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageFrame"/> class.
     /// </summary>
@@ -26,10 +24,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <param name="metadata">The <see cref="ImageFrameMetadata"/>.</param>
     protected ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
     {
-        Guard.NotNull(configuration, nameof(configuration));
-        Guard.NotNull(metadata, nameof(metadata));
-
-        this.configuration = configuration ?? Configuration.Default;
+        this.Configuration = configuration;
         this.Width = width;
         this.Height = height;
         this.Metadata = metadata;
@@ -51,19 +46,19 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     public ImageFrameMetadata Metadata { get; }
 
     /// <inheritdoc/>
-    Configuration IConfigurationProvider.Configuration => this.configuration;
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets the size of the frame.
     /// </summary>
     /// <returns>The <see cref="Size"/></returns>
-    public Size Size() => new Size(this.Width, this.Height);
+    public Size Size() => new(this.Width, this.Height);
 
     /// <summary>
     /// Gets the bounds of the frame.
     /// </summary>
     /// <returns>The <see cref="Rectangle"/></returns>
-    public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
+    public Rectangle Bounds() => new(0, 0, this.Width, this.Height);
 
     /// <inheritdoc />
     public void Dispose()
@@ -84,6 +79,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <summary>
     /// Updates the size of the image frame.
     /// </summary>
+    /// <param name="size">The size.</param>
     internal void UpdateSize(Size size)
     {
         this.Width = size.Width;

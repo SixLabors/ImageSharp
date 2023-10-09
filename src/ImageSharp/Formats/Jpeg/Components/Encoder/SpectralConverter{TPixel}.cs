@@ -32,7 +32,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
     public SpectralConverter(JpegFrame frame, Image<TPixel> image, Block8x8F[] dequantTables)
     {
-        MemoryAllocator allocator = image.GetConfiguration().MemoryAllocator;
+        MemoryAllocator allocator = image.Configuration.MemoryAllocator;
 
         // iteration data
         int majorBlockWidth = frame.Components.Max((component) => component.SizeInBlocks.Width);

@@ -1692,6 +1692,11 @@ internal enum ExifTagValue
     GPSDifferential = 0x001E,
 
     /// <summary>
+    /// GPSHPositioningError
+    /// </summary>
+    GPSHPositioningError = 0x001F,
+
+    /// <summary>
     /// Used in the Oce scanning process.
     /// Identifies the scanticket used in the scanning process.
     /// Includes a trailing zero.

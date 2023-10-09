@@ -70,8 +70,7 @@ public class ExifValuesTests
         { ExifTag.JPEGDCTables },
         { ExifTag.JPEGACTables },
         { ExifTag.StripRowCounts },
-        { ExifTag.IntergraphRegisters },
-        { ExifTag.TimeZoneOffset }
+        { ExifTag.IntergraphRegisters }
     };
 
     public static TheoryData<ExifTag> NumberTags => new TheoryData<ExifTag>
@@ -129,6 +128,7 @@ public class ExifValuesTests
         { ExifTag.GPSImgDirection },
         { ExifTag.GPSDestBearing },
         { ExifTag.GPSDestDistance },
+        { ExifTag.GPSHPositioningError },
     };
 
     public static TheoryData<ExifTag> RationalArrayTags => new TheoryData<ExifTag>
@@ -233,6 +233,11 @@ public class ExifValuesTests
     public static TheoryData<ExifTag> SignedRationalArrayTags => new TheoryData<ExifTag>
     {
         { ExifTag.Decode }
+    };
+
+    public static TheoryData<ExifTag> SignedShortArrayTags => new TheoryData<ExifTag>
+    {
+        { ExifTag.TimeZoneOffset }
     };
 
     public static TheoryData<ExifTag> StringTags => new TheoryData<ExifTag>
@@ -556,6 +561,21 @@ public class ExifValuesTests
         Assert.True(value.TrySetValue(expected));
 
         var typed = (ExifSignedRationalArray)value;
+        Assert.Equal(expected, typed.Value);
+    }
+
+
+    [Theory]
+    [MemberData(nameof(SignedShortArrayTags))]
+    public void ExifSignedShortArrayTests(ExifTag tag)
+    {
+        short[] expected = new short[] { 21, 42 };
+        ExifValue value = ExifValues.Create(tag);
+
+        Assert.False(value.TrySetValue(expected.ToString()));
+        Assert.True(value.TrySetValue(expected));
+
+        var typed = (ExifSignedShortArray)value;
         Assert.Equal(expected, typed.Value);
     }
 

@@ -82,7 +82,7 @@ public sealed class WebpEncoder : ImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        WebpEncoderCore encoder = new(this, image.GetConfiguration());
+        WebpEncoderCore encoder = new(this, image.Configuration);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

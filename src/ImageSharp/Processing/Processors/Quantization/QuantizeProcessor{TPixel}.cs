@@ -43,7 +43,7 @@ internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
         int offsetX = interest.Left;
         Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
-        for (int y = interest.Y; y < interest.Height; y++)
+        for (int y = interest.Y; y < interest.Bottom; y++)
         {
             Span<TPixel> row = sourceBuffer.DangerousGetRowSpan(y);
             ReadOnlySpan<byte> quantizedRow = quantized.DangerousGetRowSpan(y - offsetY);

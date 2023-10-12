@@ -15,7 +15,7 @@ public enum BackgroundColorHandling
     Standard = 0,
 
     /// <summary>
-    /// The background color of the ANIM chunk is ignored and instead the canvas is initialized with black, BGRA(0, 0, 0, 0).
+    /// The background color of the ANIM chunk is ignored and instead the canvas is initialized with transparent, BGRA(0, 0, 0, 0).
     /// </summary>
     Ignore = 1
 }

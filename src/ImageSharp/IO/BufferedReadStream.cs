@@ -68,6 +68,8 @@ internal sealed class BufferedReadStream : Stream
         this.readBufferIndex = int.MinValue;
     }
 
+    public int EofHitCount { get; private set; }
+
     /// <summary>
     /// Gets the size, in bytes, of the underlying buffer.
     /// </summary>
@@ -142,6 +144,7 @@ internal sealed class BufferedReadStream : Stream
     {
         if (this.readerPosition >= this.Length)
         {
+            this.EofHitCount++;
             return -1;
         }
 
@@ -156,7 +159,9 @@ internal sealed class BufferedReadStream : Stream
 
         unsafe
         {
-            return this.pinnedReadBuffer[this.readBufferIndex++];
+            int val = this.pinnedReadBuffer[this.readBufferIndex++];
+            this.CheckEof(val);
+            return val;
         }
     }
 
@@ -294,7 +299,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.readerPosition += n;
         this.readBufferIndex += n;
-
+        this.CheckEof(n);
         return n;
     }
 
@@ -352,6 +357,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.Position += n;
 
+        this.CheckEof(n);
         return n;
     }
 
@@ -416,6 +422,14 @@ internal sealed class BufferedReadStream : Stream
         else
         {
             Buffer.BlockCopy(this.readBuffer, this.readBufferIndex, buffer, offset, count);
+        }
+    }
+
+    private void CheckEof(int read)
+    {
+        if (read == 0)
+        {
+            this.EofHitCount++;
         }
     }
 }

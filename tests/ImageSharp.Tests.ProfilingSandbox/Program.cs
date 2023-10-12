@@ -32,7 +32,8 @@ public class Program
     {
         try
         {
-            LoadResizeSaveParallelMemoryStress.Run(args);
+            ImageStress.Run(args);
+            // LoadResizeSaveParallelMemoryStress.Run(args);
         }
         catch (Exception ex)
         {

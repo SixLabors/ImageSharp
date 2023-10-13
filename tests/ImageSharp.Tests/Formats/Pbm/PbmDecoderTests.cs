@@ -5,6 +5,7 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
@@ -123,9 +124,25 @@ public class PbmDecoderTests
     }
 
     [Fact]
-    public void LargeHeader_PrematureEof()
+    public void PlaintextText_PrematureEof()
     {
-        byte[] bytes = Encoding.ASCII.GetBytes($"P1\n100000 100000\n");
-        Assert.Throws<InvalidImageContentException>(() => Image.Load(bytes));
+        byte[] bytes = Encoding.ASCII.GetBytes($"P1\n10000 10000\n1 0 1 0");
+
+        using EofHitCountingReadStream stream = new(bytes);
+
+        using Image img = Image.Load(stream);
+        Assert.True(stream.EofHitCount == 1);
+        Assert.Equal(new Size(10000, 10000), img.Size);
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        byte[] bytes = TestFile.Create(RgbBinaryPrematureEof).Bytes;
+        using EofHitCountingReadStream stream = new(bytes);
+
+        using Image img = Image.Load(stream);
+        Assert.True(stream.EofHitCount == 1);
+        Assert.Equal(new Size(29, 30), img.Size);
     }
 }

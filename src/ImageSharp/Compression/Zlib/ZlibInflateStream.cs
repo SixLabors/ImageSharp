@@ -161,6 +161,11 @@ internal sealed class ZlibInflateStream : Stream
             bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
             this.currentDataRemaining -= bytesToRead;
             bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+            if (bytesRead == 0)
+            {
+                return totalBytesRead;
+            }
+
             totalBytesRead += bytesRead;
         }
 
@@ -168,22 +173,13 @@ internal sealed class ZlibInflateStream : Stream
     }
 
     /// <inheritdoc/>
-    public override long Seek(long offset, SeekOrigin origin)
-    {
-        throw new NotSupportedException();
-    }
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
     /// <inheritdoc/>
-    public override void SetLength(long value)
-    {
-        throw new NotSupportedException();
-    }
+    public override void SetLength(long value) => throw new NotSupportedException();
 
     /// <inheritdoc/>
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        throw new NotSupportedException();
-    }
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
@@ -246,22 +242,17 @@ internal sealed class ZlibInflateStream : Stream
                     // CINFO is not defined in this specification for CM not equal to 8.
                     throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
                 }
-                else
-                {
-                    return false;
-                }
+
+                return false;
             }
+        }
+        else if (isCriticalChunk)
+        {
+            throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
         }
         else
         {
-            if (isCriticalChunk)
-            {
-                throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
-            }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         // The preset dictionary.

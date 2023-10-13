@@ -6,92 +6,15 @@ using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
-internal class EofReadCountingStream : Stream
-{
-    private readonly FileStream innerStream;
-
-    public EofReadCountingStream(FileStream innerStream) => this.innerStream = innerStream;
-
-    public int EofHitCount { get; private set; }
-
-    public override bool CanRead => true;
-
-    public override bool CanSeek => true;
-
-    public override bool CanWrite => true;
-
-    public override long Length => this.innerStream.Length;
-
-    public override long Position
-    {
-        get => this.innerStream.Position;
-        set => this.innerStream.Position = value;
-    }
-
-    public override void Flush() => this.innerStream.Flush();
-
-    public override Task FlushAsync(CancellationToken cancellationToken) => this.innerStream.FlushAsync(cancellationToken);
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        int read = this.innerStream.Read(buffer, offset, count);
-        this.CheckEof(read);
-        return read;
-    }
-
-    public override int Read(Span<byte> buffer)
-    {
-        int read = this.innerStream.Read(buffer);
-        this.CheckEof(read);
-        return read;
-    }
-
-    public override int ReadByte()
-    {
-        int val = base.ReadByte();
-        if (val < 0)
-        {
-            this.EofHitCount++;
-        }
-
-        return val;
-    }
-
-    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-    {
-        int read = await this.innerStream.ReadAsync(buffer, offset, count, cancellationToken);
-        this.CheckEof(read);
-        return read;
-    }
-
-    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-    {
-        int read = await this.innerStream.ReadAsync(buffer, cancellationToken);
-        this.CheckEof(read);
-        return read;
-    }
-
-    public override long Seek(long offset, SeekOrigin origin) => this.innerStream.Seek(offset, origin);
-
-    public override void SetLength(long value) => this.innerStream.SetLength(value);
-
-    public override void Write(byte[] buffer, int offset, int count) => this.innerStream.Write(buffer, offset, count);
-
-    private void CheckEof(int read)
-    {
-        if (read == 0)
-        {
-            this.EofHitCount++;
-        }
-    }
-}
-
 internal class ImageStressRunner
 {
+    private const int EofHitCountThreshold = 4;
+
     private readonly FileInfo originalImageFile;
     private readonly DirectoryInfo stressFolder;
     private readonly byte[] buffer;
     private readonly StreamWriter logger;
+    private readonly string logFile;
 
     public ImageStressRunner(string originalImageFileName, string stressFolder)
         : this(new FileInfo(originalImageFileName), Directory.CreateDirectory(stressFolder))
@@ -103,29 +26,43 @@ internal class ImageStressRunner
         this.originalImageFile = originalImageFile;
         this.buffer = new byte[81920];
         this.stressFolder = stressFolder;
-        string logFile = Path.Combine(stressFolder.FullName, $"_{originalImageFile.Name}.log");
-        this.logger = new StreamWriter(logFile);
-        Console.WriteLine($"Logging to {logFile}");
+        this.logFile = Path.Combine(stressFolder.FullName, $"_{originalImageFile.Name}.log");
+        this.logger = new StreamWriter(this.logFile);
+        this.Print($"Logging to {this.logFile}");
     }
+
+    public int StartPosition { get; set; }
 
     public async Task RunAsync()
     {
         using FileStream fs = this.originalImageFile.OpenRead();
         ImageSharp.Formats.IImageFormat format = await Image.DetectFormatAsync(fs);
         ImageSharp.Formats.IImageFormatDetector formatDetector = Configuration.Default.ImageFormatsManager.FormatDetectors.FirstOrDefault(fd => fd.GetType().Name.ToLower().Contains(format.Name.ToLower()));
-        await Console.Out.WriteLineAsync($"Total: {fs.Length}");
-        for (long partLength = formatDetector.HeaderSize; partLength < fs.Length; partLength++)
+        this.Print($"Total: {fs.Length}");
+        int start = Math.Max(this.StartPosition, formatDetector.HeaderSize);
+        for (long partLength = start; partLength < fs.Length; partLength++)
         {
             await this.RunPart(fs, partLength);
         }
+
+        bool empty = this.logger.BaseStream.Length == 0;
         this.logger.Close();
+        if (empty)
+        {
+            File.Delete(this.logFile);
+        }
+    }
+
+    private void Print(string message)
+    {
+        //Console.WriteLine(message);
     }
 
     private async Task RunPart(FileStream source, long partLength)
     {
-        if ((partLength % 50) == 0)
+        if ((partLength % 100) == 0)
         {
-            Console.Write($" {partLength} ");
+            this.Print($" -{partLength}- ");
         }
 
         source.Seek(0, SeekOrigin.Begin);
@@ -148,29 +85,29 @@ internal class ImageStressRunner
             if (completed == loadTask)
             {
                 await loadTask;
-                Console.Write($"[{guardStream.EofHitCount}]!");
+                this.Print($"[{guardStream.EofHitCount}]!");
             }
             else
             {
                 await this.logger.WriteLineAsync($"{fn} timed out!");
                 deleteFile = false;
-                Console.Write($"[{guardStream.EofHitCount}]T");
+                this.Print($"[{guardStream.EofHitCount}]T");
             }
         }
-        catch (InvalidImageContentException ex)
+        catch (Exception ex) when (ex is ImageFormatException or NotSupportedException or ArgumentException or NullReferenceException or IndexOutOfRangeException)
         {
-            Console.Write($"[{guardStream.EofHitCount}]x");
+            this.Print($"[{guardStream.EofHitCount}]x");
         }
         catch (Exception ex)
         {
             await this.logger.WriteLineAsync($"{fn} failed with {ex.GetType().Name}");
             await this.logger.WriteLineAsync(ex.ToString());
             deleteFile = false;
-            Console.Write($"[{guardStream.EofHitCount}]?");
+            this.Print($"[{guardStream.EofHitCount}]?");
         }
         finally
         {
-            if (guardStream.EofHitCount > 2)
+            if (guardStream.EofHitCount > EofHitCountThreshold)
             {
                 deleteFile = false;
                 await this.logger.WriteLineAsync($"{fn} hit EOF {guardStream.EofHitCount} times!");
@@ -202,16 +139,41 @@ internal class ImageStressRunner
 
 internal class ImageStress
 {
-    public static void Run(string[] args)
+    public static async Task RunAsync()
     {
         //string fn = GetPath(TestImages.Png.Rgb24BppTrans);
         //string fn = GetPath(TestImages.Png.Ducky);
         //string fn = GetPath(TestImages.Jpeg.Baseline.Bad.BadRST);
         //string fn = GetPath(TestImages.Qoi.TestCard);
-        string fn = GetPath(TestImages.Pbm.RgbPlain);
-        string stressFolder = TestEnvironment.CreateOutputDirectory("_ImageStress");
-        ImageStressRunner stress = new(fn, stressFolder);
-        stress.RunAsync().GetAwaiter().GetResult();
+        //string fn = GetPath(TestImages.Pbm.RgbPlain);
+        //ImageStressRunner stress = new(fn, stressFolder)
+        //{
+        //    StartPosition = 15_000
+        //};
+        //await stress.RunAsync();
+
+        string[] allDone = File.ReadAllLines(@"c:\_dev\sl\ImageSharp\tests\Images\ActualOutput\_ImageStress.logs\__AllDone.txt");
+        string[] extensions = Configuration.Default.ImageFormats.Where(f => f.Name is not "TIFF" and not "PBM").SelectMany(f => f.FileExtensions).Select(x => $".{x.ToLower()}").ToArray();
+
+        DirectoryInfo rootDir = new(TestEnvironment.InputImagesDirectoryFullPath);
+        FileInfo[] images = rootDir.EnumerateFiles("*.*", new EnumerationOptions()
+        {
+            RecurseSubdirectories = true
+        })
+            .Where(f => extensions.Any(e => e.Equals(f.Extension, StringComparison.OrdinalIgnoreCase)))
+            .Where(f => !allDone.Contains(f.Name, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+
+        string stressFolder = TestEnvironment.CreateOutputDirectory("_ImageStress2");
+        await Parallel.ForEachAsync(images, async (imgFile, _) =>
+        {
+            await Console.Out.WriteLineAsync($"{imgFile.Name}...");
+            ImageStressRunner stress = new(imgFile, new DirectoryInfo(stressFolder));
+            await stress.RunAsync();
+            await Console.Out.WriteLineAsync($"{imgFile.Name} DONE.");
+        });
+        await Console.Out.WriteLineAsync("--- ALL DONE ---");
+        Console.ReadLine();
     }
 
     private static string GetPath(string testImage) => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, testImage);

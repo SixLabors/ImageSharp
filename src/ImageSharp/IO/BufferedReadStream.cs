@@ -159,9 +159,7 @@ internal sealed class BufferedReadStream : Stream
 
         unsafe
         {
-            int val = this.pinnedReadBuffer[this.readBufferIndex++];
-            this.CheckEof(val);
-            return val;
+            return this.pinnedReadBuffer[this.readBufferIndex++];
         }
     }
 

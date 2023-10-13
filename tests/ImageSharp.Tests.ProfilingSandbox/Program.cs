@@ -32,7 +32,12 @@ public class Program
     {
         try
         {
-            ImageStress.Run(args);
+            //Console.WriteLine("..");
+            //Image.Load(@"C:\_dev\sl\ImageSharp\tests\Images\ActualOutput\_ImageStress\JpegCompressedGray-0000539558.tiff").Dispose();
+            //Image.Load(@"C:\_dev\sl\ImageSharp\tests\Images\ActualOutput\_ImageStress\tiled-0000023664.tiff").Dispose();
+            //Image.Load(@"C:\_dev\sl\ImageSharp\tests\Images\ActualOutput\_ImageStress\grayscale_LR-0000000019.tga").Dispose();
+            //Console.WriteLine("yay");
+            ImageStress.RunAsync().GetAwaiter().GetResult();
             // LoadResizeSaveParallelMemoryStress.Run(args);
         }
         catch (Exception ex)

@@ -40,7 +40,7 @@ internal class DirectoryReader
     public IList<ExifProfile> Read()
     {
         this.ByteOrder = ReadByteOrder(this.stream);
-        var headerReader = new HeaderReader(this.stream, this.ByteOrder);
+        HeaderReader headerReader = new(this.stream, this.ByteOrder);
         headerReader.ReadFileHeader();
 
         this.nextIfdOffset = headerReader.FirstIfdOffset;
@@ -68,10 +68,10 @@ internal class DirectoryReader
 
     private IList<ExifProfile> ReadIfds(bool isBigTiff)
     {
-        var readers = new List<EntryReader>();
+        List<EntryReader> readers = new();
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
         {
-            var reader = new EntryReader(this.stream, this.ByteOrder, this.allocator);
+            EntryReader reader = new(this.stream, this.ByteOrder, this.allocator);
             reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
             if (reader.BigValues.Count > 0)
@@ -85,6 +85,11 @@ internal class DirectoryReader
                 }
             }
 
+            if (this.nextIfdOffset >= reader.NextIfdOffset && reader.NextIfdOffset != 0)
+            {
+                TiffThrowHelper.ThrowImageFormatException("TIFF image contains circular directory offsets");
+            }
+
             this.nextIfdOffset = reader.NextIfdOffset;
             readers.Add(reader);
 
@@ -94,11 +99,11 @@ internal class DirectoryReader
             }
         }
 
-        var list = new List<ExifProfile>(readers.Count);
+        List<ExifProfile> list = new(readers.Count);
         foreach (EntryReader reader in readers)
         {
             reader.ReadBigValues();
-            var profile = new ExifProfile(reader.Values, reader.InvalidTags);
+            ExifProfile profile = new(reader.Values, reader.InvalidTags);
             list.Add(profile);
         }
 

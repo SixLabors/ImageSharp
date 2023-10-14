@@ -980,6 +980,8 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
+        public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -1041,6 +1043,7 @@ public static class TestImages
         public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
         public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
         public const string RgbBinary = "Pbm/00000_00000.ppm";
+        public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";

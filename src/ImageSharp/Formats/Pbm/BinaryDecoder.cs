@@ -71,7 +71,11 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            stream.Read(rowSpan);
+            if (stream.Read(rowSpan) == 0)
+            {
+                return;
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL8Bytes(
                 configuration,
@@ -93,7 +97,11 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            stream.Read(rowSpan);
+            if (stream.Read(rowSpan) == 0)
+            {
+                return;
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromL16Bytes(
                 configuration,
@@ -115,7 +123,11 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            stream.Read(rowSpan);
+            if (stream.Read(rowSpan) == 0)
+            {
+                return;
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgb24Bytes(
                 configuration,
@@ -137,7 +149,11 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            stream.Read(rowSpan);
+            if (stream.Read(rowSpan) == 0)
+            {
+                return;
+            }
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgb48Bytes(
                 configuration,
@@ -161,6 +177,11 @@ internal class BinaryDecoder
             for (int x = 0; x < width;)
             {
                 int raw = stream.ReadByte();
+                if (raw < 0)
+                {
+                    return;
+                }
+
                 int stopBit = Math.Min(8, width - x);
                 for (int bit = 0; bit < stopBit; bit++)
                 {

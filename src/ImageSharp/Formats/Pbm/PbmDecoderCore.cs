@@ -96,6 +96,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// Processes the ppm header.
     /// </summary>
     /// <param name="stream">The input stream.</param>
+    /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
     private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[2];
@@ -145,18 +146,18 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
         }
 
-        if (!stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int width) ||
-            !stream.SkipWhitespaceAndComments() ||
-            !stream.ReadDecimal(out int height) ||
-            !stream.SkipWhitespaceAndComments())
+        if (!stream.TrySkipWhitespaceAndComments() ||
+            !stream.TryReadDecimal(out int width) ||
+            !stream.TrySkipWhitespaceAndComments() ||
+            !stream.TryReadDecimal(out int height) ||
+            !stream.TrySkipWhitespaceAndComments())
         {
             ThrowPrematureEof();
         }
 
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            if (!stream.ReadDecimal(out this.maxPixelValue))
+            if (!stream.TryReadDecimal(out this.maxPixelValue))
             {
                 ThrowPrematureEof();
             }
@@ -170,7 +171,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 this.componentType = PbmComponentType.Byte;
             }
 
-            stream.SkipWhitespaceAndComments();
+            stream.TrySkipWhitespaceAndComments();
         }
         else
         {

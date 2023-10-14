@@ -70,9 +70,9 @@ internal class PlainDecoder
         {
             for (int x = 0; x < width; x++)
             {
-                stream.ReadDecimal(out int value);
+                stream.TryReadDecimal(out int value);
                 rowSpan[x] = new L8((byte)value);
-                eofReached = !stream.SkipWhitespaceAndComments();
+                eofReached = !stream.TrySkipWhitespaceAndComments();
                 if (eofReached)
                 {
                     break;
@@ -106,9 +106,9 @@ internal class PlainDecoder
         {
             for (int x = 0; x < width; x++)
             {
-                stream.ReadDecimal(out int value);
+                stream.TryReadDecimal(out int value);
                 rowSpan[x] = new L16((ushort)value);
-                eofReached = !stream.SkipWhitespaceAndComments();
+                eofReached = !stream.TrySkipWhitespaceAndComments();
                 if (eofReached)
                 {
                     break;
@@ -142,20 +142,20 @@ internal class PlainDecoder
         {
             for (int x = 0; x < width; x++)
             {
-                if (!stream.ReadDecimal(out int red) ||
-                    !stream.SkipWhitespaceAndComments() ||
-                    !stream.ReadDecimal(out int green) ||
-                    !stream.SkipWhitespaceAndComments())
+                if (!stream.TryReadDecimal(out int red) ||
+                    !stream.TrySkipWhitespaceAndComments() ||
+                    !stream.TryReadDecimal(out int green) ||
+                    !stream.TrySkipWhitespaceAndComments())
                 {
                     // Reached EOF before reading a full RGB value
                     eofReached = true;
                     break;
                 }
 
-                stream.ReadDecimal(out int blue);
+                stream.TryReadDecimal(out int blue);
 
                 rowSpan[x] = new Rgb24((byte)red, (byte)green, (byte)blue);
-                eofReached = !stream.SkipWhitespaceAndComments();
+                eofReached = !stream.TrySkipWhitespaceAndComments();
                 if (eofReached)
                 {
                     break;
@@ -189,20 +189,20 @@ internal class PlainDecoder
         {
             for (int x = 0; x < width; x++)
             {
-                if (!stream.ReadDecimal(out int red) ||
-                    !stream.SkipWhitespaceAndComments() ||
-                    !stream.ReadDecimal(out int green) ||
-                    !stream.SkipWhitespaceAndComments())
+                if (!stream.TryReadDecimal(out int red) ||
+                    !stream.TrySkipWhitespaceAndComments() ||
+                    !stream.TryReadDecimal(out int green) ||
+                    !stream.TrySkipWhitespaceAndComments())
                 {
                     // Reached EOF before reading a full RGB value
                     eofReached = true;
                     break;
                 }
 
-                stream.ReadDecimal(out int blue);
+                stream.TryReadDecimal(out int blue);
 
                 rowSpan[x] = new Rgb48((ushort)red, (ushort)green, (ushort)blue);
-                eofReached = !stream.SkipWhitespaceAndComments();
+                eofReached = !stream.TrySkipWhitespaceAndComments();
                 if (eofReached)
                 {
                     break;
@@ -236,10 +236,10 @@ internal class PlainDecoder
         {
             for (int x = 0; x < width; x++)
             {
-                stream.ReadDecimal(out int value);
+                stream.TryReadDecimal(out int value);
 
                 rowSpan[x] = value == 0 ? White : Black;
-                eofReached = !stream.SkipWhitespaceAndComments();
+                eofReached = !stream.TrySkipWhitespaceAndComments();
                 if (eofReached)
                 {
                     break;

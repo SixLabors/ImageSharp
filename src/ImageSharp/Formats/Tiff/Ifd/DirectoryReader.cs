@@ -52,7 +52,12 @@ internal class DirectoryReader
     private static ByteOrder ReadByteOrder(Stream stream)
     {
         Span<byte> headerBytes = stackalloc byte[2];
-        stream.Read(headerBytes);
+
+        if (stream.Read(headerBytes) != 2)
+        {
+            throw TiffThrowHelper.ThrowInvalidHeader();
+        }
+
         if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
         {
             return ByteOrder.LittleEndian;

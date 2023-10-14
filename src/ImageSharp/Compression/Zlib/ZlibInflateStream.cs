@@ -261,7 +261,11 @@ internal sealed class ZlibInflateStream : Stream
         {
             // We don't need this for inflate so simply skip by the next four bytes.
             // https://tools.ietf.org/html/rfc1950#page-6
-            this.innerStream.Read(ChecksumBuffer, 0, 4);
+            if (this.innerStream.Read(ChecksumBuffer, 0, 4) != 4)
+            {
+                return false;
+            }
+
             this.currentDataRemaining -= 4;
         }
 

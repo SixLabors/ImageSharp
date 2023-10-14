@@ -32,7 +32,7 @@ internal class WebpTiffCompression : TiffBaseDecompressor
     /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        using WebpDecoderCore decoder = new(this.options);
+        using WebpDecoderCore decoder = new(new WebpDecoderOptions());
         using Image<Rgb24> image = decoder.Decode<Rgb24>(stream, cancellationToken);
         CopyImageBytesToBuffer(buffer, image.Frames.RootFrame.PixelBuffer);
     }

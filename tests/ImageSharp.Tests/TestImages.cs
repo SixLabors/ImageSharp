@@ -677,6 +677,7 @@ public static class TestImages
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";
+            public const string AnimatedIssue2528 = "Webp/issues/Issue2528.webp";
 
             // Lossy images without macroblock filtering.
             public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";

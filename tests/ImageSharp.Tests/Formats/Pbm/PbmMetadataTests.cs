@@ -83,12 +83,9 @@ public class PbmMetadataTests
     }
 
     [Fact]
-    public void Identify_HandlesCraftedDenialOfServiceString()
+    public void Identify_EofInHeader_ThrowsInvalidImageContentException()
     {
         byte[] bytes = Convert.FromBase64String("UDEjWAAACQAAAAA=");
-        ImageInfo info = Image.Identify(bytes);
-        Assert.Equal(default, info.Size);
-        Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("pbm", out IImageFormat format);
-        Assert.Equal(format!, info.Metadata.DecodedImageFormat);
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(bytes));
     }
 }

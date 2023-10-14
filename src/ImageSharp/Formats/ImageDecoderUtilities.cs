@@ -50,7 +50,8 @@ internal static class ImageDecoderUtilities
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using BufferedReadStream bufferedReadStream = new(configuration, stream, cancellationToken);
+        // Test may pass a BufferedReadStream in order to monitor EOF hits, if so, use the existing instance.
+        BufferedReadStream bufferedReadStream = stream as BufferedReadStream ?? new BufferedReadStream(configuration, stream, cancellationToken);
 
         try
         {
@@ -63,6 +64,13 @@ internal static class ImageDecoderUtilities
         catch (Exception)
         {
             throw;
+        }
+        finally
+        {
+            if (bufferedReadStream != stream)
+            {
+                bufferedReadStream.Dispose();
+            }
         }
     }
 

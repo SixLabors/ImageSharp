@@ -71,7 +71,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) < rowSpan.Length)
             {
                 return;
             }
@@ -97,7 +97,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) < rowSpan.Length)
             {
                 return;
             }
@@ -123,7 +123,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) < rowSpan.Length)
             {
                 return;
             }
@@ -149,7 +149,7 @@ internal class BinaryDecoder
 
         for (int y = 0; y < height; y++)
         {
-            if (stream.Read(rowSpan) == 0)
+            if (stream.Read(rowSpan) < rowSpan.Length)
             {
                 return;
             }

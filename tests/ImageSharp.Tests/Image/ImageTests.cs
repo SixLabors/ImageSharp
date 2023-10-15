@@ -41,6 +41,10 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void Width_Height_SizeNotRepresentable_ThrowsInvalidImageOperationException()
+                => Assert.Throws<InvalidMemoryOperationException>(() => new Image<Rgba32>(int.MaxValue, int.MaxValue));
+
+            [Fact]
             public void Configuration_Width_Height()
             {
                 Configuration configuration = Configuration.Default.Clone();

@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public IEnumerable<ExifProfile> Read()
         {
             this.ByteOrder = ReadByteOrder(this.stream);
-            var headerReader = new HeaderReader(this.stream, this.ByteOrder);
+            HeaderReader headerReader = new(this.stream, this.ByteOrder);
             headerReader.ReadFileHeader();
 
             this.nextIfdOffset = headerReader.FirstIfdOffset;
@@ -55,7 +55,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private static ByteOrder ReadByteOrder(Stream stream)
         {
             Span<byte> headerBytes = stackalloc byte[2];
-            stream.Read(headerBytes);
+
+            if (stream.Read(headerBytes) != 2)
+            {
+                throw TiffThrowHelper.ThrowInvalidHeader();
+            }
+
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
                 return ByteOrder.LittleEndian;
@@ -74,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var readers = new List<EntryReader>();
             while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
             {
-                var reader = new EntryReader(this.stream, this.ByteOrder, this.allocator);
+                EntryReader reader = new(this.stream, this.ByteOrder, this.allocator);
                 reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
                 if (reader.BigValues.Count > 0)
@@ -86,6 +91,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         reader.ReadBigValues();
                     }
+                }
+
+                if (this.nextIfdOffset >= reader.NextIfdOffset && reader.NextIfdOffset != 0)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("TIFF image contains circular directory offsets");
                 }
 
                 this.nextIfdOffset = reader.NextIfdOffset;

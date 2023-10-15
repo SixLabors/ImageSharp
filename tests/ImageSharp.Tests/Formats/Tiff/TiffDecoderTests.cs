@@ -669,6 +669,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 });
 
         [Theory]
+        [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
+        public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => Assert.Throws<ImageFormatException>(
+                () =>
+                {
+                    using (provider.GetImage(TiffDecoder))
+                    {
+                    }
+                });
+
+        [Theory]
+        [WithFile(Tiled0000023664, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_TiledWithBadZlib<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+
+            // ImageMagick cannot decode this image.
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(ImageComparer.Exact, provider, appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

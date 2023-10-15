@@ -977,6 +977,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
             public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
             public const string RgbBinary = "Pbm/00000_00000.ppm";
+            public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
             public const string RgbPlain = "Pbm/rgb_plain.ppm";
             public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
             public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";

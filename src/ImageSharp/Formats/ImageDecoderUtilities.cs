@@ -46,7 +46,8 @@ namespace SixLabors.ImageSharp.Formats
             CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
+            // Test may pass a BufferedReadStream in order to monitor EOF hits, if so, use the existing instance.
+            BufferedReadStream bufferedReadStream = stream as BufferedReadStream ?? new BufferedReadStream(configuration, stream);
 
             try
             {
@@ -55,6 +56,13 @@ namespace SixLabors.ImageSharp.Formats
             catch (InvalidMemoryOperationException ex)
             {
                 throw largeImageExceptionFactory(ex, decoder.Dimensions);
+            }
+            finally
+            {
+                if (bufferedReadStream != stream)
+                {
+                    bufferedReadStream.Dispose();
+                }
             }
         }
 

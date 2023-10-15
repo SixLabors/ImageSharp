@@ -66,13 +66,18 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
 
+            bool eofReached = false;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    byte value = (byte)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    rowSpan[x] = new L8(value);
+                    stream.ReadDecimal(out int value);
+                    rowSpan[x] = new L8((byte)value);
+                    eofReached = !stream.SkipWhitespaceAndComments();
+                    if (eofReached)
+                    {
+                        break;
+                    }
                 }
 
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
@@ -80,6 +85,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     configuration,
                     rowSpan,
                     pixelSpan);
+
+                if (eofReached)
+                {
+                    return;
+                }
             }
         }
 
@@ -92,13 +102,18 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             using IMemoryOwner<L16> row = allocator.Allocate<L16>(width);
             Span<L16> rowSpan = row.GetSpan();
 
+            bool eofReached = false;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    ushort value = (ushort)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    rowSpan[x] = new L16(value);
+                    stream.ReadDecimal(out int value);
+                    rowSpan[x] = new L16((ushort)value);
+                    eofReached = !stream.SkipWhitespaceAndComments();
+                    if (eofReached)
+                    {
+                        break;
+                    }
                 }
 
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
@@ -106,6 +121,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     configuration,
                     rowSpan,
                     pixelSpan);
+
+                if (eofReached)
+                {
+                    return;
+                }
             }
         }
 
@@ -118,17 +138,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             using IMemoryOwner<Rgb24> row = allocator.Allocate<Rgb24>(width);
             Span<Rgb24> rowSpan = row.GetSpan();
 
+            bool eofReached = false;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    byte red = (byte)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    byte green = (byte)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    byte blue = (byte)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    rowSpan[x] = new Rgb24(red, green, blue);
+                    if (!stream.ReadDecimal(out int red) ||
+                        !stream.SkipWhitespaceAndComments() ||
+                        !stream.ReadDecimal(out int green) ||
+                        !stream.SkipWhitespaceAndComments())
+                    {
+                        // Reached EOF before reading a full RGB value
+                        eofReached = true;
+                        break;
+                    }
+
+                    stream.ReadDecimal(out int blue);
+
+                    rowSpan[x] = new Rgb24((byte)red, (byte)green, (byte)blue);
+                    eofReached = !stream.SkipWhitespaceAndComments();
+                    if (eofReached)
+                    {
+                        break;
+                    }
                 }
 
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
@@ -136,6 +168,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     configuration,
                     rowSpan,
                     pixelSpan);
+
+                if (eofReached)
+                {
+                    return;
+                }
             }
         }
 
@@ -148,17 +185,29 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             using IMemoryOwner<Rgb48> row = allocator.Allocate<Rgb48>(width);
             Span<Rgb48> rowSpan = row.GetSpan();
 
+            bool eofReached = false;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    ushort red = (ushort)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    ushort green = (ushort)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    ushort blue = (ushort)stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
-                    rowSpan[x] = new Rgb48(red, green, blue);
+                    if (!stream.ReadDecimal(out int red) ||
+                        !stream.SkipWhitespaceAndComments() ||
+                        !stream.ReadDecimal(out int green) ||
+                        !stream.SkipWhitespaceAndComments())
+                    {
+                        // Reached EOF before reading a full RGB value
+                        eofReached = true;
+                        break;
+                    }
+
+                    stream.ReadDecimal(out int blue);
+
+                    rowSpan[x] = new Rgb48((ushort)red, (ushort)green, (ushort)blue);
+                    eofReached = !stream.SkipWhitespaceAndComments();
+                    if (eofReached)
+                    {
+                        break;
+                    }
                 }
 
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
@@ -166,6 +215,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     configuration,
                     rowSpan,
                     pixelSpan);
+
+                if (eofReached)
+                {
+                    return;
+                }
             }
         }
 
@@ -178,13 +232,19 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             using IMemoryOwner<L8> row = allocator.Allocate<L8>(width);
             Span<L8> rowSpan = row.GetSpan();
 
+            bool eofReached = false;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    int value = stream.ReadDecimal();
-                    stream.SkipWhitespaceAndComments();
+                    stream.ReadDecimal(out int value);
+
                     rowSpan[x] = value == 0 ? White : Black;
+                    eofReached = !stream.SkipWhitespaceAndComments();
+                    if (eofReached)
+                    {
+                        break;
+                    }
                 }
 
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
@@ -192,6 +252,11 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     configuration,
                     rowSpan,
                     pixelSpan);
+
+                if (eofReached)
+                {
+                    return;
+                }
             }
         }
     }

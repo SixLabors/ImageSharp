@@ -589,7 +589,7 @@ internal class Vp8LEncoder : IDisposable
             Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
             this.bitWriter.Reset(bwInit);
-            using Vp8LHistogram tmpHisto = Vp8LHistogram.Create(this.memoryAllocator, cacheBits);
+            using OwnedVp8LHistogram tmpHisto = OwnedVp8LHistogram.Create(this.memoryAllocator, cacheBits);
             using Vp8LHistogramSet histogramImage = new(this.memoryAllocator, histogramImageXySize, cacheBits);
 
             // Build histogram image and symbols from backward references.

@@ -172,8 +172,8 @@ internal static class HistogramEncoder
             // Skip the histogram if it is completely empty, which can happen for tiles with no information (when they are skipped because of LZ77).
             if (!origHistogram.IsUsed(0) && !origHistogram.IsUsed(1) && !origHistogram.IsUsed(2) && !origHistogram.IsUsed(3) && !origHistogram.IsUsed(4))
             {
-                origHistograms.DisposeAt(i);
-                histograms.DisposeAt(i);
+                origHistograms[i] = null;
+                histograms[i] = null;
                 histogramSymbols[i] = InvalidHistogramSymbol;
             }
             else
@@ -254,7 +254,7 @@ internal static class HistogramEncoder
                         // Move the (better) merged histogram to its final slot.
                         (histograms[first], curCombo) = (curCombo, histograms[first]);
 
-                        histograms.DisposeAt(idx);
+                        histograms[idx] = null;
                         indicesToRemove.Add(idx);
                         clusterMappings[clusters[idx]] = clusters[first];
                     }
@@ -415,7 +415,7 @@ internal static class HistogramEncoder
             // Merge the histograms and remove bestIdx2 from the list.
             HistogramAdd(histograms[bestIdx2], histograms[bestIdx1], histograms[bestIdx1]);
             histograms[bestIdx1].BitCost = histoPriorityList[0].CostCombo;
-            histograms.DisposeAt(bestIdx2);
+            histograms[bestIdx2] = null;
             numUsed--;
 
             for (int j = 0; j < histoPriorityList.Count;)
@@ -512,7 +512,7 @@ internal static class HistogramEncoder
             histograms[idx1].BitCost = histoPriorityList[0].CostCombo;
 
             // Remove merged histogram.
-            histograms.DisposeAt(idx2);
+            histograms[idx2] = null;
 
             // Remove pairs intersecting the just combined best pair.
             for (int i = 0; i < histoPriorityList.Count;)

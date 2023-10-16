@@ -78,15 +78,15 @@ public class Vp8LHistogramTests
         }
 
         MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
-        using Vp8LHistogram histogram0 = Vp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
-        using Vp8LHistogram histogram1 = Vp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
+        using OwnedVp8LHistogram histogram0 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
+        using OwnedVp8LHistogram histogram1 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
         for (int i = 0; i < 5; i++)
         {
             histogram0.IsUsed(i, true);
             histogram1.IsUsed(i, true);
         }
 
-        using Vp8LHistogram output = Vp8LHistogram.Create(memoryAllocator, 3);
+        using OwnedVp8LHistogram output = OwnedVp8LHistogram.Create(memoryAllocator, 3);
 
         // act
         histogram0.Add(histogram1, output);

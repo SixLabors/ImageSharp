@@ -10,13 +10,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
-internal sealed unsafe class Vp8LHistogram : IDisposable
+internal abstract unsafe class Vp8LHistogram
 {
     private const uint NonTrivialSym = 0xffffffff;
-    private readonly IMemoryOwner<uint>? bufferOwner;
-    private readonly Memory<uint> buffer;
-    private readonly MemoryHandle bufferHandle;
-
     private readonly uint* red;
     private readonly uint* blue;
     private readonly uint* alpha;
@@ -35,32 +31,21 @@ internal sealed unsafe class Vp8LHistogram : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
     /// </summary>
-    /// <remarks>
-    /// This constructor should be used when the histogram is a member of a <see cref="Vp8LHistogramSet"/>.
-    /// </remarks>
-    /// <param name="buffer">The backing buffer.</param>
+    /// <param name="basePointer">The base pointer to the backing memory.</param>
     /// <param name="refs">The backward references to initialize the histogram with.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    public Vp8LHistogram(Memory<uint> buffer, Vp8LBackwardRefs refs, int paletteCodeBits)
-        : this(buffer, paletteCodeBits) => this.StoreRefs(refs);
+    protected Vp8LHistogram(uint* basePointer, Vp8LBackwardRefs refs, int paletteCodeBits)
+        : this(basePointer, paletteCodeBits) => this.StoreRefs(refs);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
     /// </summary>
-    /// <remarks>
-    /// This constructor should be used when the histogram is a member of a <see cref="Vp8LHistogramSet"/>.
-    /// </remarks>
-    /// <param name="buffer">The backing buffer.</param>
+    /// <param name="basePointer">The base pointer to the backing memory.</param>
     /// <param name="paletteCodeBits">The palette code bits.</param>
-    /// <param name="bufferOwner">Optional buffer owner to dispose.</param>
-    public Vp8LHistogram(Memory<uint> buffer, int paletteCodeBits, IMemoryOwner<uint>? bufferOwner = null)
+    protected Vp8LHistogram(uint* basePointer, int paletteCodeBits)
     {
-        this.bufferOwner = bufferOwner;
-        this.buffer = buffer;
-        this.bufferHandle = this.buffer.Pin();
         this.PaletteCodeBits = paletteCodeBits;
-
-        this.red = (uint*)this.bufferHandle.Pointer;
+        this.red = basePointer;
         this.blue = this.red + RedSize;
         this.alpha = this.blue + BlueSize;
         this.distance = this.alpha + AlphaSize;
@@ -108,27 +93,6 @@ internal sealed unsafe class Vp8LHistogram : IDisposable
     private Span<uint> IsUsedSpan => new(this.isUsed, UsedSize);
 
     private Span<uint> TotalSpan => new(this.red, BufferSize);
-
-    public bool IsDisposed { get; set; }
-
-    /// <summary>
-    /// Creates an <see cref="Vp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
-    /// </summary>
-    public static Vp8LHistogram Create(MemoryAllocator memoryAllocator, int paletteCodeBits)
-    {
-        IMemoryOwner<uint> bufferOwner = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
-        return new Vp8LHistogram(bufferOwner.Memory, paletteCodeBits, bufferOwner);
-    }
-
-    /// <summary>
-    /// Creates an <see cref="Vp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
-    /// </summary>
-    public static Vp8LHistogram Create(MemoryAllocator memoryAllocator, Vp8LBackwardRefs refs, int paletteCodeBits)
-    {
-        Vp8LHistogram histogram = Create(memoryAllocator, paletteCodeBits);
-        histogram.StoreRefs(refs);
-        return histogram;
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsUsed(int index) => this.IsUsedSpan[index] == 1u;
@@ -621,14 +585,57 @@ internal sealed unsafe class Vp8LHistogram : IDisposable
             }
         }
     }
+}
+
+internal sealed unsafe class OwnedVp8LHistogram : Vp8LHistogram, IDisposable
+{
+    private readonly IMemoryOwner<uint> bufferOwner;
+    private MemoryHandle bufferHandle;
+    private bool isDisposed;
+
+    private OwnedVp8LHistogram(
+        IMemoryOwner<uint> bufferOwner,
+        ref MemoryHandle bufferHandle,
+        uint* basePointer,
+        int paletteCodeBits)
+        : base(basePointer, paletteCodeBits)
+    {
+        this.bufferOwner = bufferOwner;
+        this.bufferHandle = bufferHandle;
+    }
+
+    /// <summary>
+    /// Creates an <see cref="OwnedVp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="paletteCodeBits">The palette code bits.</param>
+    public static OwnedVp8LHistogram Create(MemoryAllocator memoryAllocator, int paletteCodeBits)
+    {
+        IMemoryOwner<uint> bufferOwner = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
+        MemoryHandle bufferHandle = bufferOwner.Memory.Pin();
+        return new OwnedVp8LHistogram(bufferOwner, ref bufferHandle, (uint*)bufferHandle.Pointer, paletteCodeBits);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="OwnedVp8LHistogram"/> that is not a member of a <see cref="Vp8LHistogramSet"/>.
+    /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="refs">The backward references to initialize the histogram with.</param>
+    /// <param name="paletteCodeBits">The palette code bits.</param>
+    public static OwnedVp8LHistogram Create(MemoryAllocator memoryAllocator, Vp8LBackwardRefs refs, int paletteCodeBits)
+    {
+        OwnedVp8LHistogram histogram = Create(memoryAllocator, paletteCodeBits);
+        histogram.StoreRefs(refs);
+        return histogram;
+    }
 
     public void Dispose()
     {
-        if (!this.IsDisposed)
+        if (!this.isDisposed)
         {
             this.bufferHandle.Dispose();
-            this.bufferOwner?.Dispose();
-            this.IsDisposed = true;
+            this.bufferOwner.Dispose();
+            this.isDisposed = true;
         }
     }
 }

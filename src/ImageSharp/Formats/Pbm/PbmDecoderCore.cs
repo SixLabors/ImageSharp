@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -180,7 +179,6 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             meta.ColorType = this.ColorType;
             meta.ComponentType = this.ComponentType;
 
-            [DoesNotReturn]
             static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
         }
 

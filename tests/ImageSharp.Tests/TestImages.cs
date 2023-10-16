@@ -916,6 +916,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
             public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
             public const string Issues2123 = "Tiff/Issues/Issue2123.tiff";
+            public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

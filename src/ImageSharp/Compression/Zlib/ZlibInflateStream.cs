@@ -161,6 +161,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                 bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
                 this.currentDataRemaining -= bytesToRead;
                 bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+                if (bytesRead == 0)
+                {
+                    return totalBytesRead;
+                }
+
                 totalBytesRead += bytesRead;
             }
 
@@ -168,22 +173,13 @@ namespace SixLabors.ImageSharp.Compression.Zlib
         }
 
         /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
+        public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
@@ -245,22 +241,17 @@ namespace SixLabors.ImageSharp.Compression.Zlib
                         // CINFO is not defined in this specification for CM not equal to 8.
                         throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
                     }
-                    else
-                    {
-                        return false;
-                    }
+
+                    return false;
                 }
+            }
+            else if (isCriticalChunk)
+            {
+                throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
             }
             else
             {
-                if (isCriticalChunk)
-                {
-                    throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
-                }
-                else
-                {
-                    return false;
-                }
+                return false;
             }
 
             // The preset dictionary.
@@ -269,7 +260,11 @@ namespace SixLabors.ImageSharp.Compression.Zlib
             {
                 // We don't need this for inflate so simply skip by the next four bytes.
                 // https://tools.ietf.org/html/rfc1950#page-6
-                this.innerStream.Read(ChecksumBuffer, 0, 4);
+                if (this.innerStream.Read(ChecksumBuffer, 0, 4) != 4)
+                {
+                    return false;
+                }
+
                 this.currentDataRemaining -= 4;
             }
 

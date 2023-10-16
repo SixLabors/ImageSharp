@@ -121,6 +121,11 @@ namespace SixLabors.ImageSharp.Memory
             AllocationOptions options = AllocationOptions.None)
         {
             long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
+            if (totalLengthInBytes < 0)
+            {
+                throw new InvalidMemoryOperationException("Attempted to allocate a MemoryGroup of a size that is not representable.");
+            }
+
             if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
             {
                 var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);

@@ -15,7 +15,7 @@ internal static class BufferedReadStreamExtensions
     /// </summary>
     /// <param name="stream">The buffered read stream.</param>
     /// <returns><see langword="false"/> if EOF has been reached while reading the stream; see langword="true"/> otherwise.</returns>
-    public static bool TrySkipWhitespaceAndComments(this BufferedReadStream stream)
+    public static bool SkipWhitespaceAndComments(this BufferedReadStream stream)
     {
         bool isWhitespace;
         do
@@ -61,7 +61,7 @@ internal static class BufferedReadStreamExtensions
     /// A 'false' return value doesn't mean that the parsing has been failed, since it's possible to reach EOF while reading the last decimal in the file.
     /// It's up to the call site to handle such a situation.
     /// </remarks>
-    public static bool TryReadDecimal(this BufferedReadStream stream, out int value)
+    public static bool ReadDecimal(this BufferedReadStream stream, out int value)
     {
         value = 0;
         while (true)

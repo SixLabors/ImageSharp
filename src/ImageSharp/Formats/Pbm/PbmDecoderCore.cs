@@ -146,18 +146,18 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
         }
 
-        if (!stream.TrySkipWhitespaceAndComments() ||
-            !stream.TryReadDecimal(out int width) ||
-            !stream.TrySkipWhitespaceAndComments() ||
-            !stream.TryReadDecimal(out int height) ||
-            !stream.TrySkipWhitespaceAndComments())
+        if (!stream.SkipWhitespaceAndComments() ||
+            !stream.ReadDecimal(out int width) ||
+            !stream.SkipWhitespaceAndComments() ||
+            !stream.ReadDecimal(out int height) ||
+            !stream.SkipWhitespaceAndComments())
         {
             ThrowPrematureEof();
         }
 
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            if (!stream.TryReadDecimal(out this.maxPixelValue))
+            if (!stream.ReadDecimal(out this.maxPixelValue))
             {
                 ThrowPrematureEof();
             }
@@ -171,7 +171,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 this.componentType = PbmComponentType.Byte;
             }
 
-            stream.TrySkipWhitespaceAndComments();
+            stream.SkipWhitespaceAndComments();
         }
         else
         {

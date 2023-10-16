@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm
         /// Processes the ppm header.
         /// </summary>
         /// <param name="stream">The input stream.</param>
+        /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
         private void ProcessHeader(BufferedReadStream stream)
         {
             Span<byte> buffer = stackalloc byte[2];
@@ -139,14 +140,22 @@ namespace SixLabors.ImageSharp.Formats.Pbm
                     throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
             }
 
-            stream.SkipWhitespaceAndComments();
-            int width = stream.ReadDecimal();
-            stream.SkipWhitespaceAndComments();
-            int height = stream.ReadDecimal();
-            stream.SkipWhitespaceAndComments();
+            if (!stream.SkipWhitespaceAndComments() ||
+                !stream.ReadDecimal(out int width) ||
+                !stream.SkipWhitespaceAndComments() ||
+                !stream.ReadDecimal(out int height) ||
+                !stream.SkipWhitespaceAndComments())
+            {
+                ThrowPrematureEof();
+            }
+
             if (this.ColorType != PbmColorType.BlackAndWhite)
             {
-                this.maxPixelValue = stream.ReadDecimal();
+                if (!stream.ReadDecimal(out this.maxPixelValue))
+                {
+                    ThrowPrematureEof();
+                }
+
                 if (this.maxPixelValue > 255)
                 {
                     this.ComponentType = PbmComponentType.Short;
@@ -169,6 +178,8 @@ namespace SixLabors.ImageSharp.Formats.Pbm
             meta.Encoding = this.Encoding;
             meta.ColorType = this.ColorType;
             meta.ComponentType = this.ComponentType;
+
+            static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
         }
 
         private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)

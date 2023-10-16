@@ -86,13 +86,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Pbm
         }
 
         [Fact]
-        public void Identify_HandlesCraftedDenialOfServiceString()
+        public void Identify_EofInHeader_ThrowsInvalidImageContentException()
         {
             byte[] bytes = Convert.FromBase64String("UDEjWAAACQAAAAA=");
-            IImageInfo info = Image.Identify(bytes);
-            Assert.Equal(default, info.Size());
-            IImageFormat format = Configuration.Default.ImageFormatsManager.FindFormatByFileExtension("pbm");
-            Assert.Equal("PBM", format.Name);
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(bytes));
         }
     }
 }

@@ -40,7 +40,7 @@ internal class DirectoryReader
     public IList<ExifProfile> Read()
     {
         this.ByteOrder = ReadByteOrder(this.stream);
-        HeaderReader headerReader = new(this.stream, this.ByteOrder);
+        var headerReader = new HeaderReader(this.stream, this.ByteOrder);
         headerReader.ReadFileHeader();
 
         this.nextIfdOffset = headerReader.FirstIfdOffset;
@@ -52,12 +52,7 @@ internal class DirectoryReader
     private static ByteOrder ReadByteOrder(Stream stream)
     {
         Span<byte> headerBytes = stackalloc byte[2];
-
-        if (stream.Read(headerBytes) != 2)
-        {
-            throw TiffThrowHelper.ThrowInvalidHeader();
-        }
-
+        stream.Read(headerBytes);
         if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
         {
             return ByteOrder.LittleEndian;
@@ -73,10 +68,10 @@ internal class DirectoryReader
 
     private IList<ExifProfile> ReadIfds(bool isBigTiff)
     {
-        List<EntryReader> readers = new();
+        var readers = new List<EntryReader>();
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
         {
-            EntryReader reader = new(this.stream, this.ByteOrder, this.allocator);
+            var reader = new EntryReader(this.stream, this.ByteOrder, this.allocator);
             reader.ReadTags(isBigTiff, this.nextIfdOffset);
 
             if (reader.BigValues.Count > 0)
@@ -90,11 +85,6 @@ internal class DirectoryReader
                 }
             }
 
-            if (this.nextIfdOffset >= reader.NextIfdOffset && reader.NextIfdOffset != 0)
-            {
-                TiffThrowHelper.ThrowImageFormatException("TIFF image contains circular directory offsets");
-            }
-
             this.nextIfdOffset = reader.NextIfdOffset;
             readers.Add(reader);
 
@@ -104,11 +94,11 @@ internal class DirectoryReader
             }
         }
 
-        List<ExifProfile> list = new(readers.Count);
+        var list = new List<ExifProfile>(readers.Count);
         foreach (EntryReader reader in readers)
         {
             reader.ReadBigValues();
-            ExifProfile profile = new(reader.Values, reader.InvalidTags);
+            var profile = new ExifProfile(reader.Values, reader.InvalidTags);
             list.Add(profile);
         }
 

@@ -69,6 +69,11 @@ internal sealed class BufferedReadStream : Stream
     }
 
     /// <summary>
+    /// Gets the number indicating the EOF hits occured while reading from this instance.
+    /// </summary>
+    public int EofHitCount { get; private set; }
+
+    /// <summary>
     /// Gets the size, in bytes, of the underlying buffer.
     /// </summary>
     public int BufferSize
@@ -142,6 +147,7 @@ internal sealed class BufferedReadStream : Stream
     {
         if (this.readerPosition >= this.Length)
         {
+            this.EofHitCount++;
             return -1;
         }
 
@@ -294,7 +300,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.readerPosition += n;
         this.readBufferIndex += n;
-
+        this.CheckEof(n);
         return n;
     }
 
@@ -352,6 +358,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.Position += n;
 
+        this.CheckEof(n);
         return n;
     }
 
@@ -416,6 +423,15 @@ internal sealed class BufferedReadStream : Stream
         else
         {
             Buffer.BlockCopy(this.readBuffer, this.readBufferIndex, buffer, offset, count);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void CheckEof(int read)
+    {
+        if (read == 0)
+        {
+            this.EofHitCount++;
         }
     }
 }

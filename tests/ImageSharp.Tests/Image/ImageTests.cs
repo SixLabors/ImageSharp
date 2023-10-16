@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -34,6 +35,10 @@ public partial class ImageTests
                 Assert.Equal(Configuration.Default, image.GetConfiguration());
             }
         }
+
+        [Fact]
+        public void Width_Height_SizeNotRepresentable_ThrowsInvalidImageOperationException()
+            => Assert.Throws<InvalidMemoryOperationException>(() => new Image<Rgba32>(int.MaxValue, int.MaxValue));
 
         [Fact]
         public void Configuration_Width_Height()

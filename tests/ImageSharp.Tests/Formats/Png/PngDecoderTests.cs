@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -611,5 +610,14 @@ public partial class PngDecoderTests
                 providerDump,
                 "Disco")
             .Dispose();
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446);
+
+        Assert.True(eofHitCounter.EofHitCount <= 2);
+        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
     }
 }

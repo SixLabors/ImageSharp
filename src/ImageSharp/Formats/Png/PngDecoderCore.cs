@@ -935,7 +935,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
-                        this.configuration,
                         this.header.BitDepth,
                         in frameControl,
                         scanlineSpan,
@@ -1035,7 +1034,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessInterlacedRgbaScanline(
-                        this.configuration,
                         this.header.BitDepth,
                         in frameControl,
                         scanlineSpan,

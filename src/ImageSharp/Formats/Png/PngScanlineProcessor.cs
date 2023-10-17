@@ -41,7 +41,7 @@ internal static class PngScanlineProcessor
         Color? transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint offset = pixelOffset + (uint)frameControl.XOffset;
+        uint offset = pixelOffset + frameControl.XOffset;
         TPixel pixel = default;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
@@ -132,7 +132,7 @@ internal static class PngScanlineProcessor
         uint bytesPerSample)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint offset = pixelOffset + (uint)frameControl.XOffset;
+        uint offset = pixelOffset + frameControl.XOffset;
         TPixel pixel = default;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
@@ -242,7 +242,7 @@ internal static class PngScanlineProcessor
         Color? transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint offset = pixelOffset + (uint)frameControl.XOffset;
+        uint offset = pixelOffset + frameControl.XOffset;
 
         TPixel pixel = default;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -266,20 +266,18 @@ internal static class PngScanlineProcessor
             }
             else
             {
-                // Rgb24 rgb = default;
-                // int o = 0;
-                // for (nuint x = offset; x < frameControl.XLimit; x += increment, o += bytesPerPixel)
-                // {
-                //    rgb.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                //    rgb.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                //    rgb.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                // TODO: Investigate reintroducing bulk operations optimization here.
+                Rgb24 rgb = default;
+                int o = 0;
+                for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
+                {
+                    rgb.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
+                    rgb.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                    rgb.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
 
-                // pixel.FromRgb24(rgb);
-                //    Unsafe.Add(ref rowSpanRef, x) = pixel;
-                // }
-
-                // PixelOperations<TPixel>.Instance.FromRgb24Bytes(configuration, scanlineSpan, rowSpan, header.Width);
-                PixelOperations<TPixel>.Instance.FromRgb24Bytes(configuration, scanlineSpan, rowSpan[(int)offset..], (int)frameControl.XMax);
+                    pixel.FromRgb24(rgb);
+                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                }
             }
 
             return;
@@ -325,7 +323,6 @@ internal static class PngScanlineProcessor
     }
 
     public static void ProcessRgbaScanline<TPixel>(
-        Configuration configuration,
         int bitDepth,
         in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
@@ -334,7 +331,6 @@ internal static class PngScanlineProcessor
         int bytesPerSample)
         where TPixel : unmanaged, IPixel<TPixel> =>
         ProcessInterlacedRgbaScanline(
-            configuration,
             bitDepth,
             frameControl,
             scanlineSpan,
@@ -345,7 +341,6 @@ internal static class PngScanlineProcessor
             bytesPerSample);
 
     public static void ProcessInterlacedRgbaScanline<TPixel>(
-        Configuration configuration,
         int bitDepth,
         in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
@@ -356,7 +351,7 @@ internal static class PngScanlineProcessor
         int bytesPerSample)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint offset = pixelOffset + (uint)frameControl.XOffset;
+        uint offset = pixelOffset + frameControl.XOffset;
         TPixel pixel = default;
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
@@ -377,22 +372,20 @@ internal static class PngScanlineProcessor
         }
         else
         {
-            // ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-            // Rgba32 rgba = default;
-            // int o = 0;
-            // for (nuint x = offset; x < frameControl.XLimit; x += increment, o += bytesPerPixel)
-            // {
-            //    rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-            //    rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-            //    rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-            //    rgba.A = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
+            // TODO: Investigate reintroducing bulk operations optimization here.
+            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
+            Rgba32 rgba = default;
+            int o = 0;
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
+            {
+                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
+                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                rgba.A = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
 
-            // pixel.FromRgba32(rgba);
-            //    Unsafe.Add(ref rowSpanRef, x) = pixel;
-            // }
-
-            // PixelOperations<TPixel>.Instance.FromRgba32Bytes(configuration, scanlineSpan, rowSpan, header.Width);
-            PixelOperations<TPixel>.Instance.FromRgba32Bytes(configuration, scanlineSpan, rowSpan[(int)offset..], (int)frameControl.XMax);
+                pixel.FromRgba32(rgba);
+                Unsafe.Add(ref rowSpanRef, x) = pixel;
+            }
         }
     }
 }

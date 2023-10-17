@@ -111,7 +111,12 @@ public partial class PngDecoderTests
     public void Decode_APng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance); // MagickReferenceDecoder cannot decode APNGs
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        Assert.Equal(5, image.Frames.Count);
+
+        // TODO: Assertations.
+        // MagickReferenceDecoder cannot decode APNGs (Though ImageMagick can, we likely need to update our mapping implementation)
     }
 
     [Theory]

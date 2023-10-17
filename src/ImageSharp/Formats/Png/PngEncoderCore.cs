@@ -189,6 +189,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
 
             // Write following frames.
+            uint increment = 0;
             for (int i = 1; i < image.Frames.Count; i++)
             {
                 currentFrame = image.Frames[i];
@@ -200,12 +201,14 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                     ClearTransparentPixels(currentFrame);
                 }
 
-                frameControl = this.WriteFrameControlChunk(stream, currentFrame, (uint)i);
+                // Each frame control sequence number must be incremented by the
+                // number of frame data chunks that follow.
+                frameControl = this.WriteFrameControlChunk(stream, currentFrame, (uint)i + increment);
 
                 // Dispose of previous quantized frame and reassign.
                 quantized?.Dispose();
                 quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, currentFrame, previousPalette);
-                this.WriteDataChunks(frameControl, currentFrame, quantized, stream, true);
+                increment += this.WriteDataChunks(frameControl, currentFrame, quantized, stream, true);
             }
         }
         else
@@ -1013,7 +1016,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="quantized">The quantized pixel data. Can be null.</param>
     /// <param name="stream">The stream.</param>
     /// <param name="isFrame">Is writing fdAT or IDAT.</param>
-    private int WriteDataChunks<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
+    private uint WriteDataChunks<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] buffer;
@@ -1070,7 +1073,9 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
             if (isFrame)
             {
-                uint sequenceNumber = (uint)(frameControl.SequenceNumber + i);
+                // We increment the sequence number for each frame chunk.
+                // '1' is added to the sequence number to account for the preceding frame control chunk.
+                uint sequenceNumber = (uint)(frameControl.SequenceNumber + 1 + i);
                 this.WriteFrameDataChunk(stream, sequenceNumber, buffer, i * maxBlockSize, length);
             }
             else
@@ -1079,7 +1084,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             }
         }
 
-        return numChunks;
+        return (uint)numChunks;
     }
 
     /// <summary>

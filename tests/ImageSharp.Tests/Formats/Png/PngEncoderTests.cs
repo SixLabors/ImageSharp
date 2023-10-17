@@ -451,8 +451,14 @@ public partial class PngEncoderTests
         using MemoryStream memStream = new();
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;
+
+        image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
+
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageComparer.Exact.VerifySimilarity(output, image);
+
+        // TODO: Additional assertations regarding metadata.
+        Assert.Equal(5, image.Frames.Count);
     }
 
     [Theory]

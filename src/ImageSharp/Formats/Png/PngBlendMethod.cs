@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Png;
@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Specifies whether the frame is to be alpha blended into the current output buffer content, or whether it should completely replace its region in the output buffer.
 /// </summary>
-public enum PngBlendOperation
+public enum PngBlendMethod
 {
     /// <summary>
     /// All color components of the frame, including alpha, overwrite the current contents of the frame's output buffer region.

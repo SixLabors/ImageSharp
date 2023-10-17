@@ -23,55 +23,31 @@ public class PngFrameMetadata : IDeepCloneable
     /// <param name="other">The metadata to create an instance from.</param>
     private PngFrameMetadata(PngFrameMetadata other)
     {
-        this.Width = other.Width;
-        this.Height = other.Height;
-        this.XOffset = other.XOffset;
-        this.YOffset = other.YOffset;
-        this.DelayNumber = other.DelayNumber;
+        this.DelayNumerator = other.DelayNumerator;
         this.DelayDenominator = other.DelayDenominator;
-        this.DisposeOperation = other.DisposeOperation;
-        this.BlendOperation = other.BlendOperation;
+        this.DisposalMethod = other.DisposalMethod;
+        this.BlendMethod = other.BlendMethod;
     }
-
-    /// <summary>
-    /// Gets or sets the width of the following frame
-    /// </summary>
-    public int Width { get; set; }
-
-    /// <summary>
-    /// Gets or sets the height of the following frame
-    /// </summary>
-    public int Height { get; set; }
-
-    /// <summary>
-    /// Gets or sets the X position at which to render the following frame
-    /// </summary>
-    public int XOffset { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Y position at which to render the following frame
-    /// </summary>
-    public int YOffset { get; set; }
 
     /// <summary>
     /// Gets or sets the frame delay fraction numerator
     /// </summary>
-    public short DelayNumber { get; set; }
+    public ushort DelayNumerator { get; set; }
 
     /// <summary>
     /// Gets or sets the frame delay fraction denominator
     /// </summary>
-    public short DelayDenominator { get; set; }
+    public ushort DelayDenominator { get; set; }
 
     /// <summary>
     /// Gets or sets the type of frame area disposal to be done after rendering this frame
     /// </summary>
-    public PngDisposeOperation DisposeOperation { get; set; }
+    public PngDisposalMethod DisposalMethod { get; set; }
 
     /// <summary>
     /// Gets or sets the type of frame area rendering for this frame
     /// </summary>
-    public PngBlendOperation BlendOperation { get; set; }
+    public PngBlendMethod BlendMethod { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
@@ -79,14 +55,10 @@ public class PngFrameMetadata : IDeepCloneable
     /// <param name="frameControl">The chunk to create an instance from.</param>
     internal void FromChunk(FrameControl frameControl)
     {
-        this.Width = frameControl.Width;
-        this.Height = frameControl.Height;
-        this.XOffset = frameControl.XOffset;
-        this.YOffset = frameControl.YOffset;
-        this.DelayNumber = frameControl.DelayNumber;
+        this.DelayNumerator = frameControl.DelayNumerator;
         this.DelayDenominator = frameControl.DelayDenominator;
-        this.DisposeOperation = frameControl.DisposeOperation;
-        this.BlendOperation = frameControl.BlendOperation;
+        this.DisposalMethod = frameControl.DisposeOperation;
+        this.BlendMethod = frameControl.BlendOperation;
     }
 
     /// <inheritdoc/>

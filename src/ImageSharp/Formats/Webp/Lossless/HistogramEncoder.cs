@@ -383,8 +383,7 @@ internal static class HistogramEncoder
                 idx2 = mappings[idx2];
 
                 // Calculate cost reduction on combination.
-                double currCost = 0;
-                currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost, stats, bitsEntropy);
+                double currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost, stats, bitsEntropy);
 
                 // Found a better pair?
                 if (currCost < 0)

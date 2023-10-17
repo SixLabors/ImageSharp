@@ -184,7 +184,8 @@ public class ImagingTestCaseUtility
         string extension = null,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true,
-        bool appendSourceFileOrDescription = true)
+        bool appendSourceFileOrDescription = true,
+        Func<int, int, bool> predicate = null)
     {
         string baseDir = this.GetTestOutputFileName(string.Empty, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription);
 
@@ -195,8 +196,12 @@ public class ImagingTestCaseUtility
 
         for (int i = 0; i < frameCount; i++)
         {
-            string filePath = $"{baseDir}/{i:D2}.{extension}";
-            yield return filePath;
+            if (predicate != null && !predicate(i, frameCount))
+            {
+                continue;
+            }
+
+            yield return $"{baseDir}/{i:D2}.{extension}";
         }
     }
 
@@ -205,7 +210,8 @@ public class ImagingTestCaseUtility
         string extension = "png",
         IImageEncoder encoder = null,
         object testOutputDetails = null,
-        bool appendPixelTypeToFileName = true)
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
@@ -214,10 +220,21 @@ public class ImagingTestCaseUtility
             image.Frames.Count,
             extension,
             testOutputDetails,
-            appendPixelTypeToFileName).ToArray();
+            appendPixelTypeToFileName,
+            predicate: predicate).ToArray();
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
+            if (predicate != null && !predicate(i, image.Frames.Count))
+            {
+                continue;
+            }
+
+            if (i >= files.Length)
+            {
+                break;
+            }
+
             using Image<TPixel> frameImage = image.Frames.CloneFrame(i);
             string filePath = files[i];
             using FileStream stream = File.OpenWrite(filePath);
@@ -232,20 +249,17 @@ public class ImagingTestCaseUtility
         object testOutputDetails,
         bool appendPixelTypeToFileName,
         bool appendSourceFileOrDescription)
-    {
-        return TestEnvironment.GetReferenceOutputFileName(
+        => TestEnvironment.GetReferenceOutputFileName(
             this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription));
-    }
 
     public string[] GetReferenceOutputFileNamesMultiFrame(
         int frameCount,
         string extension,
         object testOutputDetails,
-        bool appendPixelTypeToFileName = true)
-    {
-        return this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails)
-            .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
-    }
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
+        => this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails, appendPixelTypeToFileName, predicate: predicate)
+        .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
 
     internal void Init(string typeName, string methodName, string outputSubfolderName)
     {

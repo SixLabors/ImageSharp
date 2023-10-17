@@ -20,7 +20,7 @@ public abstract partial class ImageFrameCollectionTests
         public void AddFrame_OfDifferentPixelType()
         {
             using (Image<Bgra32> sourceImage = new(
-                this.Image.GetConfiguration(),
+                this.Image.Configuration,
                 this.Image.Width,
                 this.Image.Height,
                 Color.Blue))
@@ -41,7 +41,7 @@ public abstract partial class ImageFrameCollectionTests
         public void InsertFrame_OfDifferentPixelType()
         {
             using (Image<Bgra32> sourceImage = new(
-                this.Image.GetConfiguration(),
+                this.Image.Configuration,
                 this.Image.Width,
                 this.Image.Height,
                 Color.Blue))
@@ -278,7 +278,8 @@ public abstract partial class ImageFrameCollectionTests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image source = provider.GetImage();
-            using Image<TPixel> dest = new(source.GetConfiguration(), source.Width, source.Height);
+            using Image<TPixel> dest = new(source.Configuration, source.Width, source.Height);
+            
             // Giphy.gif has 5 frames
             ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
             ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
@@ -289,7 +290,7 @@ public abstract partial class ImageFrameCollectionTests
             // Drop the original empty root frame:
             dest.Frames.RemoveFrame(0);
 
-            dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
+            dest.DebugSave(provider, extension: "gif", appendSourceFileOrDescription: false);
             dest.CompareToOriginal(provider);
 
             for (int i = 0; i < 5; i++)
@@ -314,7 +315,11 @@ public abstract partial class ImageFrameCollectionTests
 
             Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
             Assert.Equal(aData.FrameDelay, bData.FrameDelay);
-            Assert.Equal(aData.ColorTableLength, bData.ColorTableLength);
+
+            if (aData.ColorTableMode == GifColorTableMode.Local && bData.ColorTableMode == GifColorTableMode.Local)
+            {
+                Assert.Equal(aData.LocalColorTable.Value.Length, bData.LocalColorTable.Value.Length);
+            }
         }
     }
 }

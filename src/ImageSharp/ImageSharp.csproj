@@ -22,8 +22,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Bump to V3 prior to tagged release.-->
-    <MinVerMinimumMajorMinor>3.0</MinVerMinimumMajorMinor>
+    <!--Bump to v3.1 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>3.1</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>

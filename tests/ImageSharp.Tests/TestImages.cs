@@ -493,6 +493,9 @@ public static class TestImages
             public const string Issue2288_B = "Gif/issues/issue_2288_2.gif";
             public const string Issue2288_C = "Gif/issues/issue_2288_3.gif";
             public const string Issue2288_D = "Gif/issues/issue_2288_4.gif";
+            public const string Issue2450_A = "Gif/issues/issue_2450.gif";
+            public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
+            public const string Issue2198 = "Gif/issues/issue_2198.gif";
         }
 
         public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
@@ -675,6 +678,7 @@ public static class TestImages
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";
+            public const string AnimatedIssue2528 = "Webp/issues/Issue2528.webp";
 
             // Lossy images without macroblock filtering.
             public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";
@@ -977,6 +981,8 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
+        public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -1038,6 +1044,7 @@ public static class TestImages
         public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
         public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
         public const string RgbBinary = "Pbm/00000_00000.ppm";
+        public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";

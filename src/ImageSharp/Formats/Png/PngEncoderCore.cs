@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -115,13 +114,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
     /// </summary>
-    /// <param name="memoryAllocator">The <see cref="MemoryAllocator" /> to use for buffer allocations.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="encoder">The encoder with options.</param>
-    public PngEncoderCore(MemoryAllocator memoryAllocator, Configuration configuration, PngEncoder encoder)
+    public PngEncoderCore(Configuration configuration, PngEncoder encoder)
     {
-        this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
+        this.memoryAllocator = configuration.MemoryAllocator;
         this.encoder = encoder;
     }
 
@@ -910,7 +908,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="pngMetadata">The image metadata.</param>
     private void WriteTransparencyChunk(Stream stream, PngMetadata pngMetadata)
     {
-        if (!pngMetadata.HasTransparency)
+        if (pngMetadata.TransparentColor is null)
         {
             return;
         }
@@ -918,39 +916,40 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         Span<byte> alpha = this.chunkDataBuffer.Span;
         switch (pngMetadata.ColorType)
         {
-            case PngColorType.Rgb when pngMetadata.TransparentRgb48.HasValue && this.use16Bit:
-                Rgb48 rgb48 = pngMetadata.TransparentRgb48.Value;
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha, rgb48.R);
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb48.G);
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb48.B);
+            if (this.use16Bit)
+            {
+                Rgb48 rgb = pngMetadata.TransparentColor.Value.ToPixel<Rgb48>();
+                BinaryPrimitives.WriteUInt16LittleEndian(alpha, rgb.R);
+                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
+                BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
 
                 this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
-                break;
-            case PngColorType.Rgb:
-                if (pngMetadata.TransparentRgb24.HasValue)
-                {
-                    alpha.Clear();
-                    Rgb24 rgb24 = pngMetadata.TransparentRgb24.Value;
-                    alpha[1] = rgb24.R;
-                    alpha[3] = rgb24.G;
-                    alpha[5] = rgb24.B;
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
-                }
-
-                break;
-            case PngColorType.Grayscale when pngMetadata.TransparentL16.HasValue && this.use16Bit:
-                BinaryPrimitives.WriteUInt16LittleEndian(alpha, pngMetadata.TransparentL16.Value.PackedValue);
+            }
+            else
+            {
+                alpha.Clear();
+                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToRgb24();
+                alpha[1] = rgb.R;
+                alpha[3] = rgb.G;
+                alpha[5] = rgb.B;
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
+            }
+        }
+        else if (pngMetadata.ColorType == PngColorType.Grayscale)
+        {
+            if (this.use16Bit)
+            {
+                L16 l16 = pngMetadata.TransparentColor.Value.ToPixel<L16>();
+                BinaryPrimitives.WriteUInt16LittleEndian(alpha, l16.PackedValue);
                 this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
-                break;
-            case PngColorType.Grayscale:
-                if (pngMetadata.TransparentL8.HasValue)
-                {
-                    alpha.Clear();
-                    alpha[1] = pngMetadata.TransparentL8.Value.PackedValue;
-                    this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
-                }
-
-                break;
+            }
+            else
+            {
+                L8 l8 = pngMetadata.TransparentColor.Value.ToPixel<L8>();
+                alpha.Clear();
+                alpha[1] = l8.PackedValue;
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
+            }
         }
     }
 
@@ -1350,12 +1349,24 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         }
 
         // Use the metadata to determine what quantization depth to use if no quantizer has been set.
-        // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-        IQuantizer quantizer = encoder.Quantizer
-                               ?? new WuQuantizer(new QuantizerOptions { MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
+        IQuantizer quantizer = encoder.Quantizer;
+        if (quantizer is null)
+        {
+            // TODO: Can APNG have per-frame color tables?
+            PngMetadata metadata = image.Metadata.GetPngMetadata();
+            if (metadata.ColorTable is not null)
+            {
+                // Use the provided palette in total. The caller is responsible for setting values.
+                quantizer = new PaletteQuantizer(metadata.ColorTable.Value);
+            }
+            else
+            {
+                quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
+            }
+        }
 
         // Create quantized frame returning the palette and set the bit depth.
-        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(frame.GetConfiguration());
+        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(frame.Configuration);
 
         frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, frame);
         return frameQuantizer.QuantizeFrame(frame, frame.Bounds());

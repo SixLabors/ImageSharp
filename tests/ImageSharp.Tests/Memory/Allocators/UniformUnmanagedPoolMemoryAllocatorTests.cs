@@ -108,6 +108,13 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     [Fact]
+    public void AllocateGroup_SizeInBytesOverLongMaxValue_ThrowsInvalidMemoryOperationException()
+    {
+        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<S4>(int.MaxValue * (long)int.MaxValue, int.MaxValue));
+    }
+
+    [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
     {
         var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);

@@ -30,6 +30,16 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     private IMemoryOwner<byte>? globalColorTable;
 
     /// <summary>
+    /// The current local color table.
+    /// </summary>
+    private IMemoryOwner<byte>? currentLocalColorTable;
+
+    /// <summary>
+    /// Gets the size in bytes of the current local color table.
+    /// </summary>
+    private int currentLocalColorTableSize;
+
+    /// <summary>
     /// The area to restore.
     /// </summary>
     private Rectangle? restoreArea;
@@ -159,6 +169,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         finally
         {
             this.globalColorTable?.Dispose();
+            this.currentLocalColorTable?.Dispose();
         }
 
         if (image is null)
@@ -229,6 +240,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         finally
         {
             this.globalColorTable?.Dispose();
+            this.currentLocalColorTable?.Dispose();
         }
 
         if (this.logicalScreenDescriptor.Width == 0 && this.logicalScreenDescriptor.Height == 0)
@@ -332,7 +344,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
             {
                 stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span.Slice(1)).RepeatCount;
+                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
                 stream.Skip(1); // Skip the terminator.
                 return;
             }
@@ -415,25 +427,27 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         this.ReadImageDescriptor(stream);
 
-        IMemoryOwner<byte>? localColorTable = null;
         Buffer2D<byte>? indices = null;
         try
         {
             // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
-            if (this.imageDescriptor.LocalColorTableFlag)
+            bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
+
+            if (hasLocalColorTable)
             {
-                int length = this.imageDescriptor.LocalColorTableSize * 3;
-                localColorTable = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
-                stream.Read(localColorTable.GetSpan());
+                // Read and store the local color table. We allocate the maximum possible size and slice to match.
+                int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
+                this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
+                stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
             }
 
             indices = this.configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
             this.ReadFrameIndices(stream, indices);
 
             Span<byte> rawColorTable = default;
-            if (localColorTable != null)
+            if (hasLocalColorTable)
             {
-                rawColorTable = localColorTable.GetSpan();
+                rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
             }
             else if (this.globalColorTable != null)
             {
@@ -448,7 +462,6 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
         finally
         {
-            localColorTable?.Dispose();
             indices?.Dispose();
         }
     }
@@ -509,7 +522,10 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 prevFrame = previousFrame;
             }
 
-            currentFrame = image!.Frames.CreateFrame();
+            // We create a clone of the frame and add it.
+            // We will overpaint the difference of pixels on the current frame to create a complete image.
+            // This ensures that we have enough pixel data to process without distortion. #2450
+            currentFrame = image!.Frames.AddFrame(previousFrame);
 
             this.SetFrameMetadata(currentFrame.Metadata);
 
@@ -631,7 +647,10 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         // Skip the color table for this frame if local.
         if (this.imageDescriptor.LocalColorTableFlag)
         {
-            stream.Skip(this.imageDescriptor.LocalColorTableSize * 3);
+            // Read and store the local color table. We allocate the maximum possible size and slice to match.
+            int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
+            this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
+            stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
         }
 
         // Skip the frame indices. Pixels length + mincode size.
@@ -682,7 +701,6 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.ColorTableMode = GifColorTableMode.Global;
-            gifMeta.ColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize;
         }
 
         if (this.imageDescriptor.LocalColorTableFlag
@@ -690,13 +708,23 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
             gifMeta.ColorTableMode = GifColorTableMode.Local;
-            gifMeta.ColorTableLength = this.imageDescriptor.LocalColorTableSize;
+
+            Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
+            ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                colorTable[i] = new Color(rgbTable[i]);
+            }
+
+            gifMeta.LocalColorTable = colorTable;
         }
 
         // Graphics control extensions is optional.
         if (this.graphicsControlExtension != default)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
+            gifMeta.HasTransparency = this.graphicsControlExtension.TransparencyFlag;
+            gifMeta.TransparencyIndex = this.graphicsControlExtension.TransparencyIndex;
             gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
             gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
         }
@@ -751,14 +779,22 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         if (this.logicalScreenDescriptor.GlobalColorTableFlag)
         {
             int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-            this.gifMetadata.GlobalColorTableLength = globalColorTableLength;
-
             if (globalColorTableLength > 0)
             {
                 this.globalColorTable = this.memoryAllocator.Allocate<byte>(globalColorTableLength, AllocationOptions.Clean);
 
-                // Read the global color table data from the stream
-                stream.Read(this.globalColorTable.GetSpan());
+                // Read the global color table data from the stream and preserve it in the gif metadata
+                Span<byte> globalColorTableSpan = this.globalColorTable.GetSpan();
+                stream.Read(globalColorTableSpan);
+
+                Color[] colorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
+                ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(globalColorTableSpan);
+                for (int i = 0; i < colorTable.Length; i++)
+                {
+                    colorTable[i] = new Color(rgbTable[i]);
+                }
+
+                this.gifMetadata.GlobalColorTable = colorTable;
             }
         }
     }

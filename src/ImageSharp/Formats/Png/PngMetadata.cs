@@ -28,12 +28,13 @@ public class PngMetadata : IDeepCloneable
         this.ColorType = other.ColorType;
         this.Gamma = other.Gamma;
         this.InterlaceMethod = other.InterlaceMethod;
-        this.HasTransparency = other.HasTransparency;
-        this.TransparentL8 = other.TransparentL8;
-        this.TransparentL16 = other.TransparentL16;
-        this.TransparentRgb24 = other.TransparentRgb24;
-        this.TransparentRgb48 = other.TransparentRgb48;
+        this.TransparentColor = other.TransparentColor;
         this.NumberPlays = other.NumberPlays;
+
+        if (other.ColorTable?.Length > 0)
+        {
+            this.ColorTable = other.ColorTable.Value.ToArray();
+        }
 
         for (int i = 0; i < other.TextData.Count; i++)
         {
@@ -63,33 +64,14 @@ public class PngMetadata : IDeepCloneable
     public float Gamma { get; set; }
 
     /// <summary>
-    /// Gets or sets the Rgb24 transparent color.
-    /// This represents any color in an 8 bit Rgb24 encoded png that should be transparent.
+    /// Gets or sets the color table, if any.
     /// </summary>
-    public Rgb24? TransparentRgb24 { get; set; }
+    public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
     /// <summary>
-    /// Gets or sets the Rgb48 transparent color.
-    /// This represents any color in a 16 bit Rgb24 encoded png that should be transparent.
+    /// Gets or sets the transparent color used with non palette based images, if a transparency chunk and markers were decoded.
     /// </summary>
-    public Rgb48? TransparentRgb48 { get; set; }
-
-    /// <summary>
-    /// Gets or sets the 8 bit grayscale transparent color.
-    /// This represents any color in an 8 bit grayscale encoded png that should be transparent.
-    /// </summary>
-    public L8? TransparentL8 { get; set; }
-
-    /// <summary>
-    /// Gets or sets the 16 bit grayscale transparent color.
-    /// This represents any color in a 16 bit grayscale encoded png that should be transparent.
-    /// </summary>
-    public L16? TransparentL16 { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the image contains a transparency chunk and markers were decoded.
-    /// </summary>
-    public bool HasTransparency { get; set; }
+    public Color? TransparentColor { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of text data stored within the iTXt, tEXt, and zTXt chunks.
@@ -98,7 +80,7 @@ public class PngMetadata : IDeepCloneable
     public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
 
     /// <summary>
-    /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
+    /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping. TODO: RepeatCount!!
     /// </summary>
     public int NumberPlays { get; set; }
 

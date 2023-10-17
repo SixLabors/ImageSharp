@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
@@ -100,7 +101,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     {
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
-        this.quantizer = encoder.Quantizer;
+        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
     }
@@ -118,7 +119,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         ImageMetadata metadata = image.Metadata;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;

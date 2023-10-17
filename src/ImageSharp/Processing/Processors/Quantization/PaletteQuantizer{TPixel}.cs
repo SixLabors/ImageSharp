@@ -25,18 +25,23 @@ internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     /// <param name="palette">The palette to use.</param>
+    /// <param name="transparentIndex">An explicit index at which to match transparent pixels.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public PaletteQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> palette)
+    public PaletteQuantizer(
+        Configuration configuration,
+        QuantizerOptions options,
+        ReadOnlyMemory<TPixel> palette,
+        int transparentIndex)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(options, nameof(options));
 
         this.Configuration = configuration;
         this.Options = options;
-        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, transparentIndex);
     }
 
     /// <inheritdoc/>
@@ -58,6 +63,12 @@ internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
     }
+
+    /// <summary>
+    /// Allows setting the transparent index after construction.
+    /// </summary>
+    /// <param name="index">An explicit index at which to match transparent pixels.</param>
+    public void SetTransparentIndex(int index) => this.pixelMap.SetTransparentIndex(index);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

@@ -220,6 +220,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             if (image is null)
                             {
                                 this.InitializeImage(metadata, lastFrameControl, out image);
+
+                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
+                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             FrameControl frameControl = lastFrameControl ?? new(0, this.header.Width, this.header.Height, 0, 0, 0, 0, default, default);
@@ -228,15 +231,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             lastFrameControl = null;
                             break;
                         case PngChunkType.Palette:
-                            byte[] pal = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(pal);
-                            this.palette = pal;
+                            this.palette = chunk.Data.GetSpan().ToArray();
                             break;
                         case PngChunkType.Transparency:
-                            byte[] alpha = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(alpha);
-                            this.paletteAlpha = alpha;
-                            this.AssignTransparentMarkers(alpha, pngMetadata);
+                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
                             break;
                         case PngChunkType.Text:
                             this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
@@ -375,12 +374,15 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             this.SkipChunkDataAndCrc(chunk);
                             break;
-                        case PngChunkType.Transparency:
-                            byte[] alpha = new byte[chunk.Length];
-                            chunk.Data.GetSpan().CopyTo(alpha);
-                            this.paletteAlpha = alpha;
-                            this.AssignTransparentMarkers(alpha, pngMetadata);
+                        case PngChunkType.Palette:
+                            this.palette = chunk.Data.GetSpan().ToArray();
+                            break;
 
+                        case PngChunkType.Transparency:
+                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
+
+                            // Spec says tRNS must be after PLTE so safe to exit.
                             if (this.colorMetadataOnly)
                             {
                                 goto EOF;
@@ -452,6 +454,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 PngThrowHelper.ThrowInvalidHeader();
             }
+
+            // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
+            AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
 
             return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata);
         }
@@ -892,9 +897,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         frameControl,
                         scanlineSpan,
                         rowSpan,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentL16.GetValueOrDefault(),
-                        pngMetadata.TransparentL8.GetValueOrDefault());
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -914,8 +917,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         frameControl,
                         scanlineSpan,
                         rowSpan,
-                        this.palette,
-                        this.paletteAlpha);
+                        pngMetadata.ColorTable);
 
                     break;
 
@@ -927,9 +929,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
-                        pngMetadata.TransparentRgb24.GetValueOrDefault());
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -989,9 +989,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         rowSpan,
                         (uint)pixelOffset,
                         (uint)increment,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentL16.GetValueOrDefault(),
-                        pngMetadata.TransparentL8.GetValueOrDefault());
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1015,8 +1013,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         rowSpan,
                         (uint)pixelOffset,
                         (uint)increment,
-                        this.palette,
-                        this.paletteAlpha);
+                        pngMetadata.ColorTable);
 
                     break;
 
@@ -1030,9 +1027,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         (uint)increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.HasTransparency,
-                        pngMetadata.TransparentRgb48.GetValueOrDefault(),
-                        pngMetadata.TransparentRgb24.GetValueOrDefault());
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1057,9 +1052,43 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
+    /// Decodes and assigns the color palette to the metadata
+    /// </summary>
+    /// <param name="palette">The palette buffer.</param>
+    /// <param name="alpha">The alpha palette buffer.</param>
+    /// <param name="pngMetadata">The png metadata.</param>
+    private static void AssignColorPalette(ReadOnlySpan<byte> palette, ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
+    {
+        if (palette.Length == 0)
+        {
+            return;
+        }
+
+        Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
+        ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
+        for (int i = 0; i < colorTable.Length; i++)
+        {
+            colorTable[i] = new Color(rgbTable[i]);
+        }
+
+        if (alpha.Length > 0)
+        {
+            // The alpha chunk may contain as many transparency entries as there are palette entries
+            // (more than that would not make any sense) or as few as one.
+            for (int i = 0; i < alpha.Length; i++)
+            {
+                ref Color color = ref colorTable[i];
+                color = color.WithAlpha(alpha[i] / 255F);
+            }
+        }
+
+        pngMetadata.ColorTable = colorTable;
+    }
+
+    /// <summary>
     /// Decodes and assigns marker colors that identify transparent pixels in non indexed images.
     /// </summary>
-    /// <param name="alpha">The alpha tRNS array.</param>
+    /// <param name="alpha">The alpha tRNS buffer.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha, PngMetadata pngMetadata)
     {
@@ -1073,16 +1102,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                     ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                    pngMetadata.TransparentRgb48 = new Rgb48(rc, gc, bc);
-                    pngMetadata.HasTransparency = true;
+                    pngMetadata.TransparentColor = new(new Rgb48(rc, gc, bc));
                     return;
                 }
 
                 byte r = ReadByteLittleEndian(alpha, 0);
                 byte g = ReadByteLittleEndian(alpha, 2);
                 byte b = ReadByteLittleEndian(alpha, 4);
-                pngMetadata.TransparentRgb24 = new Rgb24(r, g, b);
-                pngMetadata.HasTransparency = true;
+                pngMetadata.TransparentColor = new(new Rgb24(r, g, b));
             }
         }
         else if (this.pngColorType == PngColorType.Grayscale)
@@ -1091,19 +1118,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 if (this.header.BitDepth == 16)
                 {
-                    pngMetadata.TransparentL16 = new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2]));
+                    pngMetadata.TransparentColor = Color.FromPixel(new L16(BinaryPrimitives.ReadUInt16LittleEndian(alpha[..2])));
                 }
                 else
                 {
-                    pngMetadata.TransparentL8 = new L8(ReadByteLittleEndian(alpha, 0));
+                    pngMetadata.TransparentColor = Color.FromPixel(new L8(ReadByteLittleEndian(alpha, 0)));
                 }
-
-                pngMetadata.HasTransparency = true;
             }
-        }
-        else if (this.pngColorType == PngColorType.Palette && alpha.Length > 0)
-        {
-            pngMetadata.HasTransparency = true;
         }
     }
 
@@ -1634,7 +1655,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
         // We can skip all other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly && type is not PngChunkType.Header and not PngChunkType.Transparency)
+        if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency && type != PngChunkType.Palette)
         {
             chunk = new PngChunk(length, type);
 

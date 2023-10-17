@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -338,6 +337,24 @@ public class WebpDecoderTests
         DecoderOptions options = new() { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
+    }
+
+    [Theory]
+    [WithFile(Lossy.AnimatedIssue2528, PixelTypes.Rgba32)]
+    public void Decode_AnimatedLossy_IgnoreBackgroundColor_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpDecoderOptions options = new()
+        {
+            BackgroundColorHandling = BackgroundColorHandling.Ignore,
+            GeneralOptions = new DecoderOptions()
+            {
+                MaxFrames = 1
+            }
+        };
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
     [Theory]

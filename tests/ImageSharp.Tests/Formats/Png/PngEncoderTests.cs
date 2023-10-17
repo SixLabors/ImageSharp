@@ -99,6 +99,9 @@ public partial class PngEncoderTests
         { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };
 
+    [Fact]
+    public void PngEncoderDefaultInstanceHasNullQuantizer() => Assert.Null(PngEncoder.Quantizer);
+
     [Theory]
     [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
     [WithTestPatternImages(nameof(PngColorTypes), 48, 24, PixelTypes.Rgba32)]
@@ -459,44 +462,17 @@ public partial class PngEncoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
         PngMetadata inMeta = input.Metadata.GetPngMetadata();
-        Assert.True(inMeta.HasTransparency);
+        Assert.True(inMeta.TransparentColor.HasValue);
 
         using MemoryStream memStream = new();
         input.Save(memStream, PngEncoder);
         memStream.Position = 0;
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         PngMetadata outMeta = output.Metadata.GetPngMetadata();
-        Assert.True(outMeta.HasTransparency);
-
-        switch (pngColorType)
-        {
-            case PngColorType.Grayscale:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentL16.HasValue);
-                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentL8.HasValue);
-                    Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
-                }
-
-                break;
-            case PngColorType.Rgb:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentRgb48.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentRgb24.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
-                }
-
-                break;
-        }
+        Assert.True(outMeta.TransparentColor.HasValue);
+        Assert.Equal(inMeta.TransparentColor, outMeta.TransparentColor);
+        Assert.Equal(pngBitDepth, outMeta.BitDepth);
+        Assert.Equal(pngColorType, outMeta.ColorType);
     }
 
     [Theory]
@@ -608,7 +584,7 @@ public partial class PngEncoderTests
         string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
         string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
 
-        string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
+        string debugInfo = pngColorTypeInfo + pngFilterMethodInfo + compressionLevelInfo + paletteSizeInfo + pngBitDepthInfo + pngInterlaceModeInfo;
 
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 

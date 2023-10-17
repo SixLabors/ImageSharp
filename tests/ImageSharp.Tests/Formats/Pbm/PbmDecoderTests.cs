@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
@@ -119,5 +121,24 @@ public class PbmDecoderTests
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
+    }
+
+    [Fact]
+    public void PlainText_PrematureEof()
+    {
+        byte[] bytes = Encoding.ASCII.GetBytes($"P1\n100 100\n1 0 1 0 1 0");
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(bytes);
+
+        Assert.True(eofHitCounter.EofHitCount <= 2);
+        Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(RgbBinaryPrematureEof);
+
+        Assert.True(eofHitCounter.EofHitCount <= 2);
+        Assert.Equal(new Size(29, 30), eofHitCounter.Image.Size);
     }
 }

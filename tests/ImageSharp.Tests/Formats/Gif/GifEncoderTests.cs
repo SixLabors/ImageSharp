@@ -33,9 +33,12 @@ public class GifEncoderTests
         }
     }
 
+    [Fact]
+    public void GifEncoderDefaultInstanceHasNullQuantizer() => Assert.Null(new GifEncoder().Quantizer);
+
     [Theory]
     [WithTestPatternImages(100, 100, TestPixelTypes, false)]
-    [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+    [WithTestPatternImages(100, 100, TestPixelTypes, true)]
     public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider, bool limitAllocationBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -171,10 +174,21 @@ public class GifEncoderTests
         GifMetadata metaData = image.Metadata.GetGifMetadata();
         GifFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetGifMetadata();
         GifColorTableMode colorMode = metaData.ColorTableMode;
+
+        int maxColors;
+        if (colorMode == GifColorTableMode.Global)
+        {
+            maxColors = metaData.GlobalColorTable.Value.Length;
+        }
+        else
+        {
+            maxColors = frameMetadata.LocalColorTable.Value.Length;
+        }
+
         GifEncoder encoder = new()
         {
             ColorTableMode = colorMode,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = frameMetadata.ColorTableLength })
+            Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
         };
 
         image.Save(outStream, encoder);
@@ -187,15 +201,31 @@ public class GifEncoderTests
         Assert.Equal(metaData.ColorTableMode, cloneMetadata.ColorTableMode);
 
         // Gifiddle and Cyotek GifInfo say this image has 64 colors.
-        Assert.Equal(64, frameMetadata.ColorTableLength);
+        colorMode = cloneMetadata.ColorTableMode;
+        if (colorMode == GifColorTableMode.Global)
+        {
+            maxColors = metaData.GlobalColorTable.Value.Length;
+        }
+        else
+        {
+            maxColors = frameMetadata.LocalColorTable.Value.Length;
+        }
+
+        Assert.Equal(64, maxColors);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
-            GifFrameMetadata ifm = image.Frames[i].Metadata.GetGifMetadata();
-            GifFrameMetadata cifm = clone.Frames[i].Metadata.GetGifMetadata();
+            GifFrameMetadata iMeta = image.Frames[i].Metadata.GetGifMetadata();
+            GifFrameMetadata cMeta = clone.Frames[i].Metadata.GetGifMetadata();
 
-            Assert.Equal(ifm.ColorTableLength, cifm.ColorTableLength);
-            Assert.Equal(ifm.FrameDelay, cifm.FrameDelay);
+            if (iMeta.ColorTableMode == GifColorTableMode.Local)
+            {
+                Assert.Equal(iMeta.LocalColorTable.Value.Length, cMeta.LocalColorTable.Value.Length);
+            }
+
+            Assert.Equal(iMeta.FrameDelay, cMeta.FrameDelay);
+            Assert.Equal(iMeta.HasTransparency, cMeta.HasTransparency);
+            Assert.Equal(iMeta.TransparencyIndex, cMeta.TransparencyIndex);
         }
 
         image.Dispose();

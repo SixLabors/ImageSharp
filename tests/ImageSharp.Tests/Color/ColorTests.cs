@@ -18,11 +18,19 @@ public partial class ColorTests
         Assert.Equal(expected, (Rgba32)c2);
     }
 
-    [Fact]
-    public void Equality_WhenTrue()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Equality_WhenTrue(bool highPrecision)
     {
         Color c1 = new Rgba64(100, 2000, 3000, 40000);
         Color c2 = new Rgba64(100, 2000, 3000, 40000);
+
+        if (highPrecision)
+        {
+            c1 = Color.FromPixel(c1.ToPixel<RgbaVector>());
+            c2 = Color.FromPixel(c2.ToPixel<RgbaVector>());
+        }
 
         Assert.True(c1.Equals(c2));
         Assert.True(c1 == c2);
@@ -30,12 +38,21 @@ public partial class ColorTests
         Assert.True(c1.GetHashCode() == c2.GetHashCode());
     }
 
-    [Fact]
-    public void Equality_WhenFalse()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Equality_WhenFalse(bool highPrecision)
     {
         Color c1 = new Rgba64(100, 2000, 3000, 40000);
         Color c2 = new Rgba64(101, 2000, 3000, 40000);
         Color c3 = new Rgba64(100, 2000, 3000, 40001);
+
+        if (highPrecision)
+        {
+            c1 = Color.FromPixel(c1.ToPixel<RgbaVector>());
+            c2 = Color.FromPixel(c2.ToPixel<RgbaVector>());
+            c3 = Color.FromPixel(c3.ToPixel<RgbaVector>());
+        }
 
         Assert.False(c1.Equals(c2));
         Assert.False(c2.Equals(c3));
@@ -47,13 +64,20 @@ public partial class ColorTests
         Assert.False(c1.Equals(null));
     }
 
-    [Fact]
-    public void ToHex()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToHex(bool highPrecision)
     {
         string expected = "ABCD1234";
-        var color = Color.ParseHex(expected);
-        string actual = color.ToHex();
+        Color color = Color.ParseHex(expected);
 
+        if (highPrecision)
+        {
+            color = Color.FromPixel(color.ToPixel<RgbaVector>());
+        }
+
+        string actual = color.ToHex();
         Assert.Equal(expected, actual);
     }
 

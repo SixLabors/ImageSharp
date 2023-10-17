@@ -78,12 +78,12 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="metadata">The images metadata.</param>
     internal Image(Configuration configuration, int width, int height, ImageMetadata? metadata)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
+        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata ?? new(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-    /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel bufferx.
+    /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel buffer.
     /// </summary>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
     /// <param name="pixelBuffer">Pixel buffer.</param>
@@ -129,7 +129,7 @@ public sealed class Image<TPixel> : Image
         int height,
         TPixel backgroundColor,
         ImageMetadata? metadata)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
+        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata ?? new(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 
     /// <summary>
@@ -328,7 +328,7 @@ public sealed class Image<TPixel> : Image
     /// Clones the current image
     /// </summary>
     /// <returns>Returns a new image with all the same metadata as the original.</returns>
-    public Image<TPixel> Clone() => this.Clone(this.GetConfiguration());
+    public Image<TPixel> Clone() => this.Clone(this.Configuration);
 
     /// <summary>
     /// Clones the current image with the given configuration.

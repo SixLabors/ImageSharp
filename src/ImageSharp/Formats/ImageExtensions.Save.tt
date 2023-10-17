@@ -78,7 +78,7 @@ public static partial class ImageExtensions
     public static void SaveAs<#= fmt #>(this Image source, string path, <#= fmt #>Encoder encoder) =>
         source.Save(
             path,
-            encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance));
+            encoder ?? source.Configuration.ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -92,7 +92,7 @@ public static partial class ImageExtensions
     public static Task SaveAs<#= fmt #>Async(this Image source, string path, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               path,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance),
+              encoder ?? source.Configuration.ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance),
               cancellationToken);
 
     /// <summary>
@@ -125,7 +125,7 @@ public static partial class ImageExtensions
     public static void SaveAs<#= fmt #>(this Image source, Stream stream, <#= fmt #>Encoder encoder)
         => source.Save(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance));
+              encoder ?? source.Configuration.ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance));
 
     /// <summary>
     /// Saves the image to the given stream with the <#= fmt #> format.
@@ -139,7 +139,7 @@ public static partial class ImageExtensions
     public static Task SaveAs<#= fmt #>Async(this Image source, Stream stream, <#= fmt #>Encoder encoder, CancellationToken cancellationToken = default)
         => source.SaveAsync(
               stream,
-              encoder ?? source.GetConfiguration().ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance),
+              encoder ?? source.Configuration.ImageFormatsManager.GetEncoder(<#= fmt #>Format.Instance),
               cancellationToken);
 
 <#

@@ -49,7 +49,7 @@ public sealed class PbmEncoder : ImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        PbmEncoderCore encoder = new(image.GetConfiguration(), this);
+        PbmEncoderCore encoder = new(image.Configuration, this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

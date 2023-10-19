@@ -150,9 +150,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
-        this.WriteHeaderChunk(stream);
-        this.WriteGammaChunk(stream);
-        this.WriteColorProfileChunk(stream, metadata);
 
         ImageFrame<TPixel>? clonedFrame = null;
         ImageFrame<TPixel> currentFrame = image.Frames.RootFrame;
@@ -164,9 +161,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             ClearTransparentPixels(currentFrame);
         }
 
+        // Do not move this. We require an accurate bit depth for the header chunk.
         IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, currentFrame, null);
-        this.WritePaletteChunk(stream, quantized);
 
+        this.WriteHeaderChunk(stream);
+        this.WriteGammaChunk(stream);
+        this.WriteColorProfileChunk(stream, metadata);
+        this.WritePaletteChunk(stream, quantized);
         this.WriteTransparencyChunk(stream, pngMetadata);
         this.WritePhysicalChunk(stream, metadata);
         this.WriteExifChunk(stream, metadata);

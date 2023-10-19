@@ -326,6 +326,17 @@ public partial class JpegDecoderTests
         image.CompareToOriginal(provider);
     }
 
+    // https://github.com/SixLabors/ImageSharp/discussions/2564
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2564, PixelTypes.Rgba32)]
+    public void Issue2564_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
     public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)

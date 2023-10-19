@@ -73,7 +73,8 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
     {
         // Some images incorrectly use JFXX as the App0 marker (Issue 2478)
         if (ProfileResolver.IsProfile(bytes, ProfileResolver.JFifMarker)
-            || ProfileResolver.IsProfile(bytes, ProfileResolver.JFxxMarker))
+            || ProfileResolver.IsProfile(bytes, ProfileResolver.JFxxMarker)
+            || ProfileResolver.IsProfile(bytes, ProfileResolver.OSQidMaker))
         {
             byte majorVersion = bytes[5];
             byte minorVersion = bytes[6];

@@ -138,7 +138,7 @@ internal class WebpAnimationDecoder : IDisposable
     private uint ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, uint width, uint height, Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        AnimationFrameData frameData = this.ReadFrameHeader(stream);
+        AnimationFrameData frameData = AnimationFrameData.Parse(stream);
         long streamStartPosition = stream.Position;
         Span<byte> buffer = stackalloc byte[4];
 
@@ -173,7 +173,7 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel> imageFrame;
         if (previousFrame is null)
         {
-            image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
+            image = new(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
 
             SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
 
@@ -258,7 +258,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         try
         {
-            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.Frames.RootFrame.PixelBuffer;
+            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.GetRootFramePixelBuffer();
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
@@ -351,42 +351,6 @@ internal class WebpAnimationDecoder : IDisposable
         Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
         pixelRegion.Fill(backgroundPixel);
-    }
-
-    /// <summary>
-    /// Reads the animation frame header.
-    /// </summary>
-    /// <param name="stream">The stream to read from.</param>
-    /// <returns>Animation frame data.</returns>
-    private AnimationFrameData ReadFrameHeader(BufferedReadStream stream)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-
-        AnimationFrameData data = new()
-        {
-            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
-
-            // 3 bytes for the X coordinate of the upper left corner of the frame.
-            X = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
-
-            // 3 bytes for the Y coordinate of the upper left corner of the frame.
-            Y = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer),
-
-            // Frame width Minus One.
-            Width = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
-
-            // Frame height Minus One.
-            Height = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer) + 1,
-
-            // Frame duration.
-            Duration = WebpChunkParsingUtils.ReadUnsignedInt24Bit(stream, buffer)
-        };
-
-        byte flags = (byte)stream.ReadByte();
-        data.DisposalMethod = (flags & 1) == 1 ? AnimationDisposalMethod.Dispose : AnimationDisposalMethod.DoNotDispose;
-        data.BlendingMethod = (flags & (1 << 1)) != 0 ? AnimationBlendingMethod.DoNotBlend : AnimationBlendingMethod.AlphaBlending;
-
-        return data;
     }
 
     /// <inheritdoc/>

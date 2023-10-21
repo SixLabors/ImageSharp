@@ -701,12 +701,11 @@ internal class Vp8BitWriter : BitWriterBase
 
     private void WriteVp8Header(Stream stream, uint size)
     {
-        Span<byte> vp8ChunkHeader = stackalloc byte[WebpConstants.ChunkHeaderSize];
-
-        WebpConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
-        BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader[4..], size);
-
-        stream.Write(vp8ChunkHeader);
+        Span<byte> buf = stackalloc byte[WebpConstants.TagSize];
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Vp8);
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
+        stream.Write(buf);
     }
 
     private void WriteFrameHeader(Stream stream, uint size0)

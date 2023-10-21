@@ -105,7 +105,7 @@ internal class Vp8LBitWriter : BitWriterBase
     {
         byte[] clonedBuffer = new byte[this.Buffer.Length];
         System.Buffer.BlockCopy(this.Buffer, 0, clonedBuffer, 0, this.cur);
-        return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
+        return new(clonedBuffer, this.bits, this.used, this.cur);
     }
 
     /// <inheritdoc/>
@@ -186,12 +186,13 @@ internal class Vp8LBitWriter : BitWriterBase
         }
 
         // Write magic bytes indicating its a lossless webp.
-        stream.Write(WebpConstants.Vp8LMagicBytes);
+        Span<byte> scratchBuffer = stackalloc byte[WebpConstants.TagSize];
+        BinaryPrimitives.WriteUInt32BigEndian(scratchBuffer, (uint)WebpChunkType.Vp8L);
+        stream.Write(scratchBuffer);
 
         // Write Vp8 Header.
-        Span<byte> scratchBuffer = stackalloc byte[8];
         BinaryPrimitives.WriteUInt32LittleEndian(scratchBuffer, size);
-        stream.Write(scratchBuffer.Slice(0, 4));
+        stream.Write(scratchBuffer);
         stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
         // Write the encoded bytes of the image to the stream.
@@ -226,7 +227,7 @@ internal class Vp8LBitWriter : BitWriterBase
 
         Span<byte> scratchBuffer = stackalloc byte[8];
         BinaryPrimitives.WriteUInt64LittleEndian(scratchBuffer, this.bits);
-        scratchBuffer.Slice(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
+        scratchBuffer[..4].CopyTo(this.Buffer.AsSpan(this.cur));
 
         this.cur += WriterBytes;
         this.bits >>= WriterBits;

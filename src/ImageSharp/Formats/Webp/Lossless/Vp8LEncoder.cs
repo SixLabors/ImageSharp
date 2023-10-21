@@ -254,7 +254,7 @@ internal class Vp8LEncoder : IDisposable
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
+        bool hasAlpha = this.ConvertPixelsToBgra(image.Frames.RootFrame, width, height);
 
         // Write the image size.
         this.WriteImageSize(width, height);
@@ -263,7 +263,7 @@ internal class Vp8LEncoder : IDisposable
         this.WriteAlphaAndVersion(hasAlpha);
 
         // Encode the main image stream.
-        this.EncodeStream(image);
+        this.EncodeStream(image.Frames.RootFrame);
 
         // Write bytes from the bitwriter buffer to the stream.
         this.bitWriter.WriteEncodedImageToStream(stream, exifProfile, xmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
@@ -273,23 +273,23 @@ internal class Vp8LEncoder : IDisposable
     /// Encodes the alpha image data using the webp lossless compression.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
     /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
     /// <returns>The size of the compressed data in bytes.
     /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
     /// </returns>
-    public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
+    public int EncodeAlphaImageData<TPixel>(ImageFrame<TPixel> frame, IMemoryOwner<byte> alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(image, width, height);
+        this.ConvertPixelsToBgra(frame, width, height);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
-        this.EncodeStream(image);
+        this.EncodeStream(frame);
         this.bitWriter.Finish();
         int size = this.bitWriter.NumBytes();
         if (size >= pixelCount)
@@ -333,12 +333,12 @@ internal class Vp8LEncoder : IDisposable
     /// Encodes the image stream using lossless webp format.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
-    /// <param name="image">The image to encode.</param>
-    private void EncodeStream<TPixel>(Image<TPixel> image)
+    /// <param name="frame">The frame to encode.</param>
+    private void EncodeStream<TPixel>(ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
 
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<uint> encodedData = this.EncodedData.GetSpan();
@@ -447,14 +447,14 @@ internal class Vp8LEncoder : IDisposable
     /// Converts the pixels of the image to bgra.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="image">The image to convert.</param>
+    /// <param name="frame">The frame to convert.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
+    private bool ConvertPixelsToBgra<TPixel>(ImageFrame<TPixel> frame, int width, int height)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = frame.PixelBuffer;
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
@@ -1149,35 +1149,41 @@ internal class Vp8LEncoder : IDisposable
             entropyComp[j] = bitEntropy.BitsEntropyRefine();
         }
 
-        entropy[(int)EntropyIx.Direct] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                         entropyComp[(int)HistoIx.HistoRed] +
-                                         entropyComp[(int)HistoIx.HistoGreen] +
-                                         entropyComp[(int)HistoIx.HistoBlue];
-        entropy[(int)EntropyIx.Spatial] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                          entropyComp[(int)HistoIx.HistoRedPred] +
-                                          entropyComp[(int)HistoIx.HistoGreenPred] +
-                                          entropyComp[(int)HistoIx.HistoBluePred];
-        entropy[(int)EntropyIx.SubGreen] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                           entropyComp[(int)HistoIx.HistoRedSubGreen] +
-                                           entropyComp[(int)HistoIx.HistoGreen] +
-                                           entropyComp[(int)HistoIx.HistoBlueSubGreen];
-        entropy[(int)EntropyIx.SpatialSubGreen] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                                  entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
-                                                  entropyComp[(int)HistoIx.HistoGreenPred] +
-                                                  entropyComp[(int)HistoIx.HistoBluePredSubGreen];
+        entropy[(int)EntropyIx.Direct] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRed] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlue];
+        entropy[(int)EntropyIx.Spatial] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPred] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePred];
+        entropy[(int)EntropyIx.SubGreen] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRedSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlueSubGreen];
+        entropy[(int)EntropyIx.SpatialSubGreen] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePredSubGreen];
         entropy[(int)EntropyIx.Palette] = entropyComp[(int)HistoIx.HistoPalette];
 
         // When including transforms, there is an overhead in bits from
         // storing them. This overhead is small but matters for small images.
         // For spatial, there are 14 transformations.
-        entropy[(int)EntropyIx.Spatial] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                           LosslessUtils.SubSampleSize(height, transformBits) *
-                                           LosslessUtils.FastLog2(14);
+        entropy[(int)EntropyIx.Spatial] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(14);
 
         // For color transforms: 24 as only 3 channels are considered in a ColorTransformElement.
-        entropy[(int)EntropyIx.SpatialSubGreen] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                                   LosslessUtils.SubSampleSize(height, transformBits) *
-                                                   LosslessUtils.FastLog2(24);
+        entropy[(int)EntropyIx.SpatialSubGreen] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(24);
 
         // For palettes, add the cost of storing the palette.
         // We empirically estimate the cost of a compressed entry as 8 bits.

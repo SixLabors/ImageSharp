@@ -93,11 +93,6 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
-                if (this.webImageInfo.Features is { Animation: true })
-                {
-                    WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
-                }
-
                 image = new Image<TPixel>(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)

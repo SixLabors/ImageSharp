@@ -34,39 +34,6 @@ internal static class WebpConstants
     public const byte Vp8LHeaderMagicByte = 0x2F;
 
     /// <summary>
-    /// Signature bytes identifying a lossy image.
-    /// </summary>
-    public static readonly byte[] Vp8MagicBytes =
-    {
-        0x56, // V
-        0x50, // P
-        0x38, // 8
-        0x20 // ' '
-    };
-
-    /// <summary>
-    /// Signature bytes identifying a lossless image.
-    /// </summary>
-    public static readonly byte[] Vp8LMagicBytes =
-    {
-        0x56, // V
-        0x50, // P
-        0x38, // 8
-        0x4C // L
-    };
-
-    /// <summary>
-    /// Signature bytes identifying a VP8X header.
-    /// </summary>
-    public static readonly byte[] Vp8XMagicBytes =
-    {
-        0x56, // V
-        0x50, // P
-        0x38, // 8
-        0x58 // X
-    };
-
-    /// <summary>
     /// The header bytes identifying RIFF file.
     /// </summary>
     public static readonly byte[] RiffFourCc =

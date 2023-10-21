@@ -323,7 +323,7 @@ internal class Vp8Encoder : IDisposable
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
+        bool hasAlpha = YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame, this.configuration, this.memoryAllocator, y, u, v);
 
         int yStride = width;
         int uvStride = (yStride + 1) >> 1;
@@ -393,7 +393,7 @@ internal class Vp8Encoder : IDisposable
             {
                 // TODO: This can potentially run in an separate task.
                 encodedAlphaData = AlphaEncoder.EncodeAlpha(
-                    image,
+                    image.Frames.RootFrame,
                     this.configuration,
                     this.memoryAllocator,
                     this.skipMetadata,

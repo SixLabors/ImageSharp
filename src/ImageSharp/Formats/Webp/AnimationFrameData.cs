@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 internal struct AnimationFrameData
@@ -9,6 +11,11 @@ internal struct AnimationFrameData
     /// The animation chunk size.
     /// </summary>
     public uint DataSize;
+
+    /// <summary>
+    /// X(3) + Y(3) + Width(3) + Height(3) + Duration(3) + 1 byte for flags.
+    /// </summary>
+    public const uint HeaderSize = 16;
 
     /// <summary>
     /// The X coordinate of the upper left corner of the frame is Frame X * 2.
@@ -45,4 +52,40 @@ internal struct AnimationFrameData
     /// Indicates how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
     /// </summary>
     public AnimationDisposalMethod DisposalMethod;
+
+    /// <summary>
+    /// Reads the animation frame header.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <returns>Animation frame data.</returns>
+    public static AnimationFrameData Parse(BufferedReadStream stream)
+    {
+        Span<byte> buffer = stackalloc byte[4];
+
+        AnimationFrameData data = new()
+        {
+            DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
+
+            // 3 bytes for the X coordinate of the upper left corner of the frame.
+            X = WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
+
+            // 3 bytes for the Y coordinate of the upper left corner of the frame.
+            Y = WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
+
+            // Frame width Minus One.
+            Width = WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
+
+            // Frame height Minus One.
+            Height = WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
+
+            // Frame duration.
+            Duration = WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer)
+        };
+
+        byte flags = (byte)stream.ReadByte();
+        data.DisposalMethod = (flags & 1) == 1 ? AnimationDisposalMethod.Dispose : AnimationDisposalMethod.DoNotDispose;
+        data.BlendingMethod = (flags & (1 << 1)) != 0 ? AnimationBlendingMethod.DoNotBlend : AnimationBlendingMethod.AlphaBlending;
+
+        return data;
+    }
 }

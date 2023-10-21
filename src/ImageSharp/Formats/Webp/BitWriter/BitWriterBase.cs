@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -92,7 +93,7 @@ internal abstract class BitWriterBase
     {
         stream.Write(WebpConstants.RiffFourCc);
         BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer.Span, riffSize);
-        stream.Write(this.scratchBuffer.Span.Slice(0, 4));
+        stream.Write(this.scratchBuffer.Span[..4]);
         stream.Write(WebpConstants.WebpHeader);
     }
 
@@ -129,7 +130,7 @@ internal abstract class BitWriterBase
         DebugGuard.NotNull(metadataBytes, nameof(metadataBytes));
 
         uint size = (uint)metadataBytes.Length;
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span[..4];
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)chunkType);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
@@ -144,6 +145,61 @@ internal abstract class BitWriterBase
     }
 
     /// <summary>
+    /// Writes the color profile(<see cref="WebpChunkType.Iccp"/>) to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="iccProfileBytes">The color profile bytes.</param>
+    protected void WriteColorProfile(Stream stream, byte[] iccProfileBytes) => this.WriteMetadataProfile(stream, iccProfileBytes, WebpChunkType.Iccp);
+
+    /// <summary>
+    /// Writes the animation parameter(<see cref="WebpChunkType.AnimationParameter"/>) to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="background">
+    /// The default background color of the canvas in [Blue, Green, Red, Alpha] byte order.
+    /// This color MAY be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when the Disposal method is 1.
+    /// </param>
+    /// <param name="loopCount">The number of times to loop the animation. If it is 0, this means infinitely.</param>
+    protected void WriteAnimationParameter(Stream stream, uint background, ushort loopCount)
+    {
+        Span<byte> buf = this.scratchBuffer.Span[..4];
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.AnimationParameter);
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt32LittleEndian(buf, sizeof(uint) + sizeof(ushort));
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt32LittleEndian(buf, background);
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt16LittleEndian(buf[..2], loopCount);
+        stream.Write(buf[..2]);
+    }
+
+    /// <summary>
+    /// Writes the animation frame(<see cref="WebpChunkType.Animation"/>) to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="animation">Animation frame data.</param>
+    /// <param name="data">Frame data.</param>
+    protected void WriteAnimationFrame(Stream stream, AnimationFrameData animation, byte[] data)
+    {
+        uint size = AnimationFrameData.HeaderSize + (uint)data.Length;
+        Span<byte> buf = this.scratchBuffer.Span[..4];
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Animation);
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt32BigEndian(buf, size);
+        stream.Write(buf);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.X);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Y);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Width - 1);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Height - 1);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Duration);
+        byte flag = (byte)(((int)animation.BlendingMethod << 1) | (int)animation.DisposalMethod);
+        stream.WriteByte(flag);
+        stream.Write(data);
+    }
+
+    /// <summary>
     /// Writes the alpha chunk to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
@@ -152,7 +208,7 @@ internal abstract class BitWriterBase
     protected void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
     {
         uint size = (uint)dataBytes.Length + 1;
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
+        Span<byte> buf = this.scratchBuffer.Span[..4];
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Alpha);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
@@ -161,35 +217,11 @@ internal abstract class BitWriterBase
         byte flags = 0;
         if (alphaDataIsCompressed)
         {
-            flags |= 1;
+            flags = 1;
         }
 
         stream.WriteByte(flags);
         stream.Write(dataBytes);
-
-        // Add padding byte if needed.
-        if ((size & 1) == 1)
-        {
-            stream.WriteByte(0);
-        }
-    }
-
-    /// <summary>
-    /// Writes the color profile to the stream.
-    /// </summary>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="iccProfileBytes">The color profile bytes.</param>
-    protected void WriteColorProfile(Stream stream, byte[] iccProfileBytes)
-    {
-        uint size = (uint)iccProfileBytes.Length;
-
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Iccp);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
-        stream.Write(buf);
-
-        stream.Write(iccProfileBytes);
 
         // Add padding byte if needed.
         if ((size & 1) == 1)
@@ -246,8 +278,9 @@ internal abstract class BitWriterBase
             flags |= 32;
         }
 
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        stream.Write(WebpConstants.Vp8XMagicBytes);
+        Span<byte> buf = this.scratchBuffer.Span[..4];
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Vp8X);
+        stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, WebpConstants.Vp8XChunkSize);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, flags);

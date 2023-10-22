@@ -162,6 +162,11 @@ internal class WebpAnimationDecoder : IDisposable
                 features.AlphaChunkHeader = alphaChunkHeader;
                 break;
             case WebpChunkType.Vp8L:
+                if (hasAlpha)
+                {
+                    WebpThrowHelper.ThrowNotSupportedException("Alpha channel is not supported for lossless webp images.");
+                }
+
                 webpInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                 break;
             default:

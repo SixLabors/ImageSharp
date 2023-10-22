@@ -50,6 +50,11 @@ internal class Vp8EncIterator
 
     private int uvTopIdx;
 
+    public Vp8EncIterator(Vp8Encoder enc)
+        : this(enc.YTop, enc.UvTop, enc.Nz, enc.MbInfo, enc.Preds, enc.TopDerr, enc.Mbw, enc.Mbh)
+    {
+    }
+
     public Vp8EncIterator(byte[] yTop, byte[] uvTop, uint[] nz, Vp8MacroBlockInfo[] mb, byte[] preds, sbyte[] topDerr, int mbw, int mbh)
     {
         this.YTop = yTop;

@@ -328,7 +328,7 @@ internal class Vp8Encoder : IDisposable
         int yStride = width;
         int uvStride = (yStride + 1) >> 1;
 
-        Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+        Vp8EncIterator it = new(this);
         Span<int> alphas = stackalloc int[WebpConstants.MaxAlpha + 1];
         this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
         int totalMb = this.Mbw * this.Mbw;
@@ -520,7 +520,7 @@ internal class Vp8Encoder : IDisposable
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+        Vp8EncIterator it = new(this);
         long size = 0;
         long sizeP0 = 0;
         long distortion = 0;

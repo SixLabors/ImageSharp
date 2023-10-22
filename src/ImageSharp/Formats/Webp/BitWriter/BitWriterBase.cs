@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.Drawing;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -181,7 +180,7 @@ internal abstract class BitWriterBase
     /// <param name="stream">The stream to write to.</param>
     /// <param name="animation">Animation frame data.</param>
     /// <param name="data">Frame data.</param>
-    protected void WriteAnimationFrame(Stream stream, AnimationFrameData animation, byte[] data)
+    protected void WriteAnimationFrame(Stream stream, AnimationFrameData animation, Span<byte> data)
     {
         uint size = AnimationFrameData.HeaderSize + (uint)data.Length;
         Span<byte> buf = this.scratchBuffer.Span[..4];
@@ -259,6 +258,14 @@ internal abstract class BitWriterBase
             // Set exif bit.
             flags |= 8;
         }
+
+        /*
+        if (isAnimated)
+        {
+            // Set animated flag.
+            flags |= 2;
+        }
+        */
 
         if (xmpProfile != null)
         {

@@ -44,9 +44,6 @@ internal class Vp8LBitWriter : BitWriterBase
     {
     }
 
-    /// <inheritdoc/>
-    public override int NumBytes => this.cur + ((this.used + 7) >> 3);
-
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
     /// Used internally for cloning.
@@ -58,6 +55,9 @@ internal class Vp8LBitWriter : BitWriterBase
         this.used = used;
         this.cur = cur;
     }
+
+    /// <inheritdoc/>
+    public override int NumBytes => this.cur + ((this.used + 7) >> 3);
 
     /// <summary>
     /// This function writes bits into bytes in increasing addresses (little endian),

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -17,14 +18,28 @@ public class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
-    [Fact]
-    public void Encode_AnimatedLossy()
+    [Theory]
+    [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossless<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<Rgba32> image = Image.Load<Rgba32>(@"C:\WorkSpace\ImageSharp\tests\Images\Input\Webp\leo_animated_lossless.webp");
-        image.SaveAsWebp(@"C:\Users\poker\Desktop\3.webp", new WebpEncoder()
-        {
-            FileFormat = WebpFileFormatType.Lossless
-        });
+        using Image<TPixel> image = provider.GetImage();
+        using MemoryStream memStream = new();
+        image.SaveAsWebp(memStream, new() { FileFormat = WebpFileFormatType.Lossless });
+
+        // TODO: DebugSave, VerifySimilarity
+    }
+
+    [Theory]
+    [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossy<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        using MemoryStream memStream = new();
+        image.SaveAsWebp(memStream, new());
+
+        // TODO: DebugSave, VerifySimilarity
     }
 
     [Theory]

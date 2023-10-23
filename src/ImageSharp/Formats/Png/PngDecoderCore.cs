@@ -210,7 +210,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             if (currentFrame is null)
                             {
-                                this.InitializeFrame(previousFrameControl.Value, image, out currentFrame);
+                                this.InitializeFrame(previousFrameControl.Value, image, previousFrame, out currentFrame);
                             }
 
                             this.currentStream.Position += 4;
@@ -612,14 +612,31 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <typeparam name="TPixel">The type the pixels will be</typeparam>
     /// <param name="frameControl">The frame control information for the frame</param>
     /// <param name="image">The image that we will populate</param>
+    /// <param name="previousFrame">The previous frame.</param>
     /// <param name="frame">The created frame</param>
-    private void InitializeFrame<TPixel>(FrameControl frameControl, Image<TPixel> image, out ImageFrame<TPixel> frame)
+    private void InitializeFrame<TPixel>(
+        FrameControl frameControl,
+        Image<TPixel> image,
+        ImageFrame<TPixel>? previousFrame,
+        out ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        frame = image.Frames.CreateFrame();
+        // We create a clone of the previous frame and add it.
+        // We will overpaint the difference of pixels on the current frame to create a complete image.
+        // This ensures that we have enough pixel data to process without distortion. #2450
+        frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
+
+        // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
+        if (frameControl.DisposeOperation == PngDisposalMethod.Background
+            || (previousFrame is null && frameControl.DisposeOperation == PngDisposalMethod.Previous))
+        {
+            Rectangle restoreArea = new((int)frameControl.XOffset, (int)frameControl.YOffset, (int)frameControl.Width, (int)frameControl.Height);
+            Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
+            pixelRegion.Clear();
+        }
 
         PngFrameMetadata frameMetadata = frame.Metadata.GetPngFrameMetadata();
-
         frameMetadata.FromChunk(frameControl);
 
         this.previousScanline?.Dispose();

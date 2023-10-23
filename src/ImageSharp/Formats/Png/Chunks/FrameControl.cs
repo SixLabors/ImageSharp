@@ -91,6 +91,8 @@ internal readonly struct FrameControl
     /// </summary>
     public PngBlendMethod BlendOperation { get; }
 
+    public Rectangle Bounds => new((int)this.XOffset, (int)this.YOffset, (int)this.Width, (int)this.Height);
+
     /// <summary>
     /// Validates the APng fcTL.
     /// </summary>

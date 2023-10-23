@@ -225,7 +225,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             PngFrameMetadata pngFrameMetadata = currentFrame.Metadata.GetPngFrameMetadata();
                             if (previousFrame != null && pngFrameMetadata.BlendMethod == PngBlendMethod.Over)
                             {
-                                this.AlphaBlend(previousFrame, currentFrame);
+                                this.AlphaBlend(previousFrame, currentFrame, previousFrameControl.Value.Bounds);
                             }
 
                             previousFrame = currentFrame;
@@ -630,7 +630,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         if (frameControl.DisposeOperation == PngDisposalMethod.Background
             || (previousFrame is null && frameControl.DisposeOperation == PngDisposalMethod.Previous))
         {
-            Rectangle restoreArea = new((int)frameControl.XOffset, (int)frameControl.YOffset, (int)frameControl.Width, (int)frameControl.Height);
+            Rectangle restoreArea = frameControl.Bounds;
             Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
             pixelRegion.Clear();
@@ -1895,15 +1895,15 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void SwapScanlineBuffers()
         => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);
 
-    private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst)
+    private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, Rectangle restoreArea)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> srcPixels = src.PixelBuffer;
-        Buffer2D<TPixel> dstPixels = dst.PixelBuffer;
+        Buffer2DRegion<TPixel> srcPixels = src.PixelBuffer.GetRegion(restoreArea);
+        Buffer2DRegion<TPixel> dstPixels = dst.PixelBuffer.GetRegion(restoreArea);
         PixelBlender<TPixel> blender =
             PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
 
-        for (int y = 0; y < src.Height; y++)
+        for (int y = 0; y < srcPixels.Height; y++)
         {
             Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y);
             Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y);

@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -236,26 +235,59 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    /// <summary>
-    /// Encodes the image as lossless webp to the specified stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, uint background = 0, uint loopCount = 0)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
-
+        // Write bytes from the bitwriter buffer to the stream.
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
 
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
+        BitWriterBase.WriteTrunksBeforeData(
+            stream,
+            (uint)image.Width,
+            (uint)image.Height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            false,
+            hasAnimation);
+
+        if (hasAnimation)
+        {
+            BitWriterBase.WriteAnimationParameter(stream, background, (ushort)loopCount);
+        }
+    }
+
+    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+    }
+
+    /// <summary>
+    /// Encodes the image as lossless webp to the specified stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    public void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int width = frame.Width;
+        int height = frame.Height;
+
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(image.Frames.RootFrame, width, height);
+        bool hasAlpha = this.ConvertPixelsToBgra(frame, width, height);
 
         // Write the image size.
         this.WriteImageSize(width, height);
@@ -264,23 +296,28 @@ internal class Vp8LEncoder : IDisposable
         this.WriteAlphaAndVersion(hasAlpha);
 
         // Encode the main image stream.
-        this.EncodeStream(image.Frames.RootFrame);
+        this.EncodeStream(frame);
 
         this.bitWriter.Finish();
-        BitWriterBase.WriteTrunksBeforeData(
-            stream,
-            (uint)width,
-            (uint)height,
-            exifProfile,
-            xmpProfile,
-            metadata.IccProfile,
-            false /*hasAlpha*/,
-            false);
+
+        long prevPosition = 0;
+
+        if (hasAnimation)
+        {
+            prevPosition = BitWriterBase.WriteAnimationFrame(stream, new()
+            {
+                Width = (uint)frame.Width,
+                Height = (uint)frame.Height
+            });
+        }
 
         // Write bytes from the bitwriter buffer to the stream.
         this.bitWriter.WriteEncodedImageToStream(stream);
 
-        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+        if (hasAnimation)
+        {
+            BitWriterBase.OverwriteFrameSize(stream, prevPosition);
+        }
     }
 
     /// <summary>
@@ -1843,9 +1880,9 @@ internal class Vp8LEncoder : IDisposable
     {
         this.Bgra.Dispose();
         this.EncodedData.Dispose();
-        this.BgraScratch.Dispose();
+        this.BgraScratch?.Dispose();
         this.Palette.Dispose();
-        this.TransformData.Dispose();
+        this.TransformData?.Dispose();
         this.HashChain.Dispose();
     }
 

@@ -129,7 +129,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using Vp8LEncoder enc = new(
+            using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -140,7 +140,34 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.transparentColorMode,
                 this.nearLossless,
                 this.nearLosslessQuality);
-            enc.Encode(image, stream);
+
+            bool hasAnimation = image.Frames.Count > 1;
+            encoder.EncodeHeader(image, stream, hasAnimation);
+            if (hasAnimation)
+            {
+                foreach (ImageFrame<TPixel> imageFrame in image.Frames)
+                {
+                    using Vp8LEncoder enc = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        image.Width,
+                        image.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.transparentColorMode,
+                        this.nearLossless,
+                        this.nearLosslessQuality);
+
+                    enc.Encode(imageFrame, stream, true);
+                }
+            }
+            else
+            {
+                encoder.Encode(image.Frames.RootFrame, stream, false);
+            }
+
+            encoder.EncodeFooter(image, stream);
         }
         else
         {
@@ -174,6 +201,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                         this.filterStrength,
                         this.spatialNoiseShaping,
                         this.alphaCompression);
+
                     enc.EncodeAnimation(imageFrame, stream);
                 }
             }

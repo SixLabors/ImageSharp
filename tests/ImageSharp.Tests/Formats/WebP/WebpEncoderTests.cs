@@ -20,8 +20,11 @@ public class WebpEncoderTests
     [Fact]
     public void Encode_AnimatedLossy()
     {
-        Image<Rgba32> image = Image.Load<Rgba32>(@"C:\Users\poker\Desktop\1.webp");
-        image.SaveAsWebp(@"C:\Users\poker\Desktop\3.webp");
+        Image<Rgba32> image = Image.Load<Rgba32>(@"C:\WorkSpace\ImageSharp\tests\Images\Input\Webp\leo_animated_lossless.webp");
+        image.SaveAsWebp(@"C:\Users\poker\Desktop\3.webp", new WebpEncoder()
+        {
+            FileFormat = WebpFileFormatType.Lossless
+        });
     }
 
     [Theory]

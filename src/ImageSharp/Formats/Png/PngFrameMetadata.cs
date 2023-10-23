@@ -53,7 +53,7 @@ public class PngFrameMetadata : IDeepCloneable
     /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
     /// </summary>
     /// <param name="frameControl">The chunk to create an instance from.</param>
-    internal void FromChunk(FrameControl frameControl)
+    internal void FromChunk(in FrameControl frameControl)
     {
         this.DelayNumerator = frameControl.DelayNumerator;
         this.DelayDenominator = frameControl.DelayDenominator;

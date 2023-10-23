@@ -567,7 +567,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         if (frameControl is { } control)
         {
             PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngFrameMetadata();
-            frameMetadata.FromChunk(control);
+            frameMetadata.FromChunk(in control);
         }
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -837,7 +837,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 }
 
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
-                this.ProcessInterlacedDefilteredScanline(frameControl, this.scanline.GetSpan(), rowSpan, pngMetadata, pixelOffset: Adam7.FirstColumn[pass], increment: Adam7.ColumnIncrement[pass]);
+                this.ProcessInterlacedDefilteredScanline(
+                    frameControl,
+                    this.scanline.GetSpan(),
+                    rowSpan,
+                    pngMetadata,
+                    pixelOffset: Adam7.FirstColumn[pass],
+                    increment: Adam7.ColumnIncrement[pass]);
 
                 this.SwapScanlineBuffers();
 
@@ -935,6 +941,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
+                        this.configuration,
                         this.header.BitDepth,
                         in frameControl,
                         scanlineSpan,
@@ -961,7 +968,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
     /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-    private void ProcessInterlacedDefilteredScanline<TPixel>(in FrameControl frameControl, ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
+    private void ProcessInterlacedDefilteredScanline<TPixel>(
+        in FrameControl frameControl,
+        ReadOnlySpan<byte> defilteredScanline,
+        Span<TPixel> rowSpan,
+        PngMetadata pngMetadata,
+        int pixelOffset = 0,
+        int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Trim the first marker byte from the buffer
@@ -1034,6 +1047,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessInterlacedRgbaScanline(
+                        this.configuration,
                         this.header.BitDepth,
                         in frameControl,
                         scanlineSpan,

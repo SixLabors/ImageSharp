@@ -216,18 +216,18 @@ internal static class PngScanlineProcessor
         int bytesPerPixel,
         int bytesPerSample,
         Color? transparentColor)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        ProcessInterlacedRgbScanline(
-            configuration,
-            bitDepth,
-            frameControl,
-            scanlineSpan,
-            rowSpan,
-            0,
-            1,
-            bytesPerPixel,
-            bytesPerSample,
-            transparentColor);
+       where TPixel : unmanaged, IPixel<TPixel> =>
+       ProcessInterlacedRgbScanline(
+           configuration,
+           bitDepth,
+           frameControl,
+           scanlineSpan,
+           rowSpan,
+           0,
+           1,
+           bytesPerPixel,
+           bytesPerSample,
+           transparentColor);
 
     public static void ProcessInterlacedRgbScanline<TPixel>(
         Configuration configuration,
@@ -264,9 +264,16 @@ internal static class PngScanlineProcessor
                     Unsafe.Add(ref rowSpanRef, x) = pixel;
                 }
             }
+            else if (pixelOffset == 0 && increment == 1)
+            {
+                PixelOperations<TPixel>.Instance.FromRgb24Bytes(
+                    configuration,
+                    scanlineSpan[..(int)(frameControl.Width * bytesPerPixel)],
+                    rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width),
+                    (int)frameControl.Width);
+            }
             else
             {
-                // TODO: Investigate reintroducing bulk operations optimization here.
                 Rgb24 rgb = default;
                 int o = 0;
                 for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
@@ -323,24 +330,27 @@ internal static class PngScanlineProcessor
     }
 
     public static void ProcessRgbaScanline<TPixel>(
+        Configuration configuration,
         int bitDepth,
         in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         int bytesPerPixel,
         int bytesPerSample)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        ProcessInterlacedRgbaScanline(
-            bitDepth,
-            frameControl,
-            scanlineSpan,
-            rowSpan,
-            0,
-            1,
-            bytesPerPixel,
-            bytesPerSample);
+       where TPixel : unmanaged, IPixel<TPixel> =>
+       ProcessInterlacedRgbaScanline(
+           configuration,
+           bitDepth,
+           frameControl,
+           scanlineSpan,
+           rowSpan,
+           0,
+           1,
+           bytesPerPixel,
+           bytesPerSample);
 
     public static void ProcessInterlacedRgbaScanline<TPixel>(
+        Configuration configuration,
         int bitDepth,
         in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
@@ -370,9 +380,16 @@ internal static class PngScanlineProcessor
                 Unsafe.Add(ref rowSpanRef, x) = pixel;
             }
         }
+        else if (pixelOffset == 0 && increment == 1)
+        {
+            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                configuration,
+                scanlineSpan[..(int)(frameControl.Width * bytesPerPixel)],
+                rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width),
+                (int)frameControl.Width);
+        }
         else
         {
-            // TODO: Investigate reintroducing bulk operations optimization here.
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             Rgba32 rgba = default;
             int o = 0;

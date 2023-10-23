@@ -3,9 +3,6 @@
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 
@@ -122,68 +119,11 @@ internal class Vp8LBitWriter : BitWriterBase
         this.used = 0;
     }
 
-    /// <summary>
-    /// Writes the encoded image to the stream.
-    /// </summary>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="exifProfile">The exif profile.</param>
-    /// <param name="xmpProfile">The XMP profile.</param>
-    /// <param name="iccProfile">The color profile.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
-    /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    public void WriteEncodedImageToStream(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha)
+    /// <inheritdoc />
+    public override void WriteEncodedImageToStream(Stream stream)
     {
-        bool isVp8X = false;
-        byte[]? exifBytes = null;
-        byte[]? xmpBytes = null;
-        byte[]? iccBytes = null;
-        uint riffSize = 0;
-        if (exifProfile != null)
-        {
-            isVp8X = true;
-            exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes!);
-        }
-
-        if (xmpProfile != null)
-        {
-            isVp8X = true;
-            xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes!);
-        }
-
-        if (iccProfile != null)
-        {
-            isVp8X = true;
-            iccBytes = iccProfile.ToByteArray();
-            riffSize += MetadataChunkSize(iccBytes);
-        }
-
-        if (isVp8X)
-        {
-            riffSize += ExtendedFileChunkSize;
-        }
-
-        this.Finish();
-        uint size = (uint)this.NumBytes;
-        size++; // One byte extra for the VP8L signature.
-
-        // Write RIFF header.
+        uint size = (uint)this.NumBytes + 1; // One byte extra for the VP8L signature
         uint pad = size & 1;
-        riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + size + pad;
-        this.WriteRiffHeader(stream, riffSize);
-
-        // Write VP8X, header if necessary.
-        if (isVp8X)
-        {
-            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
-
-            if (iccBytes != null)
-            {
-                this.WriteColorProfile(stream, iccBytes);
-            }
-        }
 
         // Write magic bytes indicating its a lossless webp.
         Span<byte> scratchBuffer = stackalloc byte[WebpConstants.TagSize];
@@ -200,16 +140,6 @@ internal class Vp8LBitWriter : BitWriterBase
         if (pad == 1)
         {
             stream.WriteByte(0);
-        }
-
-        if (exifProfile != null)
-        {
-            this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
-        }
-
-        if (xmpProfile != null)
-        {
-            this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
         }
     }
 

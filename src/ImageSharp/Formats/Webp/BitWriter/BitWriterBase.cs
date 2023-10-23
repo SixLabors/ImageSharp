@@ -138,6 +138,82 @@ internal abstract class BitWriterBase
     }
 
     /// <summary>
+    /// Write the trunks before data trunk.
+    /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="BitWriterBase.scratchBuffer"/></remarks>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="xmpProfile">The XMP profile.</param>
+    /// <param name="iccProfile">The color profile.</param>
+    /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
+    /// <param name="alphaData">The alpha channel data.</param>
+    /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
+    public void WriteTrunksBeforeData(
+        Stream stream,
+        uint width,
+        uint height,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
+        bool hasAlpha,
+        Span<byte> alphaData,
+        bool alphaDataIsCompressed)
+    {
+        // Write file size later
+        this.WriteRiffHeader(stream, 0);
+
+        // Write VP8X, header if necessary.
+        bool isVp8X = exifProfile != null || xmpProfile != null || iccProfile != null || hasAlpha;
+        if (isVp8X)
+        {
+            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
+
+            if (iccProfile != null)
+            {
+                this.WriteColorProfile(stream, iccProfile.ToByteArray());
+            }
+
+            if (hasAlpha)
+            {
+                this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the encoded image to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    public abstract void WriteEncodedImageToStream(Stream stream);
+
+    /// <summary>
+    /// Write the trunks after data trunk.
+    /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="BitWriterBase.scratchBuffer"/></remarks>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="xmpProfile">The XMP profile.</param>
+    public void WriteTrunksAfterData(
+        Stream stream,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile)
+    {
+        if (exifProfile != null)
+        {
+            this.WriteMetadataProfile(stream, exifProfile.ToByteArray(), WebpChunkType.Exif);
+        }
+
+        if (xmpProfile != null)
+        {
+            this.WriteMetadataProfile(stream, xmpProfile.Data, WebpChunkType.Xmp);
+        }
+
+        OverwriteFileSize(stream);
+    }
+
+    /// <summary>
     /// Writes a metadata profile (EXIF or XMP) to the stream.
     /// </summary>
     /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>

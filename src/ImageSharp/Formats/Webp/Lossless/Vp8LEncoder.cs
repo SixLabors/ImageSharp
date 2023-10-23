@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -265,8 +266,22 @@ internal class Vp8LEncoder : IDisposable
         // Encode the main image stream.
         this.EncodeStream(image.Frames.RootFrame);
 
+        this.bitWriter.Finish();
+        this.bitWriter.WriteTrunksBeforeData(
+            stream,
+            (uint)width,
+            (uint)height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            false /*hasAlpha*/,
+            Span<byte>.Empty,
+            false);
+
         // Write bytes from the bitwriter buffer to the stream.
-        this.bitWriter.WriteEncodedImageToStream(stream, exifProfile, xmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
+        this.bitWriter.WriteEncodedImageToStream(stream);
+
+        this.bitWriter.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
     }
 
     /// <summary>

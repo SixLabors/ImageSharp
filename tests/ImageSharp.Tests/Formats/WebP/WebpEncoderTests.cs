@@ -17,6 +17,13 @@ public class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
+    [Fact]
+    public void Encode_AnimatedLossy()
+    {
+        Image<Rgba32> image = Image.Load<Rgba32>(@"C:\Users\poker\Desktop\1.webp");
+        image.SaveAsWebp(@"C:\Users\poker\Desktop\3.webp");
+    }
+
     [Theory]
     [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
     [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]

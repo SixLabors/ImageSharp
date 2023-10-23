@@ -88,7 +88,8 @@ internal class Vp8Encoder : IDisposable
 
     private const ulong Partition0SizeLimit = (WebpConstants.Vp8MaxPartition0Size - 2048UL) << 11;
 
-    private const long HeaderSizeEstimate = WebpConstants.RiffHeaderSize + WebpConstants.ChunkHeaderSize + WebpConstants.Vp8FrameHeaderSize;
+    private const long HeaderSizeEstimate =
+        WebpConstants.RiffHeaderSize + WebpConstants.ChunkHeaderSize + WebpConstants.Vp8FrameHeaderSize;
 
     private const int QMin = 0;
 
@@ -165,7 +166,7 @@ internal class Vp8Encoder : IDisposable
         // TODO: make partition_limit configurable?
         const int limit = 100; // original code: limit = 100 - config->partition_limit;
         this.maxI4HeaderBits =
-            256 * 16 * 16 * limit * limit / (100 * 100);  // ... modulated with a quadratic curve.
+            256 * 16 * 16 * limit * limit / (100 * 100); // ... modulated with a quadratic curve.
 
         this.MbInfo = new Vp8MacroBlockInfo[this.Mbw * this.Mbh];
         for (int i = 0; i < this.MbInfo.Length; i++)
@@ -308,22 +309,88 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private int MbHeaderLimit { get; }
 
+    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation, uint background = 0, uint loopCount = 0)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+        metadata.SyncProfiles();
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksBeforeData(
+            stream,
+            (uint)image.Width,
+            (uint)image.Height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            hasAlpha,
+            hasAnimation);
+
+        if (hasAnimation)
+        {
+            BitWriterBase.WriteAnimationParameter(stream, background, (ushort)loopCount);
+        }
+    }
+
+    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+    }
+
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    public void EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        this.Encode(frame, stream, true, null);
+
     /// <summary>
     /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeStatic<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        this.Encode(image.Frames.RootFrame, stream, false, image);
+
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+    private void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
+
         int pixelCount = width * height;
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame, this.configuration, this.memoryAllocator, y, u, v);
+        bool hasAlpha = YuvConversion.ConvertRgbToYuv(frame, this.configuration, this.memoryAllocator, y, u, v);
+
+        if (!hasAnimation)
+        {
+            this.EncodeHeader(image, stream, hasAlpha, false);
+        }
 
         int yStride = width;
         int uvStride = (yStride + 1) >> 1;
@@ -375,13 +442,6 @@ internal class Vp8Encoder : IDisposable
         // Store filter stats.
         this.AdjustFilterStrength();
 
-        // Write bytes from the bitwriter buffer to the stream.
-        ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
-        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
-        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
-
         // Extract and encode alpha channel data, if present.
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
@@ -393,7 +453,7 @@ internal class Vp8Encoder : IDisposable
             {
                 // TODO: This can potentially run in an separate task.
                 encodedAlphaData = AlphaEncoder.EncodeAlpha(
-                    image.Frames.RootFrame,
+                    frame,
                     this.configuration,
                     this.memoryAllocator,
                     this.skipMetadata,
@@ -409,20 +469,31 @@ internal class Vp8Encoder : IDisposable
             }
 
             this.bitWriter.Finish();
-            this.bitWriter.WriteTrunksBeforeData(
-                stream,
-                (uint)width,
-                (uint)height,
-                exifProfile,
-                xmpProfile,
-                metadata.IccProfile,
-                hasAlpha,
-                alphaData[..alphaDataSize],
-                this.alphaCompression && alphaCompressionSucceeded);
+
+            long prevPosition = 0;
+
+            if (hasAnimation)
+            {
+                prevPosition = BitWriterBase.WriteAnimationFrame(stream, new()
+                {
+                    Width = (uint)frame.Width,
+                    Height = (uint)frame.Height
+                });
+            }
+
+            if (hasAlpha)
+            {
+                Span<byte> data = alphaData[..alphaDataSize];
+                bool alphaDataIsCompressed = this.alphaCompression && alphaCompressionSucceeded;
+                BitWriterBase.WriteAlphaChunk(stream, data, alphaDataIsCompressed);
+            }
 
             this.bitWriter.WriteEncodedImageToStream(stream);
 
-            this.bitWriter.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+            if (hasAnimation)
+            {
+                BitWriterBase.OverwriteFrameSize(stream, prevPosition);
+            }
         }
         finally
         {

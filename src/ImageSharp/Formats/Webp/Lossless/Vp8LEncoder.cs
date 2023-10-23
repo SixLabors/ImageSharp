@@ -267,7 +267,7 @@ internal class Vp8LEncoder : IDisposable
         this.EncodeStream(image.Frames.RootFrame);
 
         this.bitWriter.Finish();
-        this.bitWriter.WriteTrunksBeforeData(
+        BitWriterBase.WriteTrunksBeforeData(
             stream,
             (uint)width,
             (uint)height,
@@ -275,13 +275,12 @@ internal class Vp8LEncoder : IDisposable
             xmpProfile,
             metadata.IccProfile,
             false /*hasAlpha*/,
-            Span<byte>.Empty,
             false);
 
         // Write bytes from the bitwriter buffer to the stream.
         this.bitWriter.WriteEncodedImageToStream(stream);
 
-        this.bitWriter.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
@@ -42,28 +43,28 @@ internal abstract class BitWriterBase
     public byte[] Buffer => this.buffer;
 
     /// <summary>
+    /// Gets the number of bytes of the encoded image data.
+    /// </summary>
+    /// <returns>The number of bytes of the image data.</returns>
+    public abstract int NumBytes { get; }
+
+    /// <summary>
     /// Writes the encoded bytes of the image to the stream. Call Finish() before this.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
+    public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes));
 
     /// <summary>
     /// Writes the encoded bytes of the image to the given buffer. Call Finish() before this.
     /// </summary>
     /// <param name="dest">The destination buffer.</param>
-    public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes()).CopyTo(dest);
+    public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes).CopyTo(dest);
 
     /// <summary>
     /// Resizes the buffer to write to.
     /// </summary>
     /// <param name="extraSize">The extra size in bytes needed.</param>
     public abstract void BitWriterResize(int extraSize);
-
-    /// <summary>
-    /// Returns the number of bytes of the encoded image data.
-    /// </summary>
-    /// <returns>The number of bytes of the image data.</returns>
-    public abstract int NumBytes();
 
     /// <summary>
     /// Flush leftover bits.
@@ -86,6 +87,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes the RIFF header to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="riffSize">The block length.</param>
     protected void WriteRiffHeader(Stream stream, uint riffSize)
@@ -99,6 +101,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Calculates the chunk size of EXIF, XMP or ICCP metadata.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="metadataBytes">The metadata profile bytes.</param>
     /// <returns>The metadata chunk size in bytes.</returns>
     protected static uint MetadataChunkSize(byte[] metadataBytes)
@@ -119,8 +122,25 @@ internal abstract class BitWriterBase
     }
 
     /// <summary>
+    /// Overwrites ides the write file size.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    protected static void OverwriteFileSize(Stream stream)
+    {
+        uint position = (uint)stream.Position;
+        stream.Position = 4;
+        byte[] buffer = new byte[4];
+
+        // "RIFF"(4)+uint32 size(4)
+        BinaryPrimitives.WriteUInt32LittleEndian(buffer, position - WebpConstants.ChunkHeaderSize);
+        stream.Write(buffer);
+        stream.Position = position;
+    }
+
+    /// <summary>
     /// Writes a metadata profile (EXIF or XMP) to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="metadataBytes">The metadata profile's bytes.</param>
     /// <param name="chunkType">The chuck type to write.</param>
@@ -146,6 +166,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes the color profile(<see cref="WebpChunkType.Iccp"/>) to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="iccProfileBytes">The color profile bytes.</param>
     protected void WriteColorProfile(Stream stream, byte[] iccProfileBytes) => this.WriteMetadataProfile(stream, iccProfileBytes, WebpChunkType.Iccp);
@@ -153,6 +174,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes the animation parameter(<see cref="WebpChunkType.AnimationParameter"/>) to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="background">
     /// The default background color of the canvas in [Blue, Green, Red, Alpha] byte order.
@@ -177,6 +199,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes the animation frame(<see cref="WebpChunkType.Animation"/>) to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="animation">Animation frame data.</param>
     /// <param name="data">Frame data.</param>
@@ -201,6 +224,7 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes the alpha chunk to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="dataBytes">The alpha channel data bytes.</param>
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
@@ -232,14 +256,15 @@ internal abstract class BitWriterBase
     /// <summary>
     /// Writes a VP8X header to the stream.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
     /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
-    /// <param name="iccProfileBytes">The color profile bytes.</param>
+    /// <param name="iccProfile">The color profile.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    protected void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, byte[]? iccProfileBytes, uint width, uint height, bool hasAlpha)
+    protected void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha)
     {
         if (width > MaxDimension || height > MaxDimension)
         {
@@ -279,7 +304,7 @@ internal abstract class BitWriterBase
             flags |= 16;
         }
 
-        if (iccProfileBytes != null)
+        if (iccProfile != null)
         {
             // Set iccp flag.
             flags |= 32;

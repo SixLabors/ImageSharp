@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -408,16 +409,21 @@ internal class Vp8Encoder : IDisposable
                 }
             }
 
-            this.bitWriter.WriteEncodedImageToStream(
+            this.bitWriter.Finish();
+            this.bitWriter.WriteTrunksBeforeData(
                 stream,
+                (uint)width,
+                (uint)height,
                 exifProfile,
                 xmpProfile,
                 metadata.IccProfile,
-                (uint)width,
-                (uint)height,
                 hasAlpha,
                 alphaData[..alphaDataSize],
                 this.alphaCompression && alphaCompressionSucceeded);
+
+            this.bitWriter.WriteEncodedImageToStream(stream);
+
+            this.bitWriter.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
         }
         finally
         {
@@ -862,10 +868,11 @@ internal class Vp8Encoder : IDisposable
                 this.ResetSegments();
             }
 
-            this.SegmentHeader.Size = (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +
-                                      (p[1] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(1, probas[1]))) +
-                                      (p[2] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(0, probas[2]))) +
-                                      (p[3] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(1, probas[2])));
+            this.SegmentHeader.Size =
+                (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +
+                (p[1] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(1, probas[1]))) +
+                (p[2] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(0, probas[2]))) +
+                (p[3] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(1, probas[2])));
         }
         else
         {
@@ -1027,7 +1034,7 @@ internal class Vp8Encoder : IDisposable
 
         it.NzToBytes();
 
-        int pos1 = this.bitWriter.NumBytes();
+        int pos1 = this.bitWriter.NumBytes;
         if (i16)
         {
             residual.Init(0, 1, this.Proba);
@@ -1054,7 +1061,7 @@ internal class Vp8Encoder : IDisposable
             }
         }
 
-        int pos2 = this.bitWriter.NumBytes();
+        int pos2 = this.bitWriter.NumBytes;
 
         // U/V
         residual.Init(0, 2, this.Proba);
@@ -1072,7 +1079,7 @@ internal class Vp8Encoder : IDisposable
             }
         }
 
-        int pos3 = this.bitWriter.NumBytes();
+        int pos3 = this.bitWriter.NumBytes;
         it.LumaBits = pos2 - pos1;
         it.UvBits = pos3 - pos2;
         it.BitCount[segment, i16 ? 1 : 0] += it.LumaBits;

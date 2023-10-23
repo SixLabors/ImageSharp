@@ -291,7 +291,7 @@ internal class Vp8LEncoder : IDisposable
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
         this.EncodeStream(frame);
         this.bitWriter.Finish();
-        int size = this.bitWriter.NumBytes();
+        int size = this.bitWriter.NumBytes;
         if (size >= pixelCount)
         {
             // Compressing would not yield in smaller data -> leave the data uncompressed.
@@ -425,9 +425,9 @@ internal class Vp8LEncoder : IDisposable
                 lowEffort);
 
             // If we are better than what we already have.
-            if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
+            if (isFirstConfig || this.bitWriter.NumBytes < bestSize)
             {
-                bestSize = this.bitWriter.NumBytes();
+                bestSize = this.bitWriter.NumBytes;
                 BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
             }
 
@@ -676,7 +676,7 @@ internal class Vp8LEncoder : IDisposable
             this.StoreImageToBitMask(width, this.HistoBits, refsBest, histogramSymbols, huffmanCodes);
 
             // Keep track of the smallest image so far.
-            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
+            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes < bitWriterBest.NumBytes))
             {
                 Vp8LBitWriter tmp = this.bitWriter;
                 this.bitWriter = bitWriterBest;

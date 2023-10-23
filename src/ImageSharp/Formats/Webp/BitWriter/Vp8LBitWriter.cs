@@ -47,6 +47,9 @@ internal class Vp8LBitWriter : BitWriterBase
     {
     }
 
+    /// <inheritdoc/>
+    public override int NumBytes => this.cur + ((this.used + 7) >> 3);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
     /// Used internally for cloning.
@@ -97,9 +100,6 @@ internal class Vp8LBitWriter : BitWriterBase
         int symbol = code.Codes[codeIndex];
         this.PutBits((uint)((bits << depth) | symbol), depth + nBits);
     }
-
-    /// <inheritdoc/>
-    public override int NumBytes() => this.cur + ((this.used + 7) >> 3);
 
     public Vp8LBitWriter Clone()
     {
@@ -166,7 +166,7 @@ internal class Vp8LBitWriter : BitWriterBase
         }
 
         this.Finish();
-        uint size = (uint)this.NumBytes();
+        uint size = (uint)this.NumBytes;
         size++; // One byte extra for the VP8L signature.
 
         // Write RIFF header.
@@ -177,7 +177,7 @@ internal class Vp8LBitWriter : BitWriterBase
         // Write VP8X, header if necessary.
         if (isVp8X)
         {
-            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccBytes, width, height, hasAlpha);
+            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
 
             if (iccBytes != null)
             {

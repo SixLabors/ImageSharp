@@ -76,7 +76,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
         }
 
-        if (!buffer.Slice(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
+        if (!buffer[..3].SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
         {
             WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
         }
@@ -111,14 +111,7 @@ internal static class WebpChunkParsingUtils
             PartitionLength = partitionLength
         };
 
-        Vp8BitReader bitReader = new(
-            stream,
-            remaining,
-            memoryAllocator,
-            partitionLength)
-        {
-            Remaining = remaining
-        };
+        Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
         return new()
         {

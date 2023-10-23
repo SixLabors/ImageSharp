@@ -72,7 +72,7 @@ internal class Vp8BitWriter : BitWriterBase
     }
 
     /// <inheritdoc/>
-    public override int NumBytes() => (int)this.pos;
+    public override int NumBytes => (int)this.pos;
 
     public int PutCoeffs(int ctx, Vp8Residual residual)
     {
@@ -395,67 +395,58 @@ internal class Vp8BitWriter : BitWriterBase
     }
 
     /// <summary>
-    /// Writes the encoded image to the stream.
+    /// Write the trunks before data trunk.
     /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="BitWriterBase.scratchBuffer"/></remarks>
     /// <param name="stream">The stream to write to.</param>
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
     /// <param name="exifProfile">The exif profile.</param>
     /// <param name="xmpProfile">The XMP profile.</param>
     /// <param name="iccProfile">The color profile.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
     /// <param name="alphaData">The alpha channel data.</param>
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
-    public void WriteEncodedImageToStream(
+    public void WriteTrunksBeforeData(
         Stream stream,
+        uint width,
+        uint height,
         ExifProfile? exifProfile,
         XmpProfile? xmpProfile,
         IccProfile? iccProfile,
-        uint width,
-        uint height,
         bool hasAlpha,
         Span<byte> alphaData,
         bool alphaDataIsCompressed)
     {
-        bool isVp8X = false;
-        byte[]? exifBytes = null;
-        byte[]? xmpBytes = null;
-        byte[]? iccProfileBytes = null;
-        uint riffSize = 0;
-        if (exifProfile != null)
-        {
-            isVp8X = true;
-            exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes!);
-        }
+        // Write file size later
+        this.WriteRiffHeader(stream, 0);
 
-        if (xmpProfile != null)
-        {
-            isVp8X = true;
-            xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes!);
-        }
-
-        if (iccProfile != null)
-        {
-            isVp8X = true;
-            iccProfileBytes = iccProfile.ToByteArray();
-            riffSize += MetadataChunkSize(iccProfileBytes);
-        }
-
-        if (hasAlpha)
-        {
-            isVp8X = true;
-            riffSize += AlphaChunkSize(alphaData);
-        }
-
+        // Write VP8X, header if necessary.
+        bool isVp8X = exifProfile != null || xmpProfile != null || iccProfile != null || hasAlpha;
         if (isVp8X)
         {
-            riffSize += ExtendedFileChunkSize;
-        }
+            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha);
 
-        this.Finish();
-        uint numBytes = (uint)this.NumBytes();
+            if (iccProfile != null)
+            {
+                this.WriteColorProfile(stream, iccProfile.ToByteArray());
+            }
+
+            if (hasAlpha)
+            {
+                this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the encoded image to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    public void WriteEncodedImageToStream(Stream stream)
+    {
+        uint numBytes = (uint)this.NumBytes;
+
         int mbSize = this.enc.Mbw * this.enc.Mbh;
         int expectedSize = (int)((uint)mbSize * 7 / 8);
 
@@ -469,12 +460,10 @@ internal class Vp8BitWriter : BitWriterBase
         uint pad = vp8Size & 1;
         vp8Size += pad;
 
-        // Compute RIFF size.
-        // At the minimum it is: "WEBPVP8 nnnn" + VP8 data size.
-        riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
+        // Emit header and partition #0
+        this.WriteVp8Header(stream, vp8Size);
+        this.WriteFrameHeader(stream, size0);
 
-        // Emit headers and partition #0
-        this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, iccProfileBytes, hasAlpha, alphaData, alphaDataIsCompressed);
         bitWriterPartZero.WriteToStream(stream);
 
         // Write the encoded image to the stream.
@@ -483,16 +472,31 @@ internal class Vp8BitWriter : BitWriterBase
         {
             stream.WriteByte(0);
         }
+    }
 
+    /// <summary>
+    /// Write the trunks after data trunk.
+    /// </summary>
+    /// <remarks>Think of it as a static method — none of the other members are called except for <see cref="BitWriterBase.scratchBuffer"/></remarks>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="xmpProfile">The XMP profile.</param>
+    public void WriteTrunksAfterData(
+        Stream stream,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile)
+    {
         if (exifProfile != null)
         {
-            this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
+            this.WriteMetadataProfile(stream, exifProfile.ToByteArray(), WebpChunkType.Exif);
         }
 
         if (xmpProfile != null)
         {
-            this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
+            this.WriteMetadataProfile(stream, xmpProfile.Data, WebpChunkType.Xmp);
         }
+
+        OverwriteFileSize(stream);
     }
 
     private uint GeneratePartition0()
@@ -512,7 +516,7 @@ internal class Vp8BitWriter : BitWriterBase
 
         this.Finish();
 
-        return (uint)this.NumBytes();
+        return (uint)this.NumBytes;
     }
 
     private void WriteSegmentHeader()
@@ -660,43 +664,6 @@ internal class Vp8BitWriter : BitWriterBase
             this.PutUvMode(mb.UvMode);
         }
         while (it.Next());
-    }
-
-    private void WriteWebpHeaders(
-        Stream stream,
-        uint size0,
-        uint vp8Size,
-        uint riffSize,
-        bool isVp8X,
-        uint width,
-        uint height,
-        ExifProfile? exifProfile,
-        XmpProfile? xmpProfile,
-        byte[]? iccProfileBytes,
-        bool hasAlpha,
-        Span<byte> alphaData,
-        bool alphaDataIsCompressed)
-    {
-        this.WriteRiffHeader(stream, riffSize);
-
-        // Write VP8X, header if necessary.
-        if (isVp8X)
-        {
-            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfileBytes, width, height, hasAlpha);
-
-            if (iccProfileBytes != null)
-            {
-                this.WriteColorProfile(stream, iccProfileBytes);
-            }
-
-            if (hasAlpha)
-            {
-                this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);
-            }
-        }
-
-        this.WriteVp8Header(stream, vp8Size);
-        this.WriteFrameHeader(stream, size0);
     }
 
     private void WriteVp8Header(Stream stream, uint size)

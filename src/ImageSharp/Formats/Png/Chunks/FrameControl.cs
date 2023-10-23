@@ -9,6 +9,11 @@ internal readonly struct FrameControl
 {
     public const int Size = 26;
 
+    public FrameControl(uint width, uint height)
+        : this(0, width, height, 0, 0, 0, 0, default, default)
+    {
+    }
+
     public FrameControl(
         uint sequenceNumber,
         uint width,

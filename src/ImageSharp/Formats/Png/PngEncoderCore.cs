@@ -214,7 +214,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         }
         else
         {
-            FrameControl frameControl = new(0, (uint)this.width, (uint)this.height, 0, 0, 0, 0, default, default);
+            FrameControl frameControl = new((uint)this.width, (uint)this.height);
             this.WriteDataChunks(frameControl, currentFrame, quantized, stream, false);
         }
 

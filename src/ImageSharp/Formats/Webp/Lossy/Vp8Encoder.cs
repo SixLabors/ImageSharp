@@ -477,7 +477,8 @@ internal class Vp8Encoder : IDisposable
                 prevPosition = BitWriterBase.WriteAnimationFrame(stream, new()
                 {
                     Width = (uint)frame.Width,
-                    Height = (uint)frame.Height
+                    Height = (uint)frame.Height,
+                    Duration = frame.Metadata.GetWebpMetadata().FrameDuration
                 });
             }
 

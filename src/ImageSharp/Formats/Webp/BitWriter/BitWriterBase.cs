@@ -23,11 +23,6 @@ internal abstract class BitWriterBase
     private byte[] buffer;
 
     /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private ScratchBuffer scratchBuffer;  // mutable struct, don't make readonly
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
     /// </summary>
     /// <param name="expectedSize">The expected size in bytes.</param>

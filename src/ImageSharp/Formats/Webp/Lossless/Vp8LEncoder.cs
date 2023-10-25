@@ -304,7 +304,7 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            prevPosition = BitWriterBase.WriteAnimationFrame(stream, new()
+            prevPosition = BitWriterBase.WriteAnimationFrame(stream, new AnimationFrameData
             {
                 Width = (uint)frame.Width,
                 Height = (uint)frame.Height,
@@ -547,7 +547,7 @@ internal class Vp8LEncoder : IDisposable
         EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
         bool doNotCache = false;
-        List<CrunchConfig> crunchConfigs = new();
+        List<CrunchConfig> crunchConfigs = new List<CrunchConfig>();
 
         if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
         {
@@ -641,8 +641,8 @@ internal class Vp8LEncoder : IDisposable
             Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
             this.bitWriter.Reset(bwInit);
-            Vp8LHistogram tmpHisto = new(cacheBits);
-            List<Vp8LHistogram> histogramImage = new(histogramImageXySize);
+            Vp8LHistogram tmpHisto = new Vp8LHistogram(cacheBits);
+            List<Vp8LHistogram> histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
             for (int i = 0; i < histogramImageXySize; i++)
             {
                 histogramImage.Add(new Vp8LHistogram(cacheBits));
@@ -839,9 +839,9 @@ internal class Vp8LEncoder : IDisposable
             refsTmp1,
             refsTmp2);
 
-        List<Vp8LHistogram> histogramImage = new()
+        List<Vp8LHistogram> histogramImage = new List<Vp8LHistogram>
         {
-            new(cacheBits)
+            new Vp8LHistogram(cacheBits)
         };
 
         // Build histogram image and symbols from backward references.
@@ -941,7 +941,7 @@ internal class Vp8LEncoder : IDisposable
         int i;
         byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
         short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
-        HuffmanTreeCode huffmanCode = new()
+        HuffmanTreeCode huffmanCode = new HuffmanTreeCode
         {
             NumSymbols = WebpConstants.CodeLengthCodes,
             CodeLengths = codeLengthBitDepth,
@@ -1192,7 +1192,7 @@ internal class Vp8LEncoder : IDisposable
         histo[(int)HistoIx.HistoBluePred * 256]++;
         histo[(int)HistoIx.HistoAlphaPred * 256]++;
 
-        Vp8LBitEntropy bitEntropy = new();
+        Vp8LBitEntropy bitEntropy = new Vp8LBitEntropy();
         for (int j = 0; j < (int)HistoIx.HistoTotal; j++)
         {
             bitEntropy.Init();
@@ -1318,7 +1318,7 @@ internal class Vp8LEncoder : IDisposable
     /// <returns>The number of palette entries.</returns>
     private static int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
     {
-        HashSet<uint> colors = new();
+        HashSet<uint> colors = new HashSet<uint>();
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);

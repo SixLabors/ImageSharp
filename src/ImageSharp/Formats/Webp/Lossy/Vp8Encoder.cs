@@ -395,7 +395,7 @@ internal class Vp8Encoder : IDisposable
         int yStride = width;
         int uvStride = (yStride + 1) >> 1;
 
-        Vp8EncIterator it = new(this);
+        Vp8EncIterator it = new Vp8EncIterator(this);
         Span<int> alphas = stackalloc int[WebpConstants.MaxAlpha + 1];
         this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
         int totalMb = this.Mbw * this.Mbw;
@@ -416,8 +416,8 @@ internal class Vp8Encoder : IDisposable
         this.StatLoop(width, height, yStride, uvStride);
         it.Init();
         Vp8EncIterator.InitFilter();
-        Vp8ModeScore info = new();
-        Vp8Residual residual = new();
+        Vp8ModeScore info = new Vp8ModeScore();
+        Vp8Residual residual = new Vp8Residual();
         do
         {
             bool dontUseSkip = !this.Proba.UseSkipProba;
@@ -474,7 +474,7 @@ internal class Vp8Encoder : IDisposable
 
             if (hasAnimation)
             {
-                prevPosition = BitWriterBase.WriteAnimationFrame(stream, new()
+                prevPosition = BitWriterBase.WriteAnimationFrame(stream, new AnimationFrameData
                 {
                     Width = (uint)frame.Width,
                     Height = (uint)frame.Height,
@@ -529,7 +529,7 @@ internal class Vp8Encoder : IDisposable
         Vp8RdLevel rdOpt = this.method >= WebpEncodingMethod.Level3 || doSearch ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
         int nbMbs = this.Mbw * this.Mbh;
 
-        PassStats stats = new(targetSize, targetPsnr, QMin, QMax, this.quality);
+        PassStats stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
         this.Proba.ResetTokenStats();
 
         // Fast mode: quick analysis pass over few mbs. Better than nothing.
@@ -597,7 +597,7 @@ internal class Vp8Encoder : IDisposable
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        Vp8EncIterator it = new(this);
+        Vp8EncIterator it = new Vp8EncIterator(this);
         long size = 0;
         long sizeP0 = 0;
         long distortion = 0;
@@ -605,7 +605,7 @@ internal class Vp8Encoder : IDisposable
 
         it.Init();
         this.SetLoopParams(stats.Q);
-        Vp8ModeScore info = new();
+        Vp8ModeScore info = new Vp8ModeScore();
         do
         {
             info.Clear();
@@ -1167,7 +1167,7 @@ internal class Vp8Encoder : IDisposable
     private void RecordResiduals(Vp8EncIterator it, Vp8ModeScore rd)
     {
         int x, y, ch;
-        Vp8Residual residual = new();
+        Vp8Residual residual = new Vp8Residual();
         bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
 
         it.NzToBytes();

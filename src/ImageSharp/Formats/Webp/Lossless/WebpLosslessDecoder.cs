@@ -95,7 +95,7 @@ internal sealed class WebpLosslessDecoder
     public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Vp8LDecoder decoder = new(width, height, this.memoryAllocator))
+        using (Vp8LDecoder decoder = new Vp8LDecoder(width, height, this.memoryAllocator))
         {
             this.DecodeImageStream(decoder, width, height, true);
             this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
@@ -616,7 +616,7 @@ internal sealed class WebpLosslessDecoder
     private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
     {
         Vp8LTransformType transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
-        Vp8LTransform transform = new(transformType, xSize, ySize);
+        Vp8LTransform transform = new Vp8LTransform(transformType, xSize, ySize);
 
         // Each transform is allowed to be used only once.
         foreach (Vp8LTransform decoderTransform in decoder.Transforms)

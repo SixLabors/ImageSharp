@@ -8,7 +8,9 @@ using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -71,7 +73,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     public DecoderOptions Options { get; }
 
     /// <inheritdoc/>
-    public Size Dimensions => new((int)this.webImageInfo!.Width, (int)this.webImageInfo.Height);
+    public Size Dimensions => new Size((int)this.webImageInfo!.Width, (int)this.webImageInfo.Height);
 
     /// <inheritdoc />
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -80,7 +82,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         Image<TPixel>? image = null;
         try
         {
-            ImageMetadata metadata = new();
+            ImageMetadata metadata = new ImageMetadata();
             Span<byte> buffer = stackalloc byte[4];
 
             uint fileSize = ReadImageHeader(stream, buffer);
@@ -89,7 +91,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    using WebpAnimationDecoder animationDecoder = new(this.memoryAllocator, this.configuration, this.maxFrames, this.backgroundColorHandling);
+                    using WebpAnimationDecoder animationDecoder = new WebpAnimationDecoder(this.memoryAllocator,
+                        this.configuration, this.maxFrames, this.backgroundColorHandling);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
@@ -97,12 +100,14 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
-                    WebpLosslessDecoder losslessDecoder = new(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    WebpLosslessDecoder losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader,
+                        this.memoryAllocator, this.configuration);
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
                 {
-                    WebpLossyDecoder lossyDecoder = new(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    WebpLossyDecoder lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader,
+                        this.memoryAllocator, this.configuration);
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 
@@ -127,12 +132,12 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     {
         ReadImageHeader(stream, stackalloc byte[4]);
 
-        ImageMetadata metadata = new();
+        ImageMetadata metadata = new ImageMetadata();
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
             return new ImageInfo(
                 new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
-                new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
+                new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
     }
@@ -173,7 +178,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         Span<byte> buffer = stackalloc byte[4];
         WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
 
-        WebpFeatures features = new();
+        WebpFeatures features = new WebpFeatures();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
@@ -327,7 +332,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 return;
             }
 
-            metadata.ExifProfile = new(exifData);
+            metadata.ExifProfile = new ExifProfile(exifData);
         }
     }
 
@@ -354,7 +359,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 return;
             }
 
-            metadata.XmpProfile = new(xmpData);
+            metadata.XmpProfile = new XmpProfile(xmpData);
         }
     }
 
@@ -380,7 +385,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
             }
 
-            IccProfile profile = new(iccpData);
+            IccProfile profile = new IccProfile(iccpData);
             if (profile.CheckIsValid())
             {
                 metadata.IccProfile = profile;

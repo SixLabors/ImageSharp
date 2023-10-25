@@ -775,7 +775,7 @@ internal static class BackwardReferenceEncoder
     private static void BackwardRefsWithLocalCache(ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
     {
         int pixelIndex = 0;
-        ColorCache colorCache = new(cacheBits);
+        ColorCache colorCache = new ColorCache(cacheBits);
         for (int idx = 0; idx < refs.Refs.Count; idx++)
         {
             PixOrCopy v = refs.Refs[idx];

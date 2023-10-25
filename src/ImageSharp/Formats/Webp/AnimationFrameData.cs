@@ -62,7 +62,7 @@ internal struct AnimationFrameData
     {
         Span<byte> buffer = stackalloc byte[4];
 
-        AnimationFrameData data = new()
+        AnimationFrameData data = new AnimationFrameData
         {
             DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
 

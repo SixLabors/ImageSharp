@@ -153,7 +153,7 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         WebpImageInfo? webpInfo = null;
-        WebpFeatures features = new();
+        WebpFeatures features = new WebpFeatures();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
@@ -178,7 +178,7 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel> imageFrame;
         if (previousFrame is null)
         {
-            image = new(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
+            image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
 
             SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
 
@@ -259,19 +259,21 @@ internal class WebpAnimationDecoder : IDisposable
     private Buffer2D<TPixel> DecodeImageData<TPixel>(AnimationFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> decodedImage = new((int)frameData.Width, (int)frameData.Height);
+        Image<TPixel> decodedImage = new Image<TPixel>((int)frameData.Width, (int)frameData.Height);
 
         try
         {
             Buffer2D<TPixel> pixelBufferDecoded = decodedImage.GetRootFramePixelBuffer();
             if (webpInfo.IsLossless)
             {
-                WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                WebpLosslessDecoder losslessDecoder =
+                    new WebpLosslessDecoder(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                 losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
             }
             else
             {
-                WebpLossyDecoder lossyDecoder = new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                WebpLossyDecoder lossyDecoder =
+                    new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
                 lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
             }
 

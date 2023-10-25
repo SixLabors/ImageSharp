@@ -62,7 +62,7 @@ internal sealed class WebpLossyDecoder
         // Paragraph 9.2: color space and clamp type follow.
         sbyte colorSpace = (sbyte)this.bitReader.ReadValue(1);
         sbyte clampType = (sbyte)this.bitReader.ReadValue(1);
-        Vp8PictureHeader pictureHeader = new()
+        Vp8PictureHeader pictureHeader = new Vp8PictureHeader
         {
             Width = (uint)width,
             Height = (uint)height,
@@ -73,10 +73,11 @@ internal sealed class WebpLossyDecoder
         };
 
         // Paragraph 9.3: Parse the segment header.
-        Vp8Proba proba = new();
+        Vp8Proba proba = new Vp8Proba();
         Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
 
-        using (Vp8Decoder decoder = new(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba, this.memoryAllocator))
+        using (Vp8Decoder decoder = new Vp8Decoder(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba,
+                   this.memoryAllocator))
         {
             Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
 
@@ -101,13 +102,8 @@ internal sealed class WebpLossyDecoder
 
             if (info.Features?.Alpha == true)
             {
-                using (AlphaDecoder alphaDecoder = new(
-                    width,
-                    height,
-                    alphaData,
-                    info.Features.AlphaChunkHeader,
-                    this.memoryAllocator,
-                    this.configuration))
+                using (AlphaDecoder alphaDecoder = new AlphaDecoder(width, height, alphaData,
+                           info.Features.AlphaChunkHeader, this.memoryAllocator, this.configuration))
                 {
                     alphaDecoder.Decode();
                     DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha);
@@ -1062,7 +1058,7 @@ internal sealed class WebpLossyDecoder
 
     private Vp8SegmentHeader ParseSegmentHeader(Vp8Proba proba)
     {
-        Vp8SegmentHeader vp8SegmentHeader = new()
+        Vp8SegmentHeader vp8SegmentHeader = new Vp8SegmentHeader
         {
             UseSegment = this.bitReader.ReadBool()
         };

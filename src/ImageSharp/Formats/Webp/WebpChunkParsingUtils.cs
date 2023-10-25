@@ -8,6 +8,8 @@ using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
 
@@ -104,16 +106,16 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowImageFormatException("bad partition length");
         }
 
-        Vp8FrameHeader vp8FrameHeader = new()
+        Vp8FrameHeader vp8FrameHeader = new Vp8FrameHeader
         {
             KeyFrame = true,
             Profile = (sbyte)version,
             PartitionLength = partitionLength
         };
 
-        Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
+        Vp8BitReader bitReader = new Vp8BitReader(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
-        return new()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -137,7 +139,7 @@ internal static class WebpChunkParsingUtils
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
 
-        Vp8LBitReader bitReader = new(stream, imageDataSize, memoryAllocator);
+        Vp8LBitReader bitReader = new Vp8LBitReader(stream, imageDataSize, memoryAllocator);
 
         // One byte signature, should be 0x2f.
         uint signature = bitReader.ReadValue(8);
@@ -166,7 +168,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
         }
 
-        return new()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -229,7 +231,7 @@ internal static class WebpChunkParsingUtils
         uint height = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // Read all the chunks in the order they occur.
-        WebpImageInfo info = new()
+        WebpImageInfo info = new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -291,7 +293,7 @@ internal static class WebpChunkParsingUtils
         if (stream.Read(buffer) == 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+            return chunkSize % 2 == 0 ? chunkSize : chunkSize + 1;
         }
 
         throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
@@ -348,7 +350,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.ExifProfile != null)
                     {
-                        metadata.ExifProfile = new(exifData);
+                        metadata.ExifProfile = new ExifProfile(exifData);
                     }
 
                     break;
@@ -362,7 +364,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.XmpProfile != null)
                     {
-                        metadata.XmpProfile = new(xmpData);
+                        metadata.XmpProfile = new XmpProfile(xmpData);
                     }
 
                     break;

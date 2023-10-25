@@ -43,8 +43,17 @@ internal static class AlphaEncoder
         {
             const WebpEncodingMethod effort = WebpEncodingMethod.Default;
             const int quality = 8 * (int)effort;
-            using Vp8LEncoder lossLessEncoder = new Vp8LEncoder(memoryAllocator, configuration, width, height, quality,
-                skipMetadata, effort, WebpTransparentColorMode.Preserve, false, 0);
+            using Vp8LEncoder lossLessEncoder = new(
+                memoryAllocator,
+                configuration,
+                width,
+                height,
+                quality,
+                skipMetadata,
+                effort,
+                WebpTransparentColorMode.Preserve,
+                false,
+                0);
 
             // The transparency information will be stored in the green channel of the ARGB quadruplet.
             // The green channel is allowed extra transformation steps in the specification -- unlike the other channels,

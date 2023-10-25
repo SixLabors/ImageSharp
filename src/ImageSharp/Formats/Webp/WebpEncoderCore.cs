@@ -129,9 +129,17 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using Vp8LEncoder encoder = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width,
-                image.Height, this.quality, this.skipMetadata, this.method, this.transparentColorMode,
-                this.nearLossless, this.nearLosslessQuality);
+            using Vp8LEncoder encoder = new Vp8LEncoder(
+                this.memoryAllocator,
+                this.configuration,
+                image.Width,
+                image.Height,
+                this.quality,
+                this.skipMetadata,
+                this.method,
+                this.transparentColorMode,
+                this.nearLossless,
+                this.nearLosslessQuality);
 
             bool hasAnimation = image.Frames.Count > 1;
             encoder.EncodeHeader(image, stream, hasAnimation);
@@ -139,9 +147,17 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
             {
                 foreach (ImageFrame<TPixel> imageFrame in image.Frames)
                 {
-                    using Vp8LEncoder enc = new Vp8LEncoder(this.memoryAllocator, this.configuration, image.Width,
-                        image.Height, this.quality, this.skipMetadata, this.method, this.transparentColorMode,
-                        this.nearLossless, this.nearLosslessQuality);
+                    using Vp8LEncoder enc = new Vp8LEncoder(
+                        this.memoryAllocator,
+                        this.configuration,
+                        image.Width,
+                        image.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.transparentColorMode,
+                        this.nearLossless,
+                        this.nearLosslessQuality);
 
                     enc.Encode(imageFrame, stream, true);
                 }
@@ -155,18 +171,36 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            using Vp8Encoder encoder = new Vp8Encoder(this.memoryAllocator, this.configuration, image.Width,
-                image.Height, this.quality, this.skipMetadata, this.method, this.entropyPasses, this.filterStrength,
-                this.spatialNoiseShaping, this.alphaCompression);
+            using Vp8Encoder encoder = new Vp8Encoder(
+                this.memoryAllocator,
+                this.configuration,
+                image.Width,
+                image.Height,
+                this.quality,
+                this.skipMetadata,
+                this.method,
+                this.entropyPasses,
+                this.filterStrength,
+                this.spatialNoiseShaping,
+                this.alphaCompression);
             if (image.Frames.Count > 1)
             {
                 encoder.EncodeHeader(image, stream, false, true);
 
                 foreach (ImageFrame<TPixel> imageFrame in image.Frames)
                 {
-                    using Vp8Encoder enc = new Vp8Encoder(this.memoryAllocator, this.configuration, image.Width,
-                        image.Height, this.quality, this.skipMetadata, this.method, this.entropyPasses,
-                        this.filterStrength, this.spatialNoiseShaping, this.alphaCompression);
+                    using Vp8Encoder enc = new Vp8Encoder(
+                        this.memoryAllocator,
+                        this.configuration,
+                        image.Width,
+                        image.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.entropyPasses,
+                        this.filterStrength,
+                        this.spatialNoiseShaping,
+                        this.alphaCompression);
 
                     enc.EncodeAnimation(imageFrame, stream);
                 }

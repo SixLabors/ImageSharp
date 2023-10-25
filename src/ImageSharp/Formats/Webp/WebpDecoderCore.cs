@@ -91,8 +91,11 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    using WebpAnimationDecoder animationDecoder = new WebpAnimationDecoder(this.memoryAllocator,
-                        this.configuration, this.maxFrames, this.backgroundColorHandling);
+                    using WebpAnimationDecoder animationDecoder = new WebpAnimationDecoder(
+                        this.memoryAllocator,
+                        this.configuration,
+                        this.maxFrames,
+                        this.backgroundColorHandling);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
@@ -100,14 +103,18 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
-                    WebpLosslessDecoder losslessDecoder = new WebpLosslessDecoder(this.webImageInfo.Vp8LBitReader,
-                        this.memoryAllocator, this.configuration);
+                    WebpLosslessDecoder losslessDecoder = new WebpLosslessDecoder(
+                        this.webImageInfo.Vp8LBitReader,
+                        this.memoryAllocator,
+                        this.configuration);
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
                 {
-                    WebpLossyDecoder lossyDecoder = new WebpLossyDecoder(this.webImageInfo.Vp8BitReader,
-                        this.memoryAllocator, this.configuration);
+                    WebpLossyDecoder lossyDecoder = new WebpLossyDecoder(
+                        this.webImageInfo.Vp8BitReader,
+                        this.memoryAllocator,
+                        this.configuration);
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 

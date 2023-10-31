@@ -231,14 +231,14 @@ internal abstract class BitWriterBase
     /// The background color is also used when the Disposal method is 1.
     /// </param>
     /// <param name="loopCount">The number of times to loop the animation. If it is 0, this means infinitely.</param>
-    public static void WriteAnimationParameter(Stream stream, uint background, ushort loopCount)
+    public static void WriteAnimationParameter(Stream stream, Color background, ushort loopCount)
     {
         Span<byte> buf = stackalloc byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.AnimationParameter);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt32LittleEndian(buf, sizeof(uint) + sizeof(ushort));
         stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, background);
+        BinaryPrimitives.WriteUInt32LittleEndian(buf, background.ToRgba32().Rgba);
         stream.Write(buf);
         BinaryPrimitives.WriteUInt16LittleEndian(buf[..2], loopCount);
         stream.Write(buf[..2]);
@@ -249,7 +249,7 @@ internal abstract class BitWriterBase
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
     /// <param name="animation">Animation frame data.</param>
-    public static long WriteAnimationFrame(Stream stream, AnimationFrameData animation)
+    public static long WriteAnimationFrame(Stream stream, WebpFrameData animation)
     {
         Span<byte> buf = stackalloc byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Animation);
@@ -262,6 +262,8 @@ internal abstract class BitWriterBase
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Height - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Duration);
+
+        // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
         byte flag = (byte)(((int)animation.BlendingMethod << 1) | (int)animation.DisposalMethod);
         stream.WriteByte(flag);
         return position;

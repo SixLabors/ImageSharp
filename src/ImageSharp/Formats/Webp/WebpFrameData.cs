@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
 
-internal struct AnimationFrameData
+internal struct WebpFrameData
 {
     /// <summary>
     /// The animation chunk size.
@@ -46,23 +46,23 @@ internal struct AnimationFrameData
     /// <summary>
     /// Indicates how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public AnimationBlendingMethod BlendingMethod;
+    public WebpBlendingMethod BlendingMethod;
 
     /// <summary>
     /// Indicates how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
     /// </summary>
-    public AnimationDisposalMethod DisposalMethod;
+    public WebpDisposalMethod DisposalMethod;
 
     /// <summary>
     /// Reads the animation frame header.
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <returns>Animation frame data.</returns>
-    public static AnimationFrameData Parse(BufferedReadStream stream)
+    public static WebpFrameData Parse(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[4];
 
-        AnimationFrameData data = new AnimationFrameData
+        WebpFrameData data = new()
         {
             DataSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
 
@@ -83,8 +83,8 @@ internal struct AnimationFrameData
         };
 
         byte flags = (byte)stream.ReadByte();
-        data.DisposalMethod = (flags & 1) == 1 ? AnimationDisposalMethod.Dispose : AnimationDisposalMethod.DoNotDispose;
-        data.BlendingMethod = (flags & (1 << 1)) != 0 ? AnimationBlendingMethod.DoNotBlend : AnimationBlendingMethod.AlphaBlending;
+        data.DisposalMethod = (flags & 1) == 1 ? WebpDisposalMethod.Dispose : WebpDisposalMethod.DoNotDispose;
+        data.BlendingMethod = (flags & (1 << 1)) != 0 ? WebpBlendingMethod.DoNotBlend : WebpBlendingMethod.AlphaBlending;
 
         return data;
     }

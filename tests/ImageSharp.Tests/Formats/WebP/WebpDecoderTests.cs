@@ -308,7 +308,7 @@ public class WebpDecoderTests
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
 
         Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 
@@ -325,7 +325,7 @@ public class WebpDecoderTests
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
 
         Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 

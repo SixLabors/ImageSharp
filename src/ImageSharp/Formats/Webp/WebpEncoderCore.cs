@@ -129,7 +129,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using Vp8LEncoder encoder = new Vp8LEncoder(
+            using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -147,7 +147,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
             {
                 foreach (ImageFrame<TPixel> imageFrame in image.Frames)
                 {
-                    using Vp8LEncoder enc = new Vp8LEncoder(
+                    using Vp8LEncoder enc = new(
                         this.memoryAllocator,
                         this.configuration,
                         image.Width,
@@ -171,7 +171,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            using Vp8Encoder encoder = new Vp8Encoder(
+            using Vp8Encoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -189,7 +189,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
                 foreach (ImageFrame<TPixel> imageFrame in image.Frames)
                 {
-                    using Vp8Encoder enc = new Vp8Encoder(
+                    using Vp8Encoder enc = new(
                         this.memoryAllocator,
                         this.configuration,
                         image.Width,

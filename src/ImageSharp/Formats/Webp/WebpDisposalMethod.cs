@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Indicates how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
 /// </summary>
-internal enum AnimationDisposalMethod
+public enum WebpDisposalMethod
 {
     /// <summary>
     /// Do not dispose. Leave the canvas as is.

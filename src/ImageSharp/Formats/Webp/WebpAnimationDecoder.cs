@@ -138,7 +138,7 @@ internal class WebpAnimationDecoder : IDisposable
     private uint ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, uint width, uint height, Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        AnimationFrameData frameData = AnimationFrameData.Parse(stream);
+        WebpFrameData frameData = WebpFrameData.Parse(stream);
         long streamStartPosition = stream.Position;
         Span<byte> buffer = stackalloc byte[4];
 
@@ -153,7 +153,7 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         WebpImageInfo? webpInfo = null;
-        WebpFeatures features = new WebpFeatures();
+        WebpFeatures features = new();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
@@ -180,7 +180,7 @@ internal class WebpAnimationDecoder : IDisposable
         {
             image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
 
-            SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData.Duration);
+            SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData);
 
             imageFrame = image.Frames.RootFrame;
         }
@@ -188,7 +188,7 @@ internal class WebpAnimationDecoder : IDisposable
         {
             currentFrame = image!.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
 
-            SetFrameMetadata(currentFrame.Metadata, frameData.Duration);
+            SetFrameMetadata(currentFrame.Metadata, frameData);
 
             imageFrame = currentFrame;
         }
@@ -199,7 +199,7 @@ internal class WebpAnimationDecoder : IDisposable
         int frameHeight = (int)frameData.Height;
         Rectangle regionRectangle = Rectangle.FromLTRB(frameX, frameY, frameX + frameWidth, frameY + frameHeight);
 
-        if (frameData.DisposalMethod is AnimationDisposalMethod.Dispose)
+        if (frameData.DisposalMethod is WebpDisposalMethod.Dispose)
         {
             this.RestoreToBackground(imageFrame, backgroundColor);
         }
@@ -207,7 +207,7 @@ internal class WebpAnimationDecoder : IDisposable
         using Buffer2D<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
         DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
 
-        if (previousFrame != null && frameData.BlendingMethod is AnimationBlendingMethod.AlphaBlending)
+        if (previousFrame != null && frameData.BlendingMethod is WebpBlendingMethod.AlphaBlending)
         {
             this.AlphaBlend(previousFrame, imageFrame, frameX, frameY, frameWidth, frameHeight);
         }
@@ -222,12 +222,13 @@ internal class WebpAnimationDecoder : IDisposable
     /// Sets the frames metadata.
     /// </summary>
     /// <param name="meta">The metadata.</param>
-    /// <param name="duration">The frame duration.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetFrameMetadata(ImageFrameMetadata meta, uint duration)
+    /// <param name="frameData">The frame data.</param>
+    private static void SetFrameMetadata(ImageFrameMetadata meta, WebpFrameData frameData)
     {
         WebpFrameMetadata frameMetadata = meta.GetWebpMetadata();
-        frameMetadata.FrameDuration = duration;
+        frameMetadata.FrameDelay = frameData.Duration;
+        frameMetadata.BlendMethod = frameData.BlendingMethod;
+        frameMetadata.DisposalMethod = frameData.DisposalMethod;
     }
 
     /// <summary>
@@ -256,10 +257,10 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="frameData">The frame data.</param>
     /// <param name="webpInfo">The webp information.</param>
     /// <returns>A decoded image.</returns>
-    private Buffer2D<TPixel> DecodeImageData<TPixel>(AnimationFrameData frameData, WebpImageInfo webpInfo)
+    private Buffer2D<TPixel> DecodeImageData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> decodedImage = new Image<TPixel>((int)frameData.Width, (int)frameData.Height);
+        Image<TPixel> decodedImage = new((int)frameData.Width, (int)frameData.Height);
 
         try
         {
@@ -267,13 +268,13 @@ internal class WebpAnimationDecoder : IDisposable
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder =
-                    new WebpLosslessDecoder(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                 losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
             }
             else
             {
                 WebpLossyDecoder lossyDecoder =
-                    new WebpLossyDecoder(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
                 lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
             }
 

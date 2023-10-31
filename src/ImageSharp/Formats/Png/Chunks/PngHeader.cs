@@ -4,7 +4,7 @@
 
 using System.Buffers.Binary;
 
-namespace SixLabors.ImageSharp.Formats.Png;
+namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 
 /// <summary>
 /// Represents the png header chunk.

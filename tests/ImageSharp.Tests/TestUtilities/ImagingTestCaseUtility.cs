@@ -179,7 +179,7 @@ public class ImagingTestCaseUtility
         return path;
     }
 
-    public IEnumerable<string> GetTestOutputFileNamesMultiFrame(
+    public IEnumerable<(int Index, string FileName)> GetTestOutputFileNamesMultiFrame(
         int frameCount,
         string extension = null,
         object testOutputDetails = null,
@@ -201,11 +201,11 @@ public class ImagingTestCaseUtility
                 continue;
             }
 
-            yield return $"{baseDir}/{i:D2}.{extension}";
+            yield return (i, $"{baseDir}/{i:D2}.{extension}");
         }
     }
 
-    public string[] SaveTestOutputFileMultiFrame<TPixel>(
+    public (int Index, string FileName)[] SaveTestOutputFileMultiFrame<TPixel>(
         Image<TPixel> image,
         string extension = "png",
         IImageEncoder encoder = null,
@@ -216,27 +216,17 @@ public class ImagingTestCaseUtility
     {
         encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
-        string[] files = this.GetTestOutputFileNamesMultiFrame(
+        (int Index, string FileName)[] files = this.GetTestOutputFileNamesMultiFrame(
             image.Frames.Count,
             extension,
             testOutputDetails,
             appendPixelTypeToFileName,
             predicate: predicate).ToArray();
 
-        for (int i = 0; i < image.Frames.Count; i++)
+        foreach ((int Index, string FileName) file in files)
         {
-            if (predicate != null && !predicate(i, image.Frames.Count))
-            {
-                continue;
-            }
-
-            if (i >= files.Length)
-            {
-                break;
-            }
-
-            using Image<TPixel> frameImage = image.Frames.CloneFrame(i);
-            string filePath = files[i];
+            using Image<TPixel> frameImage = image.Frames.CloneFrame(file.Index);
+            string filePath = file.FileName;
             using FileStream stream = File.OpenWrite(filePath);
             frameImage.Save(stream, encoder);
         }
@@ -252,14 +242,14 @@ public class ImagingTestCaseUtility
         => TestEnvironment.GetReferenceOutputFileName(
             this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription));
 
-    public string[] GetReferenceOutputFileNamesMultiFrame(
+    public (int Index, string FileName)[] GetReferenceOutputFileNamesMultiFrame(
         int frameCount,
         string extension,
         object testOutputDetails,
         bool appendPixelTypeToFileName = true,
         Func<int, int, bool> predicate = null)
         => this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails, appendPixelTypeToFileName, predicate: predicate)
-        .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
+        .Select(x => (x.Index, TestEnvironment.GetReferenceOutputFileName(x.FileName))).ToArray();
 
     internal void Init(string typeName, string methodName, string outputSubfolderName)
     {

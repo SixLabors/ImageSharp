@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 

@@ -62,6 +62,17 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
 
+        // Animated
+        // https://philip.html5.org/tests/apng/tests.html
+        public const string APng = "Png/animated/apng.png";
+        public const string SplitIDatZeroLength = "Png/animated/4-split-idat-zero-length.png";
+        public const string DisposeNone = "Png/animated/7-dispose-none.png";
+        public const string DisposeBackground = "Png/animated/8-dispose-background.png";
+        public const string DisposeBackgroundBeforeRegion = "Png/animated/14-dispose-background-before-region.png";
+        public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
+        public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
+        public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
         public const string SubFilter3BytesPerPixel = "Png/filter1.png";

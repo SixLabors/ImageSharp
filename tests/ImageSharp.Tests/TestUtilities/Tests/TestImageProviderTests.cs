@@ -200,13 +200,13 @@ public class TestImageProviderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+        (int Index, string FileName)[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
 
         Assert.True(files.Length > 2);
-        foreach (string path in files)
+        foreach ((int Index, string FileName) file in files)
         {
-            this.Output.WriteLine(path);
-            Assert.True(File.Exists(path));
+            this.Output.WriteLine(file.FileName);
+            Assert.True(File.Exists(file.FileName));
         }
     }
 

@@ -336,7 +336,7 @@ public static class TestImageExtensions
         Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
+        (int Index, string FileName)[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
             frameCount,
             extension,
             testOutputDetails,
@@ -345,10 +345,11 @@ public static class TestImageExtensions
 
         List<Image<TPixel>> temporaryFrameImages = new();
 
-        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
+        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0].FileName);
 
-        foreach (string path in frameFiles)
+        for (int i = 0; i < frameFiles.Length; i++)
         {
+            string path = frameFiles[i].FileName;
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException("Reference output file missing: " + path);
@@ -536,10 +537,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }
@@ -562,10 +561,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }

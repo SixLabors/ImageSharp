@@ -28,12 +28,12 @@ internal static class PngConstants
     /// <summary>
     /// The list of mimetypes that equate to a Png.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/png" };
+    public static readonly IEnumerable<string> MimeTypes = new[] { "image/png", "image/apng" };
 
     /// <summary>
     /// The list of file extensions that equate to a Png.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
+    public static readonly IEnumerable<string> FileExtensions = new[] { "png", "apng" };
 
     /// <summary>
     /// The header bytes as a big-endian coded ulong.
@@ -43,7 +43,7 @@ internal static class PngConstants
     /// <summary>
     /// The dictionary of available color types.
     /// </summary>
-    public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>
+    public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new()
     {
         [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
         [PngColorType.Rgb] = new byte[] { 8, 16 },
@@ -80,7 +80,7 @@ internal static class PngConstants
     /// <summary>
     /// Gets the keyword of the XMP metadata, encoded in an iTXT chunk.
     /// </summary>
-    public static ReadOnlySpan<byte> XmpKeyword => new byte[]
+    public static ReadOnlySpan<byte> XmpKeyword => new[]
     {
         (byte)'X',
         (byte)'M',

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Png;
+namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 
 /// <summary>
 /// Stores text data contained in the iTXt, tEXt, and zTXt chunks.

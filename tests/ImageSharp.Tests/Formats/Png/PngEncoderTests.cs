@@ -457,8 +457,23 @@ public partial class PngEncoderTests
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageComparer.Exact.VerifySimilarity(output, image);
 
-        // TODO: Additional assertations regarding metadata.
         Assert.Equal(5, image.Frames.Count);
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+
+        PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
+        PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(originalMetadata.RepeatCount, outputMetadata.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata originalFrameMetadata = image.Frames[i].Metadata.GetPngFrameMetadata();
+            PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngFrameMetadata();
+
+            Assert.Equal(originalFrameMetadata.FrameDelay, outputFrameMetadata.FrameDelay);
+            Assert.Equal(originalFrameMetadata.BlendMethod, outputFrameMetadata.BlendMethod);
+            Assert.Equal(originalFrameMetadata.DisposalMethod, outputFrameMetadata.DisposalMethod);
+        }
     }
 
     [Theory]

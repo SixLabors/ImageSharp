@@ -176,7 +176,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, image.Frames.Count, pngMetadata.NumberPlays);
+            this.WriteAnimationControlChunk(stream, image.Frames.Count, pngMetadata.RepeatCount);
 
             // TODO: We should attempt to optimize the output by clipping the indexed result to
             // non-transparent bounds. That way we can assign frame control bounds and encode
@@ -996,8 +996,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             height: (uint)imageFrame.Height,
             xOffset: 0,
             yOffset: 0,
-            delayNumerator: frameMetadata.DelayNumerator,
-            delayDenominator: frameMetadata.DelayDenominator,
+            delayNumerator: (ushort)frameMetadata.FrameDelay.Numerator,
+            delayDenominator: (ushort)frameMetadata.FrameDelay.Denominator,
             disposeOperation: frameMetadata.DisposalMethod,
             blendOperation: frameMetadata.BlendMethod);
 

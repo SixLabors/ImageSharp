@@ -23,21 +23,18 @@ public class PngFrameMetadata : IDeepCloneable
     /// <param name="other">The metadata to create an instance from.</param>
     private PngFrameMetadata(PngFrameMetadata other)
     {
-        this.DelayNumerator = other.DelayNumerator;
-        this.DelayDenominator = other.DelayDenominator;
+        this.FrameDelay = other.FrameDelay;
         this.DisposalMethod = other.DisposalMethod;
         this.BlendMethod = other.BlendMethod;
     }
 
     /// <summary>
-    /// Gets or sets the frame delay fraction numerator
+    /// Gets or sets the frame delay for animated images.
+    /// If not 0, when utilized in Png animation, this field specifies the number of hundredths (1/100) of a second to
+    /// wait before continuing with the processing of the Data Stream.
+    /// The clock starts ticking immediately after the graphic is rendered.
     /// </summary>
-    public ushort DelayNumerator { get; set; }
-
-    /// <summary>
-    /// Gets or sets the frame delay fraction denominator
-    /// </summary>
-    public ushort DelayDenominator { get; set; }
+    public Rational FrameDelay { get; set; }
 
     /// <summary>
     /// Gets or sets the type of frame area disposal to be done after rendering this frame
@@ -55,8 +52,7 @@ public class PngFrameMetadata : IDeepCloneable
     /// <param name="frameControl">The chunk to create an instance from.</param>
     internal void FromChunk(in FrameControl frameControl)
     {
-        this.DelayNumerator = frameControl.DelayNumerator;
-        this.DelayDenominator = frameControl.DelayDenominator;
+        this.FrameDelay = new Rational(frameControl.DelayNumerator, frameControl.DelayDenominator);
         this.DisposalMethod = frameControl.DisposeOperation;
         this.BlendMethod = frameControl.BlendOperation;
     }

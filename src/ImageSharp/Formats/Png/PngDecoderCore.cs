@@ -1258,7 +1258,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         this.animationControl = AnimationControl.Parse(data);
 
-        pngMetadata.NumberPlays = this.animationControl.NumberPlays;
+        pngMetadata.RepeatCount = this.animationControl.NumberPlays;
     }
 
     /// <summary>

@@ -31,15 +31,25 @@ public class PngMetadataTests
             ColorType = PngColorType.GrayscaleWithAlpha,
             InterlaceMethod = PngInterlaceMode.Adam7,
             Gamma = 2,
-            TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") }
+            TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") },
+            RepeatCount = 123
         };
 
         PngMetadata clone = (PngMetadata)meta.DeepClone();
+
+        Assert.True(meta.BitDepth == clone.BitDepth);
+        Assert.True(meta.ColorType == clone.ColorType);
+        Assert.True(meta.InterlaceMethod == clone.InterlaceMethod);
+        Assert.True(meta.Gamma.Equals(clone.Gamma));
+        Assert.False(meta.TextData.Equals(clone.TextData));
+        Assert.True(meta.TextData.SequenceEqual(clone.TextData));
+        Assert.True(meta.RepeatCount == clone.RepeatCount);
 
         clone.BitDepth = PngBitDepth.Bit2;
         clone.ColorType = PngColorType.Palette;
         clone.InterlaceMethod = PngInterlaceMode.None;
         clone.Gamma = 1;
+        clone.RepeatCount = 321;
 
         Assert.False(meta.BitDepth == clone.BitDepth);
         Assert.False(meta.ColorType == clone.ColorType);
@@ -47,6 +57,7 @@ public class PngMetadataTests
         Assert.False(meta.Gamma.Equals(clone.Gamma));
         Assert.False(meta.TextData.Equals(clone.TextData));
         Assert.True(meta.TextData.SequenceEqual(clone.TextData));
+        Assert.False(meta.RepeatCount == clone.RepeatCount);
     }
 
     [Theory]

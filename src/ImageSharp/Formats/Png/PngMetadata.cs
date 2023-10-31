@@ -29,7 +29,7 @@ public class PngMetadata : IDeepCloneable
         this.Gamma = other.Gamma;
         this.InterlaceMethod = other.InterlaceMethod;
         this.TransparentColor = other.TransparentColor;
-        this.NumberPlays = other.NumberPlays;
+        this.RepeatCount = other.RepeatCount;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -80,9 +80,9 @@ public class PngMetadata : IDeepCloneable
     public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
 
     /// <summary>
-    /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping. TODO: RepeatCount!!
+    /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public int NumberPlays { get; set; }
+    public int RepeatCount { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);

@@ -80,13 +80,13 @@ public partial class PngDecoderTests
 
     public static readonly string[] MultiFrameTestFiles =
     {
-        //TestImages.Png.APng,
-        //TestImages.Png.SplitIDatZeroLength,
-        //TestImages.Png.DisposeNone,
-        //TestImages.Png.DisposeBackground,
-        //TestImages.Png.DisposeBackgroundRegion,
-        //TestImages.Png.DisposePreviousFirst,
-        //TestImages.Png.DisposeBackgroundBeforeRegion,
+        TestImages.Png.APng,
+        TestImages.Png.SplitIDatZeroLength,
+        TestImages.Png.DisposeNone,
+        TestImages.Png.DisposeBackground,
+        TestImages.Png.DisposeBackgroundRegion,
+        TestImages.Png.DisposePreviousFirst,
+        TestImages.Png.DisposeBackgroundBeforeRegion,
         TestImages.Png.BlendOverMultiple
     };
 

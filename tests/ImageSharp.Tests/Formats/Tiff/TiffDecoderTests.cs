@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -665,6 +664,33 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Issues2435, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_TiledWithNonEqualWidthAndHeight<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
+    public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Assert.Throws<ImageFormatException>(
+            () =>
+            {
+                using (provider.GetImage(TiffDecoder.Instance))
+                {
+                }
+            });
+
+    [Theory]
+    [WithFile(Tiled0000023664, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_TiledWithBadZlib<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+
+        // ImageMagick cannot decode this image.
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(
+            ImageComparer.Exact,
+            provider,
+            appendPixelTypeToFileName: false);
+    }
 
     [Theory]
     [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

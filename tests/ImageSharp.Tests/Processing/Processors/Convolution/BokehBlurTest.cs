@@ -65,7 +65,7 @@ public class BokehBlurTest
 
         // Make sure the kernel components are the same
         using Image<Rgb24> image = new(1, 1);
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         BokehBlurProcessor definition = new(10, BokehBlurProcessor.DefaultComponents, BokehBlurProcessor.DefaultGamma);
 
         using BokehBlurProcessor<Rgb24> processor = (BokehBlurProcessor<Rgb24>)definition.CreatePixelSpecificProcessor(configuration, image, image.Bounds);

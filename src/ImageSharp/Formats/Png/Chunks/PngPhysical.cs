@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
@@ -10,11 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Chunks;
 /// <summary>
 /// The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image.
 /// </summary>
-internal readonly struct PhysicalChunkData
+internal readonly struct PngPhysical
 {
     public const int Size = 9;
 
-    public PhysicalChunkData(uint x, uint y, byte unitSpecifier)
+    public PngPhysical(uint x, uint y, byte unitSpecifier)
     {
         this.XAxisPixelsPerUnit = x;
         this.YAxisPixelsPerUnit = y;
@@ -44,13 +44,13 @@ internal readonly struct PhysicalChunkData
     /// </summary>
     /// <param name="data">The data buffer.</param>
     /// <returns>The parsed PhysicalChunkData.</returns>
-    public static PhysicalChunkData Parse(ReadOnlySpan<byte> data)
+    public static PngPhysical Parse(ReadOnlySpan<byte> data)
     {
         uint hResolution = BinaryPrimitives.ReadUInt32BigEndian(data[..4]);
         uint vResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(4, 4));
         byte unit = data[8];
 
-        return new PhysicalChunkData(hResolution, vResolution, unit);
+        return new PngPhysical(hResolution, vResolution, unit);
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ internal readonly struct PhysicalChunkData
     /// </summary>
     /// <param name="meta">The metadata.</param>
     /// <returns>The constructed PngPhysicalChunkData instance.</returns>
-    public static PhysicalChunkData FromMetadata(ImageMetadata meta)
+    public static PngPhysical FromMetadata(ImageMetadata meta)
     {
         byte unitSpecifier = 0;
         uint x;
@@ -92,7 +92,7 @@ internal readonly struct PhysicalChunkData
                 break;
         }
 
-        return new PhysicalChunkData(x, y, unitSpecifier);
+        return new PngPhysical(x, y, unitSpecifier);
     }
 
     /// <summary>

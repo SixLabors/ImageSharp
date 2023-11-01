@@ -49,15 +49,21 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     private WebpImageInfo? webImageInfo;
 
     /// <summary>
+    /// The flag to decide how to handle the background color in the Animation Chunk.
+    /// </summary>
+    private BackgroundColorHandling backgroundColorHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public WebpDecoderCore(DecoderOptions options)
+    public WebpDecoderCore(WebpDecoderOptions options)
     {
-        this.Options = options;
-        this.configuration = options.Configuration;
-        this.skipMetadata = options.SkipMetadata;
-        this.maxFrames = options.MaxFrames;
+        this.Options = options.GeneralOptions;
+        this.backgroundColorHandling = options.BackgroundColorHandling;
+        this.configuration = options.GeneralOptions.Configuration;
+        this.skipMetadata = options.GeneralOptions.SkipMetadata;
+        this.maxFrames = options.GeneralOptions.MaxFrames;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
@@ -83,7 +89,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    using WebpAnimationDecoder animationDecoder = new(this.memoryAllocator, this.configuration, this.maxFrames);
+                    using WebpAnimationDecoder animationDecoder = new(this.memoryAllocator, this.configuration, this.maxFrames, this.backgroundColorHandling);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 

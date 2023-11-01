@@ -53,16 +53,23 @@ internal class WebpAnimationDecoder : IDisposable
     private IMemoryOwner<byte>? alphaData;
 
     /// <summary>
+    /// The flag to decide how to handle the background color in the Animation Chunk.
+    /// </summary>
+    private readonly BackgroundColorHandling backgroundColorHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
     /// </summary>
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
-    public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration, uint maxFrames)
+    /// <param name="backgroundColorHandling">The flag to decide how to handle the background color in the Animation Chunk.</param>
+    public WebpAnimationDecoder(MemoryAllocator memoryAllocator, Configuration configuration, uint maxFrames, BackgroundColorHandling backgroundColorHandling)
     {
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
         this.maxFrames = maxFrames;
+        this.backgroundColorHandling = backgroundColorHandling;
     }
 
     /// <summary>
@@ -94,7 +101,10 @@ internal class WebpAnimationDecoder : IDisposable
             switch (chunkType)
             {
                 case WebpChunkType.Animation:
-                    uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, features.AnimationBackgroundColor!.Value);
+                    Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
+                        ? new Color(new Bgra32(0, 0, 0, 0))
+                        : features.AnimationBackgroundColor!.Value;
+                    uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, backgroundColor);
                     remainingBytes -= (int)dataSize;
                     break;
                 case WebpChunkType.Xmp:

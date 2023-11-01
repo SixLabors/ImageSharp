@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the png format.
 /// </summary>
-public sealed class PngFormat : IImageFormat<PngMetadata>
+public sealed class PngFormat : IImageFormat<PngMetadata, PngFrameMetadata>
 {
     private PngFormat()
     {
@@ -31,4 +31,7 @@ public sealed class PngFormat : IImageFormat<PngMetadata>
 
     /// <inheritdoc/>
     public PngMetadata CreateDefaultFormatMetadata() => new();
+
+    /// <inheritdoc/>
+    public PngFrameMetadata CreateDefaultFormatFrameMetadata() => new();
 }

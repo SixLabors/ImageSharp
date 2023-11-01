@@ -62,6 +62,17 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
 
+        // Animated
+        // https://philip.html5.org/tests/apng/tests.html
+        public const string APng = "Png/animated/apng.png";
+        public const string SplitIDatZeroLength = "Png/animated/4-split-idat-zero-length.png";
+        public const string DisposeNone = "Png/animated/7-dispose-none.png";
+        public const string DisposeBackground = "Png/animated/8-dispose-background.png";
+        public const string DisposeBackgroundBeforeRegion = "Png/animated/14-dispose-background-before-region.png";
+        public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
+        public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
+        public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
         public const string SubFilter3BytesPerPixel = "Png/filter1.png";
@@ -688,6 +699,7 @@ public static class TestImages
             public const string WithXmp = "Webp/xmp_lossy.webp";
             public const string BikeSmall = "Webp/bike_lossy_small.webp";
             public const string Animated = "Webp/leo_animated_lossy.webp";
+            public const string AnimatedIssue2528 = "Webp/issues/Issue2528.webp";
 
             // Lossy images without macroblock filtering.
             public const string BikeWithExif = "Webp/bike_lossy_with_exif.webp";
@@ -990,6 +1002,8 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
+        public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -1051,6 +1065,7 @@ public static class TestImages
         public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
         public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
         public const string RgbBinary = "Pbm/00000_00000.ppm";
+        public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
         public const string RgbPlainMagick = "Pbm/rgb_plain_magick.ppm";

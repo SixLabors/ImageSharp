@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -95,6 +96,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// Processes the ppm header.
     /// </summary>
     /// <param name="stream">The input stream.</param>
+    /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
     private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[2];
@@ -144,14 +146,22 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
                 throw new InvalidImageContentException("Unknown of not implemented image type encountered.");
         }
 
-        stream.SkipWhitespaceAndComments();
-        int width = stream.ReadDecimal();
-        stream.SkipWhitespaceAndComments();
-        int height = stream.ReadDecimal();
-        stream.SkipWhitespaceAndComments();
+        if (!stream.SkipWhitespaceAndComments() ||
+            !stream.ReadDecimal(out int width) ||
+            !stream.SkipWhitespaceAndComments() ||
+            !stream.ReadDecimal(out int height) ||
+            !stream.SkipWhitespaceAndComments())
+        {
+            ThrowPrematureEof();
+        }
+
         if (this.colorType != PbmColorType.BlackAndWhite)
         {
-            this.maxPixelValue = stream.ReadDecimal();
+            if (!stream.ReadDecimal(out this.maxPixelValue))
+            {
+                ThrowPrematureEof();
+            }
+
             if (this.maxPixelValue > 255)
             {
                 this.componentType = PbmComponentType.Short;
@@ -174,6 +184,9 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
         meta.Encoding = this.encoding;
         meta.ColorType = this.colorType;
         meta.ComponentType = this.componentType;
+
+        [DoesNotReturn]
+        static void ThrowPrematureEof() => throw new InvalidImageContentException("Reached EOF while reading the header.");
     }
 
     private void ProcessPixels<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)

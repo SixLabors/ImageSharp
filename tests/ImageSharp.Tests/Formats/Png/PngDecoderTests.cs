@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -79,6 +78,18 @@ public partial class PngDecoderTests
         { TestImages.Png.Rgba64Bpp, typeof(Image<Rgba64>) },
     };
 
+    public static readonly string[] MultiFrameTestFiles =
+    {
+        TestImages.Png.APng,
+        TestImages.Png.SplitIDatZeroLength,
+        TestImages.Png.DisposeNone,
+        TestImages.Png.DisposeBackground,
+        TestImages.Png.DisposeBackgroundRegion,
+        TestImages.Png.DisposePreviousFirst,
+        TestImages.Png.DisposeBackgroundBeforeRegion,
+        TestImages.Png.BlendOverMultiple
+    };
+
     [Theory]
     [MemberData(nameof(PixelFormatRange))]
     public void Decode_NonGeneric_CreatesCorrectImageType(string path, Type type)
@@ -105,6 +116,19 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
+    public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        // Some images have many frames, only compare a selection of them.
+        static bool Predicate(int i, int _) => i <= 8 || i % 8 == 0;
+        image.DebugSaveMultiFrame(provider, predicate: Predicate);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact, predicate: Predicate);
     }
 
     [Theory]
@@ -539,7 +563,8 @@ public partial class PngDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -551,7 +576,8 @@ public partial class PngDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410

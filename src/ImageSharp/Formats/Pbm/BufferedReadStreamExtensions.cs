@@ -11,14 +11,20 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 internal static class BufferedReadStreamExtensions
 {
     /// <summary>
-    /// Skip over any whitespace or any comments.
+    /// Skip over any whitespace or any comments and signal if EOF has been reached.
     /// </summary>
-    public static void SkipWhitespaceAndComments(this BufferedReadStream stream)
+    /// <param name="stream">The buffered read stream.</param>
+    /// <returns><see langword="false"/> if EOF has been reached while reading the stream; see langword="true"/> otherwise.</returns>
+    public static bool SkipWhitespaceAndComments(this BufferedReadStream stream)
     {
         bool isWhitespace;
         do
         {
             int val = stream.ReadByte();
+            if (val < 0)
+            {
+                return false;
+            }
 
             // Comments start with '#' and end at the next new-line.
             if (val == 0x23)
@@ -27,8 +33,12 @@ internal static class BufferedReadStreamExtensions
                 do
                 {
                     innerValue = stream.ReadByte();
+                    if (innerValue < 0)
+                    {
+                        return false;
+                    }
                 }
-                while (innerValue is not 0x0a and not -0x1);
+                while (innerValue is not 0x0a);
 
                 // Continue searching for whitespace.
                 val = innerValue;
@@ -38,18 +48,31 @@ internal static class BufferedReadStreamExtensions
         }
         while (isWhitespace);
         stream.Seek(-1, SeekOrigin.Current);
+        return true;
     }
 
     /// <summary>
-    /// Read a decimal text value.
+    /// Read a decimal text value and signal if EOF has been reached.
     /// </summary>
-    /// <returns>The integer value of the decimal.</returns>
-    public static int ReadDecimal(this BufferedReadStream stream)
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="value">The read value.</param>
+    /// <returns><see langword="false"/> if EOF has been reached while reading the stream; <see langword="true"/> otherwise.</returns>
+    /// <remarks>
+    /// A 'false' return value doesn't mean that the parsing has been failed, since it's possible to reach EOF while reading the last decimal in the file.
+    /// It's up to the call site to handle such a situation.
+    /// </remarks>
+    public static bool ReadDecimal(this BufferedReadStream stream, out int value)
     {
-        int value = 0;
+        value = 0;
         while (true)
         {
-            int current = stream.ReadByte() - 0x30;
+            int current = stream.ReadByte();
+            if (current < 0)
+            {
+                return false;
+            }
+
+            current -= 0x30;
             if ((uint)current > 9)
             {
                 break;
@@ -58,6 +81,6 @@ internal static class BufferedReadStreamExtensions
             value = (value * 10) + current;
         }
 
-        return value;
+        return true;
     }
 }

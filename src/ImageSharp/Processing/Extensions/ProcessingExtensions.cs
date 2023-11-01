@@ -22,7 +22,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     public static void Mutate(this Image source, Action<IImageProcessingContext> operation)
-        => Mutate(source, source.GetConfiguration(), operation);
+        => Mutate(source, source.Configuration, operation);
 
     /// <summary>
     /// Mutates the source image by applying the image operation to it.
@@ -57,7 +57,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     public static void Mutate<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Mutate(source, source.GetConfiguration(), operation);
+        => Mutate(source, source.Configuration, operation);
 
     /// <summary>
     /// Mutates the source image by applying the image operation to it.
@@ -97,7 +97,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     public static void Mutate<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Mutate(source, source.GetConfiguration(), operations);
+        => Mutate(source, source.Configuration, operations);
 
     /// <summary>
     /// Mutates the source image by applying the operations to it.
@@ -135,7 +135,7 @@ public static partial class ProcessingExtensions
     /// <exception cref="ObjectDisposedException">The source has been disposed.</exception>
     /// <exception cref="ImageProcessingException">The processing operation failed.</exception>
     public static Image Clone(this Image source, Action<IImageProcessingContext> operation)
-        => Clone(source, source.GetConfiguration(), operation);
+        => Clone(source, source.Configuration, operation);
 
     /// <summary>
     /// Creates a deep clone of the current image. The clone is then mutated by the given operation.
@@ -174,7 +174,7 @@ public static partial class ProcessingExtensions
     /// <returns>The new <see cref="Image{TPixel}"/>.</returns>
     public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext> operation)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Clone(source, source.GetConfiguration(), operation);
+        => Clone(source, source.Configuration, operation);
 
     /// <summary>
     /// Creates a deep clone of the current image. The clone is then mutated by the given operation.
@@ -217,7 +217,7 @@ public static partial class ProcessingExtensions
     /// <returns>The new <see cref="Image{TPixel}"/></returns>
     public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor[] operations)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Clone(source, source.GetConfiguration(), operations);
+        => Clone(source, source.Configuration, operations);
 
     /// <summary>
     /// Creates a deep clone of the current image. The clone is then mutated by the given operations.

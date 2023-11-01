@@ -70,7 +70,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(5, 5);
             string ext = Path.GetExtension(filename);
-            image.GetConfiguration().ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat format);
+            image.Configuration.ImageFormatsManager.TryFindFormatByFileExtension(ext, out IImageFormat format);
             Assert.Equal(mimeType, format!.DefaultMimeType);
 
             using MemoryStream stream = new();

@@ -87,15 +87,21 @@ internal sealed class IccReader
         foreach (IccTagTableEntry tag in tagTable)
         {
             IccTagDataEntry entry;
-
-            try
+            if (store.TryGetValue(tag.Offset, out IccTagDataEntry? value))
             {
-                entry = reader.ReadTagDataEntry(tag);
+                entry = value;
             }
-            catch
+            else
             {
-                // Ignore tags that could not be read
-                continue;
+                try
+                {
+                    entry = reader.ReadTagDataEntry(tag);
+                }
+                catch
+                {
+                    // Ignore tags that could not be read
+                    continue;
+                }
             }
 
             entry.TagSignature = tag.Signature;

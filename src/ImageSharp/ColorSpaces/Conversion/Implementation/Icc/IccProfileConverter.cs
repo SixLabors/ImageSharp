@@ -41,6 +41,12 @@ internal static class IccProfileConverter
 
         image.ProcessPixelRows(accessor =>
         {
+            Vector3 illuminant = outputIccProfile.Header.PcsIlluminant;
+            ColorSpaceConverter converter = new(new ColorSpaceConverterOptions()
+            {
+                WhitePoint = new(illuminant),
+            });
+
             using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(accessor.Width);
             Span<Vector4> vectorsSpan = vectors.GetSpan();
             for (int y = 0; y < accessor.Height; y++)
@@ -51,7 +57,6 @@ internal static class IccProfileConverter
                 if (inputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieLab
                 && outputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieXyz)
                 {
-                    ColorSpaceConverter converter = new();
                     for (int x = 0; x < vectorsSpan.Length; x++)
                     {
                         Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
@@ -65,12 +70,6 @@ internal static class IccProfileConverter
                 else if (inputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieXyz
                 && outputIccProfile.Header.ProfileConnectionSpace == IccColorSpaceType.CieLab)
                 {
-                    Vector3 illuminant = outputIccProfile.Header.PcsIlluminant;
-                    ColorSpaceConverter converter = new(new ColorSpaceConverterOptions()
-                    {
-                        WhitePoint = new(illuminant),
-                    });
-
                     for (int x = 0; x < vectorsSpan.Length; x++)
                     {
                         Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
@@ -88,7 +87,7 @@ internal static class IccProfileConverter
                     }
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, row);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, row, PixelConversionModifiers.Scale);
             }
         });
 

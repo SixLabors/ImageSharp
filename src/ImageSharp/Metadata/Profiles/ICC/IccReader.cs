@@ -83,6 +83,7 @@ internal sealed class IccReader
     {
         IccTagTableEntry[] tagTable = ReadTagTable(reader);
         List<IccTagDataEntry> entries = new(tagTable.Length);
+        Dictionary<uint, IccTagDataEntry> store = new();
 
         foreach (IccTagTableEntry tag in tagTable)
         {
@@ -102,6 +103,8 @@ internal sealed class IccReader
                     // Ignore tags that could not be read
                     continue;
                 }
+
+                store.Add(tag.Offset, entry);
             }
 
             entry.TagSignature = tag.Signature;

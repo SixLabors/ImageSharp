@@ -53,6 +53,8 @@ internal struct WebpFrameData
     /// </summary>
     public WebpDisposalMethod DisposalMethod;
 
+    public readonly Rectangle Bounds => new((int)this.X * 2, (int)this.Y * 2, (int)this.Width, (int)this.Height);
+
     /// <summary>
     /// Reads the animation frame header.
     /// </summary>

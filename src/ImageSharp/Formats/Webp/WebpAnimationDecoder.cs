@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -193,11 +192,7 @@ internal class WebpAnimationDecoder : IDisposable
             imageFrame = currentFrame;
         }
 
-        int frameX = (int)(frameData.X * 2);
-        int frameY = (int)(frameData.Y * 2);
-        int frameWidth = (int)frameData.Width;
-        int frameHeight = (int)frameData.Height;
-        Rectangle regionRectangle = Rectangle.FromLTRB(frameX, frameY, frameX + frameWidth, frameY + frameHeight);
+        Rectangle regionRectangle = frameData.Bounds;
 
         if (frameData.DisposalMethod is WebpDisposalMethod.Dispose)
         {
@@ -205,11 +200,11 @@ internal class WebpAnimationDecoder : IDisposable
         }
 
         using Buffer2D<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
-        DrawDecodedImageOnCanvas(decodedImage, imageFrame, frameX, frameY, frameWidth, frameHeight);
+        DrawDecodedImageOnCanvas(decodedImage, imageFrame, regionRectangle);
 
         if (previousFrame != null && frameData.BlendingMethod is WebpBlendingMethod.AlphaBlending)
         {
-            this.AlphaBlend(previousFrame, imageFrame, frameX, frameY, frameWidth, frameHeight);
+            this.AlphaBlend(previousFrame, imageFrame, regionRectangle);
         }
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
@@ -245,7 +240,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         byte alphaChunkHeader = (byte)stream.ReadByte();
         Span<byte> alphaData = this.alphaData.GetSpan();
-        stream.Read(alphaData, 0, alphaDataSize);
+        _ = stream.Read(alphaData, 0, alphaDataSize);
 
         return alphaChunkHeader;
     }
@@ -260,11 +255,11 @@ internal class WebpAnimationDecoder : IDisposable
     private Buffer2D<TPixel> DecodeImageData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Image<TPixel> decodedImage = new((int)frameData.Width, (int)frameData.Height);
+        ImageFrame<TPixel> decodedFrame = new(Configuration.Default, (int)frameData.Width, (int)frameData.Height);
 
         try
         {
-            Buffer2D<TPixel> pixelBufferDecoded = decodedImage.GetRootFramePixelBuffer();
+            Buffer2D<TPixel> pixelBufferDecoded = decodedFrame.PixelBuffer;
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder =
@@ -282,7 +277,7 @@ internal class WebpAnimationDecoder : IDisposable
         }
         catch
         {
-            decodedImage?.Dispose();
+            decodedFrame?.Dispose();
             throw;
         }
         finally
@@ -297,20 +292,17 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="decodedImage">The decoded image.</param>
     /// <param name="imageFrame">The image frame to draw into.</param>
-    /// <param name="frameX">The frame x coordinate.</param>
-    /// <param name="frameY">The frame y coordinate.</param>
-    /// <param name="frameWidth">The width of the frame.</param>
-    /// <param name="frameHeight">The height of the frame.</param>
-    private static void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, int frameX, int frameY, int frameWidth, int frameHeight)
+    /// <param name="restoreArea">The area of the frame.</param>
+    private static void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, Rectangle restoreArea)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageFramePixels = imageFrame.PixelBuffer;
+        Buffer2DRegion<TPixel> imageFramePixels = imageFrame.PixelBuffer.GetRegion(restoreArea);
         int decodedRowIdx = 0;
-        for (int y = frameY; y < frameY + frameHeight; y++)
+        for (int y = 0; y < restoreArea.Height; y++)
         {
             Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-            Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++)[..frameWidth];
-            decodedPixelRow.TryCopyTo(framePixelRow[frameX..]);
+            Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++)[..restoreArea.Width];
+            decodedPixelRow.TryCopyTo(framePixelRow);
         }
     }
 
@@ -321,22 +313,19 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="src">The source image.</param>
     /// <param name="dst">The destination image.</param>
-    /// <param name="frameX">The frame x coordinate.</param>
-    /// <param name="frameY">The frame y coordinate.</param>
-    /// <param name="frameWidth">The width of the frame.</param>
-    /// <param name="frameHeight">The height of the frame.</param>
-    private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, int frameX, int frameY, int frameWidth, int frameHeight)
+    /// <param name="restoreArea">The area of the frame.</param>
+    private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, Rectangle restoreArea)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> srcPixels = src.PixelBuffer;
-        Buffer2D<TPixel> dstPixels = dst.PixelBuffer;
+        Buffer2DRegion<TPixel> srcPixels = src.PixelBuffer.GetRegion(restoreArea);
+        Buffer2DRegion<TPixel> dstPixels = dst.PixelBuffer.GetRegion(restoreArea);
         PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-        for (int y = frameY; y < frameY + frameHeight; y++)
+        for (int y = 0; y < restoreArea.Height; y++)
         {
-            Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y).Slice(frameX, frameWidth);
-            Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y).Slice(frameX, frameWidth);
+            Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y);
+            Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y);
 
-            blender.Blend<TPixel>(this.configuration, dstPixelRow, srcPixelRow, dstPixelRow, 1.0f);
+            blender.Blend<TPixel>(this.configuration, dstPixelRow, srcPixelRow, dstPixelRow, 1f);
         }
     }
 

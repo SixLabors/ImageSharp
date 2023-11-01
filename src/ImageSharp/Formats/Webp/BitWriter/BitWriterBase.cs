@@ -263,7 +263,6 @@ internal abstract class BitWriterBase
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Height - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, animation.Duration);
 
-        // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
         byte flag = (byte)(((int)animation.BlendingMethod << 1) | (int)animation.DisposalMethod);
         stream.WriteByte(flag);
         return position;

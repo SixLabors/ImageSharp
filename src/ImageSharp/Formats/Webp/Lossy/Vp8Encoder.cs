@@ -476,8 +476,12 @@ internal class Vp8Encoder : IDisposable
             if (hasAnimation)
             {
                 WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
+
+                // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
                 prevPosition = BitWriterBase.WriteAnimationFrame(stream, new WebpFrameData
                 {
+                    X = 0,
+                    Y = 0,
                     Width = (uint)frame.Width,
                     Height = (uint)frame.Height,
                     Duration = frameMetadata.FrameDelay,

@@ -95,12 +95,10 @@ internal sealed class WebpLosslessDecoder
     public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Vp8LDecoder decoder = new Vp8LDecoder(width, height, this.memoryAllocator))
-        {
-            this.DecodeImageStream(decoder, width, height, true);
-            this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
-            this.DecodePixelValues(decoder, pixels, width, height);
-        }
+        using Vp8LDecoder decoder = new(width, height, this.memoryAllocator);
+        this.DecodeImageStream(decoder, width, height, true);
+        this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
+        this.DecodePixelValues(decoder, pixels, width, height);
     }
 
     public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
@@ -616,15 +614,12 @@ internal sealed class WebpLosslessDecoder
     private void ReadTransformation(int xSize, int ySize, Vp8LDecoder decoder)
     {
         Vp8LTransformType transformType = (Vp8LTransformType)this.bitReader.ReadValue(2);
-        Vp8LTransform transform = new Vp8LTransform(transformType, xSize, ySize);
+        Vp8LTransform transform = new(transformType, xSize, ySize);
 
         // Each transform is allowed to be used only once.
-        foreach (Vp8LTransform decoderTransform in decoder.Transforms)
+        if (decoder.Transforms.Any(decoderTransform => decoderTransform.TransformType == transform.TransformType))
         {
-            if (decoderTransform.TransformType == transform.TransformType)
-            {
-                WebpThrowHelper.ThrowImageFormatException("Each transform can only be present once");
-            }
+            WebpThrowHelper.ThrowImageFormatException("Each transform can only be present once");
         }
 
         switch (transformType)
@@ -744,61 +739,69 @@ internal sealed class WebpLosslessDecoder
 
             this.bitReader.FillBitWindow();
             int code = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Green]);
-            if (code < WebpConstants.NumLiteralCodes)
+            switch (code)
             {
-                // Literal
-                data[pos] = (byte)code;
-                ++pos;
-                ++col;
-
-                if (col >= width)
+                case < WebpConstants.NumLiteralCodes:
                 {
-                    col = 0;
-                    ++row;
-                    if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
+                    // Literal
+                    data[pos] = (byte)code;
+                    ++pos;
+                    ++col;
+
+                    if (col >= width)
                     {
-                        dec.ExtractPalettedAlphaRows(row);
+                        col = 0;
+                        ++row;
+                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
+                        {
+                            dec.ExtractPalettedAlphaRows(row);
+                        }
                     }
-                }
-            }
-            else if (code < lenCodeLimit)
-            {
-                // Backward reference
-                int lengthSym = code - WebpConstants.NumLiteralCodes;
-                int length = this.GetCopyLength(lengthSym);
-                int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
-                this.bitReader.FillBitWindow();
-                int distCode = this.GetCopyDistance(distSymbol);
-                int dist = PlaneCodeToDistance(width, distCode);
-                if (pos >= dist && end - pos >= length)
-                {
-                    CopyBlock8B(data, pos, dist, length);
-                }
-                else
-                {
-                    WebpThrowHelper.ThrowImageFormatException("error while decoding alpha data");
+
+                    break;
                 }
 
-                pos += length;
-                col += length;
-                while (col >= width)
+                case < lenCodeLimit:
                 {
-                    col -= width;
-                    ++row;
-                    if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
+                    // Backward reference
+                    int lengthSym = code - WebpConstants.NumLiteralCodes;
+                    int length = this.GetCopyLength(lengthSym);
+                    int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
+                    this.bitReader.FillBitWindow();
+                    int distCode = this.GetCopyDistance(distSymbol);
+                    int dist = PlaneCodeToDistance(width, distCode);
+                    if (pos >= dist && end - pos >= length)
                     {
-                        dec.ExtractPalettedAlphaRows(row);
+                        CopyBlock8B(data, pos, dist, length);
                     }
+                    else
+                    {
+                        WebpThrowHelper.ThrowImageFormatException("error while decoding alpha data");
+                    }
+
+                    pos += length;
+                    col += length;
+                    while (col >= width)
+                    {
+                        col -= width;
+                        ++row;
+                        if (row <= lastRow && row % WebpConstants.NumArgbCacheRows == 0)
+                        {
+                            dec.ExtractPalettedAlphaRows(row);
+                        }
+                    }
+
+                    if (pos < last && (col & mask) > 0)
+                    {
+                        htreeGroup = GetHTreeGroupForPos(hdr, col, row);
+                    }
+
+                    break;
                 }
 
-                if (pos < last && (col & mask) > 0)
-                {
-                    htreeGroup = GetHTreeGroupForPos(hdr, col, row);
-                }
-            }
-            else
-            {
-                WebpThrowHelper.ThrowImageFormatException("bitstream error while parsing alpha data");
+                default:
+                    WebpThrowHelper.ThrowImageFormatException("bitstream error while parsing alpha data");
+                    break;
             }
 
             this.bitReader.Eos = this.bitReader.IsEndOfStream();

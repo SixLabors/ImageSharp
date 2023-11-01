@@ -37,7 +37,7 @@ internal static class IccProfileConverter
     {
         IccDataToPcsConverter converterDataToPcs = new(inputIccProfile);
         IccPcsToDataConverter converterPcsToData = new(outputIccProfile);
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
 
         image.ProcessPixelRows(accessor =>
         {

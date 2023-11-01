@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators
 
             float result = calculator.Calculate(input);
 
-            Assert.Equal(expected, result, 4);
+            Assert.Equal(expected, result, 4f);
         }
     }
 }

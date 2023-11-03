@@ -6,12 +6,12 @@ using System.Text;
 
 namespace SixLabors.ImageSharp.Common.Helpers;
 
-internal class RiffHelper
+internal static class RiffHelper
 {
     /// <summary>
     /// The header bytes identifying RIFF file.
     /// </summary>
-    public static readonly uint RiffFourCc = 0x52_49_46_46;
+    private const uint RiffFourCc = 0x52_49_46_46;
 
     public static void WriteRiffFile(Stream stream, string formType, Action<Stream> func) =>
         WriteChunk(stream, RiffFourCc, s =>
@@ -64,7 +64,7 @@ internal class RiffHelper
         stream.Write(data);
 
         // padding
-        if (size % 2 == 1)
+        if (size % 2 is 1)
         {
             stream.WriteByte(0);
         }
@@ -103,7 +103,7 @@ internal class RiffHelper
         uint dataSize = (uint)(position - sizePosition - 4);
 
         // padding
-        if (dataSize % 2 == 1)
+        if (dataSize % 2 is 1)
         {
             stream.WriteByte(0);
             position++;
@@ -114,4 +114,13 @@ internal class RiffHelper
 
         stream.Position = position;
     }
+
+    public static long BeginWriteRiffFile(Stream stream, string formType)
+    {
+        long sizePosition = BeginWriteChunk(stream, RiffFourCc);
+        stream.Write(Encoding.ASCII.GetBytes(formType));
+        return sizePosition;
+    }
+
+    public static void EndWriteRiffFile(Stream stream, long sizePosition) => EndWriteChunk(stream, sizePosition);
 }

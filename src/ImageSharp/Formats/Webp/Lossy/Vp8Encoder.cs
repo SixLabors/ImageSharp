@@ -4,7 +4,9 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -478,16 +480,15 @@ internal class Vp8Encoder : IDisposable
                 WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
 
                 // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
-                prevPosition = BitWriterBase.WriteAnimationFrame(stream, new WebpFrameData
-                {
-                    X = 0,
-                    Y = 0,
-                    Width = (uint)frame.Width,
-                    Height = (uint)frame.Height,
-                    Duration = frameMetadata.FrameDelay,
-                    BlendingMethod = frameMetadata.BlendMethod,
-                    DisposalMethod = frameMetadata.DisposalMethod
-                });
+                prevPosition = new WebpFrameData(
+                    0,
+                    0,
+                    (uint)frame.Width,
+                    (uint)frame.Height,
+                    frameMetadata.FrameDelay,
+                    frameMetadata.BlendMethod,
+                    frameMetadata.DisposalMethod)
+                    .WriteHeaderTo(stream);
             }
 
             if (hasAlpha)
@@ -501,7 +502,7 @@ internal class Vp8Encoder : IDisposable
 
             if (hasAnimation)
             {
-                BitWriterBase.OverwriteFrameSize(stream, prevPosition);
+                RiffHelper.EndWriteChunk(stream, prevPosition);
             }
         }
         finally

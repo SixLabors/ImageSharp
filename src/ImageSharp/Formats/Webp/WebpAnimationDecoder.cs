@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -99,7 +100,7 @@ internal class WebpAnimationDecoder : IDisposable
             remainingBytes -= 4;
             switch (chunkType)
             {
-                case WebpChunkType.Animation:
+                case WebpChunkType.FrameData:
                     Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
                         ? new Color(new Bgra32(0, 0, 0, 0))
                         : features.AnimationBackgroundColor!.Value;

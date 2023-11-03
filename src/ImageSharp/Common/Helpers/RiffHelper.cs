@@ -25,7 +25,7 @@ internal static class RiffHelper
         Span<byte> buffer = stackalloc byte[4];
 
         // write the fourCC
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, fourCc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
         stream.Write(buffer);
 
         long sizePosition = stream.Position;
@@ -34,7 +34,6 @@ internal static class RiffHelper
         func(stream);
 
         long position = stream.Position;
-        stream.Position = sizePosition;
 
         uint dataSize = (uint)(position - sizePosition - 4);
 
@@ -46,8 +45,8 @@ internal static class RiffHelper
         }
 
         BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
+        stream.Position = sizePosition;
         stream.Write(buffer);
-
         stream.Position = position;
     }
 
@@ -56,7 +55,7 @@ internal static class RiffHelper
         Span<byte> buffer = stackalloc byte[4];
 
         // write the fourCC
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, fourCc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
         stream.Write(buffer);
         uint size = (uint)data.Length;
         BinaryPrimitives.WriteUInt32LittleEndian(buffer, size);
@@ -84,7 +83,7 @@ internal static class RiffHelper
         Span<byte> buffer = stackalloc byte[4];
 
         // write the fourCC
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, fourCc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
         stream.Write(buffer);
 
         long sizePosition = stream.Position;
@@ -98,7 +97,6 @@ internal static class RiffHelper
         Span<byte> buffer = stackalloc byte[4];
 
         long position = stream.Position;
-        stream.Position = sizePosition;
 
         uint dataSize = (uint)(position - sizePosition - 4);
 
@@ -110,8 +108,8 @@ internal static class RiffHelper
         }
 
         BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
+        stream.Position = sizePosition;
         stream.Write(buffer);
-
         stream.Position = position;
     }
 

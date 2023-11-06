@@ -308,7 +308,7 @@ public class WebpDecoderTests
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
 
         Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 
@@ -325,7 +325,7 @@ public class WebpDecoderTests
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
 
         Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 
@@ -355,6 +355,16 @@ public class WebpDecoderTests
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
+    public void Decode_AnimatedLossy_AlphaBlending_Works<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact);
     }
 
     [Theory]

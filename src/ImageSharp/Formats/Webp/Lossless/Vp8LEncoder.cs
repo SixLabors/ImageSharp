@@ -6,7 +6,9 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -235,26 +237,60 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    /// <summary>
-    /// Encodes the image as lossless webp to the specified stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
-
+        // Write bytes from the bitwriter buffer to the stream.
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
 
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
+        BitWriterBase.WriteTrunksBeforeData(
+            stream,
+            (uint)image.Width,
+            (uint)image.Height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            false,
+            hasAnimation);
+
+        if (hasAnimation)
+        {
+            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.AnimationBackground, webpMetadata.AnimationLoopCount);
+        }
+    }
+
+    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+    }
+
+    /// <summary>
+    /// Encodes the image as lossless webp to the specified stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    public void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int width = frame.Width;
+        int height = frame.Height;
+
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
+        bool hasAlpha = this.ConvertPixelsToBgra(frame, width, height);
 
         // Write the image size.
         this.WriteImageSize(width, height);
@@ -263,35 +299,60 @@ internal class Vp8LEncoder : IDisposable
         this.WriteAlphaAndVersion(hasAlpha);
 
         // Encode the main image stream.
-        this.EncodeStream(image);
+        this.EncodeStream(frame);
+
+        this.bitWriter.Finish();
+
+        long prevPosition = 0;
+
+        if (hasAnimation)
+        {
+            WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
+
+            // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
+            prevPosition = new WebpFrameData(
+                    0,
+                    0,
+                    (uint)frame.Width,
+                    (uint)frame.Height,
+                    frameMetadata.FrameDelay,
+                    frameMetadata.BlendMethod,
+                    frameMetadata.DisposalMethod)
+                .WriteHeaderTo(stream);
+        }
 
         // Write bytes from the bitwriter buffer to the stream.
-        this.bitWriter.WriteEncodedImageToStream(stream, exifProfile, xmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
+        this.bitWriter.WriteEncodedImageToStream(stream);
+
+        if (hasAnimation)
+        {
+            RiffHelper.EndWriteChunk(stream, prevPosition);
+        }
     }
 
     /// <summary>
     /// Encodes the alpha image data using the webp lossless compression.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
     /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
     /// <returns>The size of the compressed data in bytes.
     /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
     /// </returns>
-    public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
+    public int EncodeAlphaImageData<TPixel>(ImageFrame<TPixel> frame, IMemoryOwner<byte> alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(image, width, height);
+        this.ConvertPixelsToBgra(frame, width, height);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
-        this.EncodeStream(image);
+        this.EncodeStream(frame);
         this.bitWriter.Finish();
-        int size = this.bitWriter.NumBytes();
+        int size = this.bitWriter.NumBytes;
         if (size >= pixelCount)
         {
             // Compressing would not yield in smaller data -> leave the data uncompressed.
@@ -333,12 +394,12 @@ internal class Vp8LEncoder : IDisposable
     /// Encodes the image stream using lossless webp format.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
-    /// <param name="image">The image to encode.</param>
-    private void EncodeStream<TPixel>(Image<TPixel> image)
+    /// <param name="frame">The frame to encode.</param>
+    private void EncodeStream<TPixel>(ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
 
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<uint> encodedData = this.EncodedData.GetSpan();
@@ -425,9 +486,9 @@ internal class Vp8LEncoder : IDisposable
                 lowEffort);
 
             // If we are better than what we already have.
-            if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
+            if (isFirstConfig || this.bitWriter.NumBytes < bestSize)
             {
-                bestSize = this.bitWriter.NumBytes();
+                bestSize = this.bitWriter.NumBytes;
                 BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
             }
 
@@ -447,14 +508,14 @@ internal class Vp8LEncoder : IDisposable
     /// Converts the pixels of the image to bgra.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="image">The image to convert.</param>
+    /// <param name="frame">The frame to convert.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
+    private bool ConvertPixelsToBgra<TPixel>(ImageFrame<TPixel> frame, int width, int height)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = frame.PixelBuffer;
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
@@ -682,7 +743,7 @@ internal class Vp8LEncoder : IDisposable
             this.StoreImageToBitMask(width, this.HistoBits, refsBest, histogramSymbols, huffmanCodes);
 
             // Keep track of the smallest image so far.
-            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
+            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes < bitWriterBest.NumBytes))
             {
                 (bitWriterBest, this.bitWriter) = (this.bitWriter, bitWriterBest);
             }
@@ -1154,35 +1215,41 @@ internal class Vp8LEncoder : IDisposable
             entropyComp[j] = bitEntropy.BitsEntropyRefine();
         }
 
-        entropy[(int)EntropyIx.Direct] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                         entropyComp[(int)HistoIx.HistoRed] +
-                                         entropyComp[(int)HistoIx.HistoGreen] +
-                                         entropyComp[(int)HistoIx.HistoBlue];
-        entropy[(int)EntropyIx.Spatial] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                          entropyComp[(int)HistoIx.HistoRedPred] +
-                                          entropyComp[(int)HistoIx.HistoGreenPred] +
-                                          entropyComp[(int)HistoIx.HistoBluePred];
-        entropy[(int)EntropyIx.SubGreen] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                           entropyComp[(int)HistoIx.HistoRedSubGreen] +
-                                           entropyComp[(int)HistoIx.HistoGreen] +
-                                           entropyComp[(int)HistoIx.HistoBlueSubGreen];
-        entropy[(int)EntropyIx.SpatialSubGreen] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                                  entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
-                                                  entropyComp[(int)HistoIx.HistoGreenPred] +
-                                                  entropyComp[(int)HistoIx.HistoBluePredSubGreen];
+        entropy[(int)EntropyIx.Direct] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRed] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlue];
+        entropy[(int)EntropyIx.Spatial] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPred] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePred];
+        entropy[(int)EntropyIx.SubGreen] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRedSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlueSubGreen];
+        entropy[(int)EntropyIx.SpatialSubGreen] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePredSubGreen];
         entropy[(int)EntropyIx.Palette] = entropyComp[(int)HistoIx.HistoPalette];
 
         // When including transforms, there is an overhead in bits from
         // storing them. This overhead is small but matters for small images.
         // For spatial, there are 14 transformations.
-        entropy[(int)EntropyIx.Spatial] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                           LosslessUtils.SubSampleSize(height, transformBits) *
-                                           LosslessUtils.FastLog2(14);
+        entropy[(int)EntropyIx.Spatial] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(14);
 
         // For color transforms: 24 as only 3 channels are considered in a ColorTransformElement.
-        entropy[(int)EntropyIx.SpatialSubGreen] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                                   LosslessUtils.SubSampleSize(height, transformBits) *
-                                                   LosslessUtils.FastLog2(24);
+        entropy[(int)EntropyIx.SpatialSubGreen] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(24);
 
         // For palettes, add the cost of storing the palette.
         // We empirically estimate the cost of a compressed entry as 8 bits.
@@ -1844,9 +1911,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public void ClearRefs()
     {
-        for (int i = 0; i < this.Refs.Length; i++)
+        foreach (Vp8LBackwardRefs t in this.Refs)
         {
-            this.Refs[i].Refs.Clear();
+            t.Refs.Clear();
         }
     }
 
@@ -1855,9 +1922,9 @@ internal class Vp8LEncoder : IDisposable
     {
         this.Bgra.Dispose();
         this.EncodedData.Dispose();
-        this.BgraScratch.Dispose();
+        this.BgraScratch?.Dispose();
         this.Palette.Dispose();
-        this.TransformData.Dispose();
+        this.TransformData?.Dispose();
         this.HashChain.Dispose();
     }
 

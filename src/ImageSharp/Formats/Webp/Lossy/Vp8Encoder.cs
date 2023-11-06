@@ -4,7 +4,9 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -88,7 +90,8 @@ internal class Vp8Encoder : IDisposable
 
     private const ulong Partition0SizeLimit = (WebpConstants.Vp8MaxPartition0Size - 2048UL) << 11;
 
-    private const long HeaderSizeEstimate = WebpConstants.RiffHeaderSize + WebpConstants.ChunkHeaderSize + WebpConstants.Vp8FrameHeaderSize;
+    private const long HeaderSizeEstimate =
+        WebpConstants.RiffHeaderSize + WebpConstants.ChunkHeaderSize + WebpConstants.Vp8FrameHeaderSize;
 
     private const int QMin = 0;
 
@@ -165,7 +168,7 @@ internal class Vp8Encoder : IDisposable
         // TODO: make partition_limit configurable?
         const int limit = 100; // original code: limit = 100 - config->partition_limit;
         this.maxI4HeaderBits =
-            256 * 16 * 16 * limit * limit / (100 * 100);  // ... modulated with a quadratic curve.
+            256 * 16 * 16 * limit * limit / (100 * 100); // ... modulated with a quadratic curve.
 
         this.MbInfo = new Vp8MacroBlockInfo[this.Mbw * this.Mbh];
         for (int i = 0; i < this.MbInfo.Length; i++)
@@ -308,27 +311,94 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private int MbHeaderLimit { get; }
 
+    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+        metadata.SyncProfiles();
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksBeforeData(
+            stream,
+            (uint)image.Width,
+            (uint)image.Height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            hasAlpha,
+            hasAnimation);
+
+        if (hasAnimation)
+        {
+            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.AnimationBackground, webpMetadata.AnimationLoopCount);
+        }
+    }
+
+    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bitwriter buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+    }
+
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    public void EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        this.Encode(frame, stream, true, null);
+
     /// <summary>
     /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeStatic<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        this.Encode(image.Frames.RootFrame, stream, false, image);
+
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+    private void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
+
         int pixelCount = width * height;
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(image, this.configuration, this.memoryAllocator, y, u, v);
+        bool hasAlpha = YuvConversion.ConvertRgbToYuv(frame, this.configuration, this.memoryAllocator, y, u, v);
+
+        if (!hasAnimation)
+        {
+            this.EncodeHeader(image, stream, hasAlpha, false);
+        }
 
         int yStride = width;
         int uvStride = (yStride + 1) >> 1;
 
-        Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+        Vp8EncIterator it = new(this);
         Span<int> alphas = stackalloc int[WebpConstants.MaxAlpha + 1];
         this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
         int totalMb = this.Mbw * this.Mbw;
@@ -375,13 +445,6 @@ internal class Vp8Encoder : IDisposable
         // Store filter stats.
         this.AdjustFilterStrength();
 
-        // Write bytes from the bitwriter buffer to the stream.
-        ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
-        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
-        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
-
         // Extract and encode alpha channel data, if present.
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
@@ -393,7 +456,7 @@ internal class Vp8Encoder : IDisposable
             {
                 // TODO: This can potentially run in an separate task.
                 encodedAlphaData = AlphaEncoder.EncodeAlpha(
-                    image,
+                    frame,
                     this.configuration,
                     this.memoryAllocator,
                     this.skipMetadata,
@@ -408,16 +471,39 @@ internal class Vp8Encoder : IDisposable
                 }
             }
 
-            this.bitWriter.WriteEncodedImageToStream(
-                stream,
-                exifProfile,
-                xmpProfile,
-                metadata.IccProfile,
-                (uint)width,
-                (uint)height,
-                hasAlpha,
-                alphaData[..alphaDataSize],
-                this.alphaCompression && alphaCompressionSucceeded);
+            this.bitWriter.Finish();
+
+            long prevPosition = 0;
+
+            if (hasAnimation)
+            {
+                WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
+
+                // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
+                prevPosition = new WebpFrameData(
+                    0,
+                    0,
+                    (uint)frame.Width,
+                    (uint)frame.Height,
+                    frameMetadata.FrameDelay,
+                    frameMetadata.BlendMethod,
+                    frameMetadata.DisposalMethod)
+                    .WriteHeaderTo(stream);
+            }
+
+            if (hasAlpha)
+            {
+                Span<byte> data = alphaData[..alphaDataSize];
+                bool alphaDataIsCompressed = this.alphaCompression && alphaCompressionSucceeded;
+                BitWriterBase.WriteAlphaChunk(stream, data, alphaDataIsCompressed);
+            }
+
+            this.bitWriter.WriteEncodedImageToStream(stream);
+
+            if (hasAnimation)
+            {
+                RiffHelper.EndWriteChunk(stream, prevPosition);
+            }
         }
         finally
         {
@@ -520,7 +606,7 @@ internal class Vp8Encoder : IDisposable
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        Vp8EncIterator it = new(this.YTop, this.UvTop, this.Nz, this.MbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
+        Vp8EncIterator it = new(this);
         long size = 0;
         long sizeP0 = 0;
         long distortion = 0;
@@ -862,10 +948,11 @@ internal class Vp8Encoder : IDisposable
                 this.ResetSegments();
             }
 
-            this.SegmentHeader.Size = (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +
-                                      (p[1] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(1, probas[1]))) +
-                                      (p[2] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(0, probas[2]))) +
-                                      (p[3] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(1, probas[2])));
+            this.SegmentHeader.Size =
+                (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +
+                (p[1] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(1, probas[1]))) +
+                (p[2] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(0, probas[2]))) +
+                (p[3] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(1, probas[2])));
         }
         else
         {
@@ -1027,7 +1114,7 @@ internal class Vp8Encoder : IDisposable
 
         it.NzToBytes();
 
-        int pos1 = this.bitWriter.NumBytes();
+        int pos1 = this.bitWriter.NumBytes;
         if (i16)
         {
             residual.Init(0, 1, this.Proba);
@@ -1054,7 +1141,7 @@ internal class Vp8Encoder : IDisposable
             }
         }
 
-        int pos2 = this.bitWriter.NumBytes();
+        int pos2 = this.bitWriter.NumBytes;
 
         // U/V
         residual.Init(0, 2, this.Proba);
@@ -1072,7 +1159,7 @@ internal class Vp8Encoder : IDisposable
             }
         }
 
-        int pos3 = this.bitWriter.NumBytes();
+        int pos3 = this.bitWriter.NumBytes;
         it.LumaBits = pos2 - pos1;
         it.UvBits = pos3 - pos2;
         it.BitCount[segment, i16 ? 1 : 0] += it.LumaBits;

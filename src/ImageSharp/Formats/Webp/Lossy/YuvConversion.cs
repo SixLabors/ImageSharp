@@ -262,17 +262,17 @@ internal static class YuvConversion
     /// Converts the RGB values of the image to YUV.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
-    /// <param name="image">The image to convert.</param>
+    /// <param name="frame">The frame to convert.</param>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="y">Span to store the luma component of the image.</param>
     /// <param name="u">Span to store the u component of the image.</param>
     /// <param name="v">Span to store the v component of the image.</param>
     /// <returns>true, if the image contains alpha data.</returns>
-    public static bool ConvertRgbToYuv<TPixel>(Image<TPixel> image, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
+    public static bool ConvertRgbToYuv<TPixel>(ImageFrame<TPixel> frame, Configuration configuration, MemoryAllocator memoryAllocator, Span<byte> y, Span<byte> u, Span<byte> v)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
+        Buffer2D<TPixel> imageBuffer = frame.PixelBuffer;
         int width = imageBuffer.Width;
         int height = imageBuffer.Height;
         int uvWidth = (width + 1) >> 1;

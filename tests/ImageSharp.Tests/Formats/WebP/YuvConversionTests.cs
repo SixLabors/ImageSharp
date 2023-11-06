@@ -143,7 +143,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame, config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));
@@ -249,7 +249,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame, config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));

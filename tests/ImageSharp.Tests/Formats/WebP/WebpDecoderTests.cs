@@ -358,6 +358,16 @@ public class WebpDecoderTests
     }
 
     [Theory]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
+    public void Decode_AnimatedLossy_AlphaBlending_Works<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
     [WithFile(Lossless.LossLessCorruptImage1, PixelTypes.Rgba32)]
     [WithFile(Lossless.LossLessCorruptImage2, PixelTypes.Rgba32)]
     [WithFile(Lossless.LossLessCorruptImage4, PixelTypes.Rgba32)]

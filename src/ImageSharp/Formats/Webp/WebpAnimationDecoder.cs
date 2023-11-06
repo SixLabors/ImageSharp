@@ -200,13 +200,10 @@ internal class WebpAnimationDecoder : IDisposable
             this.RestoreToBackground(imageFrame, backgroundColor);
         }
 
-        using Buffer2D<TPixel> decodedImage = this.DecodeImageData<TPixel>(frameData, webpInfo);
-        DrawDecodedImageOnCanvas(decodedImage, imageFrame, regionRectangle);
+        using Buffer2D<TPixel> decodedImageFrame = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
 
-        if (previousFrame != null && frameData.BlendingMethod is WebpBlendingMethod.AlphaBlending)
-        {
-            this.AlphaBlend(previousFrame, imageFrame, regionRectangle);
-        }
+        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendingMethod.AlphaBlending;
+        DrawDecodedImageFrameOnCanvas(decodedImageFrame, imageFrame, regionRectangle, blend);
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
         this.restoreArea = regionRectangle;
@@ -253,7 +250,7 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="frameData">The frame data.</param>
     /// <param name="webpInfo">The webp information.</param>
     /// <returns>A decoded image.</returns>
-    private Buffer2D<TPixel> DecodeImageData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
+    private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> decodedFrame = new(Configuration.Default, (int)frameData.Width, (int)frameData.Height);
@@ -291,42 +288,43 @@ internal class WebpAnimationDecoder : IDisposable
     /// Draws the decoded image on canvas. The decoded image can be smaller the canvas.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="decodedImage">The decoded image.</param>
+    /// <param name="decodedImageFrame">The decoded image.</param>
     /// <param name="imageFrame">The image frame to draw into.</param>
     /// <param name="restoreArea">The area of the frame.</param>
-    private static void DrawDecodedImageOnCanvas<TPixel>(Buffer2D<TPixel> decodedImage, ImageFrame<TPixel> imageFrame, Rectangle restoreArea)
+    /// <param name="blend">Whether to blend the decoded frame data onto the target frame.</param>
+    private static void DrawDecodedImageFrameOnCanvas<TPixel>(
+        Buffer2D<TPixel> decodedImageFrame,
+        ImageFrame<TPixel> imageFrame,
+        Rectangle restoreArea,
+        bool blend)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Trim the destination frame to match the restore area. The source frame is already trimmed.
         Buffer2DRegion<TPixel> imageFramePixels = imageFrame.PixelBuffer.GetRegion(restoreArea);
-        int decodedRowIdx = 0;
+        if (blend)
+        {
+            // The destination frame has already been prepopulated with the pixel data from the previous frame
+            // so blending will leave the desired result which takes into consideration restoration to the
+            // background color within the restore area.
+            PixelBlender<TPixel> blender =
+                PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+
+            for (int y = 0; y < restoreArea.Height; y++)
+            {
+                Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
+
+                blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f);
+            }
+
+            return;
+        }
+
         for (int y = 0; y < restoreArea.Height; y++)
         {
             Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-            Span<TPixel> decodedPixelRow = decodedImage.DangerousGetRowSpan(decodedRowIdx++)[..restoreArea.Width];
-            decodedPixelRow.TryCopyTo(framePixelRow);
-        }
-    }
-
-    /// <summary>
-    /// After disposing of the previous frame, render the current frame on the canvas using alpha-blending.
-    /// If the current frame does not have an alpha channel, assume alpha value of 255, effectively replacing the rectangle.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="src">The source image.</param>
-    /// <param name="dst">The destination image.</param>
-    /// <param name="restoreArea">The area of the frame.</param>
-    private void AlphaBlend<TPixel>(ImageFrame<TPixel> src, ImageFrame<TPixel> dst, Rectangle restoreArea)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Buffer2DRegion<TPixel> srcPixels = src.PixelBuffer.GetRegion(restoreArea);
-        Buffer2DRegion<TPixel> dstPixels = dst.PixelBuffer.GetRegion(restoreArea);
-        PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-        for (int y = 0; y < restoreArea.Height; y++)
-        {
-            Span<TPixel> srcPixelRow = srcPixels.DangerousGetRowSpan(y);
-            Span<TPixel> dstPixelRow = dstPixels.DangerousGetRowSpan(y);
-
-            blender.Blend<TPixel>(this.configuration, dstPixelRow, srcPixelRow, dstPixelRow, 1f);
+            Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
+            decodedPixelRow.CopyTo(framePixelRow);
         }
     }
 

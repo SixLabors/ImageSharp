@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Drawing;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -77,7 +78,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
         }
 
-        if (!buffer.Slice(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
+        if (!buffer[..3].SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
         {
             WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
         }
@@ -91,7 +92,7 @@ internal static class WebpChunkParsingUtils
         uint tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         uint width = tmp & 0x3fff;
         sbyte xScale = (sbyte)(tmp >> 6);
-        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2));
+        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer[2..]);
         uint height = tmp & 0x3fff;
         sbyte yScale = (sbyte)(tmp >> 6);
         remaining -= 7;
@@ -105,23 +106,16 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowImageFormatException("bad partition length");
         }
 
-        var vp8FrameHeader = new Vp8FrameHeader()
+        Vp8FrameHeader vp8FrameHeader = new()
         {
             KeyFrame = true,
             Profile = (sbyte)version,
             PartitionLength = partitionLength
         };
 
-        var bitReader = new Vp8BitReader(
-            stream,
-            remaining,
-            memoryAllocator,
-            partitionLength)
-        {
-            Remaining = remaining
-        };
+        Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
-        return new WebpImageInfo()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -145,7 +139,7 @@ internal static class WebpChunkParsingUtils
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
 
-        var bitReader = new Vp8LBitReader(stream, imageDataSize, memoryAllocator);
+        Vp8LBitReader bitReader = new(stream, imageDataSize, memoryAllocator);
 
         // One byte signature, should be 0x2f.
         uint signature = bitReader.ReadValue(8);
@@ -174,7 +168,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
         }
 
-        return new WebpImageInfo()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -231,13 +225,13 @@ internal static class WebpChunkParsingUtils
         }
 
         // 3 bytes for the width.
-        uint width = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint width = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // 3 bytes for the height.
-        uint height = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint height = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // Read all the chunks in the order they occur.
-        var info = new WebpImageInfo()
+        WebpImageInfo info = new()
         {
             Width = width,
             Height = height,
@@ -253,7 +247,7 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
-    public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, Span<byte> buffer)
+    public static uint ReadUInt24LittleEndian(Stream stream, Span<byte> buffer)
     {
         if (stream.Read(buffer, 0, 3) == 3)
         {
@@ -261,7 +255,28 @@ internal static class WebpChunkParsingUtils
             return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read unsigned integer.");
+        throw new ImageFormatException("Invalid Webp data, could not read unsigned 24 bit integer.");
+    }
+
+    /// <summary>
+    /// Writes a unsigned 24 bit integer.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="data">The uint24 data to write.</param>
+    public static unsafe void WriteUInt24LittleEndian(Stream stream, uint data)
+    {
+        if (data >= 1 << 24)
+        {
+            throw new InvalidDataException($"Invalid data, {data} is not a unsigned 24 bit integer.");
+        }
+
+        uint* ptr = &data;
+        byte* b = (byte*)ptr;
+
+        // Write the data in little endian.
+        stream.WriteByte(b[0]);
+        stream.WriteByte(b[1]);
+        stream.WriteByte(b[2]);
     }
 
     /// <summary>
@@ -271,14 +286,14 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
     /// <returns>The chunk size in bytes.</returns>
-    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
+    public static uint ReadChunkSize(Stream stream, Span<byte> buffer)
     {
-        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
+        DebugGuard.IsTrue(buffer.Length is 4, "buffer has wrong length");
 
-        if (stream.Read(buffer) == 4)
+        if (stream.Read(buffer) is 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+            return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
         }
 
         throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
@@ -298,7 +313,7 @@ internal static class WebpChunkParsingUtils
 
         if (stream.Read(buffer) == 4)
         {
-            var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
+            WebpChunkType chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
             return chunkType;
         }
 

@@ -42,7 +42,8 @@ internal readonly struct PngChunk
     /// Gets a value indicating whether the given chunk is critical to decoding
     /// </summary>
     public bool IsCritical =>
-        this.Type == PngChunkType.Header ||
-        this.Type == PngChunkType.Palette ||
-        this.Type == PngChunkType.Data;
+        this.Type is PngChunkType.Header or
+        PngChunkType.Palette or
+        PngChunkType.Data or
+        PngChunkType.FrameData;
 }

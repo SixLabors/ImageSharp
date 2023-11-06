@@ -1,18 +1,23 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
 internal class CostModel
 {
+    private readonly MemoryAllocator memoryAllocator;
     private const int ValuesInBytes = 256;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CostModel"/> class.
     /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="literalArraySize">The literal array size.</param>
-    public CostModel(int literalArraySize)
+    public CostModel(MemoryAllocator memoryAllocator, int literalArraySize)
     {
+        this.memoryAllocator = memoryAllocator;
         this.Alpha = new double[ValuesInBytes];
         this.Red = new double[ValuesInBytes];
         this.Blue = new double[ValuesInBytes];
@@ -32,13 +37,12 @@ internal class CostModel
 
     public void Build(int xSize, int cacheBits, Vp8LBackwardRefs backwardRefs)
     {
-        var histogram = new Vp8LHistogram(cacheBits);
-        using System.Collections.Generic.List<PixOrCopy>.Enumerator refsEnumerator = backwardRefs.Refs.GetEnumerator();
+        using OwnedVp8LHistogram histogram = OwnedVp8LHistogram.Create(this.memoryAllocator, cacheBits);
 
         // The following code is similar to HistogramCreate but converts the distance to plane code.
-        while (refsEnumerator.MoveNext())
+        for (int i = 0; i < backwardRefs.Refs.Count; i++)
         {
-            histogram.AddSinglePixOrCopy(refsEnumerator.Current, true, xSize);
+            histogram.AddSinglePixOrCopy(backwardRefs.Refs[i], true, xSize);
         }
 
         ConvertPopulationCountTableToBitEstimates(histogram.NumCodes(), histogram.Literal, this.Literal);
@@ -70,7 +74,7 @@ internal class CostModel
 
     public double GetLiteralCost(uint v) => this.Alpha[v >> 24] + this.Red[(v >> 16) & 0xff] + this.Literal[(v >> 8) & 0xff] + this.Blue[v & 0xff];
 
-    private static void ConvertPopulationCountTableToBitEstimates(int numSymbols, uint[] populationCounts, double[] output)
+    private static void ConvertPopulationCountTableToBitEstimates(int numSymbols, Span<uint> populationCounts, double[] output)
     {
         uint sum = 0;
         int nonzeros = 0;

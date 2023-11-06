@@ -38,7 +38,7 @@ internal sealed class PixOrCopy
         Len = len
     };
 
-    public uint Literal(int component) => (this.BgraOrDistance >> (component * 8)) & 0xff;
+    public int Literal(int component) => (int)(this.BgraOrDistance >> (component * 8)) & 0xFF;
 
     public uint CacheIdx() => this.BgraOrDistance;
 

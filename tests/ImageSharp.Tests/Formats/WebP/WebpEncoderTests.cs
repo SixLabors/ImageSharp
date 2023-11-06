@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,22 +23,41 @@ public class WebpEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        using MemoryStream memStream = new();
-        image.SaveAsWebp(memStream, new() { FileFormat = WebpFileFormatType.Lossless });
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+            Quality = 100
+        };
 
-        // TODO: DebugSave, VerifySimilarity
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
     }
 
     [Theory]
     [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
     public void Encode_AnimatedLossy<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        using MemoryStream memStream = new();
-        image.SaveAsWebp(memStream, new());
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossy,
+            Quality = 100
+        };
 
-        // TODO: DebugSave, VerifySimilarity
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        // The reference decoder seems to produce differences up to 0.1% but the input/output have been
+        // checked to be correct.
+        string path = provider.Utility.GetTestOutputFileName("webp", null, true);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(path);
+        encoded.CompareToReferenceOutput(ImageComparer.Tolerant(0.01f), provider, null, "webp");
     }
 
     [Theory]

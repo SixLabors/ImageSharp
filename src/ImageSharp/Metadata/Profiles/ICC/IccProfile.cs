@@ -158,8 +158,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
                Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
                Enum.IsDefined(typeof(IccColorSpaceType), this.Header.ProfileConnectionSpace) &&
                Enum.IsDefined(typeof(IccRenderingIntent), this.Header.RenderingIntent) &&
-               this.Header.Size >= minSize &&
-               this.Header.Size < maxSize;
+               this.Header.Size is >= minSize and < maxSize;
     }
 
     /// <summary>
@@ -175,7 +174,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return copy;
         }
 
-        IccWriter writer = new();
         return IccWriter.Write(this);
     }
 

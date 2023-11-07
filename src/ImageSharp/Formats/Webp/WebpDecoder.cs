@@ -17,7 +17,7 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static WebpDecoder Instance { get; } = new();
+    public static WebpDecoder Instance { get; } = new WebpDecoder();
 
     /// <inheritdoc/>
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -25,7 +25,7 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        using WebpDecoderCore decoder = new(new WebpDecoderOptions() { GeneralOptions = options });
+        using WebpDecoderCore decoder = new WebpDecoderCore(new WebpDecoderOptions() { GeneralOptions = options });
         return decoder.Identify(options.Configuration, stream, cancellationToken);
     }
 
@@ -35,7 +35,7 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        using WebpDecoderCore decoder = new(options);
+        using WebpDecoderCore decoder = new WebpDecoderCore(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
         ScaleToTargetSize(options.GeneralOptions, image);
@@ -52,6 +52,5 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         => this.Decode<Rgba32>(options, stream, cancellationToken);
 
     /// <inheritdoc/>
-    protected override WebpDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
-        => new() { GeneralOptions = options };
+    protected override WebpDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new WebpDecoderOptions { GeneralOptions = options };
 }

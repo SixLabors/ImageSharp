@@ -23,6 +23,7 @@ public class WebpMetadata : IDeepCloneable
     {
         this.FileFormat = other.FileFormat;
         this.AnimationLoopCount = other.AnimationLoopCount;
+        this.AnimationBackground = other.AnimationBackground;
     }
 
     /// <summary>
@@ -34,6 +35,14 @@ public class WebpMetadata : IDeepCloneable
     /// Gets or sets the loop count. The number of times to loop the animation. 0 means infinitely.
     /// </summary>
     public ushort AnimationLoopCount { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the default background color of the canvas in [Blue, Green, Red, Alpha] byte order.
+    /// This color MAY be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when the Disposal method is 1.
+    /// </summary>
+    public Color AnimationBackground { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new WebpMetadata(this);

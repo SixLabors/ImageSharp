@@ -18,6 +18,49 @@ public class WebpEncoderTests
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
     [Theory]
+    [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossless<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+            Quality = 100
+        };
+
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossy<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossy,
+            Quality = 100
+        };
+
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        // The reference decoder seems to produce differences up to 0.1% but the input/output have been
+        // checked to be correct.
+        string path = provider.Utility.GetTestOutputFileName("webp", null, true);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(path);
+        encoded.CompareToReferenceOutput(ImageComparer.Tolerant(0.01f), provider, null, "webp");
+    }
+
+    [Theory]
     [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
     [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
     [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]

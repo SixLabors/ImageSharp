@@ -25,7 +25,7 @@ internal static class HuffmanUtils
         0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf
     };
 
-    public static void CreateHuffmanTree(uint[] histogram, int treeDepthLimit, bool[] bufRle, Span<HuffmanTree> huffTree, HuffmanTreeCode huffCode)
+    public static void CreateHuffmanTree(Span<uint> histogram, int treeDepthLimit, bool[] bufRle, Span<HuffmanTree> huffTree, HuffmanTreeCode huffCode)
     {
         int numSymbols = huffCode.NumSymbols;
         bufRle.AsSpan().Clear();
@@ -40,7 +40,7 @@ internal static class HuffmanUtils
     /// Change the population counts in a way that the consequent
     /// Huffman tree compression, especially its RLE-part, give smaller output.
     /// </summary>
-    public static void OptimizeHuffmanForRle(int length, bool[] goodForRle, uint[] counts)
+    public static void OptimizeHuffmanForRle(int length, bool[] goodForRle, Span<uint> counts)
     {
         // 1) Let's make the Huffman code more compatible with rle encoding.
         for (; length >= 0; --length)
@@ -116,7 +116,7 @@ internal static class HuffmanUtils
                     {
                         // We don't want to change value at counts[i],
                         // that is already belonging to the next stride. Thus - 1.
-                        counts[i - k - 1] = count;
+                        counts[(int)(i - k - 1)] = count;
                     }
                 }
 
@@ -159,7 +159,7 @@ internal static class HuffmanUtils
     /// <param name="histogramSize">The size of the histogram.</param>
     /// <param name="treeDepthLimit">The tree depth limit.</param>
     /// <param name="bitDepths">How many bits are used for the symbol.</param>
-    public static void GenerateOptimalTree(Span<HuffmanTree> tree, uint[] histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
+    public static void GenerateOptimalTree(Span<HuffmanTree> tree, Span<uint> histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
     {
         uint countMin;
         int treeSizeOrig = 0;
@@ -177,7 +177,7 @@ internal static class HuffmanUtils
             return;
         }
 
-        Span<HuffmanTree> treePool = tree.Slice(treeSizeOrig);
+        Span<HuffmanTree> treePool = tree[treeSizeOrig..];
 
         // For block sizes with less than 64k symbols we never need to do a
         // second iteration of this loop.
@@ -202,7 +202,7 @@ internal static class HuffmanUtils
             }
 
             // Build the Huffman tree.
-            Span<HuffmanTree> treeSlice = tree.Slice(0, treeSize);
+            Span<HuffmanTree> treeSlice = tree[..treeSize];
             treeSlice.Sort(HuffmanTree.Compare);
 
             if (treeSize > 1)
@@ -357,7 +357,7 @@ internal static class HuffmanUtils
         // Special case code with only one value.
         if (offsets[WebpConstants.MaxAllowedCodeLength] == 1)
         {
-            var huffmanCode = new HuffmanCode()
+            HuffmanCode huffmanCode = new()
             {
                 BitsUsed = 0,
                 Value = (uint)sorted[0]
@@ -390,7 +390,7 @@ internal static class HuffmanUtils
 
             for (; countsLen > 0; countsLen--)
             {
-                var huffmanCode = new HuffmanCode()
+                HuffmanCode huffmanCode = new()
                 {
                     BitsUsed = len,
                     Value = (uint)sorted[symbol++]
@@ -432,7 +432,7 @@ internal static class HuffmanUtils
                     };
                 }
 
-                var huffmanCode = new HuffmanCode
+                HuffmanCode huffmanCode = new()
                 {
                     BitsUsed = len - rootBits,
                     Value = (uint)sorted[symbol++]

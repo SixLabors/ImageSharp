@@ -47,8 +47,15 @@ internal static class IccProfileConverter
                 WhitePoint = new(illuminant),
             });
 
+            // TODO: Our Xxy/Lab conversion are dependent on the version number. We are applying the conversion using V4
+            // but we should use the correct algorithm per version. This includes Lab/Lab Xyz/Xyz.
             using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(accessor.Width);
             Span<Vector4> vectorsSpan = vectors.GetSpan();
+
+            // TODO: For debugging - remove.
+            // It appears we have a scaling problem. The pcs values differ by on average 0.000001.
+            Span<Vector4> temp = new Vector4[vectorsSpan.Length];
+
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> row = accessor.GetRowSpan(y);
@@ -60,9 +67,10 @@ internal static class IccProfileConverter
                     for (int x = 0; x < vectorsSpan.Length; x++)
                     {
                         Vector4 pcs = converterDataToPcs.Calculate(vectorsSpan[x]);
+                        temp[x] = pcs;
                         pcs = PcsToLab(pcs);
                         CieXyz xyz = converter.ToCieXyz(new CieLab(pcs.X, pcs.Y, pcs.Z, new CieXyz(inputIccProfile.Header.PcsIlluminant)));
-                        pcs = new Vector4(xyz.X, xyz.Y, xyz.Z, pcs.W);
+                        pcs = XyzToPcs(pcs, xyz);
 
                         vectorsSpan[x] = converterPcsToData.Calculate(pcs);
                     }
@@ -97,7 +105,7 @@ internal static class IccProfileConverter
     private static unsafe Vector4 PcsToLab(Vector4 input)
     {
         Vector3* v = (Vector3*)&input;
-        v[0] *= 100F;
+        v[0] *= new Vector3(100f, 255, 255);
         v[0] -= new Vector3(0, 128F, 128F);
         return input;
     }
@@ -107,6 +115,13 @@ internal static class IccProfileConverter
         Vector3* v = (Vector3*)&input;
         v[0] = new Vector3(lab.L, lab.A + 128F, lab.B + 128F);
         v[0] /= 100F;
+        return input;
+    }
+
+    private static unsafe Vector4 XyzToPcs(Vector4 input, CieXyz xyz)
+    {
+        Vector3* v = (Vector3*)&input;
+        v[0] *= 32768 / 65535f;
         return input;
     }
 

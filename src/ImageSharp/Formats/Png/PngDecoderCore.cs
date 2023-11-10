@@ -114,26 +114,33 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private PngChunk? nextChunk;
 
     /// <summary>
+    /// If true, ADLER32 checksum in the IDAT chunk as well as the chunk CRCs will be ignored.
+    /// </summary>
+    private bool ignoreCrcErrors;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public PngDecoderCore(DecoderOptions options)
+    public PngDecoderCore(PngDecoderOptions options)
     {
-        this.Options = options;
-        this.configuration = options.Configuration;
-        this.maxFrames = options.MaxFrames;
-        this.skipMetadata = options.SkipMetadata;
+        this.Options = options.GeneralOptions;
+        this.configuration = options.GeneralOptions.Configuration;
+        this.maxFrames = options.GeneralOptions.MaxFrames;
+        this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.ignoreCrcErrors = options.IgnoreCrcCheck;
     }
 
-    internal PngDecoderCore(DecoderOptions options, bool colorMetadataOnly)
+    internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
     {
-        this.Options = options;
+        this.Options = options.GeneralOptions;
         this.colorMetadataOnly = colorMetadataOnly;
-        this.maxFrames = options.MaxFrames;
+        this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = true;
-        this.configuration = options.Configuration;
+        this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.ignoreCrcErrors = options.IgnoreCrcCheck;
     }
 
     /// <inheritdoc/>
@@ -1789,8 +1796,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             type: type,
             data: this.ReadChunkData(length));
 
-        this.ValidateChunk(chunk, buffer);
-
+        if (!this.ignoreCrcErrors)
+        {
+            this.ValidateChunk(chunk, buffer);
+        }
+        
         // Restore the stream position for IDAT and fdAT chunks, because it will be decoded later and
         // was only read to verifying the CRC is correct.
         if (type is PngChunkType.Data or PngChunkType.FrameData)

@@ -470,6 +470,17 @@ public partial class PngDecoderTests
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
     }
 
+    [Theory]
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32)]
+    public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { IgnoreCrcCheck = true });
+
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/1014
     [Theory]
     [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]

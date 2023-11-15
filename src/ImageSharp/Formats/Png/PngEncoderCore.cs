@@ -176,7 +176,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, image.Frames.Count, pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(stream, (uint)image.Frames.Count, pngMetadata.RepeatCount);
 
             // TODO: We should attempt to optimize the output by clipping the indexed result to
             // non-transparent bounds. That way we can assign frame control bounds and encode
@@ -621,7 +621,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="framesCount">The number of frames.</param>
     /// <param name="playsCount">The number of times to loop this APNG.</param>
-    private void WriteAnimationControlChunk(Stream stream, int framesCount, int playsCount)
+    private void WriteAnimationControlChunk(Stream stream, uint framesCount, uint playsCount)
     {
         AnimationControl acTL = new(framesCount, playsCount);
 

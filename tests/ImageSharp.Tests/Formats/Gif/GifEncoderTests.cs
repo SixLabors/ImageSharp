@@ -245,7 +245,7 @@ public class GifEncoderTests
         int count = 0;
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
+            if (frame.Metadata.TryGetGifFrameMetadata(out GifFrameMetadata _))
             {
                 count++;
             }
@@ -261,7 +261,7 @@ public class GifEncoderTests
         count = 0;
         foreach (ImageFrame<TPixel> frame in image2.Frames)
         {
-            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
+            if (frame.Metadata.TryGetGifFrameMetadata(out GifFrameMetadata _))
             {
                 count++;
             }

@@ -14,7 +14,7 @@ public class PngFrameMetadataTests
         PngFrameMetadata meta = new()
         {
             FrameDelay = new(1, 0),
-            DisposalMethod = PngDisposalMethod.Background,
+            DisposalMethod = PngDisposalMethod.RestoreToBackground,
             BlendMethod = PngBlendMethod.Over,
         };
 
@@ -25,7 +25,7 @@ public class PngFrameMetadataTests
         Assert.True(meta.BlendMethod.Equals(clone.BlendMethod));
 
         clone.FrameDelay = new(2, 1);
-        clone.DisposalMethod = PngDisposalMethod.Previous;
+        clone.DisposalMethod = PngDisposalMethod.RestoreToPrevious;
         clone.BlendMethod = PngBlendMethod.Source;
 
         Assert.False(meta.FrameDelay.Equals(clone.FrameDelay));

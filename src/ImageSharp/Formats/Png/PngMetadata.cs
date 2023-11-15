@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png.Chunks;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -82,7 +81,7 @@ public class PngMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public int RepeatCount { get; set; }
+    public uint RepeatCount { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);

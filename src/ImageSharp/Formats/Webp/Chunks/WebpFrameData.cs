@@ -32,8 +32,8 @@ internal readonly struct WebpFrameData
             width,
             height,
             duration,
-            (flags & 2) != 0 ? WebpBlendingMethod.DoNotBlend : WebpBlendingMethod.AlphaBlending,
-            (flags & 1) == 1 ? WebpDisposalMethod.Dispose : WebpDisposalMethod.DoNotDispose)
+            (flags & 2) == 0 ? WebpBlendingMethod.Over : WebpBlendingMethod.Source,
+            (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.None)
     {
     }
 
@@ -93,13 +93,13 @@ internal readonly struct WebpFrameData
     {
         byte flags = 0;
 
-        if (this.BlendingMethod is WebpBlendingMethod.DoNotBlend)
+        if (this.BlendingMethod is WebpBlendingMethod.Source)
         {
             // Set blending flag.
             flags |= 2;
         }
 
-        if (this.DisposalMethod is WebpDisposalMethod.Dispose)
+        if (this.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
         {
             // Set disposal flag.
             flags |= 1;

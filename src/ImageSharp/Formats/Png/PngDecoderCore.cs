@@ -621,8 +621,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
-        if (previousFrameControl.DisposeOperation == PngDisposalMethod.Background
-            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.Previous))
+        if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground
+            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
         {
             Rectangle restoreArea = previousFrameControl.Bounds;
             Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);

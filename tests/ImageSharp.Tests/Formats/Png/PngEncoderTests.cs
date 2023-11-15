@@ -3,6 +3,7 @@
 
 // ReSharper disable InconsistentNaming
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -453,6 +454,10 @@ public partial class PngEncoderTests
         memStream.Position = 0;
 
         image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
+        image.DebugSave(provider: provider, encoder: new GifEncoder(), "gif", false);
+
+        string path = provider.Utility.GetTestOutputFileName("gif");
+        image.Save(path);
 
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageComparer.Exact.VerifySimilarity(output, image);

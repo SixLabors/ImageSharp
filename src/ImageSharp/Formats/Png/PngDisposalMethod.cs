@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Png;
@@ -16,10 +16,10 @@ public enum PngDisposalMethod
     /// <summary>
     /// The frame's region of the output buffer is to be cleared to fully transparent black before rendering the next frame.
     /// </summary>
-    Background,
+    RestoreToBackground,
 
     /// <summary>
     /// The frame's region of the output buffer is to be reverted to the previous contents before rendering the next frame.
     /// </summary>
-    Previous
+    RestoreToPrevious
 }

@@ -11,10 +11,10 @@ public enum WebpDisposalMethod
     /// <summary>
     /// Do not dispose. Leave the canvas as is.
     /// </summary>
-    DoNotDispose = 0,
+    None = 0,
 
     /// <summary>
     /// Dispose to background color. Fill the rectangle on the canvas covered by the current frame with background color specified in the ANIM chunk.
     /// </summary>
-    Dispose = 1
+    RestoreToBackground = 1
 }

@@ -334,7 +334,7 @@ internal class Vp8Encoder : IDisposable
         if (hasAnimation)
         {
             WebpMetadata webpMetadata = metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.AnimationBackground, webpMetadata.AnimationLoopCount);
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
     }
 

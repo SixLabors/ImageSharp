@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -86,8 +88,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        ImageMetadata metadata = image.Metadata;
-        GifMetadata gifMetadata = metadata.GetGifMetadata();
+        GifMetadata gifMetadata = GetGifMetadata(image);
         this.colorTableMode ??= gifMetadata.ColorTableMode;
         bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
@@ -96,7 +97,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         // Work out if there is an explicit transparent index set for the frame. We use that to ensure the
         // correct value is set for the background index when quantizing.
-        image.Frames.RootFrame.Metadata.TryGetGifMetadata(out GifFrameMetadata? frameMetadata);
+        GifFrameMetadata? frameMetadata = GetGifFrameMetadata(image.Frames.RootFrame, -1);
         int transparencyIndex = GetTransparentIndex(quantized, frameMetadata);
 
         if (this.quantizer is null)
@@ -140,7 +141,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         // Get the number of bits.
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
-        this.WriteLogicalScreenDescriptor(metadata, image.Width, image.Height, backgroundIndex, useGlobalTable, bitDepth, stream);
+        this.WriteLogicalScreenDescriptor(image.Metadata, image.Width, image.Height, backgroundIndex, useGlobalTable, bitDepth, stream);
 
         if (useGlobalTable)
         {
@@ -164,15 +165,69 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         quantized.Dispose();
 
-        this.EncodeAdditionalFrames(stream, image, globalPalette);
+        this.EncodeAdditionalFrames(stream, image, globalPalette, transparencyIndex);
 
         stream.WriteByte(GifConstants.EndIntroducer);
+    }
+
+    private static GifMetadata GetGifMetadata<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
+        {
+            return gif;
+        }
+
+        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
+        {
+            AnimatedImageMetadata ani = png.ToAnimatedImageMetadata();
+            return GifMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
+        {
+            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
+            return GifMetadata.FromAnimatedMetadata(ani);
+        }
+
+        return new();
+    }
+
+    private static GifFrameMetadata? GetGifFrameMetadata<TPixel>(ImageFrame<TPixel> frame, int transparencyIndex)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (frame.Metadata.TryGetGifFrameMetadata(out GifFrameMetadata? gif))
+        {
+            return gif;
+        }
+
+        GifFrameMetadata? metadata = null;
+        if (frame.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? png))
+        {
+            AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
+            metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
+        {
+            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
+            metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (metadata?.ColorTableMode == GifColorTableMode.Global && transparencyIndex > -1)
+        {
+            metadata.HasTransparency = true;
+            metadata.TransparencyIndex = unchecked((byte)transparencyIndex);
+        }
+
+        return metadata;
     }
 
     private void EncodeAdditionalFrames<TPixel>(
         Stream stream,
         Image<TPixel> image,
-        ReadOnlyMemory<TPixel> globalPalette)
+        ReadOnlyMemory<TPixel> globalPalette,
+        int globalTransparencyIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (image.Frames.Count == 1)
@@ -195,8 +250,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         {
             // Gather the metadata for this frame.
             ImageFrame<TPixel> currentFrame = image.Frames[i];
-            ImageFrameMetadata metadata = currentFrame.Metadata;
-            metadata.TryGetGifMetadata(out GifFrameMetadata? gifMetadata);
+            GifFrameMetadata? gifMetadata = GetGifFrameMetadata(currentFrame, globalTransparencyIndex);
             bool useLocal = this.colorTableMode == GifColorTableMode.Local || (gifMetadata?.ColorTableMode == GifColorTableMode.Local);
 
             if (!useLocal && !hasPaletteQuantizer && i > 0)

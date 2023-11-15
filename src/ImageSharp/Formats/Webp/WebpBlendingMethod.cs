@@ -9,14 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 public enum WebpBlendingMethod
 {
     /// <summary>
-    /// Use alpha blending. After disposing of the previous frame, render the current frame on the canvas using alpha-blending.
-    /// If the current frame does not have an alpha channel, assume alpha value of 255, effectively replacing the rectangle.
-    /// </summary>
-    AlphaBlending = 0,
-
-    /// <summary>
     /// Do not blend. After disposing of the previous frame,
     /// render the current frame on the canvas by overwriting the rectangle covered by the current frame.
     /// </summary>
-    DoNotBlend = 1
+    Source = 0,
+
+    /// <summary>
+    /// Use alpha blending. After disposing of the previous frame, render the current frame on the canvas using alpha-blending.
+    /// If the current frame does not have an alpha channel, assume alpha value of 255, effectively replacing the rectangle.
+    /// </summary>
+    Over = 1,
 }

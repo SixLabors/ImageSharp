@@ -60,7 +60,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette
+    public readonly ReadOnlyMemory<TPixel> Palette
     {
         get
         {
@@ -72,16 +72,14 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
-        Rectangle bounds = pixelRegion.Rectangle;
-        Buffer2D<TPixel> source = pixelRegion.Buffer;
-        using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width))
+        using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(pixelRegion.Width))
         {
             Span<Rgba32> bufferSpan = buffer.GetSpan();
 
             // Loop through each row
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            for (int y = 0; y < pixelRegion.Height; y++)
             {
-                Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = pixelRegion.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)

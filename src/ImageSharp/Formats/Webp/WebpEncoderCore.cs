@@ -123,7 +123,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
+            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
             lossless = webpMetadata.FileFormat == WebpFileFormatType.Lossless;
         }
 

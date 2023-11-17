@@ -44,4 +44,12 @@ public class WebpFrameMetadata : IDeepCloneable
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new WebpFrameMetadata(this);
+
+    internal static WebpFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+        => new()
+        {
+            FrameDelay = (uint)metadata.Duration.Milliseconds,
+            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendingMethod.Source : WebpBlendingMethod.Over,
+            DisposalMethod = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose
+        };
 }

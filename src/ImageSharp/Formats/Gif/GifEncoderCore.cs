@@ -190,19 +190,20 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             return GifMetadata.FromAnimatedMetadata(ani);
         }
 
+        // Return explicit new instance so we do not mutate the original metadata.
         return new();
     }
 
     private static GifFrameMetadata? GetGifFrameMetadata<TPixel>(ImageFrame<TPixel> frame, int transparencyIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (frame.Metadata.TryGetGifFrameMetadata(out GifFrameMetadata? gif))
+        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
         {
             return gif;
         }
 
         GifFrameMetadata? metadata = null;
-        if (frame.Metadata.TryGetPngFrameMetadata(out PngFrameMetadata? png))
+        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
         {
             AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
             metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
@@ -342,7 +343,20 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             }
         }
 
-        this.DeDuplicatePixels(previousFrame, currentFrame, encodingFrame, replacement);
+        // We can't deduplicate here as we need the background pixels to be present in the buffer.
+        if (metadata?.DisposalMethod == GifDisposalMethod.RestoreToBackground)
+        {
+            for (int y = 0; y < currentFrame.PixelBuffer.Height; y++)
+            {
+                Span<TPixel> sourceRow = currentFrame.PixelBuffer.DangerousGetRowSpan(y);
+                Span<TPixel> destinationRow = encodingFrame.PixelBuffer.DangerousGetRowSpan(y);
+                sourceRow.CopyTo(destinationRow);
+            }
+        }
+        else
+        {
+            this.DeDuplicatePixels(previousFrame, currentFrame, encodingFrame, replacement);
+        }
 
         IndexedImageFrame<TPixel> quantized;
         if (useLocal)

@@ -7,8 +7,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -137,7 +139,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
@@ -146,7 +148,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.height = image.Height;
 
         ImageMetadata metadata = image.Metadata;
-        PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+        PngMetadata pngMetadata = GetPngMetadata(image);
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -232,6 +234,54 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
+    }
+
+    private static PngMetadata GetPngMetadata<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
+        {
+            return png;
+        }
+
+        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
+        {
+            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
+            return PngMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
+        {
+            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
+            return PngMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
+    }
+
+    private static PngFrameMetadata GetPngFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
+        {
+            return png;
+        }
+
+        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
+        {
+            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
+            return PngFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
+        {
+            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
+            return PngFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
     }
 
     /// <summary>
@@ -985,9 +1035,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="imageFrame">The image frame.</param>
     /// <param name="sequenceNumber">The frame sequence number.</param>
-    private FrameControl WriteFrameControlChunk(Stream stream, ImageFrame imageFrame, uint sequenceNumber)
+    private FrameControl WriteFrameControlChunk<TPixel>(Stream stream, ImageFrame<TPixel> imageFrame, uint sequenceNumber)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        PngFrameMetadata frameMetadata = imageFrame.Metadata.GetPngFrameMetadata();
+        PngFrameMetadata frameMetadata = GetPngFrameMetadata(imageFrame);
 
         // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
         FrameControl fcTL = new(

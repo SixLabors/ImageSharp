@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -58,6 +60,97 @@ public class WebpEncoderTests
         string path = provider.Utility.GetTestOutputFileName("webp", null, true);
         using Image<Rgba32> encoded = Image.Load<Rgba32>(path);
         encoded.CompareToReferenceOutput(ImageComparer.Tolerant(0.01f), provider, null, "webp");
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
+        using MemoryStream memStream = new();
+
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        GifMetadata gif = image.Metadata.GetGifMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(gif.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal(gifF.FrameDelay, (int)(webpF.FrameDelay / 10));
+
+            switch (gifF.DisposalMethod)
+            {
+                case GifDisposalMethod.RestoreToBackground:
+                    Assert.Equal(WebpDisposalMethod.RestoreToBackground, webpF.DisposalMethod);
+                    break;
+                case GifDisposalMethod.RestoreToPrevious:
+                case GifDisposalMethod.Unspecified:
+                case GifDisposalMethod.NotDispose:
+                default:
+                    Assert.Equal(WebpDisposalMethod.DoNotDispose, webpF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromPng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+        PngMetadata png = image.Metadata.GetPngMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(png.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata pngF = image.Frames[i].Metadata.GetPngMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal((uint)(pngF.FrameDelay.ToDouble() * 1000), webpF.FrameDelay);
+
+            switch (pngF.BlendMethod)
+            {
+                case PngBlendMethod.Source:
+                    Assert.Equal(WebpBlendingMethod.Source, webpF.BlendMethod);
+                    break;
+                case PngBlendMethod.Over:
+                default:
+                    Assert.Equal(WebpBlendingMethod.Over, webpF.BlendMethod);
+                    break;
+            }
+
+            switch (pngF.DisposalMethod)
+            {
+                case PngDisposalMethod.RestoreToBackground:
+                    Assert.Equal(WebpDisposalMethod.RestoreToBackground, webpF.DisposalMethod);
+                    break;
+                case PngDisposalMethod.DoNotDispose:
+                default:
+                    Assert.Equal(WebpDisposalMethod.DoNotDispose, webpF.DisposalMethod);
+                    break;
+            }
+        }
     }
 
     [Theory]

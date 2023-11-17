@@ -46,4 +46,12 @@ public class WebpMetadata : IDeepCloneable
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new WebpMetadata(this);
+
+    internal static WebpMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
+        => new()
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+            BackgroundColor = metadata.BackgroundColor,
+            RepeatCount = metadata.RepeatCount
+        };
 }

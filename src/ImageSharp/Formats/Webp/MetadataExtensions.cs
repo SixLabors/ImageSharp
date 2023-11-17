@@ -69,7 +69,7 @@ public static partial class MetadataExtensions
     private static FrameDisposalMode GetMode(WebpDisposalMethod method) => method switch
     {
         WebpDisposalMethod.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
-        WebpDisposalMethod.None => FrameDisposalMode.DoNotDispose,
+        WebpDisposalMethod.DoNotDispose => FrameDisposalMode.DoNotDispose,
         _ => FrameDisposalMode.DoNotDispose,
     };
 }

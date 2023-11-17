@@ -36,7 +36,7 @@ public static partial class MetadataExtensions
     /// </summary>
     /// <param name="source">The metadata this method extends.</param>
     /// <returns>The <see cref="PngFrameMetadata"/>.</returns>
-    public static PngFrameMetadata GetPngFrameMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
+    public static PngFrameMetadata GetPngMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(PngFormat.Instance);
 
     /// <summary>
     /// Gets the png format specific metadata for the image frame.
@@ -46,7 +46,7 @@ public static partial class MetadataExtensions
     /// <returns>
     /// <see langword="true"/> if the png frame metadata exists; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool TryGetPngFrameMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out PngFrameMetadata? metadata)
+    public static bool TryGetPngMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out PngFrameMetadata? metadata)
         => source.TryGetFormatMetadata(PngFormat.Instance, out metadata);
 
     internal static AnimatedImageMetadata ToAnimatedImageMetadata(this PngMetadata source)
@@ -58,17 +58,25 @@ public static partial class MetadataExtensions
         };
 
     internal static AnimatedImageFrameMetadata ToAnimatedImageFrameMetadata(this PngFrameMetadata source)
-        => new()
+    {
+        double delay = source.FrameDelay.ToDouble();
+        if (double.IsNaN(delay))
+        {
+            delay = 0;
+        }
+
+        return new()
         {
             ColorTableMode = FrameColorTableMode.Global,
-            Duration = TimeSpan.FromMilliseconds(source.FrameDelay.ToDouble() * 1000),
+            Duration = TimeSpan.FromMilliseconds(delay * 1000),
             DisposalMode = GetMode(source.DisposalMethod),
             BlendMode = source.BlendMethod == PngBlendMethod.Source ? FrameBlendMode.Source : FrameBlendMode.Over,
         };
+    }
 
     private static FrameDisposalMode GetMode(PngDisposalMethod method) => method switch
     {
-        PngDisposalMethod.None => FrameDisposalMode.DoNotDispose,
+        PngDisposalMethod.DoNotDispose => FrameDisposalMode.DoNotDispose,
         PngDisposalMethod.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
         PngDisposalMethod.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
         _ => FrameDisposalMode.Unspecified,

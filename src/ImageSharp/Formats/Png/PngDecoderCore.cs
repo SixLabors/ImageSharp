@@ -581,7 +581,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             this.header.Height,
             metadata);
 
-        PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngFrameMetadata();
+        PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -630,7 +630,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             pixelRegion.Clear();
         }
 
-        PngFrameMetadata frameMetadata = frame.Metadata.GetPngFrameMetadata();
+        PngFrameMetadata frameMetadata = frame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(currentFrameControl);
 
         this.previousScanline?.Dispose();

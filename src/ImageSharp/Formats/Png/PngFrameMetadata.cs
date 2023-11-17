@@ -34,7 +34,7 @@ public class PngFrameMetadata : IDeepCloneable
     /// wait before continuing with the processing of the Data Stream.
     /// The clock starts ticking immediately after the graphic is rendered.
     /// </summary>
-    public Rational FrameDelay { get; set; }
+    public Rational FrameDelay { get; set; } = new(0);
 
     /// <summary>
     /// Gets or sets the type of frame area disposal to be done after rendering this frame
@@ -59,4 +59,20 @@ public class PngFrameMetadata : IDeepCloneable
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngFrameMetadata(this);
+
+    internal static PngFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+        => new()
+        {
+            FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
+            DisposalMethod = GetMode(metadata.DisposalMode),
+            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? PngBlendMethod.Source : PngBlendMethod.Over,
+        };
+
+    private static PngDisposalMethod GetMode(FrameDisposalMode mode) => mode switch
+    {
+        FrameDisposalMode.RestoreToBackground => PngDisposalMethod.RestoreToBackground,
+        FrameDisposalMode.RestoreToPrevious => PngDisposalMethod.RestoreToPrevious,
+        FrameDisposalMode.DoNotDispose => PngDisposalMethod.DoNotDispose,
+        _ => PngDisposalMethod.DoNotDispose,
+    };
 }

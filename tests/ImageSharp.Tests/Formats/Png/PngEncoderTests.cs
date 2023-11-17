@@ -5,6 +5,7 @@
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -454,10 +455,6 @@ public partial class PngEncoderTests
         memStream.Position = 0;
 
         image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
-        image.DebugSave(provider: provider, encoder: new GifEncoder(), "gif", false);
-
-        string path = provider.Utility.GetTestOutputFileName("gif");
-        image.Save(path);
 
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageComparer.Exact.VerifySimilarity(output, image);
@@ -472,12 +469,112 @@ public partial class PngEncoderTests
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
-            PngFrameMetadata originalFrameMetadata = image.Frames[i].Metadata.GetPngFrameMetadata();
-            PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngFrameMetadata();
+            PngFrameMetadata originalFrameMetadata = image.Frames[i].Metadata.GetPngMetadata();
+            PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngMetadata();
 
             Assert.Equal(originalFrameMetadata.FrameDelay, outputFrameMetadata.FrameDelay);
             Assert.Equal(originalFrameMetadata.BlendMethod, outputFrameMetadata.BlendMethod);
             Assert.Equal(originalFrameMetadata.DisposalMethod, outputFrameMetadata.DisposalMethod);
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
+        using MemoryStream memStream = new();
+
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        image.Save(provider.Utility.GetTestOutputFileName("png"), new PngEncoder());
+        image.Save(provider.Utility.GetTestOutputFileName("gif"), new GifEncoder());
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // TODO: Find a better way to compare.
+        // The image has been visually checked but the quantization pattern used in the png encoder
+        // means we cannot use an exact comparison nor replicate using the quantizing processor.
+        ImageComparer.TolerantPercentage(0.12f).VerifySimilarity(output, image);
+
+        GifMetadata gif = image.Metadata.GetGifMetadata();
+        PngMetadata png = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(gif.RepeatCount, png.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
+            PngFrameMetadata pngF = output.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(gifF.FrameDelay, (int)(pngF.FrameDelay.ToDouble() * 100));
+
+            switch (gifF.DisposalMethod)
+            {
+                case GifDisposalMethod.RestoreToBackground:
+                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                    break;
+                case GifDisposalMethod.RestoreToPrevious:
+                    Assert.Equal(PngDisposalMethod.RestoreToPrevious, pngF.DisposalMethod);
+                    break;
+                case GifDisposalMethod.Unspecified:
+                case GifDisposalMethod.NotDispose:
+                default:
+                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Webp.Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromWebp<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        WebpMetadata webp = image.Metadata.GetWebpMetadata();
+        PngMetadata png = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(webp.RepeatCount, png.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            WebpFrameMetadata webpF = image.Frames[i].Metadata.GetWebpMetadata();
+            PngFrameMetadata pngF = output.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(webpF.FrameDelay, (uint)(pngF.FrameDelay.ToDouble() * 1000));
+
+            switch (webpF.BlendMethod)
+            {
+                case WebpBlendingMethod.Source:
+                    Assert.Equal(PngBlendMethod.Source, pngF.BlendMethod);
+                    break;
+                case WebpBlendingMethod.Over:
+                default:
+                    Assert.Equal(PngBlendMethod.Over, pngF.BlendMethod);
+                    break;
+            }
+
+            switch (webpF.DisposalMethod)
+            {
+                case WebpDisposalMethod.RestoreToBackground:
+                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                    break;
+                case WebpDisposalMethod.DoNotDispose:
+                default:
+                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    break;
+            }
         }
     }
 

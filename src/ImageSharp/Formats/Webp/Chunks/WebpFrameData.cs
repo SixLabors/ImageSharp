@@ -33,7 +33,7 @@ internal readonly struct WebpFrameData
             height,
             duration,
             (flags & 2) == 0 ? WebpBlendingMethod.Over : WebpBlendingMethod.Source,
-            (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.None)
+            (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose)
     {
     }
 

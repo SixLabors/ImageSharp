@@ -56,16 +56,25 @@ public static partial class MetadataExtensions
     /// <returns>
     /// <see langword="true"/> if the gif frame metadata exists; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool TryGetGifFrameMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out GifFrameMetadata? metadata)
+    public static bool TryGetGifMetadata(this ImageFrameMetadata source, [NotNullWhen(true)] out GifFrameMetadata? metadata)
         => source.TryGetFormatMetadata(GifFormat.Instance, out metadata);
 
     internal static AnimatedImageMetadata ToAnimatedImageMetadata(this GifMetadata source)
-        => new()
+    {
+        Color background = Color.Transparent;
+        if (source.GlobalColorTable != null)
+        {
+            background = source.GlobalColorTable.Value.Span[source.BackgroundColorIndex];
+        }
+
+        return new()
         {
             ColorTable = source.GlobalColorTable,
             ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
             RepeatCount = source.RepeatCount,
+            BackgroundColor = background,
         };
+    }
 
     internal static AnimatedImageFrameMetadata ToAnimatedImageFrameMetadata(this GifFrameMetadata source)
         => new()

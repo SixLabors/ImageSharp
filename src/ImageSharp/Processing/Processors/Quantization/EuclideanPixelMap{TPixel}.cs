@@ -200,7 +200,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Add(Rgba32 rgba, byte index)
+        public readonly void Add(Rgba32 rgba, byte index)
         {
             int r = rgba.R >> RgbShift;
             int g = rgba.G >> RgbShift;
@@ -211,7 +211,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool TryGetValue(Rgba32 rgba, out short match)
+        public readonly bool TryGetValue(Rgba32 rgba, out short match)
         {
             int r = rgba.R >> RgbShift;
             int g = rgba.G >> RgbShift;
@@ -226,7 +226,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         /// Clears the cache resetting each entry to empty.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Clear() => this.table.GetSpan().Fill(-1);
+        public readonly void Clear() => this.table.GetSpan().Fill(-1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetPaletteIndex(int r, int g, int b, int a)

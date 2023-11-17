@@ -11,7 +11,7 @@ public enum PngDisposalMethod
     /// <summary>
     /// No disposal is done on this frame before rendering the next; the contents of the output buffer are left as is.
     /// </summary>
-    None,
+    DoNotDispose,
 
     /// <summary>
     /// The frame's region of the output buffer is to be cleared to fully transparent black before rendering the next frame.

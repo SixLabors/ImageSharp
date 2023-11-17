@@ -81,7 +81,7 @@ public class PngMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public uint RepeatCount { get; set; }
+    public uint RepeatCount { get; set; } = 1;
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);

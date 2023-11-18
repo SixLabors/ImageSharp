@@ -424,6 +424,7 @@ dotnet_naming_rule.parameters_rule.severity             = warning
 
 
 dotnet_diagnostics.CA1857.severity = none
+dotnet_diagnostics.CA1859.severity = none
 ##########################################
 # License
 ##########################################

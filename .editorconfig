@@ -422,6 +422,8 @@ dotnet_naming_rule.parameters_rule.symbols              = parameters_group
 dotnet_naming_rule.parameters_rule.style                = camel_case_style
 dotnet_naming_rule.parameters_rule.severity             = warning
 
+
+dotnet_diagnostics.CA1857.severity = none
 ##########################################
 # License
 ##########################################

@@ -176,10 +176,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ArgumentNullException"><paramref name="tableConfigs"/> is <see langword="null"/>.</exception>
     private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder, Span<byte> buffer)
     {
-        if (tableConfigs is null)
-        {
-            throw new ArgumentNullException(nameof(tableConfigs));
-        }
+        ArgumentNullException.ThrowIfNull(tableConfigs);
 
         int markerlen = 2;
 

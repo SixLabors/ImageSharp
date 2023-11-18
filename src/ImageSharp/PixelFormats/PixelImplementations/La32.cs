@@ -45,7 +45,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public uint PackedValue
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        readonly get => Unsafe.As<La32, uint>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<La32, uint>(ref Unsafe.AsRef(in this));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set => Unsafe.As<La32, uint>(ref this) = value;

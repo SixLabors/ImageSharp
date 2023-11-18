@@ -59,10 +59,12 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     [MemberNotNull(nameof(Array))]
     private void CheckDisposed()
     {
+#pragma warning disable CA1513
         if (this.Array == null)
         {
             throw new ObjectDisposedException("SharedArrayPoolBuffer");
         }
+#pragma warning restore CA1513
     }
 
     private sealed class LifetimeGuard : RefCountedMemoryLifetimeGuard

@@ -21,25 +21,21 @@ jobs:
           - os: ubuntu-latest
             framework: net8.0
             sdk: 8.0.x
-            sdk-preview: true
             runtime: -x64
             codecov: false
           - os: macos-latest
             framework: net8.0
             sdk: 8.0.x
-            sdk-preview: true
             runtime: -x64
             codecov: false
           - os: windows-latest
             framework: net8.0
             sdk: 8.0.x
-            sdk-preview: true
             runtime: -x64
             codecov: false
           - os: buildjet-4vcpu-ubuntu-2204-arm
             framework: net8.0
             sdk: 8.0.x
-            sdk-preview: true
             runtime: -x64
             codecov: false
         exclude:

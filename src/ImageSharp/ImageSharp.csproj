@@ -17,6 +17,7 @@
 
   <!--  This enables the nullable analysis and treats all nullable warnings as error-->
   <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
   </PropertyGroup>

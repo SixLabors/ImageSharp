@@ -12,74 +12,66 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization;
 [Trait("Category", "Processors")]
 public class QuantizerTests
 {
-    /// <summary>
-    /// Something is causing tests to fail on NETFX in CI.
-    /// Could be a JIT error as everything runs well and is identical to .NET Core output.
-    /// Not worth investigating for now.
-    /// <see href="https://github.com/SixLabors/ImageSharp/pull/1114/checks?check_run_id=448891164#step:11:631"/>
-    /// </summary>
-    private static readonly bool SkipAllQuantizerTests = TestEnvironment.IsFramework;
-
     public static readonly string[] CommonTestImages =
     {
         TestImages.Png.CalliphoraPartial,
         TestImages.Png.Bike
     };
 
-    private static readonly QuantizerOptions NoDitherOptions = new QuantizerOptions { Dither = null };
-    private static readonly QuantizerOptions DiffuserDitherOptions = new QuantizerOptions { Dither = KnownDitherings.FloydSteinberg };
-    private static readonly QuantizerOptions OrderedDitherOptions = new QuantizerOptions { Dither = KnownDitherings.Bayer8x8 };
+    private static readonly QuantizerOptions NoDitherOptions = new() { Dither = null };
+    private static readonly QuantizerOptions DiffuserDitherOptions = new() { Dither = KnownDitherings.FloydSteinberg };
+    private static readonly QuantizerOptions OrderedDitherOptions = new() { Dither = KnownDitherings.Bayer8x8 };
 
-    private static readonly QuantizerOptions Diffuser0_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Diffuser0_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.FloydSteinberg,
         DitherScale = 0F
     };
 
-    private static readonly QuantizerOptions Diffuser0_25_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Diffuser0_25_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.FloydSteinberg,
         DitherScale = .25F
     };
 
-    private static readonly QuantizerOptions Diffuser0_5_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Diffuser0_5_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.FloydSteinberg,
         DitherScale = .5F
     };
 
-    private static readonly QuantizerOptions Diffuser0_75_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Diffuser0_75_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.FloydSteinberg,
         DitherScale = .75F
     };
 
-    private static readonly QuantizerOptions Ordered0_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Ordered0_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.Bayer8x8,
         DitherScale = 0F
     };
 
-    private static readonly QuantizerOptions Ordered0_25_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Ordered0_25_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.Bayer8x8,
         DitherScale = .25F
     };
 
-    private static readonly QuantizerOptions Ordered0_5_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Ordered0_5_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.Bayer8x8,
         DitherScale = .5F
     };
 
-    private static readonly QuantizerOptions Ordered0_75_ScaleDitherOptions = new QuantizerOptions
+    private static readonly QuantizerOptions Ordered0_75_ScaleDitherOptions = new()
     {
         Dither = KnownDitherings.Bayer8x8,
         DitherScale = .75F
     };
 
     public static readonly TheoryData<IQuantizer> Quantizers
-    = new TheoryData<IQuantizer>
+    = new()
     {
         // Known uses error diffusion by default.
         KnownQuantizers.Octree,
@@ -97,7 +89,7 @@ public class QuantizerTests
     };
 
     public static readonly TheoryData<IQuantizer> DitherScaleQuantizers
-    = new TheoryData<IQuantizer>
+    = new()
     {
         new OctreeQuantizer(Diffuser0_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Diffuser0_ScaleDitherOptions),
@@ -151,7 +143,7 @@ public class QuantizerTests
     };
 
     public static readonly TheoryData<IDither> DefaultInstanceDitherers
-        = new TheoryData<IDither>
+        = new()
         {
             default(ErrorDither),
             default(OrderedDither)
@@ -164,11 +156,6 @@ public class QuantizerTests
     public void ApplyQuantizationInBox<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (SkipAllQuantizerTests)
-        {
-            return;
-        }
-
         string quantizerName = quantizer.GetType().Name;
         string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "NoDither";
         string testOutputDetails = $"{quantizerName}_{ditherName}";
@@ -185,11 +172,6 @@ public class QuantizerTests
     public void ApplyQuantization<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (SkipAllQuantizerTests)
-        {
-            return;
-        }
-
         string quantizerName = quantizer.GetType().Name;
         string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "NoDither";
         string testOutputDetails = $"{quantizerName}_{ditherName}";
@@ -206,11 +188,6 @@ public class QuantizerTests
     public void ApplyQuantizationWithDitheringScale<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (SkipAllQuantizerTests)
-        {
-            return;
-        }
-
         string quantizerName = quantizer.GetType().Name;
         string ditherName = quantizer.Options.Dither.GetType().Name;
         float ditherScale = quantizer.Options.DitherScale;
@@ -229,8 +206,8 @@ public class QuantizerTests
     {
         void Command()
         {
-            using var image = new Image<Rgba32>(10, 10);
-            var quantizer = new WebSafePaletteQuantizer();
+            using Image<Rgba32> image = new(10, 10);
+            WebSafePaletteQuantizer quantizer = new();
             quantizer.Options.Dither = dither;
             image.Mutate(x => x.Quantize(quantizer));
         }

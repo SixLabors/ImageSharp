@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -58,7 +59,7 @@ internal static partial class SimdUtils
         public static void Shuffle4Reduce(
             ref ReadOnlySpan<float> source,
             ref Span<float> dest,
-            byte control)
+            [ConstantExpected] byte control)
         {
             if (Avx.IsSupported || Sse.IsSupported)
             {
@@ -217,7 +218,7 @@ internal static partial class SimdUtils
         private static void Shuffle4(
             ReadOnlySpan<float> source,
             Span<float> dest,
-            byte control)
+            [ConstantExpected] byte control)
         {
             if (Avx.IsSupported)
             {

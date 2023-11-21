@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -23,6 +22,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
 {
     private Rgba32[] rgbaPalette;
     private int transparentIndex;
+    private readonly TPixel transparentMatch;
 
     /// <summary>
     /// Do not make this readonly! Struct value would be always copied on non-readonly method calls.
@@ -54,8 +54,9 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
 
-        // If the provided transparentIndex is outside of the palette, silently ignore it.
-        this.transparentIndex = transparentIndex < this.Palette.Length ? transparentIndex : -1;
+        this.transparentIndex = transparentIndex;
+        Unsafe.SkipInit(out this.transparentMatch);
+        this.transparentMatch.FromRgba32(default);
     }
 
     /// <summary>
@@ -97,32 +98,40 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.Palette = palette;
         this.rgbaPalette = new Rgba32[palette.Length];
         PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, this.Palette.Span, this.rgbaPalette);
+        this.transparentIndex = -1;
         this.cache.Clear();
     }
 
     /// <summary>
-    /// Allows setting the transparent index after construction. If the provided transparentIndex is outside of the palette, silently ignore it.
+    /// Allows setting the transparent index after construction.
     /// </summary>
     /// <param name="index">An explicit index at which to match transparent pixels.</param>
-    public void SetTransparentIndex(int index) => this.transparentIndex = index < this.Palette.Length ? index : -1;
+    public void SetTransparentIndex(int index)
+    {
+        if (index != this.transparentIndex)
+        {
+            this.cache.Clear();
+        }
+
+        this.transparentIndex = index;
+    }
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private int GetClosestColorSlow(Rgba32 rgba, ref TPixel paletteRef, out TPixel match)
     {
         // Loop through the palette and find the nearest match.
         int index = 0;
-        float leastDistance = float.MaxValue;
 
         if (this.transparentIndex >= 0 && rgba == default)
         {
             // We have explicit instructions. No need to search.
             index = this.transparentIndex;
-            DebugGuard.MustBeLessThan(index, this.Palette.Length, nameof(index));
             this.cache.Add(rgba, (byte)index);
-            match = Unsafe.Add(ref paletteRef, (uint)index);
+            match = this.transparentMatch;
             return index;
         }
 
+        float leastDistance = float.MaxValue;
         for (int i = 0; i < this.rgbaPalette.Length; i++)
         {
             Rgba32 candidate = this.rgbaPalette[i];
@@ -175,18 +184,24 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// The granularity of the cache has been determined based upon the current
     /// suite of test images and provides the lowest possible memory usage while
     /// providing enough match accuracy.
-    /// Entry count is currently limited to 2335905 entries (4671810 bytes ~4.45MB).
+    /// Entry count is currently limited to 4601025 entries (8MB).
     /// </para>
     /// </remarks>
     private unsafe struct ColorDistanceCache : IDisposable
     {
-        private const int IndexBits = 5;
-        private const int IndexAlphaBits = 6;
-        private const int IndexCount = (1 << IndexBits) + 1;
-        private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
-        private const int RgbShift = 8 - IndexBits;
-        private const int AlphaShift = 8 - IndexAlphaBits;
-        private const int Entries = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
+        private const int IndexRBits = 5;
+        private const int IndexGBits = 5;
+        private const int IndexBBits = 6;
+        private const int IndexABits = 6;
+        private const int IndexRCount = (1 << IndexRBits) + 1;
+        private const int IndexGCount = (1 << IndexGBits) + 1;
+        private const int IndexBCount = (1 << IndexBBits) + 1;
+        private const int IndexACount = (1 << IndexABits) + 1;
+        private const int RShift = 8 - IndexRBits;
+        private const int GShift = 8 - IndexGBits;
+        private const int BShift = 8 - IndexBBits;
+        private const int AShift = 8 - IndexABits;
+        private const int Entries = IndexRCount * IndexGCount * IndexBCount * IndexACount;
         private MemoryHandle tableHandle;
         private readonly IMemoryOwner<short> table;
         private readonly short* tablePointer;
@@ -202,22 +217,14 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly void Add(Rgba32 rgba, byte index)
         {
-            int r = rgba.R >> RgbShift;
-            int g = rgba.G >> RgbShift;
-            int b = rgba.B >> RgbShift;
-            int a = rgba.A >> AlphaShift;
-            int idx = GetPaletteIndex(r, g, b, a);
+            int idx = GetPaletteIndex(rgba);
             this.tablePointer[idx] = index;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly bool TryGetValue(Rgba32 rgba, out short match)
         {
-            int r = rgba.R >> RgbShift;
-            int g = rgba.G >> RgbShift;
-            int b = rgba.B >> RgbShift;
-            int a = rgba.A >> AlphaShift;
-            int idx = GetPaletteIndex(r, g, b, a);
+            int idx = GetPaletteIndex(rgba);
             match = this.tablePointer[idx];
             return match > -1;
         }
@@ -229,15 +236,17 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         public readonly void Clear() => this.table.GetSpan().Fill(-1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetPaletteIndex(int r, int g, int b, int a)
-            => (r << ((IndexBits << 1) + IndexAlphaBits))
-            + (r << (IndexBits + IndexAlphaBits + 1))
-            + (g << (IndexBits + IndexAlphaBits))
-            + (r << (IndexBits << 1))
-            + (r << (IndexBits + 1))
-            + (g << IndexBits)
-            + ((r + g + b) << IndexAlphaBits)
-            + r + g + b + a;
+        private static int GetPaletteIndex(Rgba32 rgba)
+        {
+            int rIndex = rgba.R >> RShift;
+            int gIndex = rgba.G >> GShift;
+            int bIndex = rgba.B >> BShift;
+            int aIndex = rgba.A >> AShift;
+
+            return (aIndex * (IndexRCount * IndexGCount * IndexBCount)) +
+                   (rIndex * (IndexGCount * IndexBCount)) +
+                   (gIndex * IndexBCount) + bIndex;
+        }
 
         public void Dispose()
         {

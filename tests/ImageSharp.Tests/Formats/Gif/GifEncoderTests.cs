@@ -226,8 +226,6 @@ public class GifEncoderTests
             }
 
             Assert.Equal(iMeta.FrameDelay, cMeta.FrameDelay);
-            Assert.Equal(iMeta.HasTransparency, cMeta.HasTransparency);
-            Assert.Equal(iMeta.TransparencyIndex, cMeta.TransparencyIndex);
         }
 
         image.Dispose();
@@ -328,6 +326,8 @@ public class GifEncoderTests
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
 
+        image.Save(provider.Utility.GetTestOutputFileName("gif"), new GifEncoder());
+
         // TODO: Find a better way to compare.
         // The image has been visually checked but the quantization and frame trimming pattern used in the gif encoder
         // means we cannot use an exact comparison nor replicate using the quantizing processor.
@@ -356,5 +356,19 @@ public class GifEncoderTests
                     break;
             }
         }
+    }
+
+    public static string[] Animated => TestImages.Gif.Animated;
+
+    [Theory]//(Skip = "Enable for visual animated testing")]
+    [WithFileCollection(nameof(Animated), PixelTypes.Rgba32)]
+    public void Encode_Animated_VisualTest<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        //image.DebugSaveMultiFrame(provider);
+
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder() { ColorTableMode = GifColorTableMode.Local}, "animated");
     }
 }

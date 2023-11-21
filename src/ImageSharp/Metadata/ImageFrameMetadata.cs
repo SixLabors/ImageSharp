@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata.Profiles.CICP;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -43,6 +44,7 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         this.IccProfile = other.IccProfile?.DeepClone();
         this.IptcProfile = other.IptcProfile?.DeepClone();
         this.XmpProfile = other.XmpProfile?.DeepClone();
+        this.CicpProfile = other.CicpProfile?.DeepClone();
     }
 
     /// <summary>
@@ -64,6 +66,11 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// Gets or sets the iptc profile.
     /// </summary>
     public IptcProfile? IptcProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CICP profile
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
 
     /// <inheritdoc/>
     public ImageFrameMetadata DeepClone() => new(this);

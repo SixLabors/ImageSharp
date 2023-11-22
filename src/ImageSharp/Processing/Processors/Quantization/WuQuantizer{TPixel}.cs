@@ -123,10 +123,11 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
-        Rectangle bounds = pixelRegion.Rectangle;
-        Buffer2D<TPixel> source = pixelRegion.Buffer;
-
-        this.Build3DHistogram(source, bounds);
+        // TODO: Something is destroying the existing palette when adding new colors.
+        // When the QuantizingImageEncoder.PixelSamplingStrategy is DefaultPixelSamplingStrategy
+        // this leads to performance issues + the palette is not preserved.
+        // https://github.com/SixLabors/ImageSharp/issues/2498
+        this.Build3DHistogram(pixelRegion);
         this.Get3DMoments(this.memoryAllocator);
         this.BuildCube();
 
@@ -360,19 +361,18 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <summary>
     /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
     /// </summary>
-    /// <param name="source">The source data.</param>
-    /// <param name="bounds">The bounds within the source image to quantize.</param>
-    private readonly void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
+    /// <param name="source">The source pixel data.</param>
+    private readonly void Build3DHistogram(Buffer2DRegion<TPixel> source)
     {
         Span<Moment> momentSpan = this.momentsOwner.GetSpan();
 
         // Build up the 3-D color histogram
-        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
+        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
         Span<Rgba32> bufferSpan = buffer.GetSpan();
 
-        for (int y = bounds.Top; y < bounds.Bottom; y++)
+        for (int y = 0; y < source.Height; y++)
         {
-            Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
+            Span<TPixel> row = source.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
             for (int x = 0; x < bufferSpan.Length; x++)

@@ -253,7 +253,7 @@ internal class WebpAnimationDecoder : IDisposable
     private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrame<TPixel> decodedFrame = new(Configuration.Default, (int)frameData.Width, (int)frameData.Height);
+        ImageFrame<TPixel> decodedFrame = new(this.configuration, (int)frameData.Width, (int)frameData.Height);
 
         try
         {

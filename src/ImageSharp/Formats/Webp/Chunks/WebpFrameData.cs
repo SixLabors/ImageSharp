@@ -83,7 +83,7 @@ internal readonly struct WebpFrameData
     /// </summary>
     public WebpDisposalMethod DisposalMethod { get; }
 
-    public Rectangle Bounds => new((int)this.X * 2, (int)this.Y * 2, (int)this.Width, (int)this.Height);
+    public Rectangle Bounds => new((int)this.X, (int)this.Y, (int)this.Width, (int)this.Height);
 
     /// <summary>
     /// Writes the animation frame(<see cref="WebpChunkType.FrameData"/>) to the stream.
@@ -107,8 +107,8 @@ internal readonly struct WebpFrameData
 
         long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.FrameData);
 
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.X);
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Y);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.X / 2);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Y / 2);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Height - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Duration);
@@ -128,8 +128,8 @@ internal readonly struct WebpFrameData
 
         WebpFrameData data = new(
             dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
-            x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
-            y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
+            x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
+            y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             width: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             height: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             duration: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),

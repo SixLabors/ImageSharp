@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -129,6 +130,8 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
+            bool hasAnimation = image.Frames.Count > 1;
+
             using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
@@ -141,17 +144,34 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.nearLossless,
                 this.nearLosslessQuality);
 
-            bool hasAnimation = image.Frames.Count > 1;
             encoder.EncodeHeader(image, stream, hasAnimation);
+
+            // Encode the first frame.
+            ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+            WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
+            encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
+
             if (hasAnimation)
             {
-                foreach (ImageFrame<TPixel> imageFrame in image.Frames)
+                WebpDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+
+                for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    using Vp8LEncoder enc = new(
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
+
+                    ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
+                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
+
+                    using Vp8LEncoder animatedEncoder = new(
                         this.memoryAllocator,
                         this.configuration,
-                        image.Width,
-                        image.Height,
+                        bounds.Width,
+                        bounds.Height,
                         this.quality,
                         this.skipMetadata,
                         this.method,
@@ -159,12 +179,11 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                         this.nearLossless,
                         this.nearLosslessQuality);
 
-                    enc.Encode(imageFrame, stream, true);
+                    animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMethod;
                 }
-            }
-            else
-            {
-                encoder.Encode(image.Frames.RootFrame, stream, false);
             }
 
             encoder.EncodeFooter(image, stream);
@@ -183,17 +202,36 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.filterStrength,
                 this.spatialNoiseShaping,
                 this.alphaCompression);
+
             if (image.Frames.Count > 1)
             {
+                // TODO: What about alpha here?
                 encoder.EncodeHeader(image, stream, false, true);
 
-                foreach (ImageFrame<TPixel> imageFrame in image.Frames)
+                // Encode the first frame.
+                ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+                WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
+                WebpDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+
+                encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+
+                for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    using Vp8Encoder enc = new(
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
+
+                    ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
+                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
+
+                    using Vp8Encoder animatedEncoder = new(
                         this.memoryAllocator,
                         this.configuration,
-                        image.Width,
-                        image.Height,
+                        bounds.Width,
+                        bounds.Height,
                         this.quality,
                         this.skipMetadata,
                         this.method,
@@ -202,12 +240,15 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                         this.spatialNoiseShaping,
                         this.alphaCompression);
 
-                    enc.EncodeAnimation(imageFrame, stream);
+                    animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMethod;
                 }
             }
             else
             {
-                encoder.EncodeStatic(image, stream);
+                encoder.EncodeStatic(stream, image);
             }
 
             encoder.EncodeFooter(image, stream);

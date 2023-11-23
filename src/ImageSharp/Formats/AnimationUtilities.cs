@@ -85,11 +85,12 @@ internal static class AnimationUtilities
                     int m = Avx2.MoveMask(neq.AsByte());
                     if (m != 0)
                     {
-                        // If is diff is found, the left side is marked by the min of previously found left side and the diff position.
-                        // The right is the max of the previously found right side and the diff position + 1.
-                        int diff = (int)(i + (uint)(BitOperations.TrailingZeroCount(m) / size));
-                        left = Math.Min(left, diff);
-                        right = Math.Max(right, diff + 1);
+                        // If is diff is found, the left side is marked by the min of previously found left side and the start position.
+                        // The right is the max of the previously found right side and the end position.
+                        int start = i + (BitOperations.TrailingZeroCount(m) / size);
+                        int end = i + (2 - (BitOperations.LeadingZeroCount((uint)m) / size));
+                        left = Math.Min(left, start);
+                        right = Math.Max(right, end);
                         hasRowDiff = true;
                         hasDiff = true;
                     }

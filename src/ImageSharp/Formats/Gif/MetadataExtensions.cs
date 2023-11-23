@@ -83,7 +83,7 @@ public static partial class MetadataExtensions
             ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
             Duration = TimeSpan.FromMilliseconds(source.FrameDelay * 10),
             DisposalMode = GetMode(source.DisposalMethod),
-            BlendMode = FrameBlendMode.Source,
+            BlendMode = FrameBlendMode.Over,
         };
 
     private static FrameDisposalMode GetMode(GifDisposalMethod method) => method switch

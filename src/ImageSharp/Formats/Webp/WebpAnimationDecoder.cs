@@ -202,7 +202,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         using Buffer2D<TPixel> decodedImageFrame = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
 
-        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendingMethod.Over;
+        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendMethod.Over;
         DrawDecodedImageFrameOnCanvas(decodedImageFrame, imageFrame, regionRectangle, blend);
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;

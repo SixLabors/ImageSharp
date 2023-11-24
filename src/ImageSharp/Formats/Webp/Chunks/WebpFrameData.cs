@@ -12,7 +12,7 @@ internal readonly struct WebpFrameData
     /// </summary>
     public const uint HeaderSize = 16;
 
-    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, WebpBlendingMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
     {
         this.DataSize = dataSize;
         this.X = x;
@@ -32,12 +32,12 @@ internal readonly struct WebpFrameData
             width,
             height,
             duration,
-            (flags & 2) == 0 ? WebpBlendingMethod.Over : WebpBlendingMethod.Source,
+            (flags & 2) == 0 ? WebpBlendMethod.Over : WebpBlendMethod.Source,
             (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose)
     {
     }
 
-    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, WebpBlendingMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
         : this(0, x, y, width, height, duration, blendingMethod, disposalMethod)
     {
     }
@@ -76,7 +76,7 @@ internal readonly struct WebpFrameData
     /// <summary>
     /// Gets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public WebpBlendingMethod BlendingMethod { get; }
+    public WebpBlendMethod BlendingMethod { get; }
 
     /// <summary>
     /// Gets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
@@ -93,7 +93,7 @@ internal readonly struct WebpFrameData
     {
         byte flags = 0;
 
-        if (this.BlendingMethod is WebpBlendingMethod.Source)
+        if (this.BlendingMethod is WebpBlendMethod.Source)
         {
             // Set blending flag.
             flags |= 2;
@@ -107,8 +107,8 @@ internal readonly struct WebpFrameData
 
         long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.FrameData);
 
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.X / 2);
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Y / 2);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, (uint)Math.Round(this.X / 2f));
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, (uint)Math.Round(this.Y / 2f));
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Height - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Duration);

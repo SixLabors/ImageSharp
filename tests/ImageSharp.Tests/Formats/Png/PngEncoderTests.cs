@@ -479,18 +479,15 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
-        using MemoryStream memStream = new();
 
+        using MemoryStream memStream = new();
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;
-
-        image.Save(provider.Utility.GetTestOutputFileName("png"), new PngEncoder());
-        image.Save(provider.Utility.GetTestOutputFileName("gif"), new GifEncoder());
 
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
 
@@ -556,10 +553,10 @@ public partial class PngEncoderTests
 
             switch (webpF.BlendMethod)
             {
-                case WebpBlendingMethod.Source:
+                case WebpBlendMethod.Source:
                     Assert.Equal(PngBlendMethod.Source, pngF.BlendMethod);
                     break;
-                case WebpBlendingMethod.Over:
+                case WebpBlendMethod.Over:
                 default:
                     Assert.Equal(PngBlendMethod.Over, pngF.BlendMethod);
                     break;

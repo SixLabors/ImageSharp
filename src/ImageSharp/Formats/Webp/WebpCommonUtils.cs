@@ -20,7 +20,7 @@ internal static class WebpCommonUtils
     {
         if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
         {
-            return webp;
+            return (WebpMetadata)webp.DeepClone();
         }
 
         if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
@@ -44,7 +44,7 @@ internal static class WebpCommonUtils
     {
         if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
         {
-            return webp;
+            return (WebpFrameMetadata)webp.DeepClone();
         }
 
         if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))

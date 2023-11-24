@@ -217,7 +217,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 chunk.Length - 4,
                                 currentFrame,
                                 pngMetadata,
-                                this.ReadNextDataChunkAndSkipSeq,
+                                this.ReadNextFrameDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
 
@@ -1719,19 +1719,34 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
-    /// Reads the next data chunk and skip sequence number.
+    /// Reads the next animated frame data chunk.
     /// </summary>
     /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
-    private int ReadNextDataChunkAndSkipSeq()
+    private int ReadNextFrameDataChunk()
     {
-        int length = this.ReadNextDataChunk();
-        if (this.ReadNextDataChunk() is 0)
+        if (this.nextChunk != null)
         {
-            return length;
+            return 0;
         }
 
-        this.currentStream.Position += 4; // Skip sequence number
-        return length - 4;
+        Span<byte> buffer = stackalloc byte[20];
+
+        _ = this.currentStream.Read(buffer, 0, 4);
+
+        if (this.TryReadChunk(buffer, out PngChunk chunk))
+        {
+            if (chunk.Type is PngChunkType.FrameData)
+            {
+                chunk.Data?.Dispose();
+
+                this.currentStream.Position += 4; // Skip sequence number
+                return chunk.Length - 4;
+            }
+
+            this.nextChunk = chunk;
+        }
+
+        return 0;
     }
 
     /// <summary>

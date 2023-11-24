@@ -360,15 +360,16 @@ public class GifEncoderTests
 
     public static string[] Animated => TestImages.Gif.Animated;
 
-    [Theory]//(Skip = "Enable for visual animated testing")]
+    [Theory(Skip = "Enable for visual animated testing")]
     [WithFileCollection(nameof(Animated), PixelTypes.Rgba32)]
     public void Encode_Animated_VisualTest<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
 
-        //image.DebugSaveMultiFrame(provider);
-
-        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder() { ColorTableMode = GifColorTableMode.Local}, "animated");
+        provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless }, "animated");
+        provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy }, "animated-lossy");
+        provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), "animated");
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
     }
 }

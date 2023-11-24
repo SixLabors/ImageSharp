@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Indicates how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
 /// </summary>
-public enum WebpBlendingMethod
+public enum WebpBlendMethod
 {
     /// <summary>
     /// Do not blend. After disposing of the previous frame,

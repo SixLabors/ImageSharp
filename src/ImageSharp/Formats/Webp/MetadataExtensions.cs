@@ -63,7 +63,7 @@ public static partial class MetadataExtensions
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(source.FrameDelay),
             DisposalMode = GetMode(source.DisposalMethod),
-            BlendMode = source.BlendMethod == WebpBlendingMethod.Over ? FrameBlendMode.Over : FrameBlendMode.Source,
+            BlendMode = source.BlendMethod == WebpBlendMethod.Over ? FrameBlendMode.Over : FrameBlendMode.Source,
         };
 
     private static FrameDisposalMode GetMode(WebpDisposalMethod method) => method switch

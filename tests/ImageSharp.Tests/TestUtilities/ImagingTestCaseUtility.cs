@@ -171,7 +171,7 @@ public class ImagingTestCaseUtility
 
         encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
-        using (FileStream stream = File.OpenWrite(path))
+        using (FileStream stream = File.Create(path))
         {
             image.Save(stream, encoder);
         }
@@ -227,7 +227,7 @@ public class ImagingTestCaseUtility
         {
             using Image<TPixel> frameImage = image.Frames.CloneFrame(file.Index);
             string filePath = file.FileName;
-            using FileStream stream = File.OpenWrite(filePath);
+            using FileStream stream = File.Create(filePath);
             frameImage.Save(stream, encoder);
         }
 

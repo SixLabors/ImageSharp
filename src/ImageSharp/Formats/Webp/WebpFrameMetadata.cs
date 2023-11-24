@@ -29,7 +29,7 @@ public class WebpFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public WebpBlendingMethod BlendMethod { get; set; }
+    public WebpBlendMethod BlendMethod { get; set; }
 
     /// <summary>
     /// Gets or sets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
@@ -49,7 +49,7 @@ public class WebpFrameMetadata : IDeepCloneable
         => new()
         {
             FrameDelay = (uint)metadata.Duration.Milliseconds,
-            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendingMethod.Source : WebpBlendingMethod.Over,
+            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendMethod.Source : WebpBlendMethod.Over,
             DisposalMethod = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose
         };
 }

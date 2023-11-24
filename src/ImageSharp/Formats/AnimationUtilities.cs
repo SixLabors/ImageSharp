@@ -27,15 +27,19 @@ internal static class AnimationUtilities
     /// <param name="currentFrame">The current frame.</param>
     /// <param name="resultFrame">The resultant output.</param>
     /// <param name="replacement">The value to use when replacing duplicate pixels.</param>
+    /// <param name="clampingMode">The clamping bound to apply when calculating difference bounds.</param>
     /// <returns>The <see cref="ValueTuple{Boolean, Rectangle}"/> representing the operation result.</returns>
     public static (bool Difference, Rectangle Bounds) DeDuplicatePixels<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel>? previousFrame,
         ImageFrame<TPixel> currentFrame,
         ImageFrame<TPixel> resultFrame,
-        Vector4 replacement)
+        Vector4 replacement,
+        ClampingMode clampingMode = ClampingMode.None)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TODO: This would be faster (but more complicated to find diff bounds) if we operated on Rgba32.
+        // If someone wants to do that, they have my unlimited thanks.
         MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
         IMemoryOwner<Vector4> buffers = memoryAllocator.Allocate<Vector4>(currentFrame.Width * 3, AllocationOptions.Clean);
         Span<Vector4> previous = buffers.GetSpan()[..currentFrame.Width];
@@ -78,10 +82,11 @@ internal static class AnimationUtilities
                     Vector256<float> c = Unsafe.Add(ref currentBase, x);
 
                     // Compare the previous and current pixels
-                    Vector256<float> neq = Avx.CompareEqual(p, c);
-                    Vector256<int> mask = neq.AsInt32();
+                    Vector256<int> mask = Avx2.CompareEqual(p.AsInt32(), c.AsInt32());
+                    mask = Avx2.CompareEqual(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
+                    mask = Avx2.And(mask, Avx2.Shuffle(mask, 0b_01_00_11_10)).AsInt32();
 
-                    neq = Avx.Xor(neq, Vector256<float>.AllBitsSet);
+                    Vector256<int> neq = Avx2.Xor(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
                     int m = Avx2.MoveMask(neq.AsByte());
                     if (m != 0)
                     {
@@ -95,11 +100,7 @@ internal static class AnimationUtilities
                         hasDiff = true;
                     }
 
-                    // Capture the original alpha values.
-                    mask = Avx2.HorizontalAdd(mask, mask);
-                    mask = Avx2.HorizontalAdd(mask, mask);
-                    mask = Avx2.CompareEqual(mask, Vector256.Create(-4));
-
+                    // Replace the pixel value with the replacement if the full pixel is matched.
                     Vector256<float> r = Avx.BlendVariable(c, replacement256, mask.AsSingle());
                     Unsafe.Add(ref resultBase, x) = r;
 
@@ -153,6 +154,37 @@ internal static class AnimationUtilities
             Numerics.Clamp(right, left + 1, resultFrame.Width),
             Numerics.Clamp(bottom, top + 1, resultFrame.Height));
 
+        // Webp requires even bounds
+        if (clampingMode == ClampingMode.Even)
+        {
+            bounds.Width = Math.Min(resultFrame.Width, bounds.Width + (bounds.X & 1));
+            bounds.Height = Math.Min(resultFrame.Height, bounds.Height + (bounds.Y & 1));
+            bounds.X = Math.Max(0, bounds.X - (bounds.X & 1));
+            bounds.Y = Math.Max(0, bounds.Y - (bounds.Y & 1));
+        }
+
         return new(hasDiff, bounds);
     }
+
+    public static void CopySource<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle bounds)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(bounds);
+        Buffer2DRegion<TPixel> destBuffer = destination.PixelBuffer.GetRegion(bounds);
+        for (int y = 0; y < destination.Height; y++)
+        {
+            Span<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y);
+            Span<TPixel> destRow = destBuffer.DangerousGetRowSpan(y);
+            sourceRow.CopyTo(destRow);
+        }
+    }
+}
+
+#pragma warning disable SA1201 // Elements should appear in the correct order
+internal enum ClampingMode
+#pragma warning restore SA1201 // Elements should appear in the correct order
+{
+    None,
+
+    Even,
 }

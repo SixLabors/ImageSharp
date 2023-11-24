@@ -214,6 +214,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
                 (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
 
+                if (difference && previousDisposal != PngDisposalMethod.RestoreToBackground)
+                {
+                    if (frameMetadata.BlendMethod == PngBlendMethod.Source)
+                    {
+                        // We've potentially introduced transparency within our area of interest
+                        // so we need to overwrite the changed area with the full data.
+                        AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
+                    }
+                }
+
                 if (clearTransparency)
                 {
                     ClearTransparentPixels(encodingFrame);
@@ -258,7 +268,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
         {
-            return png;
+            return (PngMetadata)png.DeepClone();
         }
 
         if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
@@ -282,7 +292,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
         {
-            return png;
+            return (PngFrameMetadata)png.DeepClone();
         }
 
         if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))

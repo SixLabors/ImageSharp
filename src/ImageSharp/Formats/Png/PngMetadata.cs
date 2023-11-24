@@ -100,7 +100,7 @@ public class PngMetadata : IDeepCloneable
                 if (c == metadata.BackgroundColor)
                 {
                     // Png treats background as fully empty
-                    c = default;
+                    c = Color.Transparent;
                     break;
                 }
             }

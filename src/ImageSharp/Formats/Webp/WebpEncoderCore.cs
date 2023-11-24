@@ -165,7 +165,18 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                     frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
 
                     ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
-                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
+
+                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero, ClampingMode.Even);
+
+                    if (difference && previousDisposal != WebpDisposalMethod.RestoreToBackground)
+                    {
+                        if (frameMetadata.BlendMethod == WebpBlendMethod.Source)
+                        {
+                            // We've potentially introduced transparency within our area of interest
+                            // so we need to overwrite the changed area with the full data.
+                            AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
+                        }
+                    }
 
                     using Vp8LEncoder animatedEncoder = new(
                         this.memoryAllocator,
@@ -225,7 +236,17 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                     frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
 
                     ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
-                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
+                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero, ClampingMode.Even);
+
+                    if (difference && previousDisposal != WebpDisposalMethod.RestoreToBackground)
+                    {
+                        if (frameMetadata.BlendMethod == WebpBlendMethod.Source)
+                        {
+                            // We've potentially introduced transparency within our area of interest
+                            // so we need to overwrite the changed area with the full data.
+                            AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
+                        }
+                    }
 
                     using Vp8Encoder animatedEncoder = new(
                         this.memoryAllocator,

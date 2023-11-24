@@ -786,6 +786,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             return;
         }
 
+        // by spec, the matrix coefficients must be set to Identity
+        if (metaData.CicpProfile.MatrixCoefficients != Metadata.Profiles.CICP.CicpMatrixCoefficients.Identity)
+        {
+            throw new NotSupportedException("CICP matrix coefficients other than Identity are not supported in PNG");
+        }
+
         Span<byte> outputBytes = this.chunkDataBuffer.Span[..4];
         outputBytes[0] = (byte)metaData.CicpProfile.ColorPrimaries;
         outputBytes[1] = (byte)metaData.CicpProfile.TransferCharacteristics;

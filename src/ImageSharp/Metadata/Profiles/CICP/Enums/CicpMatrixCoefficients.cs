@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.CICP;
+namespace SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 #pragma warning disable CA1707 // Underscores in enum members
 

@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Metadata.Profiles.CICP;
+namespace SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 /// <summary>
-/// Represents a CICP profile as per ITU-T H.273 / ISO/IEC 23091-2_2019 providing access to color space information
+/// Represents a Cicp profile as per ITU-T H.273 / ISO/IEC 23091-2_2019 providing access to color space information
 /// </summary>
 public sealed class CicpProfile : IDeepCloneable<CicpProfile>
 {

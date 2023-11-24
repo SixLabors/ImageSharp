@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Metadata.Profiles.CICP;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Cicp;
@@ -15,11 +15,10 @@ public class CicpProfileTests
     public async Task ReadCicpMetadata_FromPng_Works<TPixel>(TestImageProvider<TPixel> provider)
        where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = await provider.GetImageAsync(PngDecoder.Instance))
-        {
-            CicpProfile actual = image.Metadata.CicpProfile ?? image.Frames.RootFrame.Metadata.CicpProfile;
-            CicpProfileContainsExpectedValues(actual);
-        }
+        using Image<TPixel> image = await provider.GetImageAsync(PngDecoder.Instance);
+
+        CicpProfile actual = image.Metadata.CicpProfile ?? image.Frames.RootFrame.Metadata.CicpProfile;
+        CicpProfileContainsExpectedValues(actual);
     }
 
     [Fact]
@@ -27,13 +26,7 @@ public class CicpProfileTests
     {
         // arrange
         using var image = new Image<Rgba32>(1, 1);
-        var original = new CicpProfile()
-        {
-            ColorPrimaries = CicpColorPrimaries.ItuRBt2020_2,
-            TransferCharacteristics = CicpTransferCharacteristics.SmpteSt2084,
-            MatrixCoefficients = CicpMatrixCoefficients.Identity,
-            FullRange = true,
-        };
+        var original = CreateCicpProfile();
         image.Metadata.CicpProfile = original;
         var encoder = new PngEncoder();
 
@@ -42,11 +35,7 @@ public class CicpProfileTests
 
         // assert
         CicpProfile actual = reloadedImage.Metadata.CicpProfile ?? reloadedImage.Frames.RootFrame.Metadata.CicpProfile;
-        Assert.NotNull(actual);
-        Assert.Equal(actual.ColorPrimaries, original.ColorPrimaries);
-        Assert.Equal(actual.TransferCharacteristics, original.TransferCharacteristics);
-        Assert.Equal(actual.MatrixCoefficients, original.MatrixCoefficients);
-        Assert.Equal(actual.FullRange, original.FullRange);
+        CicpProfileIsValidAndEqual(actual, original);
     }
 
     private static void CicpProfileContainsExpectedValues(CicpProfile cicp)
@@ -56,6 +45,27 @@ public class CicpProfileTests
         Assert.Equal(CicpTransferCharacteristics.AribStdB67, cicp.TransferCharacteristics);
         Assert.Equal(CicpMatrixCoefficients.Identity, cicp.MatrixCoefficients);
         Assert.True(cicp.FullRange);
+    }
+
+    private static CicpProfile CreateCicpProfile()
+    {
+        var profile = new CicpProfile()
+        {
+            ColorPrimaries = CicpColorPrimaries.ItuRBt2020_2,
+            TransferCharacteristics = CicpTransferCharacteristics.SmpteSt2084,
+            MatrixCoefficients = CicpMatrixCoefficients.Identity,
+            FullRange = true,
+        };
+        return profile;
+    }
+
+    private static void CicpProfileIsValidAndEqual(CicpProfile actual, CicpProfile original)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(actual.ColorPrimaries, original.ColorPrimaries);
+        Assert.Equal(actual.TransferCharacteristics, original.TransferCharacteristics);
+        Assert.Equal(actual.MatrixCoefficients, original.MatrixCoefficients);
+        Assert.Equal(actual.FullRange, original.FullRange);
     }
 
     private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, IImageEncoder encoder)

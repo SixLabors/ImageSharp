@@ -148,12 +148,11 @@ internal static class AnimationUtilities
             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, result, resultFrame.DangerousGetPixelRowMemory(y).Span, PixelConversionModifiers.Scale);
         }
 
-        left = Math.Max(0, Math.Min(left, resultFrame.Width - 1));
-        top = Math.Max(0, Math.Min(top, resultFrame.Height - 1));
-        right = Math.Max(left + 1, Math.Min(right, resultFrame.Width));
-        bottom = Math.Max(top + 1, Math.Min(bottom, resultFrame.Height));
-
-        Rectangle bounds = Rectangle.FromLTRB(left, top, right, bottom);
+        Rectangle bounds = Rectangle.FromLTRB(
+            left = Numerics.Clamp(left, 0, resultFrame.Width - 1),
+            top = Numerics.Clamp(top, 0, resultFrame.Height - 1),
+            Numerics.Clamp(right, left + 1, resultFrame.Width),
+            Numerics.Clamp(bottom, top + 1, resultFrame.Height));
 
         // Webp requires even bounds
         if (clampingMode == ClampingMode.Even)
@@ -172,7 +171,7 @@ internal static class AnimationUtilities
     {
         Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(bounds);
         Buffer2DRegion<TPixel> destBuffer = destination.PixelBuffer.GetRegion(bounds);
-        for (int y = 0; y < destination.Height; y++)
+        for (int y = 0; y < destBuffer.Height; y++)
         {
             Span<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y);
             Span<TPixel> destRow = destBuffer.DangerousGetRowSpan(y);

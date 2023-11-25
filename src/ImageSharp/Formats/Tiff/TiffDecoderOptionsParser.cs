@@ -139,8 +139,8 @@ internal static class TiffDecoderOptionsParser
             options.OldJpegCompressionStartOfImageMarker = jpegInterchangeFormatValue.Value;
         }
 
-        options.ParseColorType(exifProfile);
         options.ParseCompression(frameMetadata.Compression, exifProfile);
+        options.ParseColorType(exifProfile);
 
         bool isTiled = VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
 
@@ -194,7 +194,9 @@ internal static class TiffDecoderOptionsParser
             }
         }
 
-        if (frameMetadata.BitsPerPixel == null)
+        // For BiColor compressed images, the BitsPerPixel value will be set explicitly to 1, so we don't throw in those cases.
+        // See: https://github.com/SixLabors/ImageSharp/issues/2587
+        if (frameMetadata.BitsPerPixel == null && !IsBiColorCompression(frameMetadata.Compression))
         {
             TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image!");
         }
@@ -570,6 +572,11 @@ internal static class TiffDecoderOptionsParser
                     options.FaxCompressionOptions = FaxCompressionOptions.None;
                 }
 
+                // Some encoders do not set the BitsPerSample correctly, so we set those values here to the required values:
+                // https://github.com/SixLabors/ImageSharp/issues/2587
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
+
                 break;
             }
 
@@ -585,12 +592,18 @@ internal static class TiffDecoderOptionsParser
                     options.FaxCompressionOptions = FaxCompressionOptions.None;
                 }
 
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
+
                 break;
             }
 
             case TiffCompression.Ccitt1D:
             {
                 options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
+
                 break;
             }
 
@@ -644,5 +657,16 @@ internal static class TiffDecoderOptionsParser
                 break;
             }
         }
+    }
+
+    private static bool IsBiColorCompression(TiffCompression? compression)
+    {
+        if (compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or
+            TiffCompression.CcittGroup4Fax)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

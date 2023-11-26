@@ -74,40 +74,38 @@ internal static class AnimationUtilities
             uint x = 0;
             int length = current.Length;
             int remaining = current.Length;
-            if (Avx2.IsSupported && remaining >= 2)
+
+            while (Avx2.IsSupported && remaining >= 2)
             {
-                while (remaining >= 2)
+                Vector256<float> p = Unsafe.Add(ref previousBase, x);
+                Vector256<float> c = Unsafe.Add(ref currentBase, x);
+
+                // Compare the previous and current pixels
+                Vector256<int> mask = Avx2.CompareEqual(p.AsInt32(), c.AsInt32());
+                mask = Avx2.CompareEqual(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
+                mask = Avx2.And(mask, Avx2.Shuffle(mask, 0b_01_00_11_10)).AsInt32();
+
+                Vector256<int> neq = Avx2.Xor(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
+                int m = Avx2.MoveMask(neq.AsByte());
+                if (m != 0)
                 {
-                    Vector256<float> p = Unsafe.Add(ref previousBase, x);
-                    Vector256<float> c = Unsafe.Add(ref currentBase, x);
-
-                    // Compare the previous and current pixels
-                    Vector256<int> mask = Avx2.CompareEqual(p.AsInt32(), c.AsInt32());
-                    mask = Avx2.CompareEqual(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
-                    mask = Avx2.And(mask, Avx2.Shuffle(mask, 0b_01_00_11_10)).AsInt32();
-
-                    Vector256<int> neq = Avx2.Xor(mask.AsInt64(), Vector256<long>.AllBitsSet).AsInt32();
-                    int m = Avx2.MoveMask(neq.AsByte());
-                    if (m != 0)
-                    {
-                        // If is diff is found, the left side is marked by the min of previously found left side and the start position.
-                        // The right is the max of the previously found right side and the end position.
-                        int start = i + (BitOperations.TrailingZeroCount(m) / size);
-                        int end = i + (2 - (BitOperations.LeadingZeroCount((uint)m) / size));
-                        left = Math.Min(left, start);
-                        right = Math.Max(right, end);
-                        hasRowDiff = true;
-                        hasDiff = true;
-                    }
-
-                    // Replace the pixel value with the replacement if the full pixel is matched.
-                    Vector256<float> r = Avx.BlendVariable(c, replacement256, mask.AsSingle());
-                    Unsafe.Add(ref resultBase, x) = r;
-
-                    x++;
-                    i += 2;
-                    remaining -= 2;
+                    // If is diff is found, the left side is marked by the min of previously found left side and the start position.
+                    // The right is the max of the previously found right side and the end position.
+                    int start = i + (BitOperations.TrailingZeroCount(m) / size);
+                    int end = i + (2 - (BitOperations.LeadingZeroCount((uint)m) / size));
+                    left = Math.Min(left, start);
+                    right = Math.Max(right, end);
+                    hasRowDiff = true;
+                    hasDiff = true;
                 }
+
+                // Replace the pixel value with the replacement if the full pixel is matched.
+                Vector256<float> r = Avx.BlendVariable(c, replacement256, mask.AsSingle());
+                Unsafe.Add(ref resultBase, x) = r;
+
+                x++;
+                i += 2;
+                remaining -= 2;
             }
 
             for (i = remaining; i > 0; i--)

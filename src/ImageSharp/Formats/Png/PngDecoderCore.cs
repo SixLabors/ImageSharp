@@ -765,7 +765,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             cancellationToken.ThrowIfCancellationRequested();
             int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
             Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
-            Span<byte> prevSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+            Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
 
             while (currentRowBytesRead < bytesPerFrameScanline)
             {

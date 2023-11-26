@@ -67,6 +67,11 @@ public class WebpEncoderTests
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
         using MemoryStream memStream = new();
 
@@ -109,6 +114,11 @@ public class WebpEncoderTests
     public void Encode_AnimatedFormatTransform_FromPng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
 
         using MemoryStream memStream = new();

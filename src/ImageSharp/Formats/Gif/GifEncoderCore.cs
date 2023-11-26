@@ -176,7 +176,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     {
         if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
         {
-            return gif;
+            return (GifMetadata)gif.DeepClone();
         }
 
         if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))

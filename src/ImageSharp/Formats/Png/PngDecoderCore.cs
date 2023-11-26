@@ -764,10 +764,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             cancellationToken.ThrowIfCancellationRequested();
             int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
-            Span<byte> scanlineSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+            Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+            Span<byte> prevSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+
             while (currentRowBytesRead < bytesPerFrameScanline)
             {
-                int bytesRead = compressedStream.Read(scanlineSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
                 if (bytesRead <= 0)
                 {
                     return;
@@ -778,25 +780,25 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             currentRowBytesRead = 0;
 
-            switch ((FilterType)scanlineSpan[0])
+            switch ((FilterType)scanSpan[0])
             {
                 case FilterType.None:
                     break;
 
                 case FilterType.Sub:
-                    SubFilter.Decode(scanlineSpan, this.bytesPerPixel);
+                    SubFilter.Decode(scanSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Up:
-                    UpFilter.Decode(scanlineSpan, this.previousScanline.GetSpan());
+                    UpFilter.Decode(scanSpan, prevSpan);
                     break;
 
                 case FilterType.Average:
-                    AverageFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
+                    AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Paeth:
-                    PaethFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
+                    PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 default:
@@ -804,7 +806,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
             }
 
-            this.ProcessDefilteredScanline(frameControl, currentRow, scanlineSpan, imageFrame, pngMetadata, blendRowBuffer);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
             this.SwapScanlineBuffers();
             currentRow++;
         }

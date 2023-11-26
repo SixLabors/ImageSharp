@@ -161,7 +161,7 @@ internal static class AnimationUtilities
             bounds.Y = Math.Max(0, bounds.Y - (bounds.Y & 1));
         }
 
-        return new(hasDiff, bounds);
+        return (hasDiff, bounds);
     }
 
     public static void CopySource<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle bounds)

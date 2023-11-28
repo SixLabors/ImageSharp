@@ -101,9 +101,9 @@ public class GifDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32, 93)]
+    [WithFile(TestImages.Gif.M4nb, PixelTypes.Rgba32, 5)]
     [WithFile(TestImages.Gif.Rings, PixelTypes.Rgba32, 1)]
-    [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32, 36)]
+    [WithFile(TestImages.Gif.MixedDisposal, PixelTypes.Rgba32, 11)]
     public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider, int expectedFrameCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {

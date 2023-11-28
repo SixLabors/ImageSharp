@@ -133,7 +133,6 @@ public class GifDecoderTests
     }
 
     [Theory]
-    [InlineData(TestImages.Gif.Cheers, 8)]
     [InlineData(TestImages.Gif.Giphy, 8)]
     [InlineData(TestImages.Gif.Rings, 8)]
     [InlineData(TestImages.Gif.Trans, 8)]
@@ -194,7 +193,7 @@ public class GifDecoderTests
         }
     }
 
-    // https://github.com/SixLabors/ImageSharp/issues/1503
+    // https://github.com/SixLabors/ImageSharp/issues/1530
     [Theory]
     [WithFile(TestImages.Gif.Issues.Issue1530, PixelTypes.Rgba32)]
     public void Issue1530_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)

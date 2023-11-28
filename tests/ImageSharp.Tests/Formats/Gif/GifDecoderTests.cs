@@ -212,7 +212,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -224,7 +224,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -273,7 +273,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -285,7 +285,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);

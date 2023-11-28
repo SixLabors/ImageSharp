@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -161,22 +160,23 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    ImageFrame<TPixel> currentFrame = image.Frames[i];
-                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
-
                     ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
-                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero, ClampingMode.Even);
+                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
+                    bool blend = frameMetadata.BlendMethod == WebpBlendMethod.Over;
 
-                    if (difference && previousDisposal != WebpDisposalMethod.RestoreToBackground)
-                    {
-                        if (frameMetadata.BlendMethod == WebpBlendMethod.Source)
-                        {
-                            // We've potentially introduced transparency within our area of interest
-                            // so we need to overwrite the changed area with the full data.
-                            AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
-                        }
-                    }
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            Color.Transparent,
+                            blend,
+                            ClampingMode.Even);
 
                     using Vp8LEncoder animatedEncoder = new(
                         this.memoryAllocator,
@@ -232,21 +232,23 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    ImageFrame<TPixel> currentFrame = image.Frames[i];
-                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
-
                     ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
-                    (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero, ClampingMode.Even);
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
-                    if (difference && previousDisposal != WebpDisposalMethod.RestoreToBackground)
-                    {
-                        if (frameMetadata.BlendMethod == WebpBlendMethod.Source)
-                        {
-                            // We've potentially introduced transparency within our area of interest
-                            // so we need to overwrite the changed area with the full data.
-                            AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
-                        }
-                    }
+                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
+                    bool blend = frameMetadata.BlendMethod == WebpBlendMethod.Over;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            Color.Transparent,
+                            blend,
+                            ClampingMode.Even);
 
                     using Vp8Encoder animatedEncoder = new(
                         this.memoryAllocator,

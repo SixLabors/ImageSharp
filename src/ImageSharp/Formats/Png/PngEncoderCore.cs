@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -208,21 +207,22 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
             for (int i = 1; i < image.Frames.Count; i++)
             {
-                currentFrame = image.Frames[i];
-                frameMetadata = GetPngFrameMetadata(currentFrame);
-
                 ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
-                (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(image.Configuration, prev, currentFrame, encodingFrame, Vector4.Zero);
+                currentFrame = image.Frames[i];
+                ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
-                if (difference && previousDisposal != PngDisposalMethod.RestoreToBackground)
-                {
-                    if (frameMetadata.BlendMethod == PngBlendMethod.Source)
-                    {
-                        // We've potentially introduced transparency within our area of interest
-                        // so we need to overwrite the changed area with the full data.
-                        AnimationUtilities.CopySource(currentFrame, encodingFrame, bounds);
-                    }
-                }
+                frameMetadata = GetPngFrameMetadata(currentFrame);
+                bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
+
+                (bool difference, Rectangle bounds) =
+                    AnimationUtilities.DeDuplicatePixels(
+                        image.Configuration,
+                        prev,
+                        currentFrame,
+                        nextFrame,
+                        encodingFrame,
+                        Color.Transparent,
+                        blend);
 
                 if (clearTransparency)
                 {

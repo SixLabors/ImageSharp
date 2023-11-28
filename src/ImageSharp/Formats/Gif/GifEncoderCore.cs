@@ -264,10 +264,13 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 hasPaletteQuantizer = true;
             }
 
+            ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
             this.EncodeAdditionalFrame(
                 stream,
                 previousFrame,
                 currentFrame,
+                nextFrame,
                 encodingFrame,
                 useLocal,
                 gifMetadata,
@@ -311,6 +314,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         Stream stream,
         ImageFrame<TPixel> previousFrame,
         ImageFrame<TPixel> currentFrame,
+        ImageFrame<TPixel>? nextFrame,
         ImageFrame<TPixel> encodingFrame,
         bool useLocal,
         GifFrameMetadata metadata,
@@ -325,7 +329,15 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         ImageFrame<TPixel>? previous = previousDisposal == GifDisposalMethod.RestoreToBackground ? null : previousFrame;
 
         // Deduplicate and quantize the frame capturing only required parts.
-        (bool difference, Rectangle bounds) = AnimationUtilities.DeDuplicatePixels(this.configuration, previous, currentFrame, encodingFrame, Vector4.Zero);
+        (bool difference, Rectangle bounds) =
+            AnimationUtilities.DeDuplicatePixels(
+                this.configuration,
+                previous,
+                currentFrame,
+                nextFrame,
+                encodingFrame,
+                Color.Transparent,
+                true);
 
         using IndexedImageFrame<TPixel> quantized = this.QuantizeAdditionalFrameAndUpdateMetadata(
                 encodingFrame,

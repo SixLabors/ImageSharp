@@ -480,6 +480,7 @@ public static class TestImages
         public const string LargeComment = "Gif/large_comment.gif";
         public const string GlobalQuantizationTest = "Gif/GlobalQuantizationTest.gif";
         public const string MixedDisposal = "Gif/mixed-disposal.gif";
+        public const string M4nb = "Gif/m4nb.gif";
 
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
@@ -511,6 +512,7 @@ public static class TestImages
 
         public static readonly string[] Animated =
         {
+            M4nb,
             Giphy,
             Cheers,
             Kumin,

@@ -330,7 +330,7 @@ public partial class JpegDecoderTests
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2564, PixelTypes.Rgba32)]
     public void Issue2564_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
-    where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);

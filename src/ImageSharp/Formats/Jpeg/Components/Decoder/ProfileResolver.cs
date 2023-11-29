@@ -25,14 +25,6 @@ internal static class ProfileResolver
     };
 
     /// <summary>
-    /// Gets the \n[ID or 10 91 73 68 32 specific markers.
-    /// </summary>
-    public static ReadOnlySpan<byte> OSQidMaker => new[]
-    {
-        (byte)'\n', (byte)'[', (byte)'I', (byte)'D', (byte)' '
-    };
-
-    /// <summary>
     /// Gets the ICC specific markers.
     /// </summary>
     public static ReadOnlySpan<byte> IccMarker => new[]

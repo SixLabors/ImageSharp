@@ -753,10 +753,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
 
         stream.Read(temp, 0, JFifMarker.Length);
-        if (!JFifMarker.TryParse(temp, out this.jFif))
-        {
-            JpegThrowHelper.ThrowNotSupportedException("Unknown App0 Marker - Expected JFIF.");
-        }
+        _ = JFifMarker.TryParse(temp, out this.jFif);
 
         remaining -= JFifMarker.Length;
 

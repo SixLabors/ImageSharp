@@ -43,7 +43,7 @@ internal static class AnimationUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-        IMemoryOwner<Rgba32> buffers = memoryAllocator.Allocate<Rgba32>(currentFrame.Width * 4, AllocationOptions.Clean);
+        using IMemoryOwner<Rgba32> buffers = memoryAllocator.Allocate<Rgba32>(currentFrame.Width * 4, AllocationOptions.Clean);
         Span<Rgba32> previous = buffers.GetSpan()[..currentFrame.Width];
         Span<Rgba32> current = buffers.GetSpan().Slice(currentFrame.Width, currentFrame.Width);
         Span<Rgba32> next = buffers.GetSpan().Slice(currentFrame.Width * 2, currentFrame.Width);

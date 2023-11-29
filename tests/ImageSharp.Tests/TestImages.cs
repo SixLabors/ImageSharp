@@ -304,6 +304,7 @@ public static class TestImages
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
 
             public static class Fuzz
@@ -994,6 +995,7 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
         public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 

@@ -115,26 +115,33 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private PngChunk? nextChunk;
 
     /// <summary>
+    /// How to handle CRC errors.
+    /// </summary>
+    private readonly PngCrcChunkHandling pngCrcChunkHandling;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public PngDecoderCore(DecoderOptions options)
+    public PngDecoderCore(PngDecoderOptions options)
     {
-        this.Options = options;
-        this.configuration = options.Configuration;
-        this.maxFrames = options.MaxFrames;
-        this.skipMetadata = options.SkipMetadata;
+        this.Options = options.GeneralOptions;
+        this.configuration = options.GeneralOptions.Configuration;
+        this.maxFrames = options.GeneralOptions.MaxFrames;
+        this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
     }
 
-    internal PngDecoderCore(DecoderOptions options, bool colorMetadataOnly)
+    internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
     {
-        this.Options = options;
+        this.Options = options.GeneralOptions;
         this.colorMetadataOnly = colorMetadataOnly;
-        this.maxFrames = options.MaxFrames;
+        this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = true;
-        this.configuration = options.Configuration;
+        this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
     }
 
     /// <inheritdoc/>
@@ -576,11 +583,23 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        image = Image.CreateUninitialized<TPixel>(
-            this.configuration,
-            this.header.Width,
-            this.header.Height,
-            metadata);
+        // When ignoring data CRCs, we can't use the image constructor that leaves the buffer uncleared.
+        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+        {
+            image = new Image<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+        }
+        else
+        {
+            image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+        }
 
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
@@ -803,6 +822,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
 
                 default:
+                    if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                    {
+                        goto EXIT;
+                    }
+
                     PngThrowHelper.ThrowUnknownFilter();
                     break;
             }
@@ -812,6 +836,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             currentRow++;
         }
 
+        EXIT:
         blendMemory?.Dispose();
     }
 
@@ -903,6 +928,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         break;
 
                     default:
+                        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                        {
+                            goto EXIT;
+                        }
+
                         PngThrowHelper.ThrowUnknownFilter();
                         break;
                 }
@@ -937,6 +967,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
         }
 
+        EXIT:
         blendMemory?.Dispose();
     }
 
@@ -1364,7 +1395,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryUncompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
+        if (this.TryDecompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
         {
             metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
@@ -1508,19 +1539,19 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryUncompressZlibData(compressedData, out byte[] iccpProfileBytes))
+        if (this.TryDecompressZlibData(compressedData, out byte[] iccpProfileBytes))
         {
             metadata.IccProfile = new IccProfile(iccpProfileBytes);
         }
     }
 
     /// <summary>
-    /// Tries to un-compress zlib compressed data.
+    /// Tries to decompress zlib compressed data.
     /// </summary>
     /// <param name="compressedData">The compressed data.</param>
     /// <param name="uncompressedBytesArray">The uncompressed bytes array.</param>
     /// <returns>True, if de-compressing was successful.</returns>
-    private unsafe bool TryUncompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
+    private unsafe bool TryDecompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
     {
         fixed (byte* compressedDataBase = compressedData)
         {
@@ -1657,7 +1688,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             ReadOnlySpan<byte> compressedData = data[dataStartIdx..];
 
-            if (this.TryUncompressTextData(compressedData, PngConstants.TranslatedEncoding, out string? uncompressed))
+            if (this.TryDecompressTextData(compressedData, PngConstants.TranslatedEncoding, out string? uncompressed))
             {
                 pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
             }
@@ -1680,9 +1711,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="encoding">The string encoding to use.</param>
     /// <param name="value">The uncompressed value.</param>
     /// <returns>The <see cref="bool"/>.</returns>
-    private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)] out string? value)
+    private bool TryDecompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)] out string? value)
     {
-        if (this.TryUncompressZlibData(compressedData, out byte[] uncompressedData))
+        if (this.TryDecompressZlibData(compressedData, out byte[] uncompressedData))
         {
             value = encoding.GetString(uncompressedData);
             return true;
@@ -1705,7 +1736,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         Span<byte> buffer = stackalloc byte[20];
 
-        _ = this.currentStream.Read(buffer, 0, 4);
+        int length = this.currentStream.Read(buffer, 0, 4);
+        if (length == 0)
+        {
+            return 0;
+        }
 
         if (this.TryReadChunk(buffer, out PngChunk chunk))
         {
@@ -1734,7 +1769,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         Span<byte> buffer = stackalloc byte[20];
 
-        _ = this.currentStream.Read(buffer, 0, 4);
+        int length = this.currentStream.Read(buffer, 0, 4);
+        if (length == 0)
+        {
+            return 0;
+        }
 
         if (this.TryReadChunk(buffer, out PngChunk chunk))
         {
@@ -1771,21 +1810,27 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return true;
         }
 
-        if (!this.TryReadChunkLength(buffer, out int length))
+        if (this.currentStream.Position >= this.currentStream.Length - 1)
         {
-            chunk = default;
-
             // IEND
+            chunk = default;
             return false;
         }
 
-        while (length < 0 || length > (this.currentStream.Length - this.currentStream.Position))
+        if (!this.TryReadChunkLength(buffer, out int length))
+        {
+            // IEND
+            chunk = default;
+            return false;
+        }
+
+        while (length < 0)
         {
             // Not a valid chunk so try again until we reach a known chunk.
             if (!this.TryReadChunkLength(buffer, out length))
             {
+                // IEND
                 chunk = default;
-
                 return false;
             }
         }
@@ -1797,13 +1842,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency && type != PngChunkType.Palette)
         {
             chunk = new PngChunk(length, type);
-
             return true;
         }
 
-        long pos = this.currentStream.Position;
+        // A chunk might report a length that exceeds the length of the stream.
+        // Take the minimum of the two values to ensure we don't read past the end of the stream.
+        long position = this.currentStream.Position;
         chunk = new PngChunk(
-            length: length,
+            length: (int)Math.Min(length, this.currentStream.Length - position),
             type: type,
             data: this.ReadChunkData(length));
 
@@ -1813,7 +1859,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         // was only read to verifying the CRC is correct.
         if (type is PngChunkType.Data or PngChunkType.FrameData)
         {
-            this.currentStream.Position = pos;
+            this.currentStream.Position = position;
         }
 
         return true;
@@ -1827,8 +1873,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void ValidateChunk(in PngChunk chunk, Span<byte> buffer)
     {
         uint inputCrc = this.ReadChunkCrc(buffer);
-
-        if (chunk.IsCritical)
+        if (chunk.IsCritical(this.pngCrcChunkHandling))
         {
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);

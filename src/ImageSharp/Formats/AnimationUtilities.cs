@@ -128,6 +128,52 @@ internal static class AnimationUtilities
                 }
             }
 
+            if (Sse2.IsSupported && remaining >= 4)
+            {
+                Vector128<uint> r128 = previousFrame != null ? Vector128.Create(bg.PackedValue) : Vector128<uint>.Zero;
+                Vector128<uint> vmb128 = Vector128<uint>.Zero;
+                if (blend)
+                {
+                    vmb128 = Sse2.CompareEqual(vmb128, vmb128);
+                }
+
+                while (remaining >= 4)
+                {
+                    Vector128<uint> p = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref previousBase), x);
+                    Vector128<uint> c = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref currentBase), x);
+
+                    Vector128<uint> eq = Sse2.CompareEqual(p, c);
+                    Vector128<uint> r = SimdUtils.HwIntrinsics.BlendVariable(c, r128, Sse2.And(eq, vmb128));
+
+                    if (nextFrame != null)
+                    {
+                        Vector128<int> n = Sse2.ShiftRightLogical(Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref nextBase), x), 24).AsInt32();
+                        eq = Sse2.AndNot(Sse2.CompareGreaterThan(Sse2.ShiftRightLogical(c, 24).AsInt32(), n).AsUInt32(), eq);
+                    }
+
+                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<byte>>(ref resultBase), x) = r.AsByte();
+
+                    ushort msk = (ushort)(uint)Sse2.MoveMask(eq.AsByte());
+                    msk = (ushort)~msk;
+                    if (msk != 0)
+                    {
+                        // If is diff is found, the left side is marked by the min of previously found left side and the start position.
+                        // The right is the max of the previously found right side and the end position.
+                        int start = i + (SimdUtils.HwIntrinsics.TrailingZeroCount(msk) / sizeof(uint));
+                        int end = i + (4 - (SimdUtils.HwIntrinsics.LeadingZeroCount(msk) / sizeof(uint)));
+                        left = Math.Min(left, start);
+                        right = Math.Max(right, end);
+                        hasRowDiff = true;
+                        hasDiff = true;
+                    }
+
+                    x++;
+                    i += 4;
+                    remaining -= 4;
+                }
+            }
+
+            // TODO: AdvSimd ??
             for (i = remaining; i > 0; i--)
             {
                 x = (uint)(length - i);

@@ -90,13 +90,12 @@ public class PngMetadata : IDeepCloneable
     {
         // Should the conversion be from a format that uses a 24bit palette entries (gif)
         // we need to clone and adjust the color table to allow for transparency.
-        ReadOnlyMemory<Color>? colorTable = metadata.ColorTable;
-        if (metadata.ColorTable.HasValue)
+        Color[]? colorTable = metadata.ColorTable.HasValue ? metadata.ColorTable.Value.ToArray() : null;
+        if (colorTable != null)
         {
-            Color[] clone = metadata.ColorTable.Value.ToArray();
-            for (int i = 0; i < clone.Length; i++)
+            for (int i = 0; i < colorTable.Length; i++)
             {
-                ref Color c = ref clone[i];
+                ref Color c = ref colorTable[i];
                 if (c == metadata.BackgroundColor)
                 {
                     // Png treats background as fully empty
@@ -104,15 +103,13 @@ public class PngMetadata : IDeepCloneable
                     break;
                 }
             }
-
-            colorTable = clone;
         }
 
         return new()
         {
-            ColorType = colorTable.HasValue ? PngColorType.Palette : null,
-            BitDepth = colorTable.HasValue
-                        ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Value.Length), 1, 8)
+            ColorType = colorTable != null ? PngColorType.Palette : null,
+            BitDepth = colorTable != null
+                        ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Length), 1, 8)
                         : null,
             ColorTable = colorTable,
             RepeatCount = metadata.RepeatCount,

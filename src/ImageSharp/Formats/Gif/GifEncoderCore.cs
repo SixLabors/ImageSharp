@@ -168,7 +168,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         stream.WriteByte(GifConstants.EndIntroducer);
 
-        quantized.Dispose();
+        quantized?.Dispose();
     }
 
     private static GifMetadata GetGifMetadata<TPixel>(Image<TPixel> image)
@@ -251,6 +251,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         {
             // Gather the metadata for this frame.
             ImageFrame<TPixel> currentFrame = image.Frames[i];
+            ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
             GifFrameMetadata gifMetadata = GetGifFrameMetadata(currentFrame, globalTransparencyIndex);
             bool useLocal = this.colorTableMode == GifColorTableMode.Local || (gifMetadata.ColorTableMode == GifColorTableMode.Local);
 
@@ -263,8 +264,6 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 paletteQuantizer = new(this.configuration, this.quantizer!.Options, globalPalette, transparencyIndex);
                 hasPaletteQuantizer = true;
             }
-
-            ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
             this.EncodeAdditionalFrame(
                 stream,

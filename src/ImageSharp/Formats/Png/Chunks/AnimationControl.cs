@@ -9,7 +9,7 @@ internal readonly struct AnimationControl
 {
     public const int Size = 8;
 
-    public AnimationControl(int numberFrames, int numberPlays)
+    public AnimationControl(uint numberFrames, uint numberPlays)
     {
         this.NumberFrames = numberFrames;
         this.NumberPlays = numberPlays;
@@ -18,12 +18,12 @@ internal readonly struct AnimationControl
     /// <summary>
     /// Gets the number of frames
     /// </summary>
-    public int NumberFrames { get; }
+    public uint NumberFrames { get; }
 
     /// <summary>
     /// Gets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public int NumberPlays { get; }
+    public uint NumberPlays { get; }
 
     /// <summary>
     /// Writes the acTL to the given buffer.
@@ -31,8 +31,8 @@ internal readonly struct AnimationControl
     /// <param name="buffer">The buffer to write to.</param>
     public void WriteTo(Span<byte> buffer)
     {
-        BinaryPrimitives.WriteInt32BigEndian(buffer[..4], this.NumberFrames);
-        BinaryPrimitives.WriteInt32BigEndian(buffer[4..8], this.NumberPlays);
+        BinaryPrimitives.WriteInt32BigEndian(buffer[..4], (int)this.NumberFrames);
+        BinaryPrimitives.WriteInt32BigEndian(buffer[4..8], (int)this.NumberPlays);
     }
 
     /// <summary>
@@ -42,6 +42,6 @@ internal readonly struct AnimationControl
     /// <returns>The parsed acTL.</returns>
     public static AnimationControl Parse(ReadOnlySpan<byte> data)
         => new(
-            numberFrames: BinaryPrimitives.ReadInt32BigEndian(data[..4]),
-            numberPlays: BinaryPrimitives.ReadInt32BigEndian(data[4..8]));
+            numberFrames: BinaryPrimitives.ReadUInt32BigEndian(data[..4]),
+            numberPlays: BinaryPrimitives.ReadUInt32BigEndian(data[4..8]));
 }

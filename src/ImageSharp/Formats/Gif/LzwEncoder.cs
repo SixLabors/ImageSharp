@@ -186,7 +186,7 @@ internal sealed class LzwEncoder : IDisposable
     /// </summary>
     /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
     /// <param name="stream">The stream to write to.</param>
-    public void Encode(Buffer2DRegion<byte> indexedPixels, Stream stream)
+    public void Encode(Buffer2D<byte> indexedPixels, Stream stream)
     {
         // Write "initial code size" byte
         stream.WriteByte((byte)this.initialCodeSize);
@@ -204,7 +204,7 @@ internal sealed class LzwEncoder : IDisposable
     /// <param name="bitCount">The number of bits</param>
     /// <returns>See <see cref="int"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetMaxcode(int bitCount) => (1 << bitCount) - 1;
+    private static int GetMaxCode(int bitCount) => (1 << bitCount) - 1;
 
     /// <summary>
     /// Add a character to the end of the current packet, and if it is 254 characters,
@@ -249,7 +249,7 @@ internal sealed class LzwEncoder : IDisposable
     /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
     /// <param name="initialBits">The initial bits.</param>
     /// <param name="stream">The stream to write to.</param>
-    private void Compress(Buffer2DRegion<byte> indexedPixels, int initialBits, Stream stream)
+    private void Compress(Buffer2D<byte> indexedPixels, int initialBits, Stream stream)
     {
         // Set up the globals: globalInitialBits - initial number of bits
         this.globalInitialBits = initialBits;
@@ -257,7 +257,7 @@ internal sealed class LzwEncoder : IDisposable
         // Set up the necessary values
         this.clearFlag = false;
         this.bitCount = this.globalInitialBits;
-        this.maxCode = GetMaxcode(this.bitCount);
+        this.maxCode = GetMaxCode(this.bitCount);
         this.clearCode = 1 << (initialBits - 1);
         this.eofCode = this.clearCode + 1;
         this.freeEntry = this.clearCode + 2;
@@ -383,7 +383,7 @@ internal sealed class LzwEncoder : IDisposable
         {
             if (this.clearFlag)
             {
-                this.maxCode = GetMaxcode(this.bitCount = this.globalInitialBits);
+                this.maxCode = GetMaxCode(this.bitCount = this.globalInitialBits);
                 this.clearFlag = false;
             }
             else
@@ -391,7 +391,7 @@ internal sealed class LzwEncoder : IDisposable
                 ++this.bitCount;
                 this.maxCode = this.bitCount == MaxBits
                     ? MaxMaxCode
-                    : GetMaxcode(this.bitCount);
+                    : GetMaxCode(this.bitCount);
             }
         }
 

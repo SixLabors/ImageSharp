@@ -156,10 +156,10 @@ public static class QuantizerUtilities
 
             for (int y = 0; y < destination.Height; y++)
             {
-                Span<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y + offsetY);
+                ReadOnlySpan<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y + offsetY);
                 Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y);
 
-                for (int x = 0; x < destination.Width; x++)
+                for (int x = 0; x < destinationRow.Length; x++)
                 {
                     destinationRow[x] = Unsafe.AsRef(in quantizer).GetQuantizedColor(sourceRow[x + offsetX], out TPixel _);
                 }

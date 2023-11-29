@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -656,6 +657,36 @@ internal static partial class SimdUtils
             Vector128<short> signedMask = AdvSimd.ShiftRightArithmetic(mask.AsInt16(), 7);
             return AdvSimd.BitwiseSelect(signedMask, right.AsInt16(), left.AsInt16()).AsByte();
         }
+
+        /// <summary>
+        /// Blend packed 32-bit unsigned integers from <paramref name="left"/> and <paramref name="right"/> using <paramref name="mask"/>.
+        /// The high bit of each corresponding <paramref name="mask"/> byte determines the selection.
+        /// If the high bit is set the element of <paramref name="left"/> is selected.
+        /// The element of <paramref name="right"/> is selected otherwise.
+        /// </summary>
+        /// <param name="left">The left vector.</param>
+        /// <param name="right">The right vector.</param>
+        /// <param name="mask">The mask vector.</param>
+        /// <returns>The <see cref="Vector256{T}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<uint> BlendVariable(Vector128<uint> left, Vector128<uint> right, Vector128<uint> mask)
+            => BlendVariable(left.AsByte(), right.AsByte(), mask.AsByte()).AsUInt32();
+
+        /// <summary>
+        /// Count the number of leading zero bits in a mask.
+        /// Similar in behavior to the x86 instruction LZCNT.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public static ushort LeadingZeroCount(ushort value)
+            => (ushort)(BitOperations.LeadingZeroCount(value) - 16);
+
+        /// <summary>
+        /// Count the number of trailing zero bits in an integer value.
+        /// Similar in behavior to the x86 instruction TZCNT.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        public static ushort TrailingZeroCount(ushort value)
+            => (ushort)(BitOperations.TrailingZeroCount(value << 16) - 16);
 
         /// <summary>
         /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).

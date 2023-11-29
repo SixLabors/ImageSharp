@@ -499,7 +499,7 @@ public partial class PngEncoderTests
         // TODO: Find a better way to compare.
         // The image has been visually checked but the quantization pattern used in the png encoder
         // means we cannot use an exact comparison nor replicate using the quantizing processor.
-        ImageComparer.TolerantPercentage(0.12f).VerifySimilarity(output, image);
+        ImageComparer.TolerantPercentage(0.46f).VerifySimilarity(output, image);
 
         GifMetadata gif = image.Metadata.GetGifMetadata();
         PngMetadata png = output.Metadata.GetPngMetadata();

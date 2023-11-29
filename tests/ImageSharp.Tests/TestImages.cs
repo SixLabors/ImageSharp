@@ -157,6 +157,7 @@ public static class TestImages
             public const string MissingPaletteChunk1 = "Png/missing_plte.png";
             public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
             public const string InvalidGammaChunk = "Png/length_gama.png";
+            public const string Issue2589 = "Png/issues/Issue_2589.png";
 
             // Zlib errors.
             public const string ZlibOverflow = "Png/zlib-overflow.png";

@@ -583,11 +583,23 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        image = Image.CreateUninitialized<TPixel>(
-            this.configuration,
-            this.header.Width,
-            this.header.Height,
-            metadata);
+        // When ignoring data CRCs, we can't use the image constructor that leaves the buffer uncleared.
+        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+        {
+            image = new Image<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+        }
+        else
+        {
+            image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+        }
 
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngFrameMetadata();
         frameMetadata.FromChunk(in frameControl);
@@ -808,6 +820,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
 
                 default:
+                    if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                    {
+                        goto EXIT;
+                    }
+
                     PngThrowHelper.ThrowUnknownFilter();
                     break;
             }
@@ -817,6 +834,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             currentRow++;
         }
 
+        EXIT:
         blendMemory?.Dispose();
     }
 
@@ -908,6 +926,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         break;
 
                     default:
+                        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                        {
+                            goto EXIT;
+                        }
+
                         PngThrowHelper.ThrowUnknownFilter();
                         break;
                 }
@@ -942,6 +965,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             }
         }
 
+        EXIT:
         blendMemory?.Dispose();
     }
 
@@ -1761,21 +1785,25 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return true;
         }
 
-        if (!this.TryReadChunkLength(buffer, out int length))
+        if (this.currentStream.Position == this.currentStream.Length)
         {
             chunk = default;
-
-            // IEND
             return false;
         }
 
-        while (length < 0 || length > (this.currentStream.Length - this.currentStream.Position))
+        if (!this.TryReadChunkLength(buffer, out int length))
+        {
+            // IEND
+            chunk = default;
+            return false;
+        }
+
+        while (length < 0)
         {
             // Not a valid chunk so try again until we reach a known chunk.
             if (!this.TryReadChunkLength(buffer, out length))
             {
                 chunk = default;
-
                 return false;
             }
         }
@@ -1791,9 +1819,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             return true;
         }
 
-        long pos = this.currentStream.Position;
+        long position = this.currentStream.Position;
         chunk = new PngChunk(
-            length: length,
+            length: (int)Math.Min(length, this.currentStream.Length - position),
             type: type,
             data: this.ReadChunkData(length));
 
@@ -1803,7 +1831,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         // was only read to verifying the CRC is correct.
         if (type is PngChunkType.Data or PngChunkType.FrameData)
         {
-            this.currentStream.Position = pos;
+            this.currentStream.Position = position;
         }
 
         return true;

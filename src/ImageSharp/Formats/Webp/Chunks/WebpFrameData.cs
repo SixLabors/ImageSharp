@@ -12,7 +12,7 @@ internal readonly struct WebpFrameData
     /// </summary>
     public const uint HeaderSize = 16;
 
-    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, WebpBlendingMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
     {
         this.DataSize = dataSize;
         this.X = x;
@@ -32,12 +32,12 @@ internal readonly struct WebpFrameData
             width,
             height,
             duration,
-            (flags & 2) != 0 ? WebpBlendingMethod.DoNotBlend : WebpBlendingMethod.AlphaBlending,
-            (flags & 1) == 1 ? WebpDisposalMethod.Dispose : WebpDisposalMethod.DoNotDispose)
+            (flags & 2) == 0 ? WebpBlendMethod.Over : WebpBlendMethod.Source,
+            (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose)
     {
     }
 
-    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, WebpBlendingMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
         : this(0, x, y, width, height, duration, blendingMethod, disposalMethod)
     {
     }
@@ -76,14 +76,14 @@ internal readonly struct WebpFrameData
     /// <summary>
     /// Gets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public WebpBlendingMethod BlendingMethod { get; }
+    public WebpBlendMethod BlendingMethod { get; }
 
     /// <summary>
     /// Gets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
     /// </summary>
     public WebpDisposalMethod DisposalMethod { get; }
 
-    public Rectangle Bounds => new((int)this.X * 2, (int)this.Y * 2, (int)this.Width, (int)this.Height);
+    public Rectangle Bounds => new((int)this.X, (int)this.Y, (int)this.Width, (int)this.Height);
 
     /// <summary>
     /// Writes the animation frame(<see cref="WebpChunkType.FrameData"/>) to the stream.
@@ -93,13 +93,13 @@ internal readonly struct WebpFrameData
     {
         byte flags = 0;
 
-        if (this.BlendingMethod is WebpBlendingMethod.DoNotBlend)
+        if (this.BlendingMethod is WebpBlendMethod.Source)
         {
             // Set blending flag.
             flags |= 2;
         }
 
-        if (this.DisposalMethod is WebpDisposalMethod.Dispose)
+        if (this.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
         {
             // Set disposal flag.
             flags |= 1;
@@ -107,8 +107,8 @@ internal readonly struct WebpFrameData
 
         long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.FrameData);
 
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.X);
-        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Y);
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, (uint)Math.Round(this.X / 2f));
+        WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, (uint)Math.Round(this.Y / 2f));
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Height - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Duration);
@@ -128,8 +128,8 @@ internal readonly struct WebpFrameData
 
         WebpFrameData data = new(
             dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
-            x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
-            y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
+            x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
+            y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             width: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             height: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             duration: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),

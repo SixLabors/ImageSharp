@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png.Chunks;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -82,8 +81,38 @@ public class PngMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
     /// </summary>
-    public int RepeatCount { get; set; }
+    public uint RepeatCount { get; set; } = 1;
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);
+
+    internal static PngMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
+    {
+        // Should the conversion be from a format that uses a 24bit palette entries (gif)
+        // we need to clone and adjust the color table to allow for transparency.
+        Color[]? colorTable = metadata.ColorTable.HasValue ? metadata.ColorTable.Value.ToArray() : null;
+        if (colorTable != null)
+        {
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                ref Color c = ref colorTable[i];
+                if (c == metadata.BackgroundColor)
+                {
+                    // Png treats background as fully empty
+                    c = Color.Transparent;
+                    break;
+                }
+            }
+        }
+
+        return new()
+        {
+            ColorType = colorTable != null ? PngColorType.Palette : null,
+            BitDepth = colorTable != null
+                        ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Length), 1, 8)
+                        : null,
+            ColorTable = colorTable,
+            RepeatCount = metadata.RepeatCount,
+        };
+    }
 }

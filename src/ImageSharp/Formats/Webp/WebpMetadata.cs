@@ -22,8 +22,8 @@ public class WebpMetadata : IDeepCloneable
     private WebpMetadata(WebpMetadata other)
     {
         this.FileFormat = other.FileFormat;
-        this.AnimationLoopCount = other.AnimationLoopCount;
-        this.AnimationBackground = other.AnimationBackground;
+        this.RepeatCount = other.RepeatCount;
+        this.BackgroundColor = other.BackgroundColor;
     }
 
     /// <summary>
@@ -34,16 +34,24 @@ public class WebpMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the loop count. The number of times to loop the animation. 0 means infinitely.
     /// </summary>
-    public ushort AnimationLoopCount { get; set; } = 1;
+    public ushort RepeatCount { get; set; } = 1;
 
     /// <summary>
-    /// Gets or sets the default background color of the canvas in [Blue, Green, Red, Alpha] byte order.
-    /// This color MAY be used to fill the unused space on the canvas around the frames,
+    /// Gets or sets the default background color of the canvas when animating.
+    /// This color may be used to fill the unused space on the canvas around the frames,
     /// as well as the transparent pixels of the first frame.
-    /// The background color is also used when the Disposal method is 1.
+    /// The background color is also used when the Disposal method is <see cref="WebpDisposalMethod.RestoreToBackground"/>.
     /// </summary>
-    public Color AnimationBackground { get; set; }
+    public Color BackgroundColor { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new WebpMetadata(this);
+
+    internal static WebpMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
+        => new()
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+            BackgroundColor = metadata.BackgroundColor,
+            RepeatCount = metadata.RepeatCount
+        };
 }

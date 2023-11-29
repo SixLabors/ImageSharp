@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -100,9 +99,7 @@ internal abstract class BitWriterBase
         bool hasAnimation)
     {
         // Write file size later
-        long pos = RiffHelper.BeginWriteRiffFile(stream, WebpConstants.WebpFourCc);
-
-        Debug.Assert(pos is 4, "Stream should be written from position 0.");
+        RiffHelper.BeginWriteRiffFile(stream, WebpConstants.WebpFourCc);
 
         // Write VP8X, header if necessary.
         bool isVp8X = exifProfile != null || xmpProfile != null || iccProfile != null || hasAlpha || hasAnimation;
@@ -160,7 +157,7 @@ internal abstract class BitWriterBase
     /// <param name="loopCount">The number of times to loop the animation. If it is 0, this means infinitely.</param>
     public static void WriteAnimationParameter(Stream stream, Color background, ushort loopCount)
     {
-        WebpAnimationParameter chunk = new(background.ToRgba32().Rgba, loopCount);
+        WebpAnimationParameter chunk = new(background.ToBgra32().PackedValue, loopCount);
         chunk.WriteTo(stream);
     }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -76,4 +77,43 @@ public class GifFrameMetadata : IDeepCloneable
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new GifFrameMetadata(this);
+
+    internal static GifFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+    {
+        // TODO: v4 How do I link the parent metadata to the frame metadata to get the global color table?
+        int index = -1;
+        float background = 1f;
+        if (metadata.ColorTable.HasValue)
+        {
+            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                Vector4 vector = (Vector4)colorTable[i];
+                if (vector.W < background)
+                {
+                    index = i;
+                }
+            }
+        }
+
+        bool hasTransparency = index >= 0;
+
+        return new()
+        {
+            LocalColorTable = metadata.ColorTable,
+            ColorTableMode = metadata.ColorTableMode == FrameColorTableMode.Global ? GifColorTableMode.Global : GifColorTableMode.Local,
+            FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
+            DisposalMethod = GetMode(metadata.DisposalMode),
+            HasTransparency = hasTransparency,
+            TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
+        };
+    }
+
+    private static GifDisposalMethod GetMode(FrameDisposalMode mode) => mode switch
+    {
+        FrameDisposalMode.DoNotDispose => GifDisposalMethod.NotDispose,
+        FrameDisposalMode.RestoreToBackground => GifDisposalMethod.RestoreToBackground,
+        FrameDisposalMode.RestoreToPrevious => GifDisposalMethod.RestoreToPrevious,
+        _ => GifDisposalMethod.Unspecified,
+    };
 }

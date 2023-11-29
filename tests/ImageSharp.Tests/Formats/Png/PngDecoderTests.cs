@@ -661,8 +661,8 @@ public partial class PngDecoderTests
         PngDecoderOptions options = new() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
-        // TODO: Undo this.
-        Assert.True(eofHitCounter.EofHitCount <= 6);
+        // TODO: Try to reduce this to 1.
+        Assert.True(eofHitCounter.EofHitCount <= 3);
         Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
     }
 }

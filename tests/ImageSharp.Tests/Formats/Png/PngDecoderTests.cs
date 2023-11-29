@@ -475,7 +475,7 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { IgnoreCrcCheck = true });
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData });
 
         image.DebugSave(provider);
         image.CompareToOriginal(provider, new MagickReferenceDecoder(false));

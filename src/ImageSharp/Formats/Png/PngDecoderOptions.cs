@@ -12,8 +12,7 @@ public sealed class PngDecoderOptions : ISpecializedDecoderOptions
     public DecoderOptions GeneralOptions { get; init; } = new DecoderOptions();
 
     /// <summary>
-    /// If true, ADLER32 checksum in the IDAT chunk as well as the chunk CRCs will be ignored.
-    /// Similar to PNG_CRC_QUIET_USE in libpng.
+    /// Gets a value indicating how to handle validation of any CRC (Cyclic Redundancy Check) data within the encoded PNG.
     /// </summary>
-    public bool IgnoreCrcCheck { get; init; }
+    public PngCrcChunkHandling PngCrcChunkHandling { get; init; } = PngCrcChunkHandling.IgnoreNonCritical;
 }

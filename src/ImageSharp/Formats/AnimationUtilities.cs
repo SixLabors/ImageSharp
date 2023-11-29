@@ -71,10 +71,10 @@ internal static class AnimationUtilities
                 PixelOperations<TPixel>.Instance.ToRgba32(configuration, nextFrame.DangerousGetPixelRowMemory(y).Span, next);
             }
 
-            ref Vector256<byte> previousBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(previous));
-            ref Vector256<byte> currentBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(current));
-            ref Vector256<byte> nextBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(next));
-            ref Vector256<byte> resultBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(result));
+            ref Vector256<byte> previousBase256 = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(previous));
+            ref Vector256<byte> currentBase256 = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(current));
+            ref Vector256<byte> nextBase256 = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(next));
+            ref Vector256<byte> resultBase256 = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(result));
 
             int i = 0;
             uint x = 0;
@@ -93,19 +93,19 @@ internal static class AnimationUtilities
 
                 while (remaining >= 8)
                 {
-                    Vector256<uint> p = Unsafe.Add(ref previousBase, x).AsUInt32();
-                    Vector256<uint> c = Unsafe.Add(ref currentBase, x).AsUInt32();
+                    Vector256<uint> p = Unsafe.Add(ref previousBase256, x).AsUInt32();
+                    Vector256<uint> c = Unsafe.Add(ref currentBase256, x).AsUInt32();
 
                     Vector256<uint> eq = Avx2.CompareEqual(p, c);
                     Vector256<uint> r = Avx2.BlendVariable(c, r256, Avx2.And(eq, vmb256));
 
                     if (nextFrame != null)
                     {
-                        Vector256<int> n = Avx2.ShiftRightLogical(Unsafe.Add(ref nextBase, x).AsUInt32(), 24).AsInt32();
+                        Vector256<int> n = Avx2.ShiftRightLogical(Unsafe.Add(ref nextBase256, x).AsUInt32(), 24).AsInt32();
                         eq = Avx2.AndNot(Avx2.CompareGreaterThan(Avx2.ShiftRightLogical(c, 24).AsInt32(), n).AsUInt32(), eq);
                     }
 
-                    Unsafe.Add(ref resultBase, x) = r.AsByte();
+                    Unsafe.Add(ref resultBase256, x) = r.AsByte();
 
                     uint msk = (uint)Avx2.MoveMask(eq.AsByte());
                     msk = ~msk;
@@ -128,9 +128,10 @@ internal static class AnimationUtilities
                 }
             }
 
-            // TODO: There's a bug here. See WebpEncoderTests.Encode_AnimatedLossless
-            if (Sse2.IsSupported && remaining >= 4 && false)
+            if (Sse2.IsSupported && remaining >= 4)
             {
+                // Update offset since we may be operating on the remainder previously incremented by pixel steps of 8.
+                x *= 2;
                 Vector128<uint> r128 = previousFrame != null ? Vector128.Create(bg.PackedValue) : Vector128<uint>.Zero;
                 Vector128<uint> vmb128 = Vector128<uint>.Zero;
                 if (blend)
@@ -140,19 +141,19 @@ internal static class AnimationUtilities
 
                 while (remaining >= 4)
                 {
-                    Vector128<uint> p = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref previousBase), x);
-                    Vector128<uint> c = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref currentBase), x);
+                    Vector128<uint> p = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref previousBase256), x);
+                    Vector128<uint> c = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref currentBase256), x);
 
                     Vector128<uint> eq = Sse2.CompareEqual(p, c);
                     Vector128<uint> r = SimdUtils.HwIntrinsics.BlendVariable(c, r128, Sse2.And(eq, vmb128));
 
                     if (nextFrame != null)
                     {
-                        Vector128<int> n = Sse2.ShiftRightLogical(Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref nextBase), x), 24).AsInt32();
+                        Vector128<int> n = Sse2.ShiftRightLogical(Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref nextBase256), x), 24).AsInt32();
                         eq = Sse2.AndNot(Sse2.CompareGreaterThan(Sse2.ShiftRightLogical(c, 24).AsInt32(), n).AsUInt32(), eq);
                     }
 
-                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref resultBase), x) = r;
+                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref resultBase256), x) = r;
 
                     ushort msk = (ushort)(uint)Sse2.MoveMask(eq.AsByte());
                     msk = (ushort)~msk;

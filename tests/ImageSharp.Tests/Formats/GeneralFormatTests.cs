@@ -162,37 +162,37 @@ public class GeneralFormatTests
         foreach (TestFile file in Files)
         {
             using Image<Rgba32> image = file.CreateRgba32Image();
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
             {
                 image.SaveAsBmp(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
             {
                 image.SaveAsJpeg(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
             {
                 image.SaveAsPbm(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
             {
                 image.SaveAsPng(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
             {
                 image.SaveAsGif(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
             {
                 image.SaveAsTga(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
             {
                 image.SaveAsTiff(output);
             }

@@ -218,7 +218,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 chunk.Length - 4,
                                 currentFrame,
                                 pngMetadata,
-                                this.ReadNextDataChunkAndSkipSeq,
+                                this.ReadNextFrameDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
 
@@ -582,7 +582,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             this.header.Height,
             metadata);
 
-        PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngFrameMetadata();
+        PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -622,8 +622,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
-        if (previousFrameControl.DisposeOperation == PngDisposalMethod.Background
-            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.Previous))
+        if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground
+            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
         {
             Rectangle restoreArea = previousFrameControl.Bounds;
             Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
@@ -631,7 +631,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             pixelRegion.Clear();
         }
 
-        PngFrameMetadata frameMetadata = frame.Metadata.GetPngFrameMetadata();
+        PngFrameMetadata frameMetadata = frame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(currentFrameControl);
 
         this.previousScanline?.Dispose();
@@ -765,10 +765,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         {
             cancellationToken.ThrowIfCancellationRequested();
             int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
-            Span<byte> scanlineSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+            Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
+            Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
+
             while (currentRowBytesRead < bytesPerFrameScanline)
             {
-                int bytesRead = compressedStream.Read(scanlineSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
                 if (bytesRead <= 0)
                 {
                     return;
@@ -779,25 +781,25 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
             currentRowBytesRead = 0;
 
-            switch ((FilterType)scanlineSpan[0])
+            switch ((FilterType)scanSpan[0])
             {
                 case FilterType.None:
                     break;
 
                 case FilterType.Sub:
-                    SubFilter.Decode(scanlineSpan, this.bytesPerPixel);
+                    SubFilter.Decode(scanSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Up:
-                    UpFilter.Decode(scanlineSpan, this.previousScanline.GetSpan());
+                    UpFilter.Decode(scanSpan, prevSpan);
                     break;
 
                 case FilterType.Average:
-                    AverageFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
+                    AverageFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 case FilterType.Paeth:
-                    PaethFilter.Decode(scanlineSpan, this.previousScanline.GetSpan(), this.bytesPerPixel);
+                    PaethFilter.Decode(scanSpan, prevSpan, this.bytesPerPixel);
                     break;
 
                 default:
@@ -805,7 +807,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
             }
 
-            this.ProcessDefilteredScanline(frameControl, currentRow, scanlineSpan, imageFrame, pngMetadata, blendRowBuffer);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
             this.SwapScanlineBuffers();
             currentRow++;
         }
@@ -1720,19 +1722,34 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <summary>
-    /// Reads the next data chunk and skip sequence number.
+    /// Reads the next animated frame data chunk.
     /// </summary>
     /// <returns>Count of bytes in the next data chunk, or 0 if there are no more data chunks left.</returns>
-    private int ReadNextDataChunkAndSkipSeq()
+    private int ReadNextFrameDataChunk()
     {
-        int length = this.ReadNextDataChunk();
-        if (this.ReadNextDataChunk() is 0)
+        if (this.nextChunk != null)
         {
-            return length;
+            return 0;
         }
 
-        this.currentStream.Position += 4; // Skip sequence number
-        return length - 4;
+        Span<byte> buffer = stackalloc byte[20];
+
+        _ = this.currentStream.Read(buffer, 0, 4);
+
+        if (this.TryReadChunk(buffer, out PngChunk chunk))
+        {
+            if (chunk.Type is PngChunkType.FrameData)
+            {
+                chunk.Data?.Dispose();
+
+                this.currentStream.Position += 4; // Skip sequence number
+                return chunk.Length - 4;
+            }
+
+            this.nextChunk = chunk;
+        }
+
+        return 0;
     }
 
     /// <summary>

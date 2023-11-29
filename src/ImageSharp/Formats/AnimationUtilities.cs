@@ -175,7 +175,7 @@ internal static class AnimationUtilities
                 }
             }
 
-            // TODO: AdvSimd ??
+            // TODO: v4 AdvSimd when we can use .NET 8
             for (i = remaining; i > 0; i--)
             {
                 x = (uint)(length - i);

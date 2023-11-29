@@ -128,7 +128,8 @@ internal static class AnimationUtilities
                 }
             }
 
-            if (Sse2.IsSupported && remaining >= 4)
+            // TODO: There's a bug here. See WebpEncoderTests.Encode_AnimatedLossless
+            if (Sse2.IsSupported && remaining >= 4 && false)
             {
                 Vector128<uint> r128 = previousFrame != null ? Vector128.Create(bg.PackedValue) : Vector128<uint>.Zero;
                 Vector128<uint> vmb128 = Vector128<uint>.Zero;
@@ -151,7 +152,7 @@ internal static class AnimationUtilities
                         eq = Sse2.AndNot(Sse2.CompareGreaterThan(Sse2.ShiftRightLogical(c, 24).AsInt32(), n).AsUInt32(), eq);
                     }
 
-                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<byte>>(ref resultBase), x) = r.AsByte();
+                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref resultBase), x) = r;
 
                     ushort msk = (ushort)(uint)Sse2.MoveMask(eq.AsByte());
                     msk = (ushort)~msk;

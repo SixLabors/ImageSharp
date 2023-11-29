@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -1873,6 +1874,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     [MethodImpl(InliningOptions.ShortMethod)]
     private IMemoryOwner<byte> ReadChunkData(int length)
     {
+        if (length == 0)
+        {
+            return new BasicArrayBuffer<byte>(Array.Empty<byte>());
+        }
+
         // We rent the buffer here to return it afterwards in Decode()
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 

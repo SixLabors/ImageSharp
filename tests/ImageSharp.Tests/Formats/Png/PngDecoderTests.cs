@@ -647,4 +647,13 @@ public partial class PngDecoderTests
                 "Disco")
             .Dispose();
     }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446);
+
+        Assert.True(eofHitCounter.EofHitCount <= 2);
+        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+    }
 }

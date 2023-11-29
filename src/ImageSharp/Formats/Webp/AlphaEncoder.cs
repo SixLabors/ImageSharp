@@ -27,7 +27,7 @@ internal static class AlphaEncoder
     /// <param name="size">The size in bytes of the alpha data.</param>
     /// <returns>The encoded alpha data.</returns>
     public static IMemoryOwner<byte> EncodeAlpha<TPixel>(
-        ImageFrame<TPixel> frame,
+        Buffer2DRegion<TPixel> frame,
         Configuration configuration,
         MemoryAllocator memoryAllocator,
         bool skipMetadata,
@@ -35,8 +35,6 @@ internal static class AlphaEncoder
         out int size)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = frame.Width;
-        int height = frame.Height;
         IMemoryOwner<byte> alphaData = ExtractAlphaChannel(frame, configuration, memoryAllocator);
 
         if (compress)
@@ -46,8 +44,8 @@ internal static class AlphaEncoder
             using Vp8LEncoder lossLessEncoder = new(
                 memoryAllocator,
                 configuration,
-                width,
-                height,
+                frame.Width,
+                frame.Height,
                 quality,
                 skipMetadata,
                 effort,
@@ -58,14 +56,14 @@ internal static class AlphaEncoder
             // The transparency information will be stored in the green channel of the ARGB quadruplet.
             // The green channel is allowed extra transformation steps in the specification -- unlike the other channels,
             // that can improve compression.
-            using ImageFrame<Rgba32> alphaAsFrame = DispatchAlphaToGreen(frame, alphaData.GetSpan());
+            using ImageFrame<Bgra32> alphaAsFrame = DispatchAlphaToGreen(configuration, frame, alphaData.GetSpan());
 
-            size = lossLessEncoder.EncodeAlphaImageData(alphaAsFrame, alphaData);
+            size = lossLessEncoder.EncodeAlphaImageData(alphaAsFrame.PixelBuffer.GetRegion(), alphaData);
 
             return alphaData;
         }
 
-        size = width * height;
+        size = frame.Width * frame.Height;
         return alphaData;
     }
 
@@ -73,25 +71,28 @@ internal static class AlphaEncoder
     /// Store the transparency in the green channel.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="frame">The pixel buffer to encode from.</param>
     /// <param name="alphaData">A byte sequence of length width * height, containing all the 8-bit transparency values in scan order.</param>
     /// <returns>The transparency frame.</returns>
-    private static ImageFrame<Rgba32> DispatchAlphaToGreen<TPixel>(ImageFrame<TPixel> frame, Span<byte> alphaData)
+    private static ImageFrame<Bgra32> DispatchAlphaToGreen<TPixel>(Configuration configuration, Buffer2DRegion<TPixel> frame, Span<byte> alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = frame.Width;
         int height = frame.Height;
-        ImageFrame<Rgba32> alphaAsFrame = new ImageFrame<Rgba32>(Configuration.Default, width, height);
+        ImageFrame<Bgra32> alphaAsFrame = new(configuration, width, height);
 
         for (int y = 0; y < height; y++)
         {
-            Memory<Rgba32> rowBuffer = alphaAsFrame.DangerousGetPixelRowMemory(y);
-            Span<Rgba32> pixelRow = rowBuffer.Span;
+            Memory<Bgra32> rowBuffer = alphaAsFrame.DangerousGetPixelRowMemory(y);
+            Span<Bgra32> pixelRow = rowBuffer.Span;
             Span<byte> alphaRow = alphaData.Slice(y * width, width);
+
+            // TODO: This can be probably simd optimized.
             for (int x = 0; x < width; x++)
             {
                 // Leave A/R/B channels zero'd.
-                pixelRow[x] = new Rgba32(0, alphaRow[x], 0, 0);
+                pixelRow[x] = new Bgra32(0, alphaRow[x], 0, 0);
             }
         }
 
@@ -106,12 +107,12 @@ internal static class AlphaEncoder
     /// <param name="configuration">The global configuration.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
     /// <returns>A byte sequence of length width * height, containing all the 8-bit transparency values in scan order.</returns>
-    private static IMemoryOwner<byte> ExtractAlphaChannel<TPixel>(ImageFrame<TPixel> frame, Configuration configuration, MemoryAllocator memoryAllocator)
+    private static IMemoryOwner<byte> ExtractAlphaChannel<TPixel>(Buffer2DRegion<TPixel> frame, Configuration configuration, MemoryAllocator memoryAllocator)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = frame.PixelBuffer;
-        int height = frame.Height;
         int width = frame.Width;
+        int height = frame.Height;
+
         IMemoryOwner<byte> alphaDataBuffer = memoryAllocator.Allocate<byte>(width * height);
         Span<byte> alphaData = alphaDataBuffer.GetSpan();
 
@@ -120,7 +121,7 @@ internal static class AlphaEncoder
 
         for (int y = 0; y < height; y++)
         {
-            Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(y);
+            Span<TPixel> rowSpan = frame.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToRgba32(configuration, rowSpan, rgbaRow);
             int offset = y * width;
             for (int x = 0; x < width; x++)

@@ -31,12 +31,17 @@ public class MagickReferenceDecoder : ImageDecoder
         {
             IgnoreFileSize = !this.validate
         };
+        PngReadDefines pngReadDefines = new()
+        {
+            IgnoreCrc = !this.validate
+        };
 
         MagickReadSettings settings = new()
         {
             FrameCount = (int)options.MaxFrames
         };
         settings.SetDefines(bmpReadDefines);
+        settings.SetDefines(pngReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
         List<ImageFrame<TPixel>> framesList = new();

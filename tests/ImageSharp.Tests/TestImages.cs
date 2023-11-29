@@ -158,6 +158,7 @@ public static class TestImages
             public const string MissingPaletteChunk1 = "Png/missing_plte.png";
             public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
             public const string InvalidGammaChunk = "Png/length_gama.png";
+            public const string Issue2589 = "Png/issues/Issue_2589.png";
 
             // Zlib errors.
             public const string ZlibOverflow = "Png/zlib-overflow.png";
@@ -181,6 +182,8 @@ public static class TestImages
             // Invalid color type.
             public const string ColorTypeOne = "Png/xc1n0g08.png";
             public const string ColorTypeNine = "Png/xc9n2c08.png";
+
+            public const string FlagOfGermany0000016446 = "Png/issues/flag_of_germany-0000016446.png";
         }
     }
 
@@ -303,6 +306,7 @@ public static class TestImages
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
 
             public static class Fuzz
@@ -480,6 +484,8 @@ public static class TestImages
         public const string Ratio1x4 = "Gif/base_1x4.gif";
         public const string LargeComment = "Gif/large_comment.gif";
         public const string GlobalQuantizationTest = "Gif/GlobalQuantizationTest.gif";
+        public const string MixedDisposal = "Gif/mixed-disposal.gif";
+        public const string M4nb = "Gif/m4nb.gif";
 
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
@@ -509,7 +515,25 @@ public static class TestImages
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
         }
 
-        public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
+        public static readonly string[] Animated =
+        {
+            M4nb,
+            Giphy,
+            Cheers,
+            Kumin,
+            Leo,
+            MixedDisposal,
+            GlobalQuantizationTest,
+            Issues.Issue2198,
+            Issues.Issue2288_A,
+            Issues.Issue2288_B,
+            Issues.Issue2288_C,
+            Issues.Issue2288_D,
+            Issues.Issue2450_A,
+            Issues.Issue2450_B,
+            Issues.BadDescriptorWidth,
+            Issues.Issue1530
+        };
     }
 
     public static class Tga
@@ -993,6 +1017,7 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
         public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 

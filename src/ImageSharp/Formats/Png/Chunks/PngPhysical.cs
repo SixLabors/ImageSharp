@@ -61,10 +61,10 @@ internal readonly struct PngPhysical
     /// <returns>The constructed PngPhysicalChunkData instance.</returns>
     public static PngPhysical FromMetadata(ImageMetadata meta)
     {
-        byte unitSpecifier = 0;
         uint x;
         uint y;
 
+        byte unitSpecifier;
         switch (meta.ResolutionUnits)
         {
             case PixelResolutionUnit.AspectRatio:

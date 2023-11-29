@@ -665,6 +665,12 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_TiledWithNonEqualWidthAndHeight<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    // https://github.com/SixLabors/ImageSharp/issues/2587
+    [Theory]
+    [WithFile(Issues2587, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_BiColorWithMissingBitsPerSample<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
     [Theory]
     [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
     public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)

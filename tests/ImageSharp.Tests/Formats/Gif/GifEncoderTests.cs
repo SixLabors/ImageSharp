@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -224,8 +226,6 @@ public class GifEncoderTests
             }
 
             Assert.Equal(iMeta.FrameDelay, cMeta.FrameDelay);
-            Assert.Equal(iMeta.HasTransparency, cMeta.HasTransparency);
-            Assert.Equal(iMeta.TransparencyIndex, cMeta.TransparencyIndex);
         }
 
         image.Dispose();
@@ -268,5 +268,118 @@ public class GifEncoderTests
         }
 
         Assert.Equal(image2.Frames.Count, count);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromPng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new GifEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        // TODO: Find a better way to compare.
+        // The image has been visually checked but the quantization and frame trimming pattern used in the gif encoder
+        // means we cannot use an exact comparison nor replicate using the quantizing processor.
+        ImageComparer.TolerantPercentage(1.51f).VerifySimilarity(output, image);
+
+        PngMetadata png = image.Metadata.GetPngMetadata();
+        GifMetadata gif = output.Metadata.GetGifMetadata();
+
+        Assert.Equal(png.RepeatCount, gif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata pngF = image.Frames[i].Metadata.GetPngMetadata();
+            GifFrameMetadata gifF = output.Frames[i].Metadata.GetGifMetadata();
+
+            Assert.Equal((int)(pngF.FrameDelay.ToDouble() * 100), gifF.FrameDelay);
+
+            switch (pngF.DisposalMethod)
+            {
+                case PngDisposalMethod.RestoreToBackground:
+                    Assert.Equal(GifDisposalMethod.RestoreToBackground, gifF.DisposalMethod);
+                    break;
+                case PngDisposalMethod.DoNotDispose:
+                default:
+                    Assert.Equal(GifDisposalMethod.NotDispose, gifF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Webp.Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromWebp<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new GifEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        image.Save(provider.Utility.GetTestOutputFileName("gif"), new GifEncoder());
+
+        // TODO: Find a better way to compare.
+        // The image has been visually checked but the quantization and frame trimming pattern used in the gif encoder
+        // means we cannot use an exact comparison nor replicate using the quantizing processor.
+        ImageComparer.TolerantPercentage(0.776f).VerifySimilarity(output, image);
+
+        WebpMetadata webp = image.Metadata.GetWebpMetadata();
+        GifMetadata gif = output.Metadata.GetGifMetadata();
+
+        Assert.Equal(webp.RepeatCount, gif.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            WebpFrameMetadata webpF = image.Frames[i].Metadata.GetWebpMetadata();
+            GifFrameMetadata gifF = output.Frames[i].Metadata.GetGifMetadata();
+
+            Assert.Equal(webpF.FrameDelay, (uint)(gifF.FrameDelay * 10));
+
+            switch (webpF.DisposalMethod)
+            {
+                case WebpDisposalMethod.RestoreToBackground:
+                    Assert.Equal(GifDisposalMethod.RestoreToBackground, gifF.DisposalMethod);
+                    break;
+                case WebpDisposalMethod.DoNotDispose:
+                default:
+                    Assert.Equal(GifDisposalMethod.NotDispose, gifF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    public static string[] Animated => TestImages.Gif.Animated;
+
+    [Theory(Skip = "Enable for visual animated testing")]
+    [WithFileCollection(nameof(Animated), PixelTypes.Rgba32)]
+    public void Encode_Animated_VisualTest<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless }, "animated");
+        provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy }, "animated-lossy");
+        provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), "animated");
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
     }
 }

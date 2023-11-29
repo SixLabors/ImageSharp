@@ -333,8 +333,8 @@ internal class Vp8Encoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.AnimationBackground, webpMetadata.AnimationLoopCount);
+            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
     }
 
@@ -351,44 +351,53 @@ internal class Vp8Encoder : IDisposable
     }
 
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// Encodes the animated image frame to the specified stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream)
+    /// <param name="frame">The image frame to encode from.</param>
+    /// <param name="stream">The stream to encode the image data to.</param>
+    /// <param name="bounds">The region of interest within the frame to encode.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
+    public void EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream, Rectangle bounds, WebpFrameMetadata frameMetadata)
         where TPixel : unmanaged, IPixel<TPixel> =>
-        this.Encode(frame, stream, true, null);
+        this.Encode(stream, frame, bounds, frameMetadata, true, null);
 
     /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+    /// Encodes the static image frame to the specified stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void EncodeStatic<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        this.Encode(image.Frames.RootFrame, stream, false, image);
-
-    /// <summary>
-    /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    private void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation, Image<TPixel> image)
+    /// <param name="stream">The stream to encode the image data to.</param>
+    /// <param name="image">The image to encode from.</param>
+    public void EncodeStatic<TPixel>(Stream stream, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = frame.Width;
-        int height = frame.Height;
+        ImageFrame<TPixel> frame = image.Frames.RootFrame;
+        this.Encode(stream, frame, image.Bounds, WebpCommonUtils.GetWebpFrameMetadata(frame), false, image);
+    }
+
+    /// <summary>
+    /// Encodes the image to the specified stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The stream to encode the image data to.</param>
+    /// <param name="frame">The image frame to encode from.</param>
+    /// <param name="bounds">The region of interest within the frame to encode.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <param name="image">The image to encode from.</param>
+    private void Encode<TPixel>(Stream stream, ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, bool hasAnimation, Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int width = bounds.Width;
+        int height = bounds.Height;
 
         int pixelCount = width * height;
         Span<byte> y = this.Y.GetSpan();
         Span<byte> u = this.U.GetSpan();
         Span<byte> v = this.V.GetSpan();
-        bool hasAlpha = YuvConversion.ConvertRgbToYuv(frame, this.configuration, this.memoryAllocator, y, u, v);
+
+        Buffer2DRegion<TPixel> pixels = frame.PixelBuffer.GetRegion(bounds);
+        bool hasAlpha = YuvConversion.ConvertRgbToYuv(pixels, this.configuration, this.memoryAllocator, y, u, v);
 
         if (!hasAnimation)
         {
@@ -456,7 +465,7 @@ internal class Vp8Encoder : IDisposable
             {
                 // TODO: This can potentially run in an separate task.
                 encodedAlphaData = AlphaEncoder.EncodeAlpha(
-                    frame,
+                    pixels,
                     this.configuration,
                     this.memoryAllocator,
                     this.skipMetadata,
@@ -477,14 +486,11 @@ internal class Vp8Encoder : IDisposable
 
             if (hasAnimation)
             {
-                WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
-
-                // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
                 prevPosition = new WebpFrameData(
-                    0,
-                    0,
-                    (uint)frame.Width,
-                    (uint)frame.Height,
+                    (uint)bounds.X,
+                    (uint)bounds.Y,
+                    (uint)bounds.Width,
+                    (uint)bounds.Height,
                     frameMetadata.FrameDelay,
                     frameMetadata.BlendMethod,
                     frameMetadata.DisposalMethod)

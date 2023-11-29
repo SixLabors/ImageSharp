@@ -4,6 +4,8 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -13,6 +15,54 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 internal static class WebpCommonUtils
 {
+    public static WebpMetadata GetWebpMetadata<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
+        {
+            return (WebpMetadata)webp.DeepClone();
+        }
+
+        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
+        {
+            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
+            return WebpMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
+        {
+            AnimatedImageMetadata ani = png.ToAnimatedImageMetadata();
+            return WebpMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
+    }
+
+    public static WebpFrameMetadata GetWebpFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
+        {
+            return (WebpFrameMetadata)webp.DeepClone();
+        }
+
+        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
+        {
+            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
+            return WebpFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
+        {
+            AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
+            return WebpFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
+    }
+
     /// <summary>
     /// Checks if the pixel row is not opaque.
     /// </summary>
@@ -27,7 +77,7 @@ internal static class WebpCommonUtils
             int length = (row.Length * 4) - 3;
             fixed (byte* src = rowBytes)
             {
-                var alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+                Vector256<byte> alphaMaskVector256 = Vector256.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
                 Vector256<byte> all0x80Vector256 = Vector256.Create((byte)0x80).AsByte();
 
                 for (; i + 128 <= length; i += 128)
@@ -124,7 +174,7 @@ internal static class WebpCommonUtils
 
     private static unsafe bool IsNoneOpaque64Bytes(byte* src, int i)
     {
-        var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+        Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
         Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
         Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
@@ -144,7 +194,7 @@ internal static class WebpCommonUtils
 
     private static unsafe bool IsNoneOpaque32Bytes(byte* src, int i)
     {
-        var alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
+        Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
         Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
         Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();

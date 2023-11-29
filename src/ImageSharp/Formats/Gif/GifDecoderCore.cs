@@ -797,6 +797,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 this.gifMetadata.GlobalColorTable = colorTable;
             }
         }
+
+        this.gifMetadata.BackgroundColorIndex = this.logicalScreenDescriptor.BackgroundColorIndex;
     }
 
     private unsafe struct ScratchBuffer

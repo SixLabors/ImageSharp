@@ -470,6 +470,23 @@ public partial class PngDecoderTests
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
     }
 
+    // https://github.com/SixLabors/ImageSharp/pull/2589
+    [Theory]
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32, true)]
+    [WithFile(TestImages.Png.Bad.Issue2589, PixelTypes.Rgba32, false)]
+    public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData });
+
+        image.DebugSave(provider);
+        if (compare)
+        {
+            // Magick cannot actually decode this image to compare.
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+        }
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/1014
     [Theory]
     [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
@@ -635,5 +652,17 @@ public partial class PngDecoderTests
                 providerDump,
                 "Disco")
             .Dispose();
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        PngDecoder decoder = PngDecoder.Instance;
+        PngDecoderOptions options = new() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData };
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
+
+        // TODO: Try to reduce this to 1.
+        Assert.True(eofHitCounter.EofHitCount <= 3);
+        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
     }
 }

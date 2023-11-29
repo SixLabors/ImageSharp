@@ -7,8 +7,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -117,6 +119,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private IQuantizer? quantizer;
 
     /// <summary>
+    /// Any explicit quantized transparent index provided by the background color.
+    /// </summary>
+    private int derivedTransparencyIndex = -1;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
@@ -137,7 +144,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
@@ -146,7 +153,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.height = image.Height;
 
         ImageMetadata metadata = image.Metadata;
-        PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
+        PngMetadata pngMetadata = GetPngMetadata(image);
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -162,7 +169,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         }
 
         // Do not move this. We require an accurate bit depth for the header chunk.
-        IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, currentFrame, null);
+        IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(
+            pngMetadata,
+            currentFrame,
+            currentFrame.Bounds(),
+            null);
 
         this.WriteHeaderChunk(stream);
         this.WriteGammaChunk(stream);
@@ -177,46 +188,64 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, image.Frames.Count, pngMetadata.RepeatCount);
-
-            // TODO: We should attempt to optimize the output by clipping the indexed result to
-            // non-transparent bounds. That way we can assign frame control bounds and encode
-            // less data. See GifEncoder for the implementation there.
+            this.WriteAnimationControlChunk(stream, (uint)image.Frames.Count, pngMetadata.RepeatCount);
 
             // Write the first frame.
-            FrameControl frameControl = this.WriteFrameControlChunk(stream, currentFrame, 0);
-            this.WriteDataChunks(frameControl, currentFrame, quantized, stream, false);
+            PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
+            PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+            FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
+            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
 
             // Capture the global palette for reuse on subsequent frames.
             ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
 
             // Write following frames.
             uint increment = 0;
+            ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+
+            // This frame is reused to store de-duplicated pixel buffers.
+            using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+
             for (int i = 1; i < image.Frames.Count; i++)
             {
+                ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
                 currentFrame = image.Frames[i];
+                ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
+                frameMetadata = GetPngFrameMetadata(currentFrame);
+                bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
+
+                (bool difference, Rectangle bounds) =
+                    AnimationUtilities.DeDuplicatePixels(
+                        image.Configuration,
+                        prev,
+                        currentFrame,
+                        nextFrame,
+                        encodingFrame,
+                        Color.Transparent,
+                        blend);
+
                 if (clearTransparency)
                 {
-                    // Dispose of previous clone and reassign.
-                    clonedFrame?.Dispose();
-                    currentFrame = clonedFrame = currentFrame.Clone();
-                    ClearTransparentPixels(currentFrame);
+                    ClearTransparentPixels(encodingFrame);
                 }
 
-                // Each frame control sequence number must be incremented by the
-                // number of frame data chunks that follow.
-                frameControl = this.WriteFrameControlChunk(stream, currentFrame, (uint)i + increment);
+                // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
+                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, (uint)i + increment);
 
                 // Dispose of previous quantized frame and reassign.
                 quantized?.Dispose();
-                quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, currentFrame, previousPalette);
-                increment += this.WriteDataChunks(frameControl, currentFrame, quantized, stream, true);
+                quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, encodingFrame, bounds, previousPalette);
+                increment += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true);
+
+                previousFrame = currentFrame;
+                previousDisposal = frameMetadata.DisposalMethod;
             }
         }
         else
         {
             FrameControl frameControl = new((uint)this.width, (uint)this.height);
-            this.WriteDataChunks(frameControl, currentFrame, quantized, stream, false);
+            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
         }
 
         this.WriteEndChunk(stream);
@@ -233,6 +262,54 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
+    }
+
+    private static PngMetadata GetPngMetadata<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
+        {
+            return (PngMetadata)png.DeepClone();
+        }
+
+        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
+        {
+            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
+            return PngMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
+        {
+            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
+            return PngMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
+    }
+
+    private static PngFrameMetadata GetPngFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
+        {
+            return (PngFrameMetadata)png.DeepClone();
+        }
+
+        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
+        {
+            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
+            return PngFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
+        {
+            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
+            return PngFrameMetadata.FromAnimatedMetadata(ani);
+        }
+
+        // Return explicit new instance so we do not mutate the original metadata.
+        return new();
     }
 
     /// <summary>
@@ -268,15 +345,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="frame">The frame to quantize.</param>
+    /// <param name="bounds">The area of interest within the frame.</param>
     /// <param name="previousPalette">Any previously derived palette.</param>
     /// <returns>The quantized image.</returns>
     private IndexedImageFrame<TPixel>? CreateQuantizedImageAndUpdateBitDepth<TPixel>(
         PngMetadata metadata,
         ImageFrame<TPixel> frame,
+        Rectangle bounds,
         ReadOnlyMemory<TPixel>? previousPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedFrame(this.encoder, this.colorType, this.bitDepth, metadata, frame, previousPalette);
+        IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedFrame(this.encoder, this.colorType, this.bitDepth, metadata, frame, bounds, previousPalette);
         this.bitDepth = CalculateBitDepth(this.colorType, this.bitDepth, quantized);
         return quantized;
     }
@@ -622,7 +701,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="framesCount">The number of frames.</param>
     /// <param name="playsCount">The number of times to loop this APNG.</param>
-    private void WriteAnimationControlChunk(Stream stream, int framesCount, int playsCount)
+    private void WriteAnimationControlChunk(Stream stream, uint framesCount, uint playsCount)
     {
         AnimationControl acTL = new(framesCount, playsCount);
 
@@ -1010,19 +1089,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Writes the animation control chunk to the stream.
     /// </summary>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-    /// <param name="imageFrame">The image frame.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="bounds">The frame area of interest.</param>
     /// <param name="sequenceNumber">The frame sequence number.</param>
-    private FrameControl WriteFrameControlChunk(Stream stream, ImageFrame imageFrame, uint sequenceNumber)
+    private FrameControl WriteFrameControlChunk(Stream stream, PngFrameMetadata frameMetadata, Rectangle bounds, uint sequenceNumber)
     {
-        PngFrameMetadata frameMetadata = imageFrame.Metadata.GetPngFrameMetadata();
-
-        // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
         FrameControl fcTL = new(
             sequenceNumber: sequenceNumber,
-            width: (uint)imageFrame.Width,
-            height: (uint)imageFrame.Height,
-            xOffset: 0,
-            yOffset: 0,
+            width: (uint)bounds.Width,
+            height: (uint)bounds.Height,
+            xOffset: (uint)bounds.Left,
+            yOffset: (uint)bounds.Top,
             delayNumerator: (ushort)frameMetadata.FrameDelay.Numerator,
             delayDenominator: (ushort)frameMetadata.FrameDelay.Denominator,
             disposeOperation: frameMetadata.DisposalMethod,
@@ -1040,11 +1117,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frameControl">The frame control</param>
-    /// <param name="pixels">The frame.</param>
+    /// <param name="frame">The image frame.</param>
     /// <param name="quantized">The quantized pixel data. Can be null.</param>
     /// <param name="stream">The stream.</param>
     /// <param name="isFrame">Is writing fdAT or IDAT.</param>
-    private uint WriteDataChunks<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
+    private uint WriteDataChunks<TPixel>(FrameControl frameControl, Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte[] buffer;
@@ -1058,16 +1135,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 {
                     if (quantized is not null)
                     {
-                        this.EncodeAdam7IndexedPixels(frameControl, quantized, deflateStream);
+                        this.EncodeAdam7IndexedPixels(quantized, deflateStream);
                     }
                     else
                     {
-                        this.EncodeAdam7Pixels(frameControl, pixels, deflateStream);
+                        this.EncodeAdam7Pixels(frame, deflateStream);
                     }
                 }
                 else
                 {
-                    this.EncodePixels(frameControl, pixels, quantized, deflateStream);
+                    this.EncodePixels(frame, quantized, deflateStream);
                 }
             }
 
@@ -1132,54 +1209,43 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Encodes the pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="frameControl">The frame control</param>
-    /// <param name="pixels">The pixels.</param>
-    /// <param name="quantized">The quantized pixels span.</param>
+    /// <param name="pixels">The image frame pixel buffer.</param>
+    /// <param name="quantized">The quantized pixels.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(FrameControl frameControl, ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
+    private void EncodePixels<TPixel>(Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = (int)frameControl.Width;
-        int height = (int)frameControl.Height;
-
-        int bytesPerScanline = this.CalculateScanlineLength(width);
+        int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
         int filterLength = bytesPerScanline + 1;
         this.AllocateScanlineBuffers(bytesPerScanline);
 
         using IMemoryOwner<byte> filterBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
         using IMemoryOwner<byte> attemptBuffer = this.memoryAllocator.Allocate<byte>(filterLength, AllocationOptions.Clean);
 
-        pixels.ProcessPixelRows(accessor =>
+        Span<byte> filter = filterBuffer.GetSpan();
+        Span<byte> attempt = attemptBuffer.GetSpan();
+        for (int y = 0; y < pixels.Height; y++)
         {
-            Span<byte> filter = filterBuffer.GetSpan();
-            Span<byte> attempt = attemptBuffer.GetSpan();
-            for (int y = (int)frameControl.YOffset; y < frameControl.YMax; y++)
-            {
-                this.CollectAndFilterPixelRow(accessor.GetRowSpan(y), ref filter, ref attempt, quantized, y);
-                deflateStream.Write(filter);
-                this.SwapScanlineBuffers();
-            }
-        });
+            this.CollectAndFilterPixelRow(pixels.DangerousGetRowSpan(y), ref filter, ref attempt, quantized, y);
+            deflateStream.Write(filter);
+            this.SwapScanlineBuffers();
+        }
     }
 
     /// <summary>
     /// Interlaced encoding the pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="frameControl">The frame control</param>
-    /// <param name="frame">The image frame.</param>
+    /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7Pixels<TPixel>(FrameControl frameControl, ImageFrame<TPixel> frame, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7Pixels<TPixel>(Buffer2DRegion<TPixel> pixels, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = (int)frameControl.XMax;
-        int height = (int)frameControl.YMax;
-        Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
         for (int pass = 0; pass < 7; pass++)
         {
-            int startRow = Adam7.FirstRow[pass] + (int)frameControl.YOffset;
-            int startCol = Adam7.FirstColumn[pass] + (int)frameControl.XOffset;
-            int blockWidth = Adam7.ComputeBlockWidth(width, pass);
+            int startRow = Adam7.FirstRow[pass];
+            int startCol = Adam7.FirstColumn[pass];
+            int blockWidth = Adam7.ComputeBlockWidth(pixels.Width, pass);
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8
@@ -1196,13 +1262,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
 
-            for (int row = startRow; row < height; row += Adam7.RowIncrement[pass])
+            for (int row = startRow; row < pixels.Height; row += Adam7.RowIncrement[pass])
             {
                 // Collect pixel data
-                Span<TPixel> srcRow = pixelBuffer.DangerousGetRowSpan(row);
-                for (int col = startCol, i = 0; col < frameControl.XMax; col += Adam7.ColumnIncrement[pass])
+                Span<TPixel> srcRow = pixels.DangerousGetRowSpan(row);
+                for (int col = startCol, i = 0; col < pixels.Width; col += Adam7.ColumnIncrement[pass], i++)
                 {
-                    block[i++] = srcRow[col];
+                    block[i] = srcRow[col];
                 }
 
                 // Encode data
@@ -1220,19 +1286,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// Interlaced encoding the quantized (indexed, with palette) pixels.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="frameControl">The frame control</param>
     /// <param name="quantized">The quantized.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7IndexedPixels<TPixel>(FrameControl frameControl, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = (int)frameControl.Width;
-        int endRow = (int)frameControl.YMax;
         for (int pass = 0; pass < 7; pass++)
         {
-            int startRow = Adam7.FirstRow[pass] + (int)frameControl.YOffset;
-            int startCol = Adam7.FirstColumn[pass] + (int)frameControl.XOffset;
-            int blockWidth = Adam7.ComputeBlockWidth(width, pass);
+            int startRow = Adam7.FirstRow[pass];
+            int startCol = Adam7.FirstColumn[pass];
+            int blockWidth = Adam7.ComputeBlockWidth(quantized.Width, pass);
 
             int bytesPerScanline = this.bytesPerPixel <= 1
                 ? ((blockWidth * this.bitDepth) + 7) / 8
@@ -1250,16 +1313,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             Span<byte> filter = filterBuffer.GetSpan();
             Span<byte> attempt = attemptBuffer.GetSpan();
 
-            for (int row = startRow; row < endRow; row += Adam7.RowIncrement[pass])
+            for (int row = startRow; row < quantized.Height; row += Adam7.RowIncrement[pass])
             {
                 // Collect data
                 ReadOnlySpan<byte> srcRow = quantized.DangerousGetRowSpan(row);
-                for (int col = startCol, i = 0;
-                    col < frameControl.XMax;
-                    col += Adam7.ColumnIncrement[pass])
+                for (int col = startCol, i = 0; col < quantized.Width; col += Adam7.ColumnIncrement[pass], i++)
                 {
                     block[i] = srcRow[col];
-                    i++;
                 }
 
                 // Encode data
@@ -1431,6 +1491,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// <param name="bitDepth">The bits per component.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="frame">The frame to quantize.</param>
+    /// <param name="bounds">The frame area of interest.</param>
     /// <param name="previousPalette">Any previously derived palette.</param>
     private IndexedImageFrame<TPixel>? CreateQuantizedFrame<TPixel>(
         QuantizingImageEncoder encoder,
@@ -1438,6 +1499,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         byte bitDepth,
         PngMetadata metadata,
         ImageFrame<TPixel> frame,
+        Rectangle bounds,
         ReadOnlyMemory<TPixel>? previousPalette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -1449,9 +1511,13 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         if (previousPalette is not null)
         {
             // Use the previously derived palette created by quantizing the root frame to quantize the current frame.
-            using PaletteQuantizer<TPixel> paletteQuantizer = new(this.configuration, this.quantizer!.Options, previousPalette.Value, -1);
+            using PaletteQuantizer<TPixel> paletteQuantizer = new(
+                this.configuration,
+                this.quantizer!.Options,
+                previousPalette.Value,
+                this.derivedTransparencyIndex);
             paletteQuantizer.BuildPalette(encoder.PixelSamplingStrategy, frame);
-            return paletteQuantizer.QuantizeFrame(frame, frame.Bounds());
+            return paletteQuantizer.QuantizeFrame(frame, bounds);
         }
 
         // Use the metadata to determine what quantization depth to use if no quantizer has been set.
@@ -1459,8 +1525,10 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             if (metadata.ColorTable is not null)
             {
-                // Use the provided palette. The caller is responsible for setting values.
-                this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value);
+                // We can use the color data from the decoded metadata here.
+                // We avoid dithering by default to preserve the original colors.
+                this.derivedTransparencyIndex = metadata.ColorTable.Value.Span.IndexOf(Color.Transparent);
+                this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null }, this.derivedTransparencyIndex);
             }
             else
             {
@@ -1472,7 +1540,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(frame.Configuration);
 
         frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, frame);
-        return frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+        return frameQuantizer.QuantizeFrame(frame, bounds);
     }
 
     /// <summary>

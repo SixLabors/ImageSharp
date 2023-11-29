@@ -89,7 +89,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetWebpMetadata();
-        this.webpMetadata.AnimationLoopCount = features.AnimationLoopCount;
+        this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
@@ -195,14 +195,14 @@ internal class WebpAnimationDecoder : IDisposable
 
         Rectangle regionRectangle = frameData.Bounds;
 
-        if (frameData.DisposalMethod is WebpDisposalMethod.Dispose)
+        if (frameData.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
         {
             this.RestoreToBackground(imageFrame, backgroundColor);
         }
 
         using Buffer2D<TPixel> decodedImageFrame = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
 
-        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendingMethod.AlphaBlending;
+        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendMethod.Over;
         DrawDecodedImageFrameOnCanvas(decodedImageFrame, imageFrame, regionRectangle, blend);
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
@@ -253,7 +253,7 @@ internal class WebpAnimationDecoder : IDisposable
     private Buffer2D<TPixel> DecodeImageFrameData<TPixel>(WebpFrameData frameData, WebpImageInfo webpInfo)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrame<TPixel> decodedFrame = new(Configuration.Default, (int)frameData.Width, (int)frameData.Height);
+        ImageFrame<TPixel> decodedFrame = new(this.configuration, (int)frameData.Width, (int)frameData.Height);
 
         try
         {

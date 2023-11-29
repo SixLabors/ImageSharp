@@ -240,7 +240,7 @@ internal class Vp8LEncoder : IDisposable
     public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Write bytes from the bitwriter buffer to the stream.
+        // Write bytes from the bit-writer buffer to the stream.
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
 
@@ -259,15 +259,15 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.AnimationBackground, webpMetadata.AnimationLoopCount);
+            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
     }
 
     public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Write bytes from the bitwriter buffer to the stream.
+        // Write bytes from the bit-writer buffer to the stream.
         ImageMetadata metadata = image.Metadata;
 
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
@@ -280,26 +280,25 @@ internal class Vp8LEncoder : IDisposable
     /// Encodes the image as lossless webp to the specified stream.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="frame">The image frame to encode from.</param>
+    /// <param name="bounds">The region of interest within the frame to encode.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    public void Encode<TPixel>(ImageFrame<TPixel> frame, Stream stream, bool hasAnimation)
+    public void Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = frame.Width;
-        int height = frame.Height;
-
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(frame, width, height);
+        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds));
 
         // Write the image size.
-        this.WriteImageSize(width, height);
+        this.WriteImageSize(bounds.Width, bounds.Height);
 
         // Write the non-trivial Alpha flag and lossless version.
         this.WriteAlphaAndVersion(hasAlpha);
 
         // Encode the main image stream.
-        this.EncodeStream(frame);
+        this.EncodeStream(bounds.Width, bounds.Height);
 
         this.bitWriter.Finish();
 
@@ -307,21 +306,18 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpFrameMetadata frameMetadata = frame.Metadata.GetWebpMetadata();
-
-            // TODO: If we can clip the indexed frame for transparent bounds we can set properties here.
             prevPosition = new WebpFrameData(
-                    0,
-                    0,
-                    (uint)frame.Width,
-                    (uint)frame.Height,
+                    (uint)bounds.Left,
+                    (uint)bounds.Top,
+                    (uint)bounds.Width,
+                    (uint)bounds.Height,
                     frameMetadata.FrameDelay,
                     frameMetadata.BlendMethod,
                     frameMetadata.DisposalMethod)
                 .WriteHeaderTo(stream);
         }
 
-        // Write bytes from the bitwriter buffer to the stream.
+        // Write bytes from the bit-writer buffer to the stream.
         this.bitWriter.WriteEncodedImageToStream(stream);
 
         if (hasAnimation)
@@ -334,12 +330,12 @@ internal class Vp8LEncoder : IDisposable
     /// Encodes the alpha image data using the webp lossless compression.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="frame">The alpha-pixel data to encode from.</param>
     /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
     /// <returns>The size of the compressed data in bytes.
     /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
     /// </returns>
-    public int EncodeAlphaImageData<TPixel>(ImageFrame<TPixel> frame, IMemoryOwner<byte> alphaData)
+    public int EncodeAlphaImageData<TPixel>(Buffer2DRegion<TPixel> frame, IMemoryOwner<byte> alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = frame.Width;
@@ -347,10 +343,10 @@ internal class Vp8LEncoder : IDisposable
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(frame, width, height);
+        this.ConvertPixelsToBgra(frame);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
-        this.EncodeStream(frame);
+        this.EncodeStream(width, height);
         this.bitWriter.Finish();
         int size = this.bitWriter.NumBytes;
         if (size >= pixelCount)
@@ -364,7 +360,7 @@ internal class Vp8LEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes the image size to the bitwriter buffer.
+    /// Writes the image size to the bit writer buffer.
     /// </summary>
     /// <param name="inputImgWidth">The input image width.</param>
     /// <param name="inputImgHeight">The input image height.</param>
@@ -381,7 +377,7 @@ internal class Vp8LEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes a flag indicating if alpha channel is used and the VP8L version to the bitwriter buffer.
+    /// Writes a flag indicating if alpha channel is used and the VP8L version to the bit-writer buffer.
     /// </summary>
     /// <param name="hasAlpha">Indicates if a alpha channel is present.</param>
     private void WriteAlphaAndVersion(bool hasAlpha)
@@ -393,14 +389,10 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Encodes the image stream using lossless webp format.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel type.</typeparam>
-    /// <param name="frame">The frame to encode.</param>
-    private void EncodeStream<TPixel>(ImageFrame<TPixel> frame)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="width">The image frame width.</param>
+    /// <param name="height">The image frame height.</param>
+    private void EncodeStream(int width, int height)
     {
-        int width = frame.Width;
-        int height = frame.Height;
-
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<uint> encodedData = this.EncodedData.GetSpan();
         bool lowEffort = this.method == 0;
@@ -508,23 +500,20 @@ internal class Vp8LEncoder : IDisposable
     /// Converts the pixels of the image to bgra.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="frame">The frame to convert.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
+    /// <param name="pixels">The frame pixel buffer to convert.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    private bool ConvertPixelsToBgra<TPixel>(ImageFrame<TPixel> frame, int width, int height)
+    private bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = frame.PixelBuffer;
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
-        int widthBytes = width * 4;
-        for (int y = 0; y < height; y++)
+        int widthBytes = pixels.Width * 4;
+        for (int y = 0; y < pixels.Height; y++)
         {
-            Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(y);
+            Span<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
             Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
-            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
+            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
             if (!nonOpaque)
             {
                 Span<Bgra32> rowBgra = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);

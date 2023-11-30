@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -175,7 +176,52 @@ internal static class AnimationUtilities
                 }
             }
 
-            // TODO: v4 AdvSimd when we can use .NET 8
+            if (AdvSimd.IsSupported && remaining >= 4)
+            {
+                // Update offset since we may be operating on the remainder previously incremented by pixel steps of 8.
+                x *= 2;
+                Vector128<uint> r128 = previousFrame != null ? Vector128.Create(bg.PackedValue) : Vector128<uint>.Zero;
+                Vector128<uint> vmb128 = Vector128<uint>.Zero;
+                if (blend)
+                {
+                    vmb128 = AdvSimd.CompareEqual(vmb128, vmb128);
+                }
+
+                while (remaining >= 4)
+                {
+                    Vector128<uint> p = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref previousBase256), x);
+                    Vector128<uint> c = Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref currentBase256), x);
+
+                    Vector128<uint> eq = AdvSimd.CompareEqual(p, c);
+                    Vector128<uint> r = SimdUtils.HwIntrinsics.BlendVariable(c, r128, AdvSimd.And(eq, vmb128));
+
+                    if (nextFrame != null)
+                    {
+                        Vector128<int> n = AdvSimd.ShiftRightLogical(Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref nextBase256), x), 24).AsInt32();
+                        eq = AdvSimd.BitwiseClear(eq, AdvSimd.CompareGreaterThan(AdvSimd.ShiftRightLogical(c, 24).AsInt32(), n).AsUInt32());
+                    }
+
+                    Unsafe.Add(ref Unsafe.As<Vector256<byte>, Vector128<uint>>(ref resultBase256), x) = r;
+
+                    ulong msk = ~AdvSimd.ExtractNarrowingLower(eq).AsUInt64().ToScalar();
+                    if (msk != 0)
+                    {
+                        // If is diff is found, the left side is marked by the min of previously found left side and the start position.
+                        // The right is the max of the previously found right side and the end position.
+                        int start = i + (BitOperations.TrailingZeroCount(msk) / 16);
+                        int end = i + (4 - (BitOperations.LeadingZeroCount(msk) / 16));
+                        left = Math.Min(left, start);
+                        right = Math.Max(right, end);
+                        hasRowDiff = true;
+                        hasDiff = true;
+                    }
+
+                    x++;
+                    i += 4;
+                    remaining -= 4;
+                }
+            }
+
             for (i = remaining; i > 0; i--)
             {
                 x = (uint)(length - i);

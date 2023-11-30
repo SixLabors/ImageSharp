@@ -353,4 +353,15 @@ public partial class JpegDecoderTests
         Assert.Equal(65503, image.Width);
         Assert.Equal(65503, image.Height);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2517
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2517, PixelTypes.Rgba32)]
+    public void Issue2517_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
 }

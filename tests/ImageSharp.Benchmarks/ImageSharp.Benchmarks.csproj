@@ -10,7 +10,6 @@
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release</Configurations>
-    <LangVersion>12.0</LangVersion>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
     <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>

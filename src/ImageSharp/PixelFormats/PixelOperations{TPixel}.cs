@@ -165,7 +165,7 @@ public partial class PixelOperations<TPixel>
     }
 
     /// <summary>
-    /// Bulk operation that packs 3 seperate RGB channels to <paramref name="destination"/>.
+    /// Bulk operation that packs 3 separate RGB channels to <paramref name="destination"/>.
     /// The destination must have a padding of 3.
     /// </summary>
     /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
@@ -198,7 +198,7 @@ public partial class PixelOperations<TPixel>
 
     /// <summary>
     /// Bulk operation that unpacks pixels from <paramref name="source"/>
-    /// into 3 seperate RGB channels. The destination must have a padding of 3.
+    /// into 3 separate RGB channels.
     /// </summary>
     /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
     /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
@@ -210,7 +210,9 @@ public partial class PixelOperations<TPixel>
         Span<float> blueChannel,
         ReadOnlySpan<TPixel> source)
     {
-        int count = redChannel.Length;
+        GuardUnpackIntoRgbPlanes(redChannel, greenChannel, blueChannel, source);
+
+        int count = source.Length;
 
         Rgba32 rgba32 = default;
 
@@ -225,6 +227,14 @@ public partial class PixelOperations<TPixel>
             Unsafe.Add(ref g, i) = rgba32.G;
             Unsafe.Add(ref b, i) = rgba32.B;
         }
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void GuardUnpackIntoRgbPlanes(Span<float> redChannel, Span<float> greenChannel, Span<float> blueChannel, ReadOnlySpan<TPixel> source)
+    {
+        Guard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+        Guard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+        Guard.IsTrue(source.Length <= redChannel.Length, nameof(source), "'source' span should not be bigger than the destination channels!");
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

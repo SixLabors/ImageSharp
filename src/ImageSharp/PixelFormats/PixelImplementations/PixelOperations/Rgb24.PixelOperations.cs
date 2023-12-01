@@ -40,6 +40,9 @@ public partial struct Rgb24
            Span<float> greenChannel,
            Span<float> blueChannel,
            ReadOnlySpan<Rgb24> source)
-           => SimdUtils.UnpackToRgbPlanes(redChannel, greenChannel, blueChannel, source);
+        {
+            GuardUnpackIntoRgbPlanes(redChannel, greenChannel, blueChannel, source);
+            SimdUtils.UnpackToRgbPlanes(redChannel, greenChannel, blueChannel, source);
+        }
     }
 }

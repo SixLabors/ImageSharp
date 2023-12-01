@@ -4,6 +4,7 @@
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -493,4 +494,32 @@ public class WebpDecoderTests
 
     [Fact]
     public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
+
+    [Theory]
+    [InlineData(Lossy.BikeWithExif)]
+    public void Decode_VerifyRatio(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image image = WebpDecoder.Instance.Decode(DecoderOptions.Default, stream);
+        ImageMetadata meta = image.Metadata;
+
+        Assert.Equal(37.8, meta.HorizontalResolution);
+        Assert.Equal(37.8, meta.VerticalResolution);
+        Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
+    }
+
+    [Theory]
+    [InlineData(Lossy.BikeWithExif)]
+    public void Identify_VerifyRatio(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageMetadata meta = image.Metadata;
+
+        Assert.Equal(37.8, meta.HorizontalResolution);
+        Assert.Equal(37.8, meta.VerticalResolution);
+        Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
+    }
 }

@@ -177,6 +177,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         this.WriteHeaderChunk(stream);
         this.WriteGammaChunk(stream);
+        this.WriteCicpChunk(stream, metadata);
         this.WriteColorProfileChunk(stream, metadata);
         this.WritePaletteChunk(stream, quantized);
         this.WriteTransparencyChunk(stream, pngMetadata);
@@ -850,6 +851,32 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         // And the XMP data itself.
         xmpData.CopyTo(payload[bytesWritten..]);
         this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+    }
+
+    /// <summary>
+    /// Writes the CICP profile chunk
+    /// </summary>
+    /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+    /// <param name="metaData">The image meta data.</param>
+    private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
+    {
+        if (metaData.CicpProfile is null)
+        {
+            return;
+        }
+
+        // by spec, the matrix coefficients must be set to Identity
+        if (metaData.CicpProfile.MatrixCoefficients != Metadata.Profiles.Cicp.CicpMatrixCoefficients.Identity)
+        {
+            throw new NotSupportedException("CICP matrix coefficients other than Identity are not supported in PNG");
+        }
+
+        Span<byte> outputBytes = this.chunkDataBuffer.Span[..4];
+        outputBytes[0] = (byte)metaData.CicpProfile.ColorPrimaries;
+        outputBytes[1] = (byte)metaData.CicpProfile.TransferCharacteristics;
+        outputBytes[2] = (byte)metaData.CicpProfile.MatrixCoefficients;
+        outputBytes[3] = (byte)(metaData.CicpProfile.FullRange ? 1 : 0);
+        this.WriteChunk(stream, PngChunkType.Cicp, outputBytes);
     }
 
     /// <summary>

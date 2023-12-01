@@ -141,6 +141,12 @@ internal enum PngChunkType : uint
     Chroma = 0x6348524d,
 
     /// <summary>
+    /// If this chunk is present, it specifies the color space, transfer function, matrix coefficients of the image
+    /// using the code points specified in [ITU-T-H.273]
+    /// </summary>
+    Cicp = 0x63494350,
+
+    /// <summary>
     /// This chunk is an ancillary chunk as defined in the PNG Specification.
     /// It must appear before the first IDAT chunk within a valid PNG stream.
     /// </summary>

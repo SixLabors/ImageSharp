@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -191,6 +192,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         case PngChunkType.Gamma:
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                             break;
+                        case PngChunkType.Cicp:
+                            ReadCicpChunk(metadata, chunk.Data.GetSpan());
+                            break;
                         case PngChunkType.FrameControl:
                             frameCount++;
                             if (frameCount == this.maxFrames)
@@ -359,6 +363,15 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             }
 
                             ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                            break;
+                        case PngChunkType.Cicp:
+                            if (this.colorMetadataOnly)
+                            {
+                                this.SkipChunkDataAndCrc(chunk);
+                                break;
+                            }
+
+                            ReadCicpChunk(metadata, chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
@@ -1424,6 +1437,26 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // No special chunk data identified
         return false;
+    }
+
+    /// <summary>
+    /// Reads the CICP color profile chunk.
+    /// </summary>
+    /// <param name="metadata">The metadata.</param>
+    /// <param name="data">The bytes containing the profile.</param>
+    private static void ReadCicpChunk(ImageMetadata metadata, ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 4)
+        {
+            // Ignore invalid cICP chunks.
+            return;
+        }
+
+        byte colorPrimaries = data[0];
+        byte transferFunction = data[1];
+        byte matrixCoefficients = data[2];
+        bool? fullRange = data[3] == 1 ? true : data[3] == 0 ? false : null;
+        metadata.CicpProfile = new CicpProfile(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
     }
 
     /// <summary>

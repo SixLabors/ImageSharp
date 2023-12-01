@@ -29,6 +29,7 @@ public class PngChunkTypeTests
         Assert.Equal(PngChunkType.Background, GetType("bKGD"));
         Assert.Equal(PngChunkType.EmbeddedColorProfile, GetType("iCCP"));
         Assert.Equal(PngChunkType.StandardRgbColourSpace, GetType("sRGB"));
+        Assert.Equal(PngChunkType.Cicp, GetType("cICP"));
         Assert.Equal(PngChunkType.SignificantBits, GetType("sBIT"));
         Assert.Equal(PngChunkType.Histogram, GetType("hIST"));
         Assert.Equal(PngChunkType.SuggestedPalette, GetType("sPLT"));

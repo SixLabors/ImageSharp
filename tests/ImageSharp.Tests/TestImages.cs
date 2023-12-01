@@ -61,6 +61,7 @@ public static class TestImages
         public const string TestPattern31x31 = "Png/testpattern31x31.png";
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
+        public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -307,6 +308,7 @@ public static class TestImages
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
             public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
+            public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
 
             public static class Fuzz
             {

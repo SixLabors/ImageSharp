@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -87,7 +88,7 @@ public partial class JpegEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        var encoder = new JpegEncoder
+        JpegEncoder encoder = new()
         {
             Quality = quality,
             ColorType = colorType,
@@ -164,8 +165,8 @@ public partial class JpegEncoderTests
     [InlineData(JpegEncodingColor.YCbCrRatio444)]
     public async Task Encode_IsCancellable(JpegEncodingColor colorType)
     {
-        var cts = new CancellationTokenSource();
-        using var pausedStream = new PausedStream(new MemoryStream());
+        CancellationTokenSource cts = new();
+        using PausedStream pausedStream = new(new MemoryStream());
         pausedStream.OnWaiting(s =>
         {
             // after some writing
@@ -181,12 +182,35 @@ public partial class JpegEncoderTests
             }
         });
 
-        using var image = new Image<Rgba32>(5000, 5000);
+        using Image<Rgba32> image = new(5000, 5000);
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
         {
-            var encoder = new JpegEncoder() { ColorType = colorType };
+            JpegEncoder encoder = new() { ColorType = colorType };
             await image.SaveAsync(pausedStream, encoder, cts.Token);
         });
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2595
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Bgra32)]
+    [WithFile(TestImages.Jpeg.Baseline.ForestBridgeDifferentComponentsQuality, PixelTypes.Rgb24)]
+    public static void Issue2595<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.Mutate(x => x.Crop(132, 1606));
+
+        int[] quality = new int[] { 100, 50 };
+        JpegEncodingColor[] colors = new[] { JpegEncodingColor.YCbCrRatio444, JpegEncodingColor.YCbCrRatio420 };
+        for (int i = 0; i < quality.Length; i++)
+        {
+            int q = quality[i];
+            for (int j = 0; j < colors.Length; j++)
+            {
+                JpegEncodingColor c = colors[j];
+                image.VerifyEncoder(provider, "jpeg", $"{q}-{c}", new JpegEncoder() { Quality = q, ColorType = c }, GetComparer(q, c));
+            }
+        }
     }
 
     /// <summary>
@@ -225,7 +249,7 @@ public partial class JpegEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        var encoder = new JpegEncoder
+        JpegEncoder encoder = new()
         {
             Quality = quality,
             ColorType = colorType

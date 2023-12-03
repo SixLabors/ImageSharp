@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -54,6 +55,8 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<A8>(1, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations();

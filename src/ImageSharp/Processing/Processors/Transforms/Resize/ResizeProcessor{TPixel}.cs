@@ -197,7 +197,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         bool compand,
         bool premultiplyAlpha)
     {
-        PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo()?.AlphaRepresentation;
+        PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.GetPixelTypeInfo().AlphaRepresentation;
 
         // Premultiply only if alpha representation is unknown or Unassociated:
         bool needsPremultiplication = alphaRepresentation == null || alphaRepresentation.Value == PixelAlphaRepresentation.Unassociated;

@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Tests;
 
 public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 {
+    [Obsolete("Called by the de-serializer; should only be called by deriving classes for de-serialization purposes")]
+    public TestImageProvider()
+    {
+    }
+
     public virtual TPixel GetExpectedBasicTestPatternPixelAt(int x, int y)
     {
         throw new NotSupportedException("GetExpectedBasicTestPatternPixelAt(x,y) only works with BasicTestPattern");

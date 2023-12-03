@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -105,6 +106,8 @@ public partial struct Rgb24 : IPixel<Rgb24>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb24>(3, PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();

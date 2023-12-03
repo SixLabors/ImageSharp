@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -95,6 +96,8 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     /// The <see cref="RgbaVector"/>.
     /// </returns>
     public static RgbaVector FromHex(string hex) => Color.ParseHex(hex).ToPixel<RgbaVector>();
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaVector>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();

@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -62,6 +63,8 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(NormalizedShort4 left, NormalizedShort4 right) => !left.Equals(right);
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedShort4>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations();

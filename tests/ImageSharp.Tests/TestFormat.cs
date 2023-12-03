@@ -263,6 +263,8 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
     {
+        public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(2, PixelAlphaRepresentation.None);
+
         public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
 
         public void FromScaledVector4(Vector4 vector)

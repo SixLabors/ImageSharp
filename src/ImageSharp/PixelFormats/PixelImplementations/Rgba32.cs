@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -285,6 +286,8 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         result = Unsafe.As<uint, Rgba32>(ref packedValue);
         return true;
     }
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba32>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -14,6 +15,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>
 {
+    static abstract PixelTypeInfo GetPixelTypeInfo();
+
     /// <summary>
     /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.
     /// This method is not intended to be consumed directly. Use <see cref="PixelOperations{TPixel}.Instance"/> instead.

@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -205,6 +206,8 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
+
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba64>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();

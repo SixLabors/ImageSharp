@@ -129,7 +129,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     public uint Argb
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        readonly get => Unsafe.As<Argb32, uint>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<Argb32, uint>(ref Unsafe.AsRef(in this));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set => Unsafe.As<Argb32, uint>(ref this) = value;

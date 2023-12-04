@@ -78,7 +78,7 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
             PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
 
-            ColorNumerics.Transform(span, ref Unsafe.AsRef(this.matrix));
+            ColorNumerics.Transform(span, ref Unsafe.AsRef(in this.matrix));
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
         }

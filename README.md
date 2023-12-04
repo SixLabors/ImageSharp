@@ -21,7 +21,7 @@ Designed to simplify image processing, ImageSharp brings you an incredibly power
 
 ImageSharp is designed from the ground up to be flexible and extensible. The library provides API endpoints for common image processing operations and the building blocks to allow for the development of additional operations.
 
-Built against [.NET 6](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
+Built against [.NET 8](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 
 
 ## License
@@ -64,7 +64,7 @@ If you prefer, you can compile ImageSharp yourself (please do and help!)
 
 - Using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
   - Make sure you have the latest version installed
-  - Make sure you have [the .NET 7 SDK](https://www.microsoft.com/net/core#windows) installed
+  - Make sure you have [the .NET 8 SDK](https://www.microsoft.com/net/core#windows) installed
 
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 

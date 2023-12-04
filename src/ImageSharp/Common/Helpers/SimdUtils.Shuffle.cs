@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -20,7 +21,7 @@ internal static partial class SimdUtils
     public static void Shuffle4(
         ReadOnlySpan<float> source,
         Span<float> dest,
-        byte control)
+        [ConstantExpected] byte control)
     {
         VerifyShuffle4SpanInput(source, dest);
 

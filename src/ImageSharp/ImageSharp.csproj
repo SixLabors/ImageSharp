@@ -22,20 +22,20 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Bump to v3.1 prior to tagged release.-->
-    <MinVerMinimumMajorMinor>3.1</MinVerMinimumMajorMinor>
+    <!--Bump to v4.0 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>4.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
         <IsTrimmable>true</IsTrimmable>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
         <IsTrimmable>true</IsTrimmable>
       </PropertyGroup>
     </Otherwise>

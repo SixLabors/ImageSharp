@@ -2039,8 +2039,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         // Keywords should not be empty or have leading or trailing whitespace.
         name = PngConstants.Encoding.GetString(keywordBytes);
         return !string.IsNullOrWhiteSpace(name)
-            && !name.StartsWith(" ", StringComparison.Ordinal)
-            && !name.EndsWith(" ", StringComparison.Ordinal);
+            && !name.StartsWith(' ') && !name.EndsWith(' ');
     }
 
     private static bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes)

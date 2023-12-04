@@ -472,7 +472,7 @@ internal abstract class BaseExifReader
         }
     }
 
-    private void Add(IList<IExifValue> values, IExifValue exif, object? value)
+    private void Add(IList<IExifValue> values, ExifValue exif, object? value)
     {
         if (!exif.TrySetValue(value))
         {

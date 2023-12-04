@@ -71,7 +71,7 @@ internal class DirectoryReader
         throw TiffThrowHelper.ThrowInvalidHeader();
     }
 
-    private IList<ExifProfile> ReadIfds(bool isBigTiff)
+    private List<ExifProfile> ReadIfds(bool isBigTiff)
     {
         List<EntryReader> readers = new();
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)

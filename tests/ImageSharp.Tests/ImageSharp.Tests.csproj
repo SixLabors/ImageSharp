@@ -35,7 +35,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" />
+    <!--
+        Do not update or consolidate BenchmarkDotNet.
+        https://github.com/dotnet/arcade/issues/8483
+      -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.0"  />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />

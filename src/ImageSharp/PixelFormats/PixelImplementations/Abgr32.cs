@@ -184,6 +184,10 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Abgr32 left, Abgr32 right) => !left.Equals(right);
 
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Abgr32>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

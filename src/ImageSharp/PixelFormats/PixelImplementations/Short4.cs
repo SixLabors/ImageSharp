@@ -67,6 +67,10 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
 
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Short4>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

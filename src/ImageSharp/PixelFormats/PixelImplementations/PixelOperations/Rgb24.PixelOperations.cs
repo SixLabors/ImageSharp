@@ -15,7 +15,6 @@ public partial struct Rgb24
     /// </summary>
     internal partial class PixelOperations : PixelOperations<Rgb24>
     {
-
         /// <inheritdoc />
         internal override void PackFromRgbPlanes(
             ReadOnlySpan<byte> redChannel,

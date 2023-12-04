@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>
 {
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     static abstract PixelTypeInfo GetPixelTypeInfo();
 
     /// <summary>

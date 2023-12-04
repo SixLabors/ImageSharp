@@ -207,6 +207,10 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba64>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

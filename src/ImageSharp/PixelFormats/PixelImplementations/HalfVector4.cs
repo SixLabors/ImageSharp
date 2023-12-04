@@ -58,6 +58,10 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(HalfVector4 left, HalfVector4 right) => !left.Equals(right);
 
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfVector4>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

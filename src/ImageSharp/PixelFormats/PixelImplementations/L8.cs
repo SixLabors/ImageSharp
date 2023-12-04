@@ -49,6 +49,10 @@ public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(L8 left, L8 right) => !left.Equals(right);
 
+    /// <summary>
+    /// Gets the The pixel type information.
+    /// </summary>
+    /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<L8>(1, PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

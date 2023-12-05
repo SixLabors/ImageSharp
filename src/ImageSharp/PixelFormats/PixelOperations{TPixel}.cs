@@ -31,7 +31,7 @@ public partial class PixelOperations<TPixel>
     /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
     /// </summary>
     /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
-    public static PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
+    public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
 
     /// <summary>
     /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.

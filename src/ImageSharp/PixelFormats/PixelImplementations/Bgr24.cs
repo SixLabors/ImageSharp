@@ -88,10 +88,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
-    /// <summary>
-    /// Gets the pixel type information.
-    /// </summary>
-    /// <returns>PixelTypeInfo</returns>
+    /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr24>(3, PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>

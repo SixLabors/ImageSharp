@@ -60,10 +60,7 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Bgr565 left, Bgr565 right) => !left.Equals(right);
 
-    /// <summary>
-    /// Gets the pixel type information.
-    /// </summary>
-    /// <returns>PixelTypeInfo</returns>
+    /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr565>(3, PixelAlphaRepresentation.None);
 
     /// <inheritdoc />

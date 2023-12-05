@@ -137,10 +137,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
 
-    /// <summary>
-    /// Gets the pixel type information.
-    /// </summary>
-    /// <returns>PixelTypeInfo</returns>
+    /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgra32>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>

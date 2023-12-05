@@ -287,10 +287,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         return true;
     }
 
-    /// <summary>
-    /// Gets the pixel type information.
-    /// </summary>
-    /// <returns>PixelTypeInfo</returns>
+    /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba32>(4, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />

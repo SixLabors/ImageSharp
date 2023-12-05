@@ -63,7 +63,7 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
     public static bool operator !=(NormalizedShort2 left, NormalizedShort2 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedShort2>(2, PixelAlphaRepresentation.None);

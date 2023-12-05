@@ -16,10 +16,12 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>
 {
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
-    /// <returns>PixelTypeInfo</returns>
+    /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
+#pragma warning disable CA1000
     static abstract PixelTypeInfo GetPixelTypeInfo();
+#pragma warning restore CA1000
 
     /// <summary>
     /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.

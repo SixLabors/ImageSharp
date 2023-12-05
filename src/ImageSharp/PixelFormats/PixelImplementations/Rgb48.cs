@@ -71,7 +71,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static bool operator !=(Rgb48 left, Rgb48 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb48>(3, PixelAlphaRepresentation.None);

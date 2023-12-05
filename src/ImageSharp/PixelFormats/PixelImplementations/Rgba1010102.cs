@@ -62,7 +62,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba1010102>(4, PixelAlphaRepresentation.Unassociated);

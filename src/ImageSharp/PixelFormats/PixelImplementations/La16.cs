@@ -73,7 +73,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     public static bool operator !=(La16 left, La16 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<La16>(2, PixelAlphaRepresentation.Unassociated);

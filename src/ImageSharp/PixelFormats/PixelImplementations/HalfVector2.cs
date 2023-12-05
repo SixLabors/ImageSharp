@@ -54,7 +54,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     public static bool operator !=(HalfVector2 left, HalfVector2 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfVector2>(2, PixelAlphaRepresentation.None);

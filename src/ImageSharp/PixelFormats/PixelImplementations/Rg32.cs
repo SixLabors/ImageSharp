@@ -59,7 +59,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     public static bool operator !=(Rg32 left, Rg32 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rg32>(2, PixelAlphaRepresentation.None);

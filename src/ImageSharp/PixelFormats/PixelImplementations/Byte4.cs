@@ -62,7 +62,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     public static bool operator !=(Byte4 left, Byte4 right) => !left.Equals(right);
 
     /// <summary>
-    /// Gets the The pixel type information.
+    /// Gets the pixel type information.
     /// </summary>
     /// <returns>PixelTypeInfo</returns>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Byte4>(4, PixelAlphaRepresentation.Unassociated);

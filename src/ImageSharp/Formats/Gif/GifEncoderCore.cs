@@ -380,18 +380,42 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
                 ReadOnlyMemory<Color> palette = metadata.LocalColorTable.Value;
-
                 if (hasDuplicates && !metadata.HasTransparency)
                 {
-                    // A difference was captured but the metadata does not have transparency.
+                    // Duplicates were captured but the metadata does not have transparency.
                     metadata.HasTransparency = true;
-                    transparencyIndex = palette.Length;
-                    metadata.TransparencyIndex = ClampIndex(transparencyIndex);
-                }
 
-                PaletteQuantizer quantizer = new(palette, new() { Dither = null }, transparencyIndex);
-                using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
-                quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
+                    if (palette.Length < 256)
+                    {
+                        // We can use the existing palette and set the transparent index as the length.
+                        // decoders will ignore this value.
+                        transparencyIndex = palette.Length;
+                        metadata.TransparencyIndex = ClampIndex(transparencyIndex);
+
+                        PaletteQuantizer quantizer = new(palette, new() { Dither = null }, transparencyIndex);
+                        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
+                        quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
+                    }
+                    else
+                    {
+                        // We must quantize the frame to generate a local color table.
+                        IQuantizer quantizer = this.hasQuantizer ? this.quantizer! : KnownQuantizers.Octree;
+                        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
+                        quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
+
+                        // The transparency index derived by the quantizer will differ from the index
+                        // within the metadata. We need to update the metadata to reflect this.
+                        int derivedTransparencyIndex = GetTransparentIndex(quantized, null);
+                        metadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
+                    }
+                }
+                else
+                {
+                    // Just use the local palette.
+                    PaletteQuantizer quantizer = new(palette, new() { Dither = null }, transparencyIndex);
+                    using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
+                    quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
+                }
             }
             else
             {

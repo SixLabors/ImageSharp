@@ -71,7 +71,7 @@ internal class Vp8LBitReader : BitReaderBase
         this.Eos = false;
 
         ulong currentValue = 0;
-        System.Span<byte> dataSpan = this.Data.Memory.Span;
+        Span<byte> dataSpan = this.Data.Memory.Span;
         for (int i = 0; i < 8; i++)
         {
             currentValue |= (ulong)dataSpan[i] << (8 * i);
@@ -103,7 +103,7 @@ internal class Vp8LBitReader : BitReaderBase
         }
 
         ulong currentValue = 0;
-        System.Span<byte> dataSpan = this.Data.Memory.Span;
+        Span<byte> dataSpan = this.Data.Memory.Span;
         for (int i = 0; i < length; i++)
         {
             currentValue |= (ulong)dataSpan[i] << (8 * i);

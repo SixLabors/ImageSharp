@@ -87,12 +87,14 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         if (this.BackgroundLocation.X < 0)
         {
             foregroundRectangle.Width += this.BackgroundLocation.X;
+            foregroundRectangle.X -= this.BackgroundLocation.X;
             left = 0;
         }
 
         if (this.BackgroundLocation.Y < 0)
         {
             foregroundRectangle.Height += this.BackgroundLocation.Y;
+            foregroundRectangle.Y -= this.BackgroundLocation.Y;
             top = 0;
         }
 

@@ -143,7 +143,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
                 ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, (uint)x);
-                TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
+                TPixel transformed = Unsafe.AsRef(in processor).GetPaletteColor(sourcePixel);
                 this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 sourcePixel = transformed;
             }

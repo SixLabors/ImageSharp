@@ -45,7 +45,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     /// <inheritdoc/>
     public ushort PackedValue
     {
-        readonly get => Unsafe.As<La16, ushort>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<La16, ushort>(ref Unsafe.AsRef(in this));
         set => Unsafe.As<La16, ushort>(ref this) = value;
     }
 

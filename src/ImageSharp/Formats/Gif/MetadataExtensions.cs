@@ -77,14 +77,20 @@ public static partial class MetadataExtensions
     }
 
     internal static AnimatedImageFrameMetadata ToAnimatedImageFrameMetadata(this GifFrameMetadata source)
-        => new()
+    {
+        // For most scenarios we would consider the blend method to be 'Over' however if a frame has a disposal method of 'RestoreToBackground' or
+        // has a local palette with 256 colors and is not transparent we should use 'Source'.
+        bool blendSource = source.DisposalMethod == GifDisposalMethod.RestoreToBackground || (source.LocalColorTable?.Length == 256 && !source.HasTransparency);
+
+        return new()
         {
             ColorTable = source.LocalColorTable,
             ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
             Duration = TimeSpan.FromMilliseconds(source.FrameDelay * 10),
             DisposalMode = GetMode(source.DisposalMethod),
-            BlendMode = source.DisposalMethod == GifDisposalMethod.RestoreToBackground ? FrameBlendMode.Source : FrameBlendMode.Over,
+            BlendMode = blendSource ? FrameBlendMode.Source : FrameBlendMode.Over,
         };
+    }
 
     private static FrameDisposalMode GetMode(GifDisposalMethod method) => method switch
     {

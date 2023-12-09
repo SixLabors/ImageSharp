@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
-[Config(typeof(Config.ShortCore31))]
+[Config(typeof(Config.Short))]
 public class ToVector4_Rgba32 : ToVector4<Rgba32>
 {
     [Benchmark]

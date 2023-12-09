@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 [MarkdownExporter]
 [HtmlExporter]
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class DecodeWebp
 {
     private Configuration configuration;

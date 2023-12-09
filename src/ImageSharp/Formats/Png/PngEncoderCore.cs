@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -1363,16 +1364,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         stream.Write(buffer);
 
-        uint crc = Crc32.Calculate(buffer[4..]); // Write the type buffer
+        Crc32 crc32 = new();
+        crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc = Crc32.Calculate(crc, data.Slice(offset, length));
+            crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }
@@ -1395,16 +1397,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         stream.Write(buffer);
 
-        uint crc = Crc32.Calculate(buffer[4..]); // Write the type buffer
+        Crc32 crc32 = new();
+        crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc = Crc32.Calculate(crc, data.Slice(offset, length));
+            crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }

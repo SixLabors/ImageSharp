@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -1911,10 +1912,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-            uint validCrc = Crc32.Calculate(chunkType);
-            validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
+            Crc32 crc32 = new();
+            crc32.Append(chunkType);
+            crc32.Append(chunk.Data.GetSpan());
 
-            if (validCrc != inputCrc)
+            if (crc32.GetCurrentHashAsUInt32() != inputCrc)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
 

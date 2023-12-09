@@ -96,19 +96,9 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
             top = 0;
         }
 
-        if (left > source.Width - foregroundRectangle.Width)
-        {
-            // will overhange, lets trim it down
-            int diff = (left + foregroundRectangle.Width) - source.Width;
-            foregroundRectangle.Width -= diff;
-        }
-
-        if (top > source.Height - foregroundRectangle.Height)
-        {
-            // will overhange, lets trim it down
-            int diff = (top + foregroundRectangle.Height) - source.Height;
-            foregroundRectangle.Height -= diff;
-        }
+        // clamp the height/width to the availible space left to prevent overflowing
+        foregroundRectangle.Width = Math.Min(source.Width - left, foregroundRectangle.Width);
+        foregroundRectangle.Height = Math.Min(source.Height - top, foregroundRectangle.Height);
 
         int width = foregroundRectangle.Width;
         int height = foregroundRectangle.Height;

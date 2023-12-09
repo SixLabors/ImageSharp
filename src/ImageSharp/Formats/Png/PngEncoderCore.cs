@@ -125,6 +125,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     private int derivedTransparencyIndex = -1;
 
     /// <summary>
+    /// A reusable Crc32 hashing instance.
+    /// </summary>
+    private readonly Crc32 crc32 = new();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
@@ -1364,17 +1369,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         stream.Write(buffer);
 
-        Crc32 crc32 = new();
-        crc32.Append(buffer[4..]); // Write the type buffer
+        this.crc32.Reset();
+        this.crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc32.Append(data.Slice(offset, length));
+            this.crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc32.GetCurrentHashAsUInt32());
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, this.crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }
@@ -1397,17 +1402,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         stream.Write(buffer);
 
-        Crc32 crc32 = new();
-        crc32.Append(buffer[4..]); // Write the type buffer
+        this.crc32.Reset();
+        this.crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc32.Append(data.Slice(offset, length));
+            this.crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc32.GetCurrentHashAsUInt32());
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, this.crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }

@@ -122,6 +122,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private readonly PngCrcChunkHandling pngCrcChunkHandling;
 
     /// <summary>
+    /// A reusable Crc32 hashing instance.
+    /// </summary>
+    private readonly Crc32 crc32 = new();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -1912,11 +1917,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-            Crc32 crc32 = new();
-            crc32.Append(chunkType);
-            crc32.Append(chunk.Data.GetSpan());
+            this.crc32.Reset();
+            this.crc32.Append(chunkType);
+            this.crc32.Append(chunk.Data.GetSpan());
 
-            if (crc32.GetCurrentHashAsUInt32() != inputCrc)
+            if (this.crc32.GetCurrentHashAsUInt32() != inputCrc)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
 

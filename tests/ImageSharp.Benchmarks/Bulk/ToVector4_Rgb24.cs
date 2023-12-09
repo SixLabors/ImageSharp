@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class ToVector4_Rgb24 : ToVector4<Rgb24>
 {
     [Benchmark(Baseline = true)]

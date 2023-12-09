@@ -7,7 +7,7 @@ using SharpAdler32 = ICSharpCode.SharpZipLib.Checksum.Adler32;
 
 namespace SixLabors.ImageSharp.Benchmarks.General;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class Adler32Benchmark
 {
     private byte[] data;

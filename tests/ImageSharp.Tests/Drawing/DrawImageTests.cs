@@ -251,4 +251,46 @@ public class DrawImageTests
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
     }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2608_NegOffset<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(-10, -10), new Rectangle(32, 32, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2603<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(80, 80), new Rectangle(32, 32, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
 }

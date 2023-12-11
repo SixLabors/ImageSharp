@@ -51,7 +51,7 @@ public static partial class ParallelRowIterator
             for (int y = yMin; y < yMax; y++)
             {
                 // Skip the safety copy when invoking a potentially impure method on a readonly field
-                Unsafe.AsRef(this.action).Invoke(y);
+                Unsafe.AsRef(in this.action).Invoke(y);
             }
         }
     }
@@ -102,7 +102,7 @@ public static partial class ParallelRowIterator
 
             for (int y = yMin; y < yMax; y++)
             {
-                Unsafe.AsRef(this.action).Invoke(y, span);
+                Unsafe.AsRef(in this.action).Invoke(y, span);
             }
         }
     }

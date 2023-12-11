@@ -12,7 +12,7 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks;
 
-[Config(typeof(Config.MultiFramework))]
+[Config(typeof(Config.Standard))]
 public abstract class Resize<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {

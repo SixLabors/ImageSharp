@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class GrayscaleColorConversion : ColorConversionBenchmark
 {
     public GrayscaleColorConversion()

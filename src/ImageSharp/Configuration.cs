@@ -87,10 +87,7 @@ public sealed class Configuration
         get => this.streamProcessingBufferSize;
         set
         {
-            if (value <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(this.StreamProcessingBufferSize));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
 
             this.streamProcessingBufferSize = value;
         }

@@ -84,6 +84,6 @@ public class Rgb48Tests
         Assert.Equal(Unsafe.SizeOf<Rgb48>() * 8, info.BitsPerPixel);
         Assert.Equal(3, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
     }
 }

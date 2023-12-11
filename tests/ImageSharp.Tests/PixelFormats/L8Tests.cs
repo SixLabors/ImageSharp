@@ -263,7 +263,7 @@ public class L8Tests
             Assert.Equal(Unsafe.SizeOf<L8>() * 8, info.BitsPerPixel);
             Assert.Equal(1, info.ComponentCount);
             Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-            Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+            Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
         }
     }
 }

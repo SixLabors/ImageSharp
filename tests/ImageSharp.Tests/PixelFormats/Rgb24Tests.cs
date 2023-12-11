@@ -139,6 +139,6 @@ public class Rgb24Tests
         Assert.Equal(Unsafe.SizeOf<Rgb24>() * 8, info.BitsPerPixel);
         Assert.Equal(3, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
     }
 }

@@ -26,12 +26,12 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     /// <summary>
     /// Gets the count of the color components
     /// </summary>
-    public byte ComponentCount { get; init; }
+    public int ComponentCount { get; init; }
 
     /// <summary>
-    /// Gets the pixel component precision.
+    /// Gets the maximum precision of components within the pixel.
     /// </summary>
-    public PixelComponentPrecision? ComponentPrecision { get; init; }
+    public PixelComponentPrecision? MaxComponentPrecision { get; init; }
 
     /// <summary>
     /// Gets the pixel alpha transparency behavior.
@@ -48,7 +48,7 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
         {
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
             ComponentCount = componentCount,
-            ComponentPrecision = componentPrecision,
+            MaxComponentPrecision = componentPrecision,
             AlphaRepresentation = pixelAlphaRepresentation
         };
 }

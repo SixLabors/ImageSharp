@@ -247,6 +247,6 @@ public class Byte4Tests
         Assert.Equal(Unsafe.SizeOf<Byte4>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
     }
 }

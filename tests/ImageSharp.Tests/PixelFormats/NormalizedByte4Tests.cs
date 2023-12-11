@@ -240,6 +240,6 @@ public class NormalizedByte4Tests
         Assert.Equal(Unsafe.SizeOf<NormalizedByte4>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.SByte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.SByte, info.MaxComponentPrecision);
     }
 }

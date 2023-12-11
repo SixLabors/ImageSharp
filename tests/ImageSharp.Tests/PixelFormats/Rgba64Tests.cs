@@ -317,6 +317,6 @@ public class Rgba64Tests
         Assert.Equal(Unsafe.SizeOf<Rgba64>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
     }
 }

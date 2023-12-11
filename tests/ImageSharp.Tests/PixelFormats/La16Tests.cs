@@ -267,7 +267,7 @@ public class La16Tests
             Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
             Assert.Equal(2, info.ComponentCount);
             Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-            Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+            Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
         }
     }
 }

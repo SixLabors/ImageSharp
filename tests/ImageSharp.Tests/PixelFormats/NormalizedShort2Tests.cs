@@ -94,6 +94,6 @@ public class NormalizedShort2Tests
         Assert.Equal(Unsafe.SizeOf<NormalizedShort2>() * 8, info.BitsPerPixel);
         Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Short, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Short, info.MaxComponentPrecision);
     }
 }

@@ -280,6 +280,6 @@ public class Bgra5551Tests
         Assert.Equal(Unsafe.SizeOf<Bgra5551>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
     }
 }

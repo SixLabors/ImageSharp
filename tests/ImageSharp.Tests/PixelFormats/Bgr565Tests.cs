@@ -258,6 +258,6 @@ public class Bgr565Tests
         Assert.Equal(Unsafe.SizeOf<Bgr565>() * 8, info.BitsPerPixel);
         Assert.Equal(3, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
     }
 }

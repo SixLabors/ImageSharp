@@ -255,6 +255,6 @@ public class Rgba1010102Tests
         Assert.Equal(Unsafe.SizeOf<Rgba1010102>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
     }
 }

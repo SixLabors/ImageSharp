@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Provides enumeration of the maximum precision of individual components within a pixel format.
+/// Provides enumeration of the precision of individual components within a pixel format.
 /// </summary>
 public enum PixelComponentPrecision
 {

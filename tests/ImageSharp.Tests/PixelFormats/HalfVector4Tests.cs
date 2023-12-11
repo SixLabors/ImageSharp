@@ -89,6 +89,6 @@ public class HalfVector4Tests
         Assert.Equal(Unsafe.SizeOf<HalfVector4>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Half, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Half, info.MaxComponentPrecision);
     }
 }

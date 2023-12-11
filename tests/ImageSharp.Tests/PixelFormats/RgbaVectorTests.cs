@@ -213,6 +213,6 @@ public class RgbaVectorTests
         Assert.Equal(Unsafe.SizeOf<RgbaVector>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Float, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Float, info.MaxComponentPrecision);
     }
 }

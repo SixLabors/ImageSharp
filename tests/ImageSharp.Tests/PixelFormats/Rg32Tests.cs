@@ -92,6 +92,6 @@ public class Rg32Tests
         Assert.Equal(Unsafe.SizeOf<Rg32>() * 8, info.BitsPerPixel);
         Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
     }
 }

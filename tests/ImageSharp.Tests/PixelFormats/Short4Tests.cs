@@ -222,6 +222,6 @@ public class Short4Tests
         Assert.Equal(Unsafe.SizeOf<Short4>() * 8, info.BitsPerPixel);
         Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Short, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Short, info.MaxComponentPrecision);
     }
 }

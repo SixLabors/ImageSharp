@@ -118,6 +118,6 @@ public class A8Tests
         Assert.Equal(Unsafe.SizeOf<A8>() * 8, info.BitsPerPixel);
         Assert.Equal(1, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
+        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
     }
 }

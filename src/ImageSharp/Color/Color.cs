@@ -127,7 +127,7 @@ public readonly partial struct Color : IEquatable<Color>
         }
 
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
-        if (info.ComponentPrecision <= PixelComponentPrecision.Byte)
+        if (info.MaxComponentPrecision <= PixelComponentPrecision.Byte)
         {
             Rgba32 p = default;
             pixel.ToRgba32(ref p);

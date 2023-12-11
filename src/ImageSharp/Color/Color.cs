@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp;
@@ -124,7 +125,9 @@ public readonly partial struct Color : IEquatable<Color>
         {
             return new((L16)(object)pixel);
         }
-        else if (Unsafe.SizeOf<TPixel>() <= Unsafe.SizeOf<Rgba32>())
+
+        PixelTypeInfo info = TPixel.GetPixelTypeInfo();
+        if (info.ComponentPrecision <= PixelComponentPrecision.Byte)
         {
             Rgba32 p = default;
             pixel.ToRgba32(ref p);

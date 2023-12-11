@@ -64,7 +64,7 @@ public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<u
     public static bool operator !=(NormalizedByte4 left, NormalizedByte4 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedByte4>(4, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedByte4>(4, PixelComponentPrecision.SByte, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations();

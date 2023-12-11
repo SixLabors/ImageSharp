@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -43,7 +45,7 @@ public class NormalizedShort2Tests
     public void NormalizedShort2_ToScaledVector4()
     {
         // arrange
-        var short2 = new NormalizedShort2(-Vector2.One);
+        NormalizedShort2 short2 = new(-Vector2.One);
 
         // act
         Vector4 actual = short2.ToScaledVector4();
@@ -60,7 +62,7 @@ public class NormalizedShort2Tests
     {
         // arrange
         Vector4 scaled = new NormalizedShort2(-Vector2.One).ToScaledVector4();
-        var short2 = default(NormalizedShort2);
+        NormalizedShort2 short2 = default;
         uint expected = 0x80018001;
 
         // act
@@ -75,13 +77,23 @@ public class NormalizedShort2Tests
     public void NormalizedShort2_FromBgra5551()
     {
         // arrange
-        var normalizedShort2 = default(NormalizedShort2);
-        var expected = new Vector4(1, 1, 0, 1);
+        NormalizedShort2 normalizedShort2 = default;
+        Vector4 expected = new(1, 1, 0, 1);
 
         // act
         normalizedShort2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, normalizedShort2.ToVector4());
+    }
+
+    [Fact]
+    public void NormalizedShort2_PixelInformation()
+    {
+        PixelTypeInfo info = NormalizedShort2.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<NormalizedShort2>() * 8, info.BitsPerPixel);
+        Assert.Equal(2, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Short, info.ComponentPrecision);
     }
 }

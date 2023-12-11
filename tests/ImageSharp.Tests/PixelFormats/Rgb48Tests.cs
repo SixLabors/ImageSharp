@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -12,7 +14,7 @@ public class Rgb48Tests
     [Fact]
     public void Rgb48_Values()
     {
-        var rgb = new Rgba64(5243, 9830, 19660, 29491);
+        Rgba64 rgb = new(5243, 9830, 19660, 29491);
 
         Assert.Equal(5243, rgb.R);
         Assert.Equal(9830, rgb.G);
@@ -32,9 +34,9 @@ public class Rgb48Tests
     public void Rgb48_FromScaledVector4()
     {
         // arrange
-        var pixel = default(Rgb48);
-        var short3 = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
-        var expected = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+        Rgb48 pixel = default;
+        Rgb48 short3 = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+        Rgb48 expected = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
         // act
         Vector4 scaled = short3.ToScaledVector4();
@@ -48,8 +50,8 @@ public class Rgb48Tests
     public void Rgb48_ToRgba32()
     {
         // arrange
-        var rgba48 = new Rgb48(5140, 9766, 19532);
-        var expected = new Rgba32(20, 38, 76, 255);
+        Rgb48 rgba48 = new(5140, 9766, 19532);
+        Rgba32 expected = new(20, 38, 76, 255);
 
         // act
         Rgba32 actual = default;
@@ -63,7 +65,7 @@ public class Rgb48Tests
     public void Rgb48_FromBgra5551()
     {
         // arrange
-        var rgb = default(Rgb48);
+        Rgb48 rgb = default;
         ushort expected = ushort.MaxValue;
 
         // act
@@ -73,5 +75,15 @@ public class Rgb48Tests
         Assert.Equal(expected, rgb.R);
         Assert.Equal(expected, rgb.G);
         Assert.Equal(expected, rgb.B);
+    }
+
+    [Fact]
+    public void Rgb48_PixelInformation()
+    {
+        PixelTypeInfo info = Rgb48.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rgb48>() * 8, info.BitsPerPixel);
+        Assert.Equal(3, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
     }
 }

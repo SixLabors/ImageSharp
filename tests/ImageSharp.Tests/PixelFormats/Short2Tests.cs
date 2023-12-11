@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -51,7 +53,7 @@ public class Short2Tests
     public void Short2_ToScaledVector4()
     {
         // arrange
-        var short2 = new Short2(Vector2.One * 0x7FFF);
+        Short2 short2 = new(Vector2.One * 0x7FFF);
 
         // act
         Vector4 actual = short2.ToScaledVector4();
@@ -67,8 +69,8 @@ public class Short2Tests
     public void Short2_FromScaledVector4()
     {
         // arrange
-        var pixel = default(Short2);
-        var short2 = new Short2(Vector2.One * 0x7FFF);
+        Short2 pixel = default;
+        Short2 short2 = new(Vector2.One * 0x7FFF);
         const ulong expected = 0x7FFF7FFF;
 
         // act
@@ -84,9 +86,9 @@ public class Short2Tests
     public void Short2_ToRgba32()
     {
         // arrange
-        var short2 = new Short2(127.5f, -5.3f);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(128, 127, 0, 255);
+        Short2 short2 = new(127.5f, -5.3f);
+        Rgba32 actual = default;
+        Rgba32 expected = new(128, 127, 0, 255);
 
         // act
         short2.ToRgba32(ref actual);
@@ -99,9 +101,9 @@ public class Short2Tests
     public void Short2_FromRgba32_ToRgba32()
     {
         // arrange
-        var short2 = default(Short2);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(20, 38, 0, 255);
+        Short2 short2 = default;
+        Rgba32 actual = default;
+        Rgba32 expected = new(20, 38, 0, 255);
 
         // act
         short2.FromRgba32(expected);
@@ -115,9 +117,9 @@ public class Short2Tests
     public void Short2_FromRgb48()
     {
         // arrange
-        var input = default(Short2);
-        var actual = default(Rgb48);
-        var expected = new Rgb48(65535, 65535, 0);
+        Short2 input = default;
+        Rgb48 actual = default;
+        Rgb48 expected = new(65535, 65535, 0);
 
         // act
         input.FromRgb48(expected);
@@ -131,9 +133,9 @@ public class Short2Tests
     public void Short2_FromRgba64()
     {
         // arrange
-        var input = default(Short2);
-        var actual = default(Rgba64);
-        var expected = new Rgba64(65535, 65535, 0, 65535);
+        Short2 input = default;
+        Rgba64 actual = default;
+        Rgba64 expected = new(65535, 65535, 0, 65535);
 
         // act
         input.FromRgba64(expected);
@@ -147,7 +149,7 @@ public class Short2Tests
     public void Short2_FromBgra5551()
     {
         // arrange
-        var short2 = default(Short2);
+        Short2 short2 = default;
 
         // act
         short2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
@@ -158,5 +160,15 @@ public class Short2Tests
         Assert.Equal(1, actual.Y);
         Assert.Equal(0, actual.Z);
         Assert.Equal(1, actual.W);
+    }
+
+    [Fact]
+    public void Short2_PixelInformation()
+    {
+        PixelTypeInfo info = Short2.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Short2>() * 8, info.BitsPerPixel);
+        Assert.Equal(2, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Short, info.ComponentPrecision);
     }
 }

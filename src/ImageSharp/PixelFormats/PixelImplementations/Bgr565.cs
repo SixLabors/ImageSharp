@@ -61,7 +61,7 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
     public static bool operator !=(Bgr565 left, Bgr565 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr565>(3, PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr565>(3, PixelComponentPrecision.Byte, PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
     public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();

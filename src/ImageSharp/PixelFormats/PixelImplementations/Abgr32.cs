@@ -185,7 +185,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     public static bool operator !=(Abgr32 left, Abgr32 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Abgr32>(4, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Abgr32>(4, PixelComponentPrecision.Byte, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();

@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
-// TODO: Review this class as it's used to represent 2 different things.
+// TODO: Review this type as it's used to represent 2 different things.
 // 1.The encoded image pixel format.
 // 2. The pixel format of the decoded image.
 namespace SixLabors.ImageSharp.Formats;
@@ -12,19 +12,16 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// Contains information about the pixels that make up an images visual data.
 /// </summary>
-public readonly struct PixelTypeInfo
+/// <remarks>
+/// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
+/// </remarks>
+/// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
+public readonly struct PixelTypeInfo(int bitsPerPixel)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PixelTypeInfo"/> struct.
-    /// </summary>
-    /// <param name="bitsPerPixel">Color depth, in number of bits per pixel.</param>
-    public PixelTypeInfo(int bitsPerPixel)
-        => this.BitsPerPixel = bitsPerPixel;
-
     /// <summary>
     /// Gets color depth, in number of bits per pixel.
     /// </summary>
-    public int BitsPerPixel { get; init; }
+    public int BitsPerPixel { get; init; } = bitsPerPixel;
 
     /// <summary>
     /// Gets the count of the color components
@@ -32,17 +29,26 @@ public readonly struct PixelTypeInfo
     public byte ComponentCount { get; init; }
 
     /// <summary>
+    /// Gets the pixel component precision.
+    /// </summary>
+    public PixelComponentPrecision? ComponentPrecision { get; init; }
+
+    /// <summary>
     /// Gets the pixel alpha transparency behavior.
     /// <see langword="null"/> means unknown, unspecified.
     /// </summary>
     public PixelAlphaRepresentation? AlphaRepresentation { get; init; }
 
-    internal static PixelTypeInfo Create<TPixel>(byte componentCount, PixelAlphaRepresentation pixelAlphaRepresentation)
+    internal static PixelTypeInfo Create<TPixel>(
+        byte componentCount,
+        PixelComponentPrecision componentPrecision,
+        PixelAlphaRepresentation pixelAlphaRepresentation)
         where TPixel : unmanaged, IPixel<TPixel>
         => new()
         {
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
             ComponentCount = componentCount,
+            ComponentPrecision = componentPrecision,
             AlphaRepresentation = pixelAlphaRepresentation
         };
 }

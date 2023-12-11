@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -12,8 +14,8 @@ public class L16Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new L16(3000);
-        var color2 = new L16(3000);
+        L16 color1 = new(3000);
+        L16 color2 = new(3000);
 
         Assert.Equal(color1, color2);
     }
@@ -21,8 +23,8 @@ public class L16Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new L16(12345);
-        var color2 = new L16(54321);
+        L16 color1 = new(12345);
+        L16 color2 = new(54321);
 
         Assert.NotEqual(color1, color2);
     }
@@ -58,7 +60,7 @@ public class L16Tests
     public void L16_ToScaledVector4(ushort input)
     {
         // Arrange
-        var gray = new L16(input);
+        L16 gray = new(input);
 
         // Act
         Vector4 actual = gray.ToScaledVector4();
@@ -77,7 +79,7 @@ public class L16Tests
         // Arrange
         L16 gray = default;
         const ushort expected = 32767;
-        var vector = new L16(expected).ToVector4();
+        Vector4 vector = new L16(expected).ToVector4();
 
         // Act
         gray.FromVector4(vector);
@@ -94,10 +96,10 @@ public class L16Tests
     public void L16_ToVector4(ushort input)
     {
         // Arrange
-        var gray = new L16(input);
+        L16 gray = new(input);
 
         // Act
-        var actual = gray.ToVector4();
+        Vector4 actual = gray.ToVector4();
 
         // Assert
         float vectorInput = input / 65535F;
@@ -132,7 +134,7 @@ public class L16Tests
     {
         // Arrange
         ushort expected = ColorNumerics.DownScaleFrom16BitTo8Bit(input);
-        var gray = new L16(input);
+        L16 gray = new(input);
 
         // Act
         Rgba32 actual = default;
@@ -149,7 +151,7 @@ public class L16Tests
     public void L16_FromBgra5551()
     {
         // arrange
-        var gray = default(L16);
+        L16 gray = default;
         ushort expected = ushort.MaxValue;
 
         // act
@@ -157,5 +159,15 @@ public class L16Tests
 
         // assert
         Assert.Equal(expected, gray.PackedValue);
+    }
+
+    [Fact]
+    public void L16_PixelInformation()
+    {
+        PixelTypeInfo info = L16.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<L16>() * 8, info.BitsPerPixel);
+        Assert.Equal(1, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.UShort, info.ComponentPrecision);
     }
 }

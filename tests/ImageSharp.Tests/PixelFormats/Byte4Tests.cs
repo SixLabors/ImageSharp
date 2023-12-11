@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +17,10 @@ public class Byte4Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Byte4(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Byte4(new Vector4(0.0f));
-        var color3 = new Byte4(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        var color4 = new Byte4(1.0f, 0.0f, 1.0f, 1.0f);
+        Byte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Byte4 color2 = new(new Vector4(0.0f));
+        Byte4 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+        Byte4 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +32,10 @@ public class Byte4Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Byte4(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Byte4(new Vector4(1.0f));
-        var color3 = new Byte4(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Byte4(1.0f, 1.0f, 0.0f, 1.0f);
+        Byte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Byte4 color2 = new(new Vector4(1.0f));
+        Byte4 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Byte4 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -63,7 +65,7 @@ public class Byte4Tests
     public void Byte4_ToScaledVector4()
     {
         // arrange
-        var byte4 = new Byte4(Vector4.One * 255);
+        Byte4 byte4 = new(Vector4.One * 255);
 
         // act
         Vector4 actual = byte4.ToScaledVector4();
@@ -79,9 +81,9 @@ public class Byte4Tests
     public void Byte4_ToRgba32()
     {
         // arrange
-        var byte4 = new Byte4(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
-        var expected = new Rgba32(Vector4.One);
-        var actual = default(Rgba32);
+        Byte4 byte4 = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+        Rgba32 expected = new(Vector4.One);
+        Rgba32 actual = default;
 
         // act
         byte4.ToRgba32(ref actual);
@@ -94,7 +96,7 @@ public class Byte4Tests
     {
         // arrange
         Vector4 scaled = new Byte4(Vector4.One * 255).ToScaledVector4();
-        var pixel = default(Byte4);
+        Byte4 pixel = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -109,7 +111,7 @@ public class Byte4Tests
     public void Byte4_FromArgb32()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -123,7 +125,7 @@ public class Byte4Tests
     public void Byte4_FromBgr24()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -137,7 +139,7 @@ public class Byte4Tests
     public void Byte4_FromGrey8()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -151,7 +153,7 @@ public class Byte4Tests
     public void Byte4_FromGrey16()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -165,7 +167,7 @@ public class Byte4Tests
     public void Byte4_FromRgb24()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -179,7 +181,7 @@ public class Byte4Tests
     public void Byte4_FromBgra5551()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -193,7 +195,7 @@ public class Byte4Tests
     public void Byte4_FromRgba32()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue1 = uint.MaxValue;
 
         // act
@@ -207,7 +209,7 @@ public class Byte4Tests
     public void Byte4_FromRgb48()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -221,7 +223,7 @@ public class Byte4Tests
     public void Byte4_FromRgba64()
     {
         // arrange
-        var byte4 = default(Byte4);
+        Byte4 byte4 = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -236,5 +238,15 @@ public class Byte4Tests
     {
         Assert.Equal(Vector4.Zero, new Byte4(Vector4.One * -1234.0f).ToVector4());
         Assert.Equal(Vector4.One * 255, new Byte4(Vector4.One * 1234.0f).ToVector4());
+    }
+
+    [Fact]
+    public void Byte4_PixelInformation()
+    {
+        PixelTypeInfo info = Byte4.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Byte4>() * 8, info.BitsPerPixel);
+        Assert.Equal(4, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
     }
 }

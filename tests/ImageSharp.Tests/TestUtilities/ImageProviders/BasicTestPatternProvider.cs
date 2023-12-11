@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -85,7 +85,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         private static TPixel GetBottomRightColor()
         {
             TPixel bottomRightColor = default;
-            bottomRightColor.FromVector4(new Vector4(1f, 0f, 1f, 0.5f));
+            bottomRightColor.FromScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
             return bottomRightColor;
         }
     }

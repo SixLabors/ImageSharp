@@ -107,7 +107,7 @@ public readonly partial struct Color : IEquatable<Color>
     public static Color FromPixel<TPixel>(TPixel pixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Avoid boxing in case we can convert to Rgba64 safely and efficently
+        // Avoid boxing in case we can convert to Rgba64 safely and efficiently
         if (typeof(TPixel) == typeof(Rgba64))
         {
             return new((Rgba64)(object)pixel);

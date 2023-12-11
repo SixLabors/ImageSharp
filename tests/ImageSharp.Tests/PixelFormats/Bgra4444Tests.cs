@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +17,10 @@ public class Bgra4444Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Bgra4444(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Bgra4444(new Vector4(0.0f));
-        var color3 = new Bgra4444(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        var color4 = new Bgra4444(1.0f, 0.0f, 1.0f, 1.0f);
+        Bgra4444 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Bgra4444 color2 = new(new Vector4(0.0f));
+        Bgra4444 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+        Bgra4444 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +32,10 @@ public class Bgra4444Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Bgra4444(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Bgra4444(new Vector4(1.0f));
-        var color3 = new Bgra4444(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Bgra4444(1.0f, 1.0f, 0.0f, 1.0f);
+        Bgra4444 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Bgra4444 color2 = new(new Vector4(1.0f));
+        Bgra4444 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Bgra4444 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -66,7 +68,7 @@ public class Bgra4444Tests
     public void Bgra4444_ToScaledVector4()
     {
         // arrange
-        var bgra = new Bgra4444(Vector4.One);
+        Bgra4444 bgra = new(Vector4.One);
 
         // act
         Vector4 actual = bgra.ToScaledVector4();
@@ -82,9 +84,9 @@ public class Bgra4444Tests
     public void Bgra4444_ToRgba32()
     {
         // arrange
-        var bgra = new Bgra4444(Vector4.One);
-        var expected = new Rgba32(Vector4.One);
-        var actual = default(Rgba32);
+        Bgra4444 bgra = new(Vector4.One);
+        Rgba32 expected = new(Vector4.One);
+        Rgba32 actual = default;
 
         // act
         bgra.ToRgba32(ref actual);
@@ -98,7 +100,7 @@ public class Bgra4444Tests
         // arrange
         Vector4 scaled = new Bgra4444(Vector4.One).ToScaledVector4();
         int expected = 0xFFFF;
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
 
         // act
         bgra.FromScaledVector4(scaled);
@@ -112,7 +114,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromBgra5551()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expected = ushort.MaxValue;
 
         // act
@@ -126,7 +128,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromArgb32()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -140,8 +142,8 @@ public class Bgra4444Tests
     public void Bgra4444_FromRgba32()
     {
         // arrange
-        var bgra1 = default(Bgra4444);
-        var bgra2 = default(Bgra4444);
+        Bgra4444 bgra1 = default;
+        Bgra4444 bgra2 = default;
         ushort expectedPackedValue1 = ushort.MaxValue;
         ushort expectedPackedValue2 = 0xFF0F;
 
@@ -158,7 +160,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromRgb48()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -172,7 +174,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromRgba64()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -186,7 +188,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromGrey16()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -200,7 +202,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromGrey8()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -214,7 +216,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromBgr24()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -228,7 +230,7 @@ public class Bgra4444Tests
     public void Bgra4444_FromRgb24()
     {
         // arrange
-        var bgra = default(Bgra4444);
+        Bgra4444 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -243,5 +245,15 @@ public class Bgra4444Tests
     {
         Assert.Equal(Vector4.Zero, new Bgra4444(Vector4.One * -1234.0f).ToVector4());
         Assert.Equal(Vector4.One, new Bgra4444(Vector4.One * 1234.0f).ToVector4());
+    }
+
+    [Fact]
+    public void Bgra4444_PixelInformation()
+    {
+        PixelTypeInfo info = Bgra4444.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Bgra4444>() * 8, info.BitsPerPixel);
+        Assert.Equal(4, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
     }
 }

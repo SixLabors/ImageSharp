@@ -27,17 +27,17 @@ internal class CieLabPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel
         Span<byte> a = data[1].GetSpan();
         Span<byte> b = data[2].GetSpan();
 
-        var color = default(TPixel);
+        TPixel color = default;
         int offset = 0;
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             for (int x = 0; x < pixelRow.Length; x++)
             {
-                var lab = new CieLab((l[offset] & 0xFF) * 100f * Inv255, (sbyte)a[offset], (sbyte)b[offset]);
-                var rgb = ColorSpaceConverter.ToRgb(lab);
+                CieLab lab = new((l[offset] & 0xFF) * 100f * Inv255, (sbyte)a[offset], (sbyte)b[offset]);
+                Rgb rgb = ColorSpaceConverter.ToRgb(lab);
 
-                color.FromVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
+                color.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
                 pixelRow[x] = color;
 
                 offset++;

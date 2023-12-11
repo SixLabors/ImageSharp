@@ -68,7 +68,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Short4>(4, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Short4>(4, PixelComponentPrecision.Short, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();

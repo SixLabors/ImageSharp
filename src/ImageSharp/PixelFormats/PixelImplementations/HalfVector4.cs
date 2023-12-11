@@ -59,7 +59,7 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     public static bool operator !=(HalfVector4 left, HalfVector4 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfVector4>(4, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfVector4>(4, PixelComponentPrecision.Half, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<HalfVector4> CreatePixelOperations() => new PixelOperations();

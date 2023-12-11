@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -12,8 +14,8 @@ public class Short4Tests
     [Fact]
     public void Short4_PackedValues()
     {
-        var shortValue1 = new Short4(11547, 12653, 29623, 193);
-        var shortValue2 = new Short4(0.1f, -0.3f, 0.5f, -0.7f);
+        Short4 shortValue1 = new(11547, 12653, 29623, 193);
+        Short4 shortValue2 = new(0.1f, -0.3f, 0.5f, -0.7f);
 
         Assert.Equal(0x00c173b7316d2d1bUL, shortValue1.PackedValue);
         Assert.Equal(18446462598732840960, shortValue2.PackedValue);
@@ -38,7 +40,7 @@ public class Short4Tests
     public void Short4_ToScaledVector4()
     {
         // arrange
-        var short4 = new Short4(Vector4.One * 0x7FFF);
+        Short4 short4 = new(Vector4.One * 0x7FFF);
 
         // act
         Vector4 actual = short4.ToScaledVector4();
@@ -54,12 +56,12 @@ public class Short4Tests
     public void Short4_FromScaledVector4()
     {
         // arrange
-        var short4 = new Short4(Vector4.One * 0x7FFF);
+        Short4 short4 = new(Vector4.One * 0x7FFF);
         Vector4 scaled = short4.ToScaledVector4();
         const long expected = 0x7FFF7FFF7FFF7FFF;
 
         // act
-        var pixel = default(Short4);
+        Short4 pixel = default;
         pixel.FromScaledVector4(scaled);
 
         // assert
@@ -70,12 +72,12 @@ public class Short4Tests
     public void Short4_Clamping()
     {
         // arrange
-        var short1 = new Short4(Vector4.One * 1234567.0f);
-        var short2 = new Short4(Vector4.One * -1234567.0f);
+        Short4 short1 = new(Vector4.One * 1234567.0f);
+        Short4 short2 = new(Vector4.One * -1234567.0f);
 
         // act
-        var vector1 = short1.ToVector4();
-        var vector2 = short2.ToVector4();
+        Vector4 vector1 = short1.ToVector4();
+        Vector4 vector2 = short2.ToVector4();
 
         // assert
         Assert.Equal(Vector4.One * 0x7FFF, vector1);
@@ -86,9 +88,9 @@ public class Short4Tests
     public void Short4_ToRgba32()
     {
         // arrange
-        var shortValue = new Short4(11547, 12653, 29623, 193);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(172, 177, 243, 128);
+        Short4 shortValue = new(11547, 12653, 29623, 193);
+        Rgba32 actual = default;
+        Rgba32 expected = new(172, 177, 243, 128);
 
         // act
         shortValue.ToRgba32(ref actual);
@@ -101,9 +103,9 @@ public class Short4Tests
     public void Short4_FromRgba32_ToRgba32()
     {
         // arrange
-        var short4 = default(Short4);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(20, 38, 0, 255);
+        Short4 short4 = default;
+        Rgba32 actual = default;
+        Rgba32 expected = new(20, 38, 0, 255);
 
         // act
         short4.FromRgba32(expected);
@@ -117,9 +119,9 @@ public class Short4Tests
     public void Short4_FromBgra32_ToRgba32()
     {
         // arrange
-        var short4 = default(Short4);
-        var actual = default(Bgra32);
-        var expected = new Bgra32(20, 38, 0, 255);
+        Short4 short4 = default;
+        Bgra32 actual = default;
+        Bgra32 expected = new(20, 38, 0, 255);
 
         // act
         short4.FromBgra32(expected);
@@ -135,9 +137,9 @@ public class Short4Tests
     public void Short4_FromArgb32_ToRgba32()
     {
         // arrange
-        var short4 = default(Short4);
-        var actual = default(Argb32);
-        var expected = new Argb32(20, 38, 0, 255);
+        Short4 short4 = default;
+        Argb32 actual = default;
+        Argb32 expected = new(20, 38, 0, 255);
 
         // act
         short4.FromArgb32(expected);
@@ -153,9 +155,9 @@ public class Short4Tests
     public void Short4_FromAbgrb32_ToRgba32()
     {
         // arrange
-        var short4 = default(Short4);
-        var actual = default(Abgr32);
-        var expected = new Abgr32(20, 38, 0, 255);
+        Short4 short4 = default;
+        Abgr32 actual = default;
+        Abgr32 expected = new(20, 38, 0, 255);
 
         // act
         short4.FromAbgr32(expected);
@@ -171,9 +173,9 @@ public class Short4Tests
     public void Short4_FromRgb48_ToRgb48()
     {
         // arrange
-        var input = default(Short4);
-        var actual = default(Rgb48);
-        var expected = new Rgb48(65535, 0, 65535);
+        Short4 input = default;
+        Rgb48 actual = default;
+        Rgb48 expected = new(65535, 0, 65535);
 
         // act
         input.FromRgb48(expected);
@@ -187,9 +189,9 @@ public class Short4Tests
     public void Short4_FromRgba64_ToRgba64()
     {
         // arrange
-        var input = default(Short4);
-        var actual = default(Rgba64);
-        var expected = new Rgba64(65535, 0, 65535, 0);
+        Short4 input = default;
+        Rgba64 actual = default;
+        Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
         input.FromRgba64(expected);
@@ -203,7 +205,7 @@ public class Short4Tests
     public void Short4_FromBgra5551()
     {
         // arrange
-        var short4 = default(Short4);
+        Short4 short4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -211,5 +213,15 @@ public class Short4Tests
 
         // assert
         Assert.Equal(expected, short4.ToScaledVector4());
+    }
+
+    [Fact]
+    public void Short4_PixelInformation()
+    {
+        PixelTypeInfo info = Short4.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Short4>() * 8, info.BitsPerPixel);
+        Assert.Equal(4, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Short, info.ComponentPrecision);
     }
 }

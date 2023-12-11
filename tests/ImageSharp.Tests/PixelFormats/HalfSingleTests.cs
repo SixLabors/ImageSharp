@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -25,11 +27,11 @@ public class HalfSingleTests
     public void HalfSingle_ToVector4()
     {
         // arrange
-        var halfSingle = new HalfSingle(0.5f);
-        var expected = new Vector4(0.5f, 0, 0, 1);
+        HalfSingle halfSingle = new(0.5f);
+        Vector4 expected = new(0.5f, 0, 0, 1);
 
         // act
-        var actual = halfSingle.ToVector4();
+        Vector4 actual = halfSingle.ToVector4();
 
         // assert
         Assert.Equal(expected, actual);
@@ -39,7 +41,7 @@ public class HalfSingleTests
     public void HalfSingle_ToScaledVector4()
     {
         // arrange
-        var halfSingle = new HalfSingle(-1F);
+        HalfSingle halfSingle = new(-1F);
 
         // act
         Vector4 actual = halfSingle.ToScaledVector4();
@@ -57,7 +59,7 @@ public class HalfSingleTests
         // arrange
         Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
         int expected = 48128;
-        var halfSingle = default(HalfSingle);
+        HalfSingle halfSingle = default;
 
         // act
         halfSingle.FromScaledVector4(scaled);
@@ -65,5 +67,15 @@ public class HalfSingleTests
 
         // assert
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void HalfSingle_PixelInformation()
+    {
+        PixelTypeInfo info = HalfSingle.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<HalfSingle>() * 8, info.BitsPerPixel);
+        Assert.Equal(1, info.ComponentCount);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelComponentPrecision.Half, info.ComponentPrecision);
     }
 }

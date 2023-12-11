@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
@@ -24,8 +26,8 @@ public class La16Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new La16(100, 50);
-        var color2 = new La16(100, 50);
+        La16 color1 = new(100, 50);
+        La16 color2 = new(100, 50);
 
         Assert.Equal(color1, color2);
     }
@@ -33,8 +35,8 @@ public class La16Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new La16(100, 50);
-        var color2 = new La16(200, 50);
+        La16 color1 = new(100, 50);
+        La16 color2 = new(200, 50);
 
         Assert.NotEqual(color1, color2);
     }
@@ -60,7 +62,7 @@ public class La16Tests
     public void La16_ToScaledVector4(byte input)
     {
         // Arrange
-        var gray = new La16(input, input);
+        La16 gray = new(input, input);
 
         // Act
         Vector4 actual = gray.ToScaledVector4();
@@ -79,7 +81,7 @@ public class La16Tests
     {
         // Arrange
         La16 gray = default;
-        var vector = new La16(luminance, luminance).ToVector4();
+        Vector4 vector = new La16(luminance, luminance).ToVector4();
 
         // Act
         gray.FromVector4(vector);
@@ -96,10 +98,10 @@ public class La16Tests
     public void La16_ToVector4(byte input)
     {
         // Arrange
-        var gray = new La16(input, input);
+        La16 gray = new(input, input);
 
         // Act
-        var actual = gray.ToVector4();
+        Vector4 actual = gray.ToVector4();
 
         // Assert
         float scaledInput = input / 255F;
@@ -131,7 +133,7 @@ public class La16Tests
     public void La16_ToRgba32(byte luminance)
     {
         // Arrange
-        var gray = new La16(luminance, luminance);
+        La16 gray = new(luminance, luminance);
 
         // Act
         Rgba32 actual = default;
@@ -148,7 +150,7 @@ public class La16Tests
     public void La16_FromBgra5551()
     {
         // arrange
-        var grey = default(La16);
+        La16 grey = default;
         byte expected = byte.MaxValue;
 
         // act
@@ -168,7 +170,7 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void La16_FromRgba32_IsInverseOf_ToRgba32(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
@@ -183,7 +185,7 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void Rgba32_ToLa16_IsInverseOf_La16_ToRgba32(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
@@ -198,13 +200,13 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void ToVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
 
-            var la16Vector = original.ToVector4();
-            var rgbaVector = original.ToVector4();
+            Vector4 la16Vector = original.ToVector4();
+            Vector4 rgbaVector = original.ToVector4();
 
             Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -213,12 +215,12 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void FromVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
 
-            var rgbaVector = original.ToVector4();
+            Vector4 rgbaVector = original.ToVector4();
 
             La16 mirror = default;
             mirror.FromVector4(rgbaVector);
@@ -230,7 +232,7 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void ToScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
@@ -245,7 +247,7 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void FromScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
             Rgba32 rgba = default;
             original.ToRgba32(ref rgba);
@@ -256,6 +258,16 @@ public class La16Tests
             mirror.FromScaledVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
+        }
+
+        [Fact]
+        public void La16_PixelInformation()
+        {
+            PixelTypeInfo info = La16.GetPixelTypeInfo();
+            Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
+            Assert.Equal(2, info.ComponentCount);
+            Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+            Assert.Equal(PixelComponentPrecision.Byte, info.ComponentPrecision);
         }
     }
 }

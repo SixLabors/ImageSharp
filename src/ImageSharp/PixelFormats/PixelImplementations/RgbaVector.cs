@@ -98,7 +98,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     public static RgbaVector FromHex(string hex) => Color.ParseHex(hex).ToPixel<RgbaVector>();
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaVector>(4, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaVector>(4, PixelComponentPrecision.Float, PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();

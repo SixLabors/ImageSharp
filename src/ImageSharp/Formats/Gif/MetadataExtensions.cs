@@ -82,6 +82,9 @@ public static partial class MetadataExtensions
         // has a local palette with 256 colors and is not transparent we should use 'Source'.
         bool blendSource = source.DisposalMethod == GifDisposalMethod.RestoreToBackground || (source.LocalColorTable?.Length == 256 && !source.HasTransparency);
 
+        // If the color table is global and frame has no transparency. Consider it 'Source' also.
+        blendSource |= source.ColorTableMode == GifColorTableMode.Global && !source.HasTransparency;
+
         return new()
         {
             ColorTable = source.LocalColorTable,

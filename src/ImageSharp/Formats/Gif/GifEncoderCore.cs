@@ -103,7 +103,14 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             {
                 // We avoid dithering by default to preserve the original colors.
                 int transparencyIndex = GetTransparentIndex(quantized, frameMetadata);
-                this.quantizer = new PaletteQuantizer(gifMetadata.GlobalColorTable.Value, new() { Dither = null }, transparencyIndex);
+                if (transparencyIndex >= 0 || gifMetadata.GlobalColorTable.Value.Length < 256)
+                {
+                    this.quantizer = new PaletteQuantizer(gifMetadata.GlobalColorTable.Value, new() { Dither = null }, transparencyIndex);
+                }
+                else
+                {
+                    this.quantizer = KnownQuantizers.Octree;
+                }
             }
             else
             {
@@ -198,19 +205,17 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     private static GifFrameMetadata GetGifFrameMetadata<TPixel>(ImageFrame<TPixel> frame, int transparencyIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        GifFrameMetadata? metadata = null;
         if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
         {
-            return (GifFrameMetadata)gif.DeepClone();
+            metadata = (GifFrameMetadata)gif.DeepClone();
         }
-
-        GifFrameMetadata? metadata = null;
-        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
+        else if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
         {
             AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
             metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
         }
-
-        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
+        else if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
         {
             AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
             metadata = GifFrameMetadata.FromAnimatedMetadata(ani);

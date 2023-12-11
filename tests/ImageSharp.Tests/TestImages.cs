@@ -488,6 +488,7 @@ public static class TestImages
         public const string MixedDisposal = "Gif/mixed-disposal.gif";
         public const string M4nb = "Gif/m4nb.gif";
         public const string Bit18RGBCube = "Gif/18-bit_RGB_Cube.gif";
+        public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
@@ -535,7 +536,8 @@ public static class TestImages
             Issues.Issue2450_B,
             Issues.BadDescriptorWidth,
             Issues.Issue1530,
-            Bit18RGBCube
+            Bit18RGBCube,
+            Global256NoTrans
         };
     }
 

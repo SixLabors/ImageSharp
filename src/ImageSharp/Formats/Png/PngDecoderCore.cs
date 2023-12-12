@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -119,6 +120,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// How to handle CRC errors.
     /// </summary>
     private readonly PngCrcChunkHandling pngCrcChunkHandling;
+
+    /// <summary>
+    /// A reusable Crc32 hashing instance.
+    /// </summary>
+    private readonly Crc32 crc32 = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
@@ -1911,10 +1917,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-            uint validCrc = Crc32.Calculate(chunkType);
-            validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
+            this.crc32.Reset();
+            this.crc32.Append(chunkType);
+            this.crc32.Append(chunk.Data.GetSpan());
 
-            if (validCrc != inputCrc)
+            if (this.crc32.GetCurrentHashAsUInt32() != inputCrc)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
 
@@ -2039,8 +2046,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         // Keywords should not be empty or have leading or trailing whitespace.
         name = PngConstants.Encoding.GetString(keywordBytes);
         return !string.IsNullOrWhiteSpace(name)
-            && !name.StartsWith(" ", StringComparison.Ordinal)
-            && !name.EndsWith(" ", StringComparison.Ordinal);
+            && !name.StartsWith(' ') && !name.EndsWith(' ');
     }
 
     private static bool IsXmpTextData(ReadOnlySpan<byte> keywordBytes)

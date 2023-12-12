@@ -129,7 +129,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     public uint Abgr
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        readonly get => Unsafe.As<Abgr32, uint>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<Abgr32, uint>(ref Unsafe.AsRef(in this));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set => Unsafe.As<Abgr32, uint>(ref this) = value;

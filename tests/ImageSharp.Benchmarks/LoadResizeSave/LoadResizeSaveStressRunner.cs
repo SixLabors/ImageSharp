@@ -269,9 +269,7 @@ public class LoadResizeSaveStressRunner
             Width = this.ThumbnailSize,
             Height = this.ThumbnailSize,
             ResizeMode = CropScaleMode.Max,
-            SaveFormat = FileFormat.Jpeg,
-            JpegQuality = Quality,
-            JpegSubsampleMode = ChromaSubsampleMode.Subsample420
+            EncoderOptions = new JpegEncoderOptions(Quality, ChromaSubsampleMode.Subsample420, true)
         };
 
         // TODO: Is there a way to capture input dimensions for IncreaseTotalMegapixels?
@@ -343,6 +341,6 @@ public class LoadResizeSaveStressRunner
         using var thumb = NetVipsImage.Thumbnail(input, this.ThumbnailSize, this.ThumbnailSize);
 
         // Save the results
-        thumb.Jpegsave(this.OutputPath(input), q: Quality, strip: true);
+        thumb.Jpegsave(this.OutputPath(input), q: Quality, keep: NetVips.Enums.ForeignKeep.None);
     }
 }

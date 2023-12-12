@@ -909,25 +909,6 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Reduces elements of the vector into one sum.
-    /// </summary>
-    /// <param name="accumulator">The accumulator to reduce.</param>
-    /// <returns>The sum of all elements.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static int ReduceSumArm(Vector128<uint> accumulator)
-    {
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            Vector64<uint> sum = AdvSimd.Arm64.AddAcross(accumulator);
-            return (int)AdvSimd.Extract(sum, 0);
-        }
-
-        Vector128<ulong> sum2 = AdvSimd.AddPairwiseWidening(accumulator);
-        Vector64<uint> sum3 = AdvSimd.Add(sum2.GetLower().AsUInt32(), sum2.GetUpper().AsUInt32());
-        return (int)AdvSimd.Extract(sum3, 0);
-    }
-
-    /// <summary>
     /// Reduces even elements of the vector into one sum.
     /// </summary>
     /// <param name="accumulator">The accumulator to reduce.</param>

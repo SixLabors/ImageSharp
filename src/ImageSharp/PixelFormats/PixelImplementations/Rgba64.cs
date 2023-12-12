@@ -152,7 +152,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public Rgb48 Rgb
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        readonly get => Unsafe.As<Rgba64, Rgb48>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<Rgba64, Rgb48>(ref Unsafe.AsRef(in this));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set => Unsafe.As<Rgba64, Rgb48>(ref this) = value;
@@ -162,7 +162,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public ulong PackedValue
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        readonly get => Unsafe.As<Rgba64, ulong>(ref Unsafe.AsRef(this));
+        readonly get => Unsafe.As<Rgba64, ulong>(ref Unsafe.AsRef(in this));
 
         [MethodImpl(InliningOptions.ShortMethod)]
         set => Unsafe.As<Rgba64, ulong>(ref this) = value;

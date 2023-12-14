@@ -2,7 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -30,50 +31,63 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         long basePosition = stream.Position;
         this.ReadHeader(stream);
 
-        Span<byte> flag = stackalloc byte[Png.PngConstants.HeaderBytes.Length];
+        Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
+        Image<TPixel> result = new(this.Dimensions.Width, this.Dimensions.Height);
 
-        List<(Image<TPixel> Image, bool IsPng, int Index)> frames = new(this.Entries.Length);
         for (int i = 0; i < this.Entries.Length; i++)
         {
-            _ = IconAssert.EndOfStream(stream.Seek(basePosition + this.Entries[i].ImageOffset, SeekOrigin.Begin), basePosition + this.Entries[i].ImageOffset);
-            _ = IconAssert.EndOfStream(stream.Read(flag), Png.PngConstants.HeaderBytes.Length);
-            _ = stream.Seek(-Png.PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+            ref IconDirEntry entry = ref this.Entries[i];
 
-            bool isPng = flag.SequenceEqual(Png.PngConstants.HeaderBytes);
-
-            Image<TPixel> img = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
-            IconAssert.NotSquare(img.Size);
-            frames.Add((img, isPng, i));
-            if (isPng && img.Size.Width > this.Dimensions.Width)
+            // If we hit the end of the stream we should break.
+            if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
             {
-                this.Dimensions = img.Size;
+                break;
             }
-        }
 
-        ImageMetadata metadata = new();
-        return new(this.Options.Configuration, metadata, frames.Select(i =>
-        {
-            ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
-            ImageFrame<TPixel> source = i.Image.Frames.RootFrameUnsafe;
+            // There should always be enough bytes for this regardless of the entry type.
+            if (stream.Read(flag) != PngConstants.HeaderBytes.Length)
+            {
+                break;
+            }
+
+            // Reset the stream position.
+            stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+
+            bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
+            using Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
+
+            ImageFrame<TPixel> source = temp.Frames.RootFrameUnsafe;
+            ImageFrame<TPixel> target = i == 0 ? result.Frames.RootFrameUnsafe : result.Frames.CreateFrame();
+
+            // Draw the new frame at position 0,0. We capture the dimensions for cropping during encoding
+            // via the icon entry.
             for (int h = 0; h < source.Height; h++)
             {
                 source.PixelBuffer.DangerousGetRowSpan(h).CopyTo(target.PixelBuffer.DangerousGetRowSpan(h));
             }
 
-            if (i.IsPng)
+            // Copy the format specific metadata to the image.
+            if (isPng)
             {
-                target.Metadata.UnsafeSetFormatMetadata(Png.PngFormat.Instance, i.Image.Metadata.GetPngMetadata());
+                if (i == 0)
+                {
+                    result.Metadata.SetFormatMetadata(PngFormat.Instance, temp.Metadata.GetPngMetadata());
+                }
+
+                target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngFrameMetadata());
             }
-            else
+            else if (i == 0)
             {
-                target.Metadata.UnsafeSetFormatMetadata(Bmp.BmpFormat.Instance, i.Image.Metadata.GetBmpMetadata());
+                // Bmp does not contain frame specific metadata.
+                result.Metadata.SetFormatMetadata(BmpFormat.Instance, temp.Metadata.GetBmpMetadata());
             }
 
-            this.GetFrameMetadata(target.Metadata).FromIconDirEntry(this.Entries[i.Index]);
+            // TODO: The inheriting decoder should be responsible for setting the actual data (FromIconDirEntry)
+            // so we can avoid the protected Field1 and Field2 properties and use strong typing.
+            this.GetFrameMetadata(target.Metadata).FromIconDirEntry(entry);
+        }
 
-            i.Image.Dispose();
-            return target;
-        }).ToArray());
+        return result;
     }
 
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -84,11 +98,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         ImageFrameMetadata[] frames = new ImageFrameMetadata[this.FileHeader.Count];
         for (int i = 0; i < frames.Length; i++)
         {
+            // TODO: Use the Identify methods in each decoder to return the
+            // format specific metadata for the image and frame.
             frames[i] = new();
             IconFrameMetadata icoFrameMetadata = this.GetFrameMetadata(frames[i]);
             icoFrameMetadata.FromIconDirEntry(this.Entries[i]);
         }
 
+        // TODO: Use real values from the metadata.
         return new(new(32), new(0), metadata, frames);
     }
 
@@ -96,6 +113,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
     protected void ReadHeader(Stream stream)
     {
+        // TODO: Check length and throw if the header cannot be read.
         _ = Read(stream, out this.fileHeader, IconDir.Size);
         this.Entries = new IconDirEntry[this.FileHeader.Count];
         for (int i = 0; i < this.Entries.Length; i++)
@@ -103,15 +121,39 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             _ = Read(stream, out this.Entries[i], IconDirEntry.Size);
         }
 
-        this.Dimensions = new(
-             this.Entries.Max(i => i.Width),
-             this.Entries.Max(i => i.Height));
+        int width = 0;
+        int height = 0;
+        foreach (IconDirEntry entry in this.Entries)
+        {
+            if (entry.Width == 0)
+            {
+                width = 256;
+            }
+
+            if (entry.Height == 0)
+            {
+                height = 256;
+            }
+
+            if (width == 256 && height == 256)
+            {
+                break;
+            }
+
+            width = Math.Max(width, entry.Width);
+            height = Math.Max(height, entry.Height);
+        }
+
+        this.Dimensions = new(width, height);
     }
 
     private static int Read<T>(Stream stream, out T data, int size)
         where T : unmanaged
     {
+        // TODO: Use explicit parsing methods for each T type.
+        // See PngHeader.Parse() for example.
         Span<byte> buffer = stackalloc byte[size];
+
         _ = IconAssert.EndOfStream(stream.Read(buffer), size);
         data = MemoryMarshal.Cast<byte, T>(buffer)[0];
         return size;
@@ -121,15 +163,16 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
     {
         if (isPng)
         {
-            return new Png.PngDecoderCore(this.Options);
+            return new PngDecoderCore(this.Options);
         }
         else
         {
-            return new Bmp.BmpDecoderCore(new()
+            return new BmpDecoderCore(new()
             {
+                GeneralOptions = this.Options,
                 ProcessedAlphaMask = true,
                 SkipFileHeader = true,
-                IsDoubleHeight = true,
+                UseDoubleHeight = true,
             });
         }
     }

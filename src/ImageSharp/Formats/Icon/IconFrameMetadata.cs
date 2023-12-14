@@ -5,6 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 
 /// <summary>
 /// IconFrameMetadata
+/// TODO: Delete this. Treat the individual metadata types as separate types so we can avoid Field1, Field2 and use strong typing with constaints.
 /// </summary>
 public abstract class IconFrameMetadata : IDeepCloneable
 {

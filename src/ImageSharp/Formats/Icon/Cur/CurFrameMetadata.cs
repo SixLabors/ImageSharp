@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Icon.Cur;
 
 /// <summary>
-/// IcoFrameMetadata
+/// IcoFrameMetadata. TODO: Remove base class and merge into this class.
 /// </summary>
 public class CurFrameMetadata : IconFrameMetadata, IDeepCloneable<CurFrameMetadata>, IDeepCloneable
 {

@@ -3,6 +3,8 @@
 
 using SixLabors.ImageSharp.Metadata;
 
+// TODO: flatten namespace.
+// namespace SixLabors.ImageSharp.Formats.Ico;
 namespace SixLabors.ImageSharp.Formats.Icon.Ico;
 
 internal sealed class IcoDecoderCore : IconDecoderCore

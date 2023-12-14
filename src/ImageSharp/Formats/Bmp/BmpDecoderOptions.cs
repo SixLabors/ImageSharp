@@ -18,10 +18,10 @@ public sealed class BmpDecoderOptions : ISpecializedDecoderOptions
     public RleSkippedPixelHandling RleSkippedPixelHandling { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the additional AlphaMask is processed at decoding time.
+    /// Gets a value indicating whether the additional alpha mask is processed at decoding time.
     /// </summary>
     /// <remarks>
-    /// It will be used at IcoDecoder.
+    /// Used by the icon decoder.
     /// </remarks>
     internal bool ProcessedAlphaMask { get; init; }
 
@@ -29,15 +29,15 @@ public sealed class BmpDecoderOptions : ISpecializedDecoderOptions
     /// Gets a value indicating whether to skip loading the BMP file header.
     /// </summary>
     /// <remarks>
-    /// It will be used at IcoDecoder.
+    /// Used by the icon decoder.
     /// </remarks>
     internal bool SkipFileHeader { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the height is double of true height.
+    /// Gets a value indicating whether to treat the height as double of true height.
     /// </summary>
     /// <remarks>
-    /// It will be used at IcoDecoder.
+    /// Used by the icon decoder.
     /// </remarks>
-    internal bool IsDoubleHeight { get; init; }
+    internal bool UseDoubleHeight { get; init; }
 }

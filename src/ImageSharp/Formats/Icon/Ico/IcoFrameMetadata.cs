@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Icon.Ico;
 
 /// <summary>
-/// IcoFrameMetadata
+/// IcoFrameMetadata. TODO: Remove base class and merge into this class.
 /// </summary>
 public class IcoFrameMetadata : IconFrameMetadata, IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
 {
@@ -38,11 +38,9 @@ public class IcoFrameMetadata : IconFrameMetadata, IDeepCloneable<IcoFrameMetada
     }
 
     /// <summary>
-    /// Gets or sets Specifies bits per pixel.
+    /// Gets or sets the bits per pixel.
+    /// TODO: This needs to be constrained and calculated using the metadata returned from the png/bmp.
     /// </summary>
-    /// <remarks>
-    /// It may used by Encoder.
-    /// </remarks>
     public ushort BitCount { get => this.Field2; set => this.Field2 = value; }
 
     /// <inheritdoc/>

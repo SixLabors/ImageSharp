@@ -71,7 +71,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The file header containing general information.
     /// </summary>
-    private BmpFileHeader fileHeader;
+    private BmpFileHeader? fileHeader;
 
     /// <summary>
     /// Indicates which bitmap file marker was read.
@@ -99,6 +99,15 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// </summary>
     private readonly RleSkippedPixelHandling rleSkippedPixelHandling;
 
+    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
+    private readonly bool processedAlphaMask;
+
+    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
+    private readonly bool skipFileHeader;
+
+    /// <inheritdoc cref="BmpDecoderOptions.IsDoubleHeight"/>
+    private readonly bool isDoubleHeight;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
     /// </summary>
@@ -109,6 +118,9 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         this.rleSkippedPixelHandling = options.RleSkippedPixelHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.processedAlphaMask = options.ProcessedAlphaMask;
+        this.skipFileHeader = options.SkipFileHeader;
+        this.isDoubleHeight = options.IsDoubleHeight;
     }
 
     /// <inheritdoc />
@@ -132,38 +144,44 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
             switch (this.infoHeader.Compression)
             {
-                case BmpCompression.RGB:
-                    if (this.infoHeader.BitsPerPixel == 32)
-                    {
-                        if (this.bmpMetadata.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
-                        {
-                            this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                        }
-                        else
-                        {
-                            this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                        }
-                    }
-                    else if (this.infoHeader.BitsPerPixel == 24)
-                    {
-                        this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                    }
-                    else if (this.infoHeader.BitsPerPixel == 16)
-                    {
-                        this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                    }
-                    else if (this.infoHeader.BitsPerPixel <= 8)
-                    {
-                        this.ReadRgbPalette(
-                            stream,
-                            pixels,
-                            palette,
-                            this.infoHeader.Width,
-                            this.infoHeader.Height,
-                            this.infoHeader.BitsPerPixel,
-                            bytesPerColorMapEntry,
-                            inverted);
-                    }
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 32 && this.bmpMetadata.InfoHeaderType is BmpInfoHeaderType.WinVersion3:
+                    this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                    break;
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 32:
+                    this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                    break;
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 24:
+                    this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                    break;
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 16:
+                    this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                    break;
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is <= 8 && this.processedAlphaMask:
+                    this.ReadRgbPaletteWithAlphaMask(
+                        stream,
+                        pixels,
+                        palette,
+                        this.infoHeader.Width,
+                        this.infoHeader.Height,
+                        this.infoHeader.BitsPerPixel,
+                        bytesPerColorMapEntry,
+                        inverted);
+
+                    break;
+                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is <= 8:
+                    this.ReadRgbPalette(
+                        stream,
+                        pixels,
+                        palette,
+                        this.infoHeader.Width,
+                        this.infoHeader.Height,
+                        this.infoHeader.BitsPerPixel,
+                        bytesPerColorMapEntry,
+                        inverted);
 
                     break;
 
@@ -839,6 +857,108 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         }
     }
 
+    /// <inheritdoc cref="ReadRgbPalette"/>
+    private void ReadRgbPaletteWithAlphaMask<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bitsPerPixel, int bytesPerColorMapEntry, bool inverted)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Pixels per byte (bits per pixel).
+        int ppb = 8 / bitsPerPixel;
+
+        int arrayWidth = (width + ppb - 1) / ppb;
+
+        // Bit mask
+        int mask = 0xFF >> (8 - bitsPerPixel);
+
+        // Rows are aligned on 4 byte boundaries.
+        int padding = arrayWidth % 4;
+        if (padding != 0)
+        {
+            padding = 4 - padding;
+        }
+
+        Bgra32[,] image = new Bgra32[height, width];
+        using (IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(arrayWidth + padding, AllocationOptions.Clean))
+        {
+            Span<byte> rowSpan = row.GetSpan();
+
+            for (int y = 0; y < height; y++)
+            {
+                int newY = Invert(y, height, inverted);
+                if (stream.Read(rowSpan) == 0)
+                {
+                    BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for a pixel row!");
+                }
+
+                int offset = 0;
+
+                for (int x = 0; x < arrayWidth; x++)
+                {
+                    int colOffset = x * ppb;
+                    for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
+                    {
+                        int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
+
+                        image[newY, newX].FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
+                    }
+
+                    offset++;
+                }
+            }
+        }
+
+        arrayWidth = width / 8;
+        padding = arrayWidth % 4;
+        if (padding != 0)
+        {
+            padding = 4 - padding;
+        }
+
+        for (int y = 0; y < height; y++)
+        {
+            int newY = Invert(y, height, inverted);
+
+            for (int i = 0; i < arrayWidth; i++)
+            {
+                int x = i * 8;
+                int and = stream.ReadByte();
+                if (and is -1)
+                {
+                    throw new EndOfStreamException();
+                }
+
+                for (int j = 0; j < 8; j++)
+                {
+                    SetAlpha(ref image[newY, x + j], and, j);
+                }
+            }
+
+            stream.Skip(padding);
+        }
+
+        for (int y = 0; y < height; y++)
+        {
+            int newY = Invert(y, height, inverted);
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
+
+            for (int x = 0; x < width; x++)
+            {
+                pixelRow[x].FromBgra32(image[newY, x]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Set pixel's alpha with alpha mask.
+    /// </summary>
+    /// <param name="pixel">Bgra32 pixel.</param>
+    /// <param name="mask">alpha mask.</param>
+    /// <param name="index">bit index of pixel.</param>
+    private static void SetAlpha(ref Bgra32 pixel, in int mask, in int index)
+    {
+        bool isTransparently = (mask & (0b10000000 >> index)) is not 0;
+        pixel.A = isTransparently ? byte.MinValue : byte.MaxValue;
+    }
+
     /// <summary>
     /// Reads the 16 bit color palette from the stream.
     /// </summary>
@@ -1333,6 +1453,11 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             this.metadata.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetadata.DefaultVerticalResolution));
         }
 
+        if (this.isDoubleHeight)
+        {
+            this.infoHeader.Height >>= 1;
+        }
+
         ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
         this.bmpMetadata = this.metadata.GetBmpMetadata();
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
@@ -1362,9 +1487,9 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                 // The bitmap file header of the first image follows the array header.
                 stream.Read(buffer, 0, BmpFileHeader.Size);
                 this.fileHeader = BmpFileHeader.Parse(buffer);
-                if (this.fileHeader.Type != BmpConstants.TypeMarkers.Bitmap)
+                if (this.fileHeader.Value.Type != BmpConstants.TypeMarkers.Bitmap)
                 {
-                    BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Type}'.");
+                    BmpThrowHelper.ThrowNotSupportedException($"Unsupported bitmap file inside a BitmapArray file. File header bitmap type marker '{this.fileHeader.Value.Type}'.");
                 }
 
                 break;
@@ -1387,7 +1512,11 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     [MemberNotNull(nameof(bmpMetadata))]
     private int ReadImageHeaders(BufferedReadStream stream, out bool inverted, out byte[] palette)
     {
-        this.ReadFileHeader(stream);
+        if (!this.skipFileHeader)
+        {
+            this.ReadFileHeader(stream);
+        }
+
         this.ReadInfoHeader(stream);
 
         // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
@@ -1411,7 +1540,21 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                 switch (this.fileMarkerType)
                 {
                     case BmpFileMarkerType.Bitmap:
-                        colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                        if (this.fileHeader.HasValue)
+                        {
+                            colorMapSizeBytes = this.fileHeader.Value.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
+                        }
+                        else
+                        {
+                            colorMapSizeBytes = this.infoHeader.ClrUsed;
+                            if (colorMapSizeBytes is 0 && this.infoHeader.BitsPerPixel is <= 8)
+                            {
+                                colorMapSizeBytes = ColorNumerics.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
+                            }
+
+                            colorMapSizeBytes *= 4;
+                        }
+
                         int colorCountForBitDepth = ColorNumerics.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                         bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
 
@@ -1442,7 +1585,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         {
             // Usually the color palette is 1024 byte (256 colors * 4), but the documentation does not mention a size limit.
             // Make sure, that we will not read pass the bitmap offset (starting position of image data).
-            if (stream.Position > this.fileHeader.Offset - colorMapSizeBytes)
+            if (this.fileHeader.HasValue && stream.Position > this.fileHeader.Value.Offset - colorMapSizeBytes)
             {
                 BmpThrowHelper.ThrowInvalidImageContentException(
                     $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
@@ -1456,7 +1599,12 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             }
         }
 
-        int skipAmount = this.fileHeader.Offset - (int)stream.Position;
+        int skipAmount = 0;
+        if (this.fileHeader.HasValue)
+        {
+            skipAmount = this.fileHeader.Value.Offset - (int)stream.Position;
+        }
+
         if ((skipAmount + (int)stream.Position) > stream.Length)
         {
             BmpThrowHelper.ThrowInvalidImageContentException("Invalid file header offset found. Offset is greater than the stream length.");

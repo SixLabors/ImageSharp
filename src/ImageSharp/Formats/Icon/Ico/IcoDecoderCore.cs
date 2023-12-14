@@ -14,5 +14,6 @@ internal sealed class IcoDecoderCore : IconDecoderCore
     {
     }
 
-    protected override IconFrameMetadata GetFrameMetadata(ImageFrameMetadata metadata) => metadata.GetIcoMetadata();
+    protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry)
+        => metadata.GetIcoMetadata().FromIconDirEntry(entry);
 }

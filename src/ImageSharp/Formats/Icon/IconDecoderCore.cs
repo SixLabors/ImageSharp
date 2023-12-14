@@ -93,9 +93,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
                 bmpMetadata = x.Image.Metadata.GetBmpMetadata();
             }
 
-            // TODO: The inheriting decoder should be responsible for setting the actual data (FromIconDirEntry)
-            // so we can avoid the protected Field1 and Field2 properties and use strong typing.
-            this.GetFrameMetadata(target.Metadata).FromIconDirEntry(this.Entries[x.Index]);
+            this.SetFrameMetadata(target.Metadata, this.Entries[x.Index]);
 
             x.Image.Dispose();
 
@@ -127,15 +125,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             // TODO: Use the Identify methods in each decoder to return the
             // format specific metadata for the image and frame.
             frames[i] = new();
-            IconFrameMetadata icoFrameMetadata = this.GetFrameMetadata(frames[i]);
-            icoFrameMetadata.FromIconDirEntry(this.Entries[i]);
+            this.SetFrameMetadata(frames[i], this.Entries[i]);
         }
 
         // TODO: Use real values from the metadata.
         return new(new(32), new(0), metadata, frames);
     }
 
-    protected abstract IconFrameMetadata GetFrameMetadata(ImageFrameMetadata metadata);
+    protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry);
 
     protected void ReadHeader(Stream stream)
     {

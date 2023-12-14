@@ -25,4 +25,7 @@ internal struct IconDirEntry
     public uint BytesInRes;
 
     public uint ImageOffset;
+
+    public static IconDirEntry Parse(in ReadOnlySpan<byte> data)
+        => MemoryMarshal.Cast<byte, IconDirEntry>(data)[0];
 }

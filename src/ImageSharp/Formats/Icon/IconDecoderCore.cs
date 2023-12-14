@@ -139,12 +139,18 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
     protected void ReadHeader(Stream stream)
     {
-        // TODO: Check length and throw if the header cannot be read.
-        _ = Read(stream, out this.fileHeader, IconDir.Size);
+        Span<byte> buffer = stackalloc byte[IconDirEntry.Size];
+
+        // ICONDIR
+        _ = IconAssert.EndOfStream(stream.Read(buffer[..IconDir.Size]), IconDir.Size);
+        this.fileHeader = IconDir.Parse(buffer);
+
+        // ICONDIRENTRY
         this.Entries = new IconDirEntry[this.FileHeader.Count];
         for (int i = 0; i < this.Entries.Length; i++)
         {
-            _ = Read(stream, out this.Entries[i], IconDirEntry.Size);
+            _ = IconAssert.EndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
+            this.Entries[i] = IconDirEntry.Parse(buffer);
         }
 
         int width = 0;
@@ -173,18 +179,6 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         }
 
         this.Dimensions = new(width, height);
-    }
-
-    private static int Read<T>(Stream stream, out T data, int size)
-        where T : unmanaged
-    {
-        // TODO: Use explicit parsing methods for each T type.
-        // See PngHeader.Parse() for example.
-        Span<byte> buffer = stackalloc byte[size];
-
-        _ = IconAssert.EndOfStream(stream.Read(buffer), size);
-        data = MemoryMarshal.Cast<byte, T>(buffer)[0];
-        return size;
     }
 
     private IImageDecoderInternals GetDecoder(bool isPng)

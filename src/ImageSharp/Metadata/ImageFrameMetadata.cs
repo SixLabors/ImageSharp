@@ -99,6 +99,11 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         return newMeta;
     }
 
+    internal void UnsafeSetFormatMetadata(
+        IImageFormat key,
+        IDeepCloneable value)
+        => this.formatMetadata[key] = value;
+
     /// <summary>
     /// Gets the metadata value associated with the specified key.
     /// </summary>

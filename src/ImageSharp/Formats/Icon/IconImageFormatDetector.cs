@@ -38,7 +38,7 @@ public class IconImageFormatDetector : IImageFormatDetector
         IconDir dir = IconDir.Parse(header);
         if (dir is not { Reserved: 0 } // Should be 0.
             or not { Type: IconFileType.ICO or IconFileType.CUR } // Unknown Type.
-            or { Count: 0 }) // Should not be 0.
+            or { Count: 0 })
         {
             return null;
         }

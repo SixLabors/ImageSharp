@@ -6,13 +6,8 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Cur;
 
-internal sealed class CurDecoderCore : IconDecoderCore
+internal sealed class CurDecoderCore(DecoderOptions options) : IconDecoderCore(options)
 {
-    public CurDecoderCore(DecoderOptions options)
-        : base(options)
-    {
-    }
-
     protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, Bmp.BmpBitsPerPixel bitsPerPixel)
     {
         CurFrameMetadata curFrameMetadata = metadata.GetCurMetadata();

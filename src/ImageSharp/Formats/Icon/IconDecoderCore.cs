@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
@@ -10,19 +9,17 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconDecoderCore : IImageDecoderInternals
+internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderInternals
 {
     private IconDir fileHeader;
 
-    public IconDecoderCore(DecoderOptions options) => this.Options = options;
-
-    public DecoderOptions Options { get; }
+    public DecoderOptions Options { get; } = options;
 
     public Size Dimensions { get; private set; }
 
     protected IconDir FileHeader { get => this.fileHeader; private set => this.fileHeader = value; }
 
-    protected IconDirEntry[] Entries { get; private set; } = Array.Empty<IconDirEntry>();
+    protected IconDirEntry[] Entries { get; private set; } = [];
 
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -52,7 +49,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
 
             // Reset the stream position.
-            stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+            _ = stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
 
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
@@ -86,7 +83,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
                 }
 
                 // Bmp does not contain frame specific metadata.
-                target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngFrameMetadata());
+                target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngMetadata());
             }
             else
             {
@@ -137,7 +134,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
 
             // Reset the stream position.
-            stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+            _ = stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
 
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
@@ -210,7 +207,10 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
     {
         if (isPng)
         {
-            return new PngDecoderCore(this.Options);
+            return new PngDecoderCore(new()
+            {
+                GeneralOptions = this.Options,
+            });
         }
         else
         {

@@ -32,7 +32,8 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         this.ReadHeader(stream);
 
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
-        Image<TPixel> result = new(this.Dimensions.Width, this.Dimensions.Height);
+
+        List<(Image<TPixel> Image, bool IsPng, int Index)> decodedEntries = new(this.Entries.Length);
 
         for (int i = 0; i < this.Entries.Length; i++)
         {
@@ -54,37 +55,62 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
 
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
-            using Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
 
-            ImageFrame<TPixel> source = temp.Frames.RootFrameUnsafe;
-            ImageFrame<TPixel> target = i == 0 ? result.Frames.RootFrameUnsafe : result.Frames.CreateFrame();
+            // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
+            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
+            decodedEntries.Add((temp, isPng, i));
 
-            // Draw the new frame at position 0,0. We capture the dimensions for cropping during encoding
-            // via the icon entry.
-            for (int h = 0; h < source.Height; h++)
+            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
+            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
+            this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
+        }
+
+        ImageMetadata metadata = new();
+        BmpMetadata? bmpMetadata = null;
+        PngMetadata? pngMetadata = null;
+        Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
+        {
+            ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
+            ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
+            for (int y = 0; y < source.Height; y++)
             {
-                source.PixelBuffer.DangerousGetRowSpan(h).CopyTo(target.PixelBuffer.DangerousGetRowSpan(h));
+                source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
             }
 
-            // Copy the format specific metadata to the image.
-            if (isPng)
+            // Copy the format specific frame metadata to the image.
+            if (x.IsPng)
             {
-                if (i == 0)
+                if (x.Index == 0)
                 {
-                    result.Metadata.SetFormatMetadata(PngFormat.Instance, temp.Metadata.GetPngMetadata());
+                    pngMetadata = x.Image.Metadata.GetPngMetadata();
                 }
 
+                // Bmp does not contain frame specific metadata.
                 target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngFrameMetadata());
             }
-            else if (i == 0)
+            else if (x.Index == 0)
             {
-                // Bmp does not contain frame specific metadata.
-                result.Metadata.SetFormatMetadata(BmpFormat.Instance, temp.Metadata.GetBmpMetadata());
+                bmpMetadata = x.Image.Metadata.GetBmpMetadata();
             }
 
             // TODO: The inheriting decoder should be responsible for setting the actual data (FromIconDirEntry)
             // so we can avoid the protected Field1 and Field2 properties and use strong typing.
-            this.GetFrameMetadata(target.Metadata).FromIconDirEntry(entry);
+            this.GetFrameMetadata(target.Metadata).FromIconDirEntry(this.Entries[x.Index]);
+
+            x.Image.Dispose();
+
+            return target;
+        }).ToArray());
+
+        // Copy the format specific metadata to the image.
+        if (bmpMetadata != null)
+        {
+            result.Metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
+        }
+
+        if (pngMetadata != null)
+        {
+            result.Metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
         }
 
         return result;
@@ -125,6 +151,8 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         int height = 0;
         foreach (IconDirEntry entry in this.Entries)
         {
+            // Since Windows 95 size of an image in the ICONDIRENTRY structure might
+            // be set to zero, which means 256 pixels.
             if (entry.Width == 0)
             {
                 width = 256;

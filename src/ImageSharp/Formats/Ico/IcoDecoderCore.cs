@@ -6,13 +6,8 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Ico;
 
-internal sealed class IcoDecoderCore : IconDecoderCore
+internal sealed class IcoDecoderCore(DecoderOptions options) : IconDecoderCore(options)
 {
-    public IcoDecoderCore(DecoderOptions options)
-        : base(options)
-    {
-    }
-
     protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, Bmp.BmpBitsPerPixel bitsPerPixel)
     {
         IcoFrameMetadata icoFrameMetadata = metadata.GetIcoMetadata();

@@ -1121,4 +1121,14 @@ public static class TestImages
         public const string TestCardRGBA = "Qoi/testcard_rgba.qoi";
         public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
     }
+
+    public static class Ico
+    {
+        public const string Flutter = "Icon/flutter.ico";
+    }
+
+    public static class Cur
+    {
+        public const string WindowsMouse = "Icon/aero_arrow.cur";
+    }
 }

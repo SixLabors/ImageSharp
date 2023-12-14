@@ -88,7 +88,8 @@ public class IcoFrameMetadata : IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
         BitCount = this.Compression switch
         {
             IconFrameCompression.Bmp => (ushort)this.BitsPerPixel,
-            _ => 0,
+            IconFrameCompression.Png => 32,
+            _ => throw new NotSupportedException($"Value: {this.Compression}"),
         },
     };
 }

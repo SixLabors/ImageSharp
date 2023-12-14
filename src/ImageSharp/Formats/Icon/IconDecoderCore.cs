@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
@@ -12,14 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderInternals
 {
     private IconDir fileHeader;
+    private IconDirEntry[]? entries;
 
     public DecoderOptions Options { get; } = options;
 
     public Size Dimensions { get; private set; }
-
-    protected IconDir FileHeader { get => this.fileHeader; private set => this.fileHeader = value; }
-
-    protected IconDirEntry[] Entries { get; private set; } = [];
 
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -30,11 +28,11 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
 
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
-        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries = new(this.Entries.Length);
+        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries = new(this.entries.Length);
 
-        for (int i = 0; i < this.Entries.Length; i++)
+        for (int i = 0; i < this.entries.Length; i++)
         {
-            ref IconDirEntry entry = ref this.Entries[i];
+            ref IconDirEntry entry = ref this.entries[i];
 
             // If we hit the end of the stream we should break.
             if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
@@ -90,7 +88,7 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
                 bitsPerPixel = x.Image.Metadata.GetBmpMetadata().BitsPerPixel;
             }
 
-            this.SetFrameMetadata(target.Metadata, this.Entries[x.Index], x.Compression, bitsPerPixel);
+            this.SetFrameMetadata(target.Metadata, this.entries[x.Index], x.Compression, bitsPerPixel);
 
             x.Image.Dispose();
 
@@ -115,11 +113,11 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
         ImageMetadata metadata = new();
-        ImageFrameMetadata[] frames = new ImageFrameMetadata[this.FileHeader.Count];
+        ImageFrameMetadata[] frames = new ImageFrameMetadata[this.fileHeader.Count];
         for (int i = 0; i < frames.Length; i++)
         {
             BmpBitsPerPixel bitsPerPixel = default;
-            ref IconDirEntry entry = ref this.Entries[i];
+            ref IconDirEntry entry = ref this.entries[i];
 
             // If we hit the end of the stream we should break.
             if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
@@ -147,7 +145,7 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
                 bitsPerPixel = temp.Metadata.GetBmpMetadata().BitsPerPixel;
             }
 
-            this.SetFrameMetadata(frames[i], this.Entries[i], isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, bitsPerPixel);
+            this.SetFrameMetadata(frames[i], this.entries[i], isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, bitsPerPixel);
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
@@ -159,6 +157,7 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
 
     protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel);
 
+    [MemberNotNull(nameof(entries))]
     protected void ReadHeader(Stream stream)
     {
         Span<byte> buffer = stackalloc byte[IconDirEntry.Size];
@@ -168,16 +167,16 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
         this.fileHeader = IconDir.Parse(buffer);
 
         // ICONDIRENTRY
-        this.Entries = new IconDirEntry[this.FileHeader.Count];
-        for (int i = 0; i < this.Entries.Length; i++)
+        this.entries = new IconDirEntry[this.fileHeader.Count];
+        for (int i = 0; i < this.entries.Length; i++)
         {
             _ = IconAssert.EndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
-            this.Entries[i] = IconDirEntry.Parse(buffer);
+            this.entries[i] = IconDirEntry.Parse(buffer);
         }
 
         int width = 0;
         int height = 0;
-        foreach (IconDirEntry entry in this.Entries)
+        foreach (IconDirEntry entry in this.entries)
         {
             // Since Windows 95 size of an image in the ICONDIRENTRY structure might
             // be set to zero, which means 256 pixels.

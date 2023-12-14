@@ -133,6 +133,9 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        // Stream may not at 0.
+        long basePosition = stream.Position;
+
         Configuration configuration = image.Configuration;
         ImageMetadata metadata = image.Metadata;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
@@ -187,7 +190,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
         this.WriteImage(configuration, stream, image);
-        WriteColorProfile(stream, iccProfileData, buffer);
+        WriteColorProfile(stream, iccProfileData, buffer, basePosition);
 
         stream.Flush();
     }
@@ -271,16 +274,20 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="stream">The stream to write to.</param>
     /// <param name="iccProfileData">The color profile data.</param>
     /// <param name="buffer">The buffer.</param>
-    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer)
+    /// <param name="basePosition">The Stream may not be start with 0.</param>
+    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer, long basePosition)
     {
         if (iccProfileData != null)
         {
             // The offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
             int streamPositionAfterImageData = (int)stream.Position - BmpFileHeader.Size;
             stream.Write(iccProfileData);
+            long position = stream.Position; // Storage Position
             BinaryPrimitives.WriteInt32LittleEndian(buffer, streamPositionAfterImageData);
-            stream.Position = BmpFileHeader.Size + 112;
+            _ = stream.Seek(basePosition, SeekOrigin.Begin);
+            _ = stream.Seek(BmpFileHeader.Size + 112, SeekOrigin.Current);
             stream.Write(buffer[..4]);
+            _ = stream.Seek(position, SeekOrigin.Begin); // Reset Position
         }
     }
 

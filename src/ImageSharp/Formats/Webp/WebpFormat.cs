@@ -18,7 +18,7 @@ public sealed class WebpFormat : IImageFormat<WebpMetadata, WebpFrameMetadata>
     public static WebpFormat Instance { get; } = new WebpFormat();
 
     /// <inheritdoc/>
-    public string Name => "Webp";
+    public string Name => "WEBP";
 
     /// <inheritdoc/>
     public string DefaultMimeType => "image/webp";

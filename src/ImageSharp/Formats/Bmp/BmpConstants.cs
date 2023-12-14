@@ -11,7 +11,12 @@ internal static class BmpConstants
     /// <summary>
     /// The list of mimetypes that equate to a bmp.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/bmp", "image/x-windows-bmp" };
+    public static readonly IEnumerable<string> MimeTypes = new[]
+    {
+        "image/bmp",
+        "image/x-windows-bmp",
+        "image/x-win-bitmap"
+    };
 
     /// <summary>
     /// The list of file extensions that equate to a bmp.

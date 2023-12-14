@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Metadata;
 
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
 /// Extension methods for the <see cref="ImageMetadata"/> type.

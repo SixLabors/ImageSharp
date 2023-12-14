@@ -14,5 +14,5 @@ internal sealed class CurDecoderCore : IconDecoderCore
     {
     }
 
-    protected override IconFrameMetadata GetFrameMetadata(ImageFrameMetadata metadata) => metadata.GetCurMetadata();
+    protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry) => metadata.GetCurMetadata().FromIconDirEntry(entry);
 }

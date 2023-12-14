@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Icon.Cur;
+using SixLabors.ImageSharp.Formats.Icon.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
@@ -222,5 +224,7 @@ public sealed class Configuration
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
-            new QoiConfigurationModule());
+            new QoiConfigurationModule(),
+            new IcoConfigurationModule(),
+            new CurConfigurationModule());
 }

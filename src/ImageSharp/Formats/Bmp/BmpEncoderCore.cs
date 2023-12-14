@@ -3,16 +3,13 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.IO;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
@@ -380,6 +377,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 this.Write1BitPixelData(configuration, stream, image);
                 break;
         }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
+        }
     }
 
     private IMemoryOwner<byte> AllocateRow(int width, int bytesPerPixel)
@@ -487,11 +489,6 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         else
         {
             this.Write8BitColor(configuration, stream, image, colorPalette);
-        }
-
-        if (this.processedAlphaMask)
-        {
-            ProcessedAlphaMask(stream, image);
         }
     }
 
@@ -610,11 +607,6 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
-
-        if (this.processedAlphaMask)
-        {
-            ProcessedAlphaMask(stream, image);
-        }
     }
 
     /// <summary>
@@ -672,11 +664,6 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
-
-        if (this.processedAlphaMask)
-        {
-            ProcessedAlphaMask(stream, image);
-        }
     }
 
     /// <summary>
@@ -727,11 +714,6 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
-
-        if (this.processedAlphaMask)
-        {
-            ProcessedAlphaMask(stream, image);
-        }
     }
 
     /// <summary>
@@ -779,7 +761,6 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private static void ProcessedAlphaMask<TPixel>(Stream stream, Image<TPixel> image)
          where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 rgba = default;
         int arrayWidth = image.Width / 8;
         int padding = arrayWidth % 4;
         if (padding is not 0)
@@ -791,19 +772,31 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         for (int y = image.Height - 1; y >= 0; y--)
         {
             mask.Clear();
-            for (int x = 0; x < image.Width; x++)
+            Span<TPixel> row = image.GetRootFramePixelBuffer().DangerousGetRowSpan(y);
+
+            for (int i = 0; i < arrayWidth; i++)
             {
-                int bit = x % 8;
-                int i = x / 8;
-                TPixel pixel = image[x, y];
-                pixel.ToRgba32(ref rgba);
-                if (rgba.A is not 0)
+                int x = i * 8;
+
+                for (int j = 0; j < 8; j++)
                 {
-                    mask[i] &= unchecked((byte)(0b10000000 >> bit));
+                    WriteAlphaMask(row[x + j], ref mask[i], j);
                 }
             }
 
             stream.Write(mask);
+            stream.Skip(padding);
+        }
+    }
+
+    private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
+         where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Rgba32 rgba = default;
+        pixel.ToRgba32(ref rgba);
+        if (rgba.A is 0)
+        {
+            mask |= unchecked((byte)(0b10000000 >> index));
         }
     }
 }

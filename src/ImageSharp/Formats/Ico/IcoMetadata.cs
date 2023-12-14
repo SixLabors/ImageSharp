@@ -1,15 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
 /// Provides Ico specific metadata information for the image.
 /// </summary>
-public class CurMetadata : IDeepCloneable<CurMetadata>, IDeepCloneable
+public class IcoMetadata : IDeepCloneable<IcoMetadata>, IDeepCloneable
 {
     /// <inheritdoc/>
-    public CurMetadata DeepClone() => new();
+    public IcoMetadata DeepClone() => new();
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

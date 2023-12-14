@@ -1,45 +1,41 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+using SixLabors.ImageSharp.Formats.Icon;
+
+namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// IcoFrameMetadata.
+/// IcoFrameMetadata. TODO: Remove base class and merge into this class.
 /// </summary>
-public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
+public class IcoFrameMetadata : IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class.
+    /// Initializes a new instance of the <see cref="IcoFrameMetadata"/> class.
     /// </summary>
-    public CurFrameMetadata()
+    public IcoFrameMetadata()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class.
+    /// Initializes a new instance of the <see cref="IcoFrameMetadata"/> class.
     /// </summary>
     /// <param name="width">width</param>
     /// <param name="height">height</param>
     /// <param name="colorCount">colorCount</param>
-    /// <param name="hotspotX">hotspotX</param>
-    /// <param name="hotspotY">hotspotY</param>
-    public CurFrameMetadata(byte width, byte height, byte colorCount, ushort hotspotX, ushort hotspotY)
+    public IcoFrameMetadata(byte width, byte height, byte colorCount)
     {
         this.EncodingWidth = width;
         this.EncodingHeight = height;
         this.ColorCount = colorCount;
-        this.HotspotX = hotspotX;
-        this.HotspotY = hotspotY;
     }
 
-    /// <inheritdoc cref="CurFrameMetadata()"/>
-    public CurFrameMetadata(CurFrameMetadata metadata)
+    /// <inheritdoc cref="IcoFrameMetadata()"/>
+    public IcoFrameMetadata(IcoFrameMetadata metadata)
     {
         this.EncodingWidth = metadata.EncodingWidth;
         this.EncodingHeight = metadata.EncodingHeight;
         this.ColorCount = metadata.ColorCount;
-        this.HotspotX = metadata.HotspotX;
-        this.HotspotY = metadata.HotspotY;
         this.Compression = metadata.Compression;
     }
 
@@ -54,16 +50,6 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     /// </summary>
     // TODO: BmpMetadata does not supported palette yet.
     public byte ColorCount { get; set; }
-
-    /// <summary>
-    /// Gets or sets Specifies the horizontal coordinates of the hotspot in number of pixels from the left.
-    /// </summary>
-    public ushort HotspotX { get; set; }
-
-    /// <summary>
-    /// Gets or sets Specifies the vertical coordinates of the hotspot in number of pixels from the top.
-    /// </summary>
-    public ushort HotspotY { get; set; }
 
     /// <summary>
     /// Gets or sets Height field. <br />
@@ -81,7 +67,7 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     public Bmp.BmpBitsPerPixel BitsPerPixel { get; set; } = Bmp.BmpBitsPerPixel.Pixel24;
 
     /// <inheritdoc/>
-    public CurFrameMetadata DeepClone() => new(this);
+    public IcoFrameMetadata DeepClone() => new(this);
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
@@ -91,8 +77,6 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
         this.EncodingWidth = entry.Width;
         this.EncodingHeight = entry.Height;
         this.ColorCount = entry.ColorCount;
-        this.HotspotX = entry.Planes;
-        this.HotspotY = entry.BitCount;
     }
 
     internal IconDirEntry ToIconDirEntry() => new()
@@ -100,7 +84,11 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
         Width = this.EncodingWidth,
         Height = this.EncodingHeight,
         ColorCount = this.ColorCount,
-        Planes = this.HotspotX,
-        BitCount = this.HotspotY,
+        Planes = 1,
+        BitCount = this.Compression switch
+        {
+            IconFrameCompression.Bmp => (ushort)this.BitsPerPixel,
+            _ => 0,
+        },
     };
 }

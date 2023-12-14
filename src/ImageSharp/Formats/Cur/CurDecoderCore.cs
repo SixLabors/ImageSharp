@@ -1,11 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.Metadata;
 
-// TODO: flatten namespace.
-// namespace SixLabors.ImageSharp.Formats.Cur;
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+namespace SixLabors.ImageSharp.Formats.Cur;
 
 internal sealed class CurDecoderCore : IconDecoderCore
 {

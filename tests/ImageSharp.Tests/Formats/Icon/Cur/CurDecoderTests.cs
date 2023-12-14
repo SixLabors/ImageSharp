@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Icon.Cur;
+using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 
@@ -16,8 +16,6 @@ public class CurDecoderTests
     public void CurDecoder_Decode(TestImageProvider<Rgba32> provider)
     {
         using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
-
-        image.DebugSaveMultiFrame(provider, extension: "png");
 
         image.DebugSaveMultiFrame(provider, extension: "png");
 

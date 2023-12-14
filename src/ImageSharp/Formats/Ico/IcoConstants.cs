@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Icon.Ico;
+namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
 /// Defines constants relating to ICOs

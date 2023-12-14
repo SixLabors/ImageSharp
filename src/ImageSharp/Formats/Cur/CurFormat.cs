@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the ICO format.

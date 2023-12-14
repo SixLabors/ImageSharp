@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Icon.Cur;
+namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
 /// Decoder for generating an image out of a ico encoded stream.

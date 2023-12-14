@@ -33,7 +33,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
-        List<(Image<TPixel> Image, bool IsPng, int Index)> decodedEntries = new(this.Entries.Length);
+        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries = new(this.Entries.Length);
 
         for (int i = 0; i < this.Entries.Length; i++)
         {
@@ -58,7 +58,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
             Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
-            decodedEntries.Add((temp, isPng, i));
+            decodedEntries.Add((temp, isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, i));
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
@@ -66,10 +66,10 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         }
 
         ImageMetadata metadata = new();
-        BmpMetadata? bmpMetadata = null;
         PngMetadata? pngMetadata = null;
         Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
         {
+            BmpBitsPerPixel bitsPerPixel = default;
             ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
             ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
             for (int y = 0; y < source.Height; y++)
@@ -78,7 +78,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
 
             // Copy the format specific frame metadata to the image.
-            if (x.IsPng)
+            if (x.Compression is IconFrameCompression.Png)
             {
                 if (x.Index == 0)
                 {
@@ -88,12 +88,12 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
                 // Bmp does not contain frame specific metadata.
                 target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngFrameMetadata());
             }
-            else if (x.Index == 0)
+            else
             {
-                bmpMetadata = x.Image.Metadata.GetBmpMetadata();
+                bitsPerPixel = x.Image.Metadata.GetBmpMetadata().BitsPerPixel;
             }
 
-            this.SetFrameMetadata(target.Metadata, this.Entries[x.Index]);
+            this.SetFrameMetadata(target.Metadata, this.Entries[x.Index], x.Compression, bitsPerPixel);
 
             x.Image.Dispose();
 
@@ -101,11 +101,6 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         }).ToArray());
 
         // Copy the format specific metadata to the image.
-        if (bmpMetadata != null)
-        {
-            result.Metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
-        }
-
         if (pngMetadata != null)
         {
             result.Metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
@@ -116,23 +111,56 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        // Stream may not at 0.
+        long basePosition = stream.Position;
         this.ReadHeader(stream);
+
+        Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
         ImageMetadata metadata = new();
         ImageFrameMetadata[] frames = new ImageFrameMetadata[this.FileHeader.Count];
         for (int i = 0; i < frames.Length; i++)
         {
-            // TODO: Use the Identify methods in each decoder to return the
-            // format specific metadata for the image and frame.
+            BmpBitsPerPixel bitsPerPixel = default;
+            ref IconDirEntry entry = ref this.Entries[i];
+
+            // If we hit the end of the stream we should break.
+            if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
+            {
+                break;
+            }
+
+            // There should always be enough bytes for this regardless of the entry type.
+            if (stream.Read(flag) != PngConstants.HeaderBytes.Length)
+            {
+                break;
+            }
+
+            // Reset the stream position.
+            stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+
+            bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
+
+            // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
+            ImageInfo temp = this.GetDecoder(isPng).Identify(stream, cancellationToken);
+
             frames[i] = new();
-            this.SetFrameMetadata(frames[i], this.Entries[i]);
+            if (isPng)
+            {
+                bitsPerPixel = temp.Metadata.GetBmpMetadata().BitsPerPixel;
+            }
+
+            this.SetFrameMetadata(frames[i], this.Entries[i], isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, bitsPerPixel);
+
+            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
+            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
+            this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
         }
 
-        // TODO: Use real values from the metadata.
-        return new(new(32), new(0), metadata, frames);
+        return new(new(32), this.Dimensions, metadata, frames);
     }
 
-    protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry);
+    protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel);
 
     protected void ReadHeader(Stream stream)
     {

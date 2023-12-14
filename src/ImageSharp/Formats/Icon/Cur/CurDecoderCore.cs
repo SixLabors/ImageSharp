@@ -14,5 +14,11 @@ internal sealed class CurDecoderCore : IconDecoderCore
     {
     }
 
-    protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry) => metadata.GetCurMetadata().FromIconDirEntry(entry);
+    protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, Bmp.BmpBitsPerPixel bitsPerPixel)
+    {
+        CurFrameMetadata curFrameMetadata = metadata.GetCurMetadata();
+        curFrameMetadata.FromIconDirEntry(entry);
+        curFrameMetadata.Compression = compression;
+        curFrameMetadata.BitsPerPixel = bitsPerPixel;
+    }
 }

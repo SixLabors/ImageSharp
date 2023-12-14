@@ -32,4 +32,18 @@ internal class IconAssert
 
         return v;
     }
+
+    internal static byte Is1ByteSize(int i)
+    {
+        if (i is 256)
+        {
+            return 0;
+        }
+        else if (i > byte.MaxValue)
+        {
+            throw new FormatException("Image size Too Large.");
+        }
+
+        return (byte)i;
+    }
 }

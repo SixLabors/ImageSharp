@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -11,6 +12,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
 
@@ -92,6 +94,15 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// </summary>
     private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
+    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
+    private readonly bool processedAlphaMask;
+
+    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
+    private readonly bool skipFileHeader;
+
+    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
+    private readonly bool isDoubleHeight;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
     /// </summary>
@@ -104,6 +115,9 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
+        this.processedAlphaMask = encoder.ProcessedAlphaMask;
+        this.skipFileHeader = encoder.SkipFileHeader;
+        this.isDoubleHeight = encoder.UseDoubleHeight;
     }
 
     /// <summary>
@@ -154,11 +168,23 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             _ => BmpInfoHeader.SizeV3
         };
 
-        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, image.Height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
+        // for ico/cur encoder.
+        int height = image.Height;
+        if (this.isDoubleHeight)
+        {
+            height <<= 1;
+        }
+
+        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
 
         Span<byte> buffer = stackalloc byte[infoHeaderSize];
 
-        WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+        // for ico/cur encoder.
+        if (!this.skipFileHeader)
+        {
+            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+        }
+
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
         this.WriteImage(configuration, stream, image);
         WriteColorProfile(stream, iccProfileData, buffer);
@@ -455,6 +481,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         {
             this.Write8BitColor(configuration, stream, image, colorPalette);
         }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
+        }
     }
 
     /// <summary>
@@ -572,6 +603,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
+        }
     }
 
     /// <summary>
@@ -629,6 +665,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
+        }
     }
 
     /// <summary>
@@ -679,6 +720,11 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
                 stream.WriteByte(0);
             }
         }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
+        }
     }
 
     /// <summary>
@@ -721,5 +767,36 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         }
 
         stream.WriteByte(indices);
+    }
+
+    private static void ProcessedAlphaMask<TPixel>(Stream stream, Image<TPixel> image)
+         where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Rgba32 rgba = default;
+        int arrayWidth = image.Width / 8;
+        int padding = arrayWidth % 4;
+        if (padding is not 0)
+        {
+            padding = 4 - padding;
+        }
+
+        Span<byte> mask = stackalloc byte[arrayWidth];
+        for (int y = image.Height - 1; y >= 0; y--)
+        {
+            mask.Clear();
+            for (int x = 0; x < image.Width; x++)
+            {
+                int bit = x % 8;
+                int i = x / 8;
+                TPixel pixel = image[x, y];
+                pixel.ToRgba32(ref rgba);
+                if (rgba.A is not 0)
+                {
+                    mask[i] &= unchecked((byte)(0b10000000 >> bit));
+                }
+            }
+
+            stream.Write(mask);
+        }
     }
 }

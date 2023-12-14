@@ -215,6 +215,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         metadata = default;
         return false;
     }
+
     internal void SetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key, TFormatMetadata value)
         where TFormatMetadata : class, IDeepCloneable
         => this.formatMetadata[key] = value;

@@ -13,8 +13,7 @@ public sealed class IcoConfigurationModule : IImageFormatConfigurationModule
     /// <inheritdoc/>
     public void Configure(Configuration configuration)
     {
-        // TODO: IcoEncoder
-        // configuration.ImageFormatsManager.SetEncoder(IcoFormat.Instance, new IcoEncoder());
+        configuration.ImageFormatsManager.SetEncoder(IcoFormat.Instance, new IcoEncoder());
         configuration.ImageFormatsManager.SetDecoder(IcoFormat.Instance, IcoDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new IconImageFormatDetector());
     }

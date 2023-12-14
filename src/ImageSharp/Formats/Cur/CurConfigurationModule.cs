@@ -13,8 +13,7 @@ public sealed class CurConfigurationModule : IImageFormatConfigurationModule
     /// <inheritdoc/>
     public void Configure(Configuration configuration)
     {
-        // TODO: CurEncoder
-        // configuration.ImageFormatsManager.SetEncoder(CurFormat.Instance, new CurEncoder());
+        configuration.ImageFormatsManager.SetEncoder(CurFormat.Instance, new CurEncoder());
         configuration.ImageFormatsManager.SetDecoder(CurFormat.Instance, CurDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new IconImageFormatDetector());
     }

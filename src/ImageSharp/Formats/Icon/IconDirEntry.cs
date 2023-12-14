@@ -28,4 +28,7 @@ internal struct IconDirEntry
 
     public static IconDirEntry Parse(in ReadOnlySpan<byte> data)
         => MemoryMarshal.Cast<byte, IconDirEntry>(data)[0];
+
+    public unsafe void WriteTo(in Stream stream)
+        => stream.Write(MemoryMarshal.Cast<IconDirEntry, byte>([this]));
 }

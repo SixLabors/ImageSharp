@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
@@ -15,12 +15,21 @@ internal struct IconDir
 
     public IconDir(IconFileType type)
         : this(type, 0)
-        => this.Type = type;
+    {
+    }
 
     public IconDir(IconFileType type, ushort count)
+        : this(0, type, count)
     {
-        this.Reserved = 0;
+    }
+
+    public IconDir(ushort reserved, IconFileType type, ushort count)
+    {
+        this.Reserved = reserved;
         this.Type = type;
         this.Count = count;
     }
+
+    public static IconDir Parse(in ReadOnlySpan<byte> data)
+        => MemoryMarshal.Cast<byte, IconDir>(data)[0];
 }

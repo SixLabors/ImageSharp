@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 public enum IconFrameCompression
 {
     /// <summary>
-    /// Unknown
-    /// </summary>
-    Unknown,
-
-    /// <summary>
     /// Bmp
     /// </summary>
     Bmp,

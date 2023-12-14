@@ -3,6 +3,8 @@
 
 using SixLabors.ImageSharp.Metadata;
 
+// TODO: flatten namespace.
+// namespace SixLabors.ImageSharp.Formats.Cur;
 namespace SixLabors.ImageSharp.Formats.Icon.Cur;
 
 internal sealed class CurDecoderCore : IconDecoderCore

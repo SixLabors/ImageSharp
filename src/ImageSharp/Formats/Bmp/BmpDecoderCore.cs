@@ -105,7 +105,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
     private readonly bool skipFileHeader;
 
-    /// <inheritdoc cref="BmpDecoderOptions.IsDoubleHeight"/>
+    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
     private readonly bool isDoubleHeight;
 
     /// <summary>
@@ -120,7 +120,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.processedAlphaMask = options.ProcessedAlphaMask;
         this.skipFileHeader = options.SkipFileHeader;
-        this.isDoubleHeight = options.IsDoubleHeight;
+        this.isDoubleHeight = options.UseDoubleHeight;
     }
 
     /// <inheritdoc />

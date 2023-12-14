@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Icon.Ico;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 
@@ -18,6 +17,8 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSave(provider, extension: "tiff", encoder: new TiffEncoder());
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
     }
 }

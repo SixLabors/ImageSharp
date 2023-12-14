@@ -32,12 +32,4 @@ internal class IconAssert
 
         return v;
     }
-
-    internal static void NotSquare(in Size size)
-    {
-        if (size.Width != size.Height)
-        {
-            throw new FormatException("This image is not square.");
-        }
-    }
 }

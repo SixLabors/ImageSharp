@@ -2,14 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Metadata;
 
-namespace SixLabors.ImageSharp.Formats.Ico;
+namespace SixLabors.ImageSharp;
 
 /// <summary>
 /// Extension methods for the <see cref="ImageMetadata"/> type.
 /// </summary>
-public static class MetadataExtensions
+public static partial class MetadataExtensions
 {
     /// <summary>
     /// Gets the Ico format specific metadata for the image.

@@ -2,14 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Metadata;
 
-namespace SixLabors.ImageSharp.Formats.Cur;
+namespace SixLabors.ImageSharp;
 
 /// <summary>
 /// Extension methods for the <see cref="ImageMetadata"/> type.
 /// </summary>
-public static class MetadataExtensions
+public static partial class MetadataExtensions
 {
     /// <summary>
     /// Gets the Icon format specific metadata for the image.

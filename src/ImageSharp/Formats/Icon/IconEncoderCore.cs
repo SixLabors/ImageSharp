@@ -2,16 +2,18 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Cur;
+using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconEncoderCore : IImageEncoderInternals
+internal abstract class IconEncoderCore(IconFileType iconFileType)
+    : IImageEncoderInternals
 {
-    protected IconDir FileHeader { get; set; }
+    private IconDir fileHeader;
 
-    protected IconDirEntry[]? Entries { get; set; }
+    private IconFrameMetadata[]? entries;
 
     public void Encode<TPixel>(
         Image<TPixel> image,
@@ -26,44 +28,93 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
 
         // Stream may not at 0.
         long basePosition = stream.Position;
-        this.GetHeader(image);
+        this.InitHeader(image);
 
-        int dataOffset = IconDir.Size + (IconDirEntry.Size * this.Entries.Length);
+        int dataOffset = IconDir.Size + (IconDirEntry.Size * this.entries.Length);
         _ = stream.Seek(dataOffset, SeekOrigin.Current);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
             ImageFrame<TPixel> frame = image.Frames[i];
-            this.Entries[i].ImageOffset = (uint)stream.Position;
-            Image<TPixel> img = new(Configuration.Default, frame.PixelBuffer, new());
-
-            // Note: this encoder are not supported PNG Data.
-            BmpEncoder encoder = new()
+            int width = this.entries[i].Entry.Width;
+            if (width is 0)
             {
-                ProcessedAlphaMask = true,
-                UseDoubleHeight = true,
-                SkipFileHeader = true,
-                SupportTransparency = false,
-                BitsPerPixel = this.Entries[i].BitCount is 0
-                    ? BmpBitsPerPixel.Pixel8
-                    : (BmpBitsPerPixel?)this.Entries[i].BitCount
+                width = frame.Width;
+            }
+
+            int height = this.entries[i].Entry.Height;
+            if (height is 0)
+            {
+                height = frame.Height;
+            }
+
+            this.entries[i].Entry.ImageOffset = (uint)stream.Position;
+
+            Image<TPixel> img = new(width, height);
+            for (int y = 0; y < height; y++)
+            {
+                frame.PixelBuffer.DangerousGetRowSpan(y)[..width].CopyTo(img.GetRootFramePixelBuffer().DangerousGetRowSpan(y));
+            }
+
+            QuantizingImageEncoder encoder = this.entries[i].Compression switch
+            {
+                IconFrameCompression.Bmp => new Bmp.BmpEncoder()
+                {
+                    ProcessedAlphaMask = true,
+                    UseDoubleHeight = true,
+                    SkipFileHeader = true,
+                    SupportTransparency = false,
+                    BitsPerPixel = iconFileType is IconFileType.ICO
+                        ? (Bmp.BmpBitsPerPixel?)this.entries[i].Entry.BitCount
+                        : Bmp.BmpBitsPerPixel.Pixel24 // TODO: Here you need to switch to selecting the corresponding value according to the size of the image
+                },
+                IconFrameCompression.Png => new Png.PngEncoder(),
+                _ => throw new NotSupportedException(),
             };
 
             encoder.Encode(img, stream);
-            this.Entries[i].BytesInRes = this.Entries[i].ImageOffset - (uint)stream.Position;
+            this.entries[i].Entry.BytesInRes = (uint)stream.Position - this.entries[i].Entry.ImageOffset;
         }
 
         long endPosition = stream.Position;
         _ = stream.Seek(basePosition, SeekOrigin.Begin);
-        this.FileHeader.WriteTo(stream);
-        foreach (IconDirEntry entry in this.Entries)
+        this.fileHeader.WriteTo(stream);
+        foreach (IconFrameMetadata frame in this.entries)
         {
-            entry.WriteTo(stream);
+            frame.Entry.WriteTo(stream);
         }
 
         _ = stream.Seek(endPosition, SeekOrigin.Begin);
     }
 
-    [MemberNotNull(nameof(Entries))]
-    protected abstract void GetHeader(in Image image);
+    [MemberNotNull(nameof(entries))]
+    private void InitHeader(in Image image)
+    {
+        this.fileHeader = new(iconFileType, (ushort)image.Frames.Count);
+        this.entries = iconFileType switch
+        {
+            IconFileType.ICO =>
+            image.Frames.Select(i =>
+            {
+                IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
+                return new IconFrameMetadata(metadata.Compression, metadata.ToIconDirEntry());
+            }).ToArray(),
+            IconFileType.CUR =>
+            image.Frames.Select(i =>
+            {
+                CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
+                return new IconFrameMetadata(metadata.Compression, metadata.ToIconDirEntry());
+            }).ToArray(),
+            _ => throw new NotSupportedException(),
+        };
+    }
+
+    internal sealed class IconFrameMetadata(IconFrameCompression compression, IconDirEntry iconDirEntry)
+    {
+        private IconDirEntry iconDirEntry = iconDirEntry;
+
+        public IconFrameCompression Compression { get; set; } = compression;
+
+        public ref IconDirEntry Entry => ref this.iconDirEntry;
+    }
 }

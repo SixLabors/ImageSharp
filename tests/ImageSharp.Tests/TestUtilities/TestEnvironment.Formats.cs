@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Heic;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Qoi;
@@ -59,6 +60,7 @@ public static partial class TestEnvironment
         Configuration cfg = new(
             new JpegConfigurationModule(),
             new GifConfigurationModule(),
+            new HeicConfigurationModule(),
             new PbmConfigurationModule(),
             new TgaConfigurationModule(),
             new WebpConfigurationModule(),

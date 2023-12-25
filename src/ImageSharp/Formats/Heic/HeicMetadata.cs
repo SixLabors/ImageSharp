@@ -11,7 +11,9 @@ public class HeicMetadata : IDeepCloneable
     /// <summary>
     /// Initializes a new instance of the <see cref="HeicMetadata"/> class.
     /// </summary>
-    public HeicMetadata() =>
+    public HeicMetadata()
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HeicMetadata"/> class.

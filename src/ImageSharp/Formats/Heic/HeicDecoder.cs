@@ -7,6 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 
 /// <summary>
 /// Image decoder for reading HEIC images from a stream.
+/// </summary>
 public sealed class HeicDecoder : ImageDecoder
 {
     private HeicDecoder()

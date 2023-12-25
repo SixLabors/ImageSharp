@@ -26,7 +26,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
     private ImageMetadata? metadata;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PbmDecoderCore" /> class.
+    /// Initializes a new instance of the <see cref="HeicDecoderCore" /> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public HeicDecoderCore(DecoderOptions options)
@@ -37,6 +37,9 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
     /// <inheritdoc/>
     public DecoderOptions Options { get; }
+
+    /// <inheritdoc/>
+    public Size Dimensions { get; }
 
     /// <inheritdoc/>
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -60,6 +63,10 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         // TODO: Implement
         return new ImageInfo(new PixelTypeInfo(bitsPerPixel), new(this.pixelSize.Width, this.pixelSize.Height), this.metadata);
+    }
+
+    private void ReadNals(BufferedReadStream stream) {
+
     }
 
 }

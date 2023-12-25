@@ -7,6 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 
 /// <summary>
 /// Image encoder for writing an image to a stream as HEIC images.
+/// </summary>
 public sealed class HeicEncoder : ImageEncoder
 {
     /// <inheritdoc/>

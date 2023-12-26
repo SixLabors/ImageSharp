@@ -47,7 +47,6 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         Guard.NotNull(stream, nameof(stream));
 
         // TODO: Implement
-
         stream.Flush();
     }
 }

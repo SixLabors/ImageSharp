@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 
 namespace SixLabors.ImageSharp.Formats.Heic;
@@ -11,8 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 public sealed class HeicImageFormatDetector : IImageFormatDetector
 {
     /// <inheritdoc/>
-    int HeaderSize => 12;
-
+    public int HeaderSize => 12;
 
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
@@ -21,10 +21,7 @@ public sealed class HeicImageFormatDetector : IImageFormatDetector
         return format != null;
     }
 
-    private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-    {
-        return
-            BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == FourCharacterCode.ftyp &&
-            BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8)) == FourCharacterCode.heic
-    }
+    private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header) =>
+        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == FourCharacterCode.ftyp &&
+        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8)) == FourCharacterCode.heic;
 }

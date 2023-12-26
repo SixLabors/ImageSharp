@@ -6,33 +6,31 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// <summary>
 /// Provides enumeration of supported x265's LAN Unit Types.
 /// </summary>
-public enum HeicNalUnitType : uint
+public enum HeicNalUnitType : byte
 {
-    NAL_UNIT_CODED_SLICE_TRAIL_N = 0,
-    NAL_UNIT_CODED_SLICE_TRAIL_R,
-    NAL_UNIT_CODED_SLICE_TSA_N,
-    NAL_UNIT_CODED_SLICE_TSA_R,
-    NAL_UNIT_CODED_SLICE_STSA_N,
-    NAL_UNIT_CODED_SLICE_STSA_R,
-    NAL_UNIT_CODED_SLICE_RADL_N,
-    NAL_UNIT_CODED_SLICE_RADL_R,
-    NAL_UNIT_CODED_SLICE_RASL_N,
-    NAL_UNIT_CODED_SLICE_RASL_R,
-    NAL_UNIT_CODED_SLICE_BLA_W_LP = 16,
-    NAL_UNIT_CODED_SLICE_BLA_W_RADL,
-    NAL_UNIT_CODED_SLICE_BLA_N_LP,
-    NAL_UNIT_CODED_SLICE_IDR_W_RADL,
-    NAL_UNIT_CODED_SLICE_IDR_N_LP,
-    NAL_UNIT_CODED_SLICE_CRA,
-    NAL_UNIT_VPS = 32,
-    NAL_UNIT_SPS,
-    NAL_UNIT_PPS,
-    NAL_UNIT_ACCESS_UNIT_DELIMITER,
-    NAL_UNIT_EOS,
-    NAL_UNIT_EOB,
-    NAL_UNIT_FILLER_DATA,
-    NAL_UNIT_PREFIX_SEI,
-    NAL_UNIT_SUFFIX_SEI,
-    Unspecified = 62,
+    CODED_SLICE_TRAIL_N = 0,
+    CODED_SLICE_TRAIL_R = 1,
+
+    CODED_SLICE_TSA_N = 2,
+    CODED_SLICE_TSA_R = 3,
+
+    CODED_SLICE_STSA_N = 4,
+    CODED_SLICE_STSA_R = 5,
+
+    CODED_SLICE_RADL_N = 6,
+    CODED_SLICE_RADL_R = 7,
+
+    CODED_SLICE_RASL_N = 8,
+    CODED_SLICE_RASL_R = 9,
+
+    VParameterSet = 32,
+    SequenceParameterSet = 33,
+    PictureParameterSet = 34,
+    AccessUnitDelimiter = 35,
+    EndOfSequence = 36,
+    IsEndOfStream = 37,
+    FillerData = 38,
+    PrefixSei = 39,
+    SuffixSei = 40,
     Invalid = 64,
 }

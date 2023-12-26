@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// </summary>
 internal static class HeicConstants
 {
+    public const uint HeicBrand = FourCharacterCode.heic;
+
     /// <summary>
     /// The list of mimetypes that equate to a HEIC.
     /// </summary>

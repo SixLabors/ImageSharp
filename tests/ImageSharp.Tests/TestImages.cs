@@ -1104,4 +1104,12 @@ public static class TestImages
         public const string TestCardRGBA = "Qoi/testcard_rgba.qoi";
         public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
     }
+
+    public static class Heic
+    {
+        public const string Image1 = "Heic/image1.heic";
+        public const string Image2 = "Heic/image2.heic";
+        public const string Image3 = "Heic/image3.heic";
+        public const string Image4 = "Heic/image4.heic";
+    }
 }

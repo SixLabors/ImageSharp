@@ -65,14 +65,15 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         while (stream.Position < stream.Length)
         {
-            long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
+            long boxLength = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
+            EnsureBoxBoundary(boxLength, stream);
             switch (boxType)
             {
                 case Heic4CharCode.meta:
-                    this.ParseMetadata(stream, length);
+                    this.ParseMetadata(stream, boxLength);
                     break;
                 case Heic4CharCode.mdat:
-                    this.ParseMediaData(stream, length);
+                    this.ParseMediaData(stream, boxLength);
                     break;
                 default:
                     throw new ImageFormatException($"Unknown box type of '{Enum.GetName(boxType)}'");
@@ -100,15 +101,16 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         while (stream.Position < stream.Length)
         {
-            long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
+            long boxLength = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
+            EnsureBoxBoundary(boxLength, stream);
             switch (boxType)
             {
                 case Heic4CharCode.meta:
-                    this.ParseMetadata(stream, length);
+                    this.ParseMetadata(stream, boxLength);
                     break;
                 default:
                     // Silently skip all other box types.
-                    SkipBox(stream, length);
+                    SkipBox(stream, boxLength);
                     break;
             }
         }
@@ -175,6 +177,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         while (stream.Position < endPosition)
         {
             long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
+            EnsureBoxBoundary(length, boxLength);
             switch (boxType)
             {
                 case Heic4CharCode.iprp:
@@ -348,6 +351,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         while (stream.Position < endBoxPosition)
         {
             long containerLength = this.ReadBoxHeader(stream, out Heic4CharCode containerType);
+            EnsureBoxBoundary(containerLength, boxLength);
             if (containerType == Heic4CharCode.ipco)
             {
                 // Parse Item Property Container, which is just an array of property boxes.
@@ -372,6 +376,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         while (stream.Position < endPosition)
         {
             int itemLength = (int)this.ReadBoxHeader(stream, out Heic4CharCode itemType);
+            EnsureBoxBoundary(itemLength, boxLength);
             Span<byte> buffer = this.ReadIntoBuffer(stream, itemLength);
             switch (itemType)
             {
@@ -565,6 +570,17 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             Span<byte> temp = new byte[length];
             stream.Read(temp);
             return temp;
+        }
+    }
+
+    private static void EnsureBoxBoundary(long boxLength, Stream stream)
+        => EnsureBoxBoundary(boxLength, stream.Length - stream.Position);
+
+    private static void EnsureBoxBoundary(long boxLength, long parentLength)
+    {
+        if (boxLength > parentLength)
+        {
+            throw new ImageFormatException("Box size beyond boundary");
         }
     }
 

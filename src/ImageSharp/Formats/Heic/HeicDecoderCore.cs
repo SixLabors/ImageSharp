@@ -192,26 +192,35 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.pitm:
                     this.ParsePrimaryItem(stream, length);
                     break;
-                case Heic4CharCode.dinf:
-                    SkipBox(stream, length);
-                    break;
                 case Heic4CharCode.hdlr:
-                    SkipBox(stream, length);
-                    break;
-                case Heic4CharCode.idat:
-                    SkipBox(stream, length);
+                    this.ParseHandler(stream, length);
                     break;
                 case Heic4CharCode.iloc:
                     this.ParseItemLocation(stream, length);
                     break;
+                case Heic4CharCode.dinf:
+                case Heic4CharCode.idat:
                 case Heic4CharCode.grpl:
                 case Heic4CharCode.ipro:
-                    // TODO: Implement
+                    // Silently skip these boxes.
                     SkipBox(stream, length);
                     break;
                 default:
                     throw new ImageFormatException($"Unknown metadata box type of '{Enum.GetName(boxType)}'");
             }
+        }
+    }
+
+    private void ParseHandler(BufferedReadStream stream, long boxLength)
+    {
+        Span<byte> buffer = this.ReadIntoBuffer(stream, boxLength);
+
+        // Only read the handler type, to check if this is not a movie file.
+        int bytesRead = 8;
+        Heic4CharCode handlerType = (Heic4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
+        if (handlerType != Heic4CharCode.pict)
+        {
+            throw new ImageFormatException("Not a picture file.");
         }
     }
 

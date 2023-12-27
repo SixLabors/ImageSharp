@@ -198,4 +198,9 @@ public enum Heic4CharCode : uint
     /// </summary>
     uri  = 0x75726920U,
 
+    /// <summary>
+    /// Picture handler type.
+    /// </summary>
+    pict = 0x70696374U,
+
 }

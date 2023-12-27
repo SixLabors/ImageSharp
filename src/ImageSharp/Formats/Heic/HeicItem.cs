@@ -68,6 +68,13 @@ public class HeicItem(Heic4CharCode type, uint id)
     /// </summary>
     public Size GridCellExtent { get; private set; }
 
+    /// <summary>
+    /// Set the image extent.
+    /// </summary>
+    /// <param name="extent">The size to set the extent to.</param>
+    /// <remarks>
+    /// Might be called twice for a grid, in which case the second call is the cell extent.
+    /// </remarks>
     public void SetExtent(Size extent)
     {
         if (this.Extent == default)
@@ -79,5 +86,4 @@ public class HeicItem(Heic4CharCode type, uint id)
             this.GridCellExtent = extent;
         }
     }
-
 }

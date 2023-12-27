@@ -52,6 +52,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Formats\Heic\HeicFourCharacterCodes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HeicFourCharacterCodes.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -150,6 +155,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Formats\Heic\HeicFourCharacterCodes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HeicFourCharacterCodes.cs</LastGenOutput>
+    </None>
     <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>

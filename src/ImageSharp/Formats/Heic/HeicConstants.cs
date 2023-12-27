@@ -8,12 +8,12 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// </summary>
 internal static class HeicConstants
 {
-    public const uint HeicBrand = FourCharacterCode.heic;
+    public const Heic4CharCode HeicBrand = Heic4CharCode.heic;
 
     /// <summary>
     /// The list of mimetypes that equate to a HEIC.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/heif", "image/heif-sequence", "image/heic", "image/heic-sequence", "image/avif" };
+    public static readonly IEnumerable<string> MimeTypes = new[] { "image/heif", "image/heic", "image/avif" };
 
     /// <summary>
     /// The list of file extensions that equate to a HEIC.

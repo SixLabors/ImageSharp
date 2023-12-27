@@ -22,6 +22,6 @@ public sealed class HeicImageFormatDetector : IImageFormatDetector
     }
 
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header) =>
-        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == FourCharacterCode.ftyp &&
-        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8)) == FourCharacterCode.heic;
+        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heic4CharCode.ftyp &&
+        BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8)) == (uint)Heic4CharCode.heic;
 }

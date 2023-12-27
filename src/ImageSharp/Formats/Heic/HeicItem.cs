@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// <summary>
 /// Provides definition for a HEIC Item.
 /// </summary>
-public class HeicItem(uint type, uint id)
+public class HeicItem(Heic4CharCode type, uint id)
 {
     /// <summary>
     /// Gets the ID of this Item.
@@ -16,7 +16,7 @@ public class HeicItem(uint type, uint id)
     /// <summary>
     /// Gets the type of this Item.
     /// </summary>
-    public uint Type { get; } = type;
+    public Heic4CharCode Type { get; } = type;
 
     /// <summary>
     /// Gets or sets the name of this item.
@@ -44,21 +44,40 @@ public class HeicItem(uint type, uint id)
     public string? UriType { get; set; }
 
     /// <summary>
-    /// Sets a property on this item.
+    /// Gets or sets the aspect ratio of the pixels.
     /// </summary>
-    public void SetProperty(KeyValuePair<uint, object> pair)
+    public Size PixelAspectRatio { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of color channels in each pixel.
+    /// </summary>
+    public int ChannelCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of bits in a single pixel.
+    /// </summary>
+    public int BitsPerPixel { get; set; }
+
+    /// <summary>
+    /// Gets the spatial extent of this item.
+    /// </summary>
+    public Size Extent { get; private set; }
+
+    /// <summary>
+    /// Gets the spatial extent of this grid cells in this item.
+    /// </summary>
+    public Size GridCellExtent { get; private set; }
+
+    public void SetExtent(Size extent)
     {
-        switch (pair.Key)
+        if (this.Extent == default)
         {
-            case FourCharacterCode.ispe:
-                // Set image extents
-                break;
-            case FourCharacterCode.pasp:
-                // Set pixel aspact ratio
-                break;
-            case FourCharacterCode.pixi:
-                // Set pixel information
-                break;
+            this.Extent = extent;
+        }
+        else
+        {
+            this.GridCellExtent = extent;
         }
     }
+
 }

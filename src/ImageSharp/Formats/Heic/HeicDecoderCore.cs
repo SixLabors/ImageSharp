@@ -61,21 +61,27 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         while (stream.EofHitCount == 0)
         {
-            long length = this.ReadBoxHeader(stream, out var boxType);
+            long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
             switch (boxType)
             {
-                case FourCharacterCode.meta:
+                case Heic4CharCode.meta:
                     this.ParseMetadata(stream, length);
                     break;
-                case FourCharacterCode.mdat:
+                case Heic4CharCode.mdat:
                     this.ParseMediaData(stream, length);
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown box type of '{FourCharacterCode.ToString(boxType)}'");
+                    throw new ImageFormatException($"Unknown box type of '{Enum.GetName(boxType)}'");
             }
         }
 
-        var image = new Image<TPixel>(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
+        HeicItem? item = this.FindItemById(this.primaryItem);
+        if (item == null)
+        {
+            throw new ImageFormatException("No primary item found");
+        }
+
+        var image = new Image<TPixel>(this.configuration, item.Extent.Width, item.Extent.Height, this.metadata);
 
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -89,10 +95,10 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         while (stream.EofHitCount == 0)
         {
-            long length = this.ReadBoxHeader(stream, out uint boxType);
+            long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
             switch (boxType)
             {
-                case FourCharacterCode.meta:
+                case Heic4CharCode.meta:
                     this.ParseMetadata(stream, length);
                     break;
                 default:
@@ -101,21 +107,27 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             }
         }
 
-        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), new(this.pixelSize.Width, this.pixelSize.Height), this.metadata);
+        HeicItem? item = this.FindItemById(this.primaryItem);
+        if (item == null)
+        {
+            throw new ImageFormatException("No primary item found");
+        }
+
+        return new ImageInfo(new PixelTypeInfo(item.BitsPerPixel), new(item.Extent.Width, item.Extent.Height), this.metadata);
     }
 
     private bool CheckFileTypeBox(BufferedReadStream stream)
     {
-        var boxLength = this.ReadBoxHeader(stream, out var boxType);
+        var boxLength = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
         Span<byte> buffer = stackalloc byte[(int)boxLength];
         stream.Read(buffer);
         var majorBrand = BinaryPrimitives.ReadUInt32BigEndian(buffer);
 
         // TODO: Interpret minorVersion and compatible brands.
-        return boxType == FourCharacterCode.ftyp && majorBrand == FourCharacterCode.heic;
+        return boxType == Heic4CharCode.ftyp && majorBrand == (uint)Heic4CharCode.heic;
     }
 
-    private long ReadBoxHeader(BufferedReadStream stream, out uint boxType)
+    private long ReadBoxHeader(BufferedReadStream stream, out Heic4CharCode boxType)
     {
         // Read 4 bytes of length of box
         Span<byte> buf = stackalloc byte[8];
@@ -124,7 +136,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         long headerSize = 8;
 
         // Read 4 bytes of box type
-        boxType = BinaryPrimitives.ReadUInt32BigEndian(buf[4..]);
+        boxType = (Heic4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buf[4..]);
 
         if (boxSize == 1)
         {
@@ -136,11 +148,11 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         return boxSize - headerSize;
     }
 
-    private static int ParseBoxHeader(Span<byte> buffer, out long length, out uint boxType)
+    private static int ParseBoxHeader(Span<byte> buffer, out long length, out Heic4CharCode boxType)
     {
         long boxSize = BinaryPrimitives.ReadUInt32BigEndian(buffer);
         int bytesRead = 4;
-        boxType = BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
+        boxType = (Heic4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
         bytesRead += 4;
         if (boxSize == 1)
         {
@@ -157,31 +169,31 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         long endPosition = stream.Position + boxLength;
         while (stream.Position < endPosition)
         {
-            long length = this.ReadBoxHeader(stream, out uint boxType);
+            long length = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
             switch (boxType)
             {
-                case FourCharacterCode.iprp:
+                case Heic4CharCode.iprp:
                     this.ParseItemPropertyContainer(stream, length);
                     break;
-                case FourCharacterCode.iinf:
+                case Heic4CharCode.iinf:
                     this.ParseItemInfo(stream, length);
                     break;
-                case FourCharacterCode.iref:
+                case Heic4CharCode.iref:
                     this.ParseItemReference(stream, length);
                     break;
-                case FourCharacterCode.pitm:
+                case Heic4CharCode.pitm:
                     this.ParsePrimaryItem(stream, length);
                     break;
-                case FourCharacterCode.dinf:
-                case FourCharacterCode.grpl:
-                case FourCharacterCode.hdlr:
-                case FourCharacterCode.idat:
-                case FourCharacterCode.iloc:
-                case FourCharacterCode.ipro:
+                case Heic4CharCode.dinf:
+                case Heic4CharCode.grpl:
+                case Heic4CharCode.hdlr:
+                case Heic4CharCode.idat:
+                case Heic4CharCode.iloc:
+                case Heic4CharCode.ipro:
                     // TODO: Implement
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown metadata box type of '{FourCharacterCode.ToString(boxType)}'");
+                    throw new ImageFormatException($"Unknown metadata box type of '{Enum.GetName(boxType)}'");
             }
         }
     }
@@ -213,7 +225,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
     private int ParseItemInfoEntry(Span<byte> buffer)
     {
-        int bytesRead = ParseBoxHeader(buffer, out long boxLength, out uint boxType);
+        int bytesRead = ParseBoxHeader(buffer, out long boxLength, out Heic4CharCode boxType);
         byte version = buffer[bytesRead];
         bytesRead += 4;
         HeicItem? item = null;
@@ -240,7 +252,6 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
 
         if (version == 1)
         {
-
             // Optional fields.
             if (bytesRead < boxLength)
             {
@@ -272,10 +283,10 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             bytesRead += 2;
             uint itemType = BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
             bytesRead += 4;
-            item = new HeicItem(itemId, itemType);
+            item = new HeicItem((Heic4CharCode)itemId, itemType);
             item.Name = ReadNullTerminatedString(buffer[bytesRead..]);
             bytesRead += item.Name.Length + 1;
-            if (item.Type == FourCharacterCode.mime)
+            if (item.Type == Heic4CharCode.mime)
             {
                 item.ContentType = ReadNullTerminatedString(buffer[bytesRead..]);
                 bytesRead += item.ContentType.Length + 1;
@@ -287,7 +298,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                     bytesRead += item.ContentEncoding.Length + 1;
                 }
             }
-            else if (item.Type == FourCharacterCode.uri)
+            else if (item.Type == Heic4CharCode.uri)
             {
                 item.UriType = ReadNullTerminatedString(buffer[bytesRead..]);
                 bytesRead += item.UriType.Length + 1;
@@ -306,7 +317,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         bytesRead += 4;
         while (bytesRead < boxLength)
         {
-            ParseBoxHeader(buffer[bytesRead..], out long subBoxLength, out uint linkType);
+            ParseBoxHeader(buffer[bytesRead..], out long subBoxLength, out Heic4CharCode linkType);
             uint sourceId;
             if (largeIds)
             {
@@ -363,35 +374,35 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
     private void ParseItemPropertyContainer(BufferedReadStream stream, long boxLength)
     {
         // Cannot use Dictionary here, Properties can have multiple instances with the same key.
-        List<KeyValuePair<uint, object>> properties = new();
-        long containerLength = this.ReadBoxHeader(stream, out uint containerType);
-        if (containerType == FourCharacterCode.ipco)
+        List<KeyValuePair<Heic4CharCode, object>> properties = new();
+        long containerLength = this.ReadBoxHeader(stream, out Heic4CharCode containerType);
+        if (containerType == Heic4CharCode.ipco)
         {
             // Parse Item Property Container, which is just an array of preperty boxes.
             long endPosition = stream.Position + containerLength;
             while (stream.Position < endPosition)
             {
-                int length = (int)this.ReadBoxHeader(stream, out uint boxType);
+                int length = (int)this.ReadBoxHeader(stream, out Heic4CharCode boxType);
                 Span<byte> buffer = stackalloc byte[length];
                 switch (boxType)
                 {
-                    case FourCharacterCode.ispe:
+                    case Heic4CharCode.ispe:
                         // Length should be 12.
                         stream.Read(buffer);
 
                         // Skip over version (8 bits) and flags (24 bits).
-                        uint width = BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-                        uint height = BinaryPrimitives.ReadUInt32BigEndian(buffer[8..]);
-                        properties.Add(new KeyValuePair<uint, object>(FourCharacterCode.ispe, new uint[] { width, height }));
+                        int width = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
+                        int height = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[8..]);
+                        properties.Add(new KeyValuePair<Heic4CharCode, object>(Heic4CharCode.ispe, new Size(width, height)));
                         break;
-                    case FourCharacterCode.pasp:
+                    case Heic4CharCode.pasp:
                         // Length should be 8.
                         stream.Read(buffer);
-                        uint horizontalSpacing = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-                        uint verticalSpacing = BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-                        properties.Add(new KeyValuePair<uint, object>(FourCharacterCode.pasp, new uint[] { horizontalSpacing, verticalSpacing }));
+                        int horizontalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer);
+                        int verticalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
+                        properties.Add(new KeyValuePair<Heic4CharCode, object>(Heic4CharCode.pasp, new Size(horizontalSpacing, verticalSpacing)));
                         break;
-                    case FourCharacterCode.pixi:
+                    case Heic4CharCode.pixi:
                         stream.Read(buffer);
 
                         // Skip over version (8 bits) and flags (24 bits).
@@ -403,23 +414,23 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                             bitsPerPixel += buffer[offset + i];
                         }
 
-                        properties.Add(new KeyValuePair<uint, object>(FourCharacterCode.pixi, new int[] { channelCount, bitsPerPixel }));
+                        properties.Add(new KeyValuePair<Heic4CharCode, object>(Heic4CharCode.pixi, new int[] { channelCount, bitsPerPixel }));
 
                         break;
-                    case FourCharacterCode.altt:
-                    case FourCharacterCode.imir:
-                    case FourCharacterCode.irot:
-                    case FourCharacterCode.iscl:
-                    case FourCharacterCode.rloc:
-                    case FourCharacterCode.udes:
+                    case Heic4CharCode.altt:
+                    case Heic4CharCode.imir:
+                    case Heic4CharCode.irot:
+                    case Heic4CharCode.iscl:
+                    case Heic4CharCode.rloc:
+                    case Heic4CharCode.udes:
                         // TODO: Implement
                         break;
                     default:
-                        throw new ImageFormatException($"Unknown item property box type of '{FourCharacterCode.ToString(boxType)}'");
+                        throw new ImageFormatException($"Unknown item property box type of '{Enum.GetName(boxType)}'");
                 }
             }
         }
-        else if (containerType == FourCharacterCode.ipma)
+        else if (containerType == Heic4CharCode.ipma)
         {
             // Parse Item Property Association
             Span<byte> buffer = stackalloc byte[(int)boxLength];
@@ -452,7 +463,21 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                     propId = buffer[bytesRead++] & 0x4FU;
                 }
 
-                this.items![itemId].SetProperty(properties[(int)propId]);
+                KeyValuePair<Heic4CharCode, object> prop = properties[(int)propId];
+                switch (prop.Key)
+                {
+                    case Heic4CharCode.ispe:
+                        this.items[itemId].SetExtent((Size)prop.Value);
+                        break;
+                    case Heic4CharCode.pasp:
+                        this.items[itemId].PixelAspectRatio = (Size)prop.Value;
+                        break;
+                    case Heic4CharCode.pixi:
+                        int[] values = (int[])prop.Value;
+                        this.items[itemId].ChannelCount = values[0];
+                        this.items[itemId].BitsPerPixel = values[1];
+                        break;
+                }
             }
         }
     }
@@ -461,6 +486,9 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
     {
         // TODO: Implement
     }
+
+    private HeicItem? FindItemById(uint itemId)
+        => this.items.FirstOrDefault(item => item.Id == itemId);
 
     private static string ReadNullTerminatedString(Span<byte> span)
     {

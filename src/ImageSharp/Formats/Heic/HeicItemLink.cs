@@ -6,12 +6,12 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// <summary>
 /// Link between <see cref="HeicItem"/> instances within the same HEIC file.
 /// </summary>
-public class HeicItemLink(uint type, uint sourceId)
+public class HeicItemLink(Heic4CharCode type, uint sourceId)
 {
     /// <summary>
     /// Gets the type of link.
     /// </summary>
-    public uint Type { get; } = type;
+    public Heic4CharCode Type { get; } = type;
 
     /// <summary>
     /// Gets the ID of the source item of this link.

@@ -75,8 +75,15 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.mdat:
                     this.ParseMediaData(stream, boxLength);
                     break;
+                case Heic4CharCode.free:
+                    SkipBox(stream, boxLength);
+                    break;
+                case 0U:
+                    // Some files have trailing zeros, skiping to EOF.
+                    stream.Skip((int)(stream.Length - stream.Position));
+                    break;
                 default:
-                    throw new ImageFormatException($"Unknown box type of '{Enum.GetName(boxType)}'");
+                    throw new ImageFormatException($"Unknown box type of '{PrettyPrint(boxType)}'");
             }
         }
 
@@ -129,9 +136,10 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         long boxLength = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
         Span<byte> buffer = this.ReadIntoBuffer(stream, boxLength);
         uint majorBrand = BinaryPrimitives.ReadUInt32BigEndian(buffer);
+        bool correctBrand = majorBrand == (uint)Heic4CharCode.heic || majorBrand == (uint)Heic4CharCode.heix;
 
         // TODO: Interpret minorVersion and compatible brands.
-        return boxType == Heic4CharCode.ftyp && majorBrand == (uint)Heic4CharCode.heic;
+        return boxType == Heic4CharCode.ftyp && correctBrand;
     }
 
     private long ReadBoxHeader(BufferedReadStream stream, out Heic4CharCode boxType)
@@ -490,6 +498,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         for (uint i = 0; i < itemCount; i++)
         {
             uint itemId = ReadUInt16Or32(buffer, version == 2, ref bytesRead);
+            HeicItem? item = this.FindItemById(itemId);
             if (version is 1 or 2)
             {
                 bytesRead++;
@@ -506,11 +515,13 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             {
                 if (version is 1 or 2 && indexSize > 0)
                 {
-                    ulong extentIndex = ReadUIntVariable(buffer, indexSize, ref bytesRead);
+                    _ = ReadUIntVariable(buffer, indexSize, ref bytesRead);
                 }
 
                 ulong extentOffset = ReadUIntVariable(buffer, offsetSize, ref bytesRead);
                 ulong extentLength = ReadUIntVariable(buffer, lengthSize, ref bytesRead);
+                HeicLocation loc = new HeicLocation((long)extentOffset, (long)extentLength);
+                item?.DataLocations.Add(loc);
             }
         }
     }

@@ -223,4 +223,9 @@ public enum Heic4CharCode : uint
     /// </summary>
     uuid = 0x75756964U,
 
+    /// <summary>
+    /// Free space.
+    /// </summary>
+    free = 0x66726565U,
+
 }

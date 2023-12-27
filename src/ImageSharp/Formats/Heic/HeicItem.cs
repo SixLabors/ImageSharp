@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+
 namespace SixLabors.ImageSharp.Formats.Heic;
 
 /// <summary>
@@ -67,6 +68,11 @@ public class HeicItem(Heic4CharCode type, uint id)
     /// Gets the spatial extent of this grid cells in this item.
     /// </summary>
     public Size GridCellExtent { get; private set; }
+
+    /// <summary>
+    /// Gets the list of data locations for this item.
+    /// </summary>
+    public List<HeicLocation> DataLocations { get; } = new List<HeicLocation>();
 
     /// <summary>
     /// Set the image extent.

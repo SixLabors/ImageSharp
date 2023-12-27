@@ -18,5 +18,5 @@ internal static class HeicConstants
     /// <summary>
     /// The list of file extensions that equate to a HEIC.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "heic", "heif", "avif" };
+    public static readonly IEnumerable<string> FileExtensions = new[] { "heic", "heif", "hif", "avif" };
 }

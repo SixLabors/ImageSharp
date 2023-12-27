@@ -49,6 +49,7 @@
         "uri ", "URI",
         "pict", "Picture handler type",
         "uuid", "Unique Identifier",
+        "free", "Free space",
     };
 #>
 

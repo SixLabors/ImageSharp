@@ -138,4 +138,5 @@
 *.ani               filter=lfs diff=lfs merge=lfs -text
 *.heic              filter=lfs diff=lfs merge=lfs -text
 *.heif              filter=lfs diff=lfs merge=lfs -text
+*.hif               filter=lfs diff=lfs merge=lfs -text
 *.avif              filter=lfs diff=lfs merge=lfs -text

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 /// <summary>
 /// Supported 4 character codes for use in HEIC images.
 /// </summary>
-[GeneratedCode("T4", null)]
+[GeneratedCode("T4", "")]
 public enum Heic4CharCode : uint
 {
     /// <summary>

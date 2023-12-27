@@ -13,6 +13,7 @@ public class HeicDecoderTests
     [Theory]
     [InlineData(TestImages.Heic.Image1)]
     [InlineData(TestImages.Heic.Sample640x427)]
+    [InlineData(TestImages.Heic.FujiFilmHif)]
     public void Identify(string imagePath)
     {
         TestFile testFile = TestFile.Create(imagePath);
@@ -27,8 +28,7 @@ public class HeicDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Heic.Image1, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heic.Sample640x427, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heic.FujiFilmHif, PixelTypes.Rgba32)]
     public void Decode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

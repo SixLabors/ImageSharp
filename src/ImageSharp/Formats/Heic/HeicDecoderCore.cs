@@ -202,11 +202,12 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.idat:
                 case Heic4CharCode.grpl:
                 case Heic4CharCode.ipro:
+                case Heic4CharCode.uuid:
                     // Silently skip these boxes.
                     SkipBox(stream, length);
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown metadata box type of '{Enum.GetName(boxType)}'");
+                    throw new ImageFormatException($"Unknown metadata box type of '{PrettyPrint(boxType)}'");
             }
         }
     }
@@ -373,8 +374,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             }
             else
             {
-                string enumName = Enum.GetName(containerType) ?? ((uint)containerType).ToString("X", CultureInfo.InvariantCulture);
-                throw new ImageFormatException($"Unknown container type in property box of '{enumName}'");
+                throw new ImageFormatException($"Unknown container type in property box of '{PrettyPrint(containerType)}'");
             }
         }
     }
@@ -424,8 +424,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                     // TODO: Implement
                     break;
                 default:
-                    string enumName = Enum.GetName(itemType) ?? ((uint)itemType).ToString("X", CultureInfo.InvariantCulture);
-                    throw new ImageFormatException($"Unknown item type in property box of '{enumName}'");
+                    throw new ImageFormatException($"Unknown item type in property box of '{PrettyPrint(itemType)}'");
             }
         }
     }
@@ -600,5 +599,18 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
     {
         Span<byte> bytes = span[..span.IndexOf((byte)0)];
         return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static string PrettyPrint(Heic4CharCode code)
+    {
+        string? pretty = Enum.GetName(code);
+        if (string.IsNullOrEmpty(pretty))
+        {
+            Span<byte> bytes = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(bytes, (uint)code);
+            pretty = Encoding.ASCII.GetString(bytes);
+        }
+
+        return pretty;
     }
 }

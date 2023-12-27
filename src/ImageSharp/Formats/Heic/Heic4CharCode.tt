@@ -29,8 +29,11 @@
         "udes", "User Description",
         "ipco", "Item Property Container",
         "ipma", "Item Property Association",
-        "heic", "High Efficient Image Coding",
+        "heic", "High Efficient Image Coding brand",
+        "heix", "High Efficient Image Coding brand (legacy name)",
+        "hif1", "High Efficient File brand",
         "hvc1", "High Efficiency Coding tile",
+        "jpeg", "Legacy JPEG coded tile",
         "dinf", "Data Information",
         "grpl", "Group list",
         "hdlr", "Handler",
@@ -45,6 +48,7 @@
         "mime", "MIME type",
         "uri ", "URI",
         "pict", "Picture handler type",
+        "uuid", "Unique Identifier",
     };
 #>
 

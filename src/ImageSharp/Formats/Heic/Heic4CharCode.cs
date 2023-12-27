@@ -124,14 +124,29 @@ public enum Heic4CharCode : uint
     ipma = 0x69706D61U,
 
     /// <summary>
-    /// High Efficient Image Coding.
+    /// High Efficient Image Coding brand.
     /// </summary>
     heic = 0x68656963U,
+
+    /// <summary>
+    /// High Efficient Image Coding brand (legacy name).
+    /// </summary>
+    heix = 0x68656978U,
+
+    /// <summary>
+    /// High Efficient File brand.
+    /// </summary>
+    hif1 = 0x68696631U,
 
     /// <summary>
     /// High Efficiency Coding tile.
     /// </summary>
     hvc1 = 0x68766331U,
+
+    /// <summary>
+    /// Legacy JPEG coded tile.
+    /// </summary>
+    jpeg = 0x6A706567U,
 
     /// <summary>
     /// Data Information.
@@ -202,5 +217,10 @@ public enum Heic4CharCode : uint
     /// Picture handler type.
     /// </summary>
     pict = 0x70696374U,
+
+    /// <summary>
+    /// Unique Identifier.
+    /// </summary>
+    uuid = 0x75756964U,
 
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
@@ -63,6 +64,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             throw new ImageFormatException("Not an HEIC image.");
         }
 
+        Image<TPixel>? image = null;
         while (stream.Position < stream.Length)
         {
             long boxLength = this.ReadBoxHeader(stream, out Heic4CharCode boxType);
@@ -73,7 +75,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                     this.ParseMetadata(stream, boxLength);
                     break;
                 case Heic4CharCode.mdat:
-                    this.ParseMediaData(stream, boxLength);
+                    image = this.ParseMediaData<TPixel>(stream, boxLength);
                     break;
                 case Heic4CharCode.free:
                     SkipBox(stream, boxLength);
@@ -93,10 +95,10 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
             throw new ImageFormatException("No primary item found");
         }
 
-        var image = new Image<TPixel>(this.configuration, item.Extent.Width, item.Extent.Height, this.metadata);
-
-        // TODO: Parse pixel data
-        Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+        if (image == null)
+        {
+            throw new NotImplementedException("No JPEG image decoded");
+        }
 
         return image;
     }
@@ -569,9 +571,30 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         return result;
     }
 
-    private void ParseMediaData(BufferedReadStream stream, long boxLength)
+    private Image<TPixel> ParseMediaData<TPixel>(BufferedReadStream stream, long boxLength)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        SkipBox(stream, boxLength);
+        // FIXME: No HVC decoding yet, so parse only a JPEG thumbnail.
+        HeicItemLink? thumbLink = this.itemLinks.FirstOrDefault(link => link.Type == Heic4CharCode.thmb);
+        if (thumbLink == null)
+        {
+            throw new NotImplementedException("No thumbnail found");
+        }
+
+        HeicItem? thumbItem = this.FindItemById(thumbLink.SourceId);
+        if (thumbItem == null || thumbItem.Type != Heic4CharCode.jpeg)
+        {
+            throw new NotImplementedException("No HVC decoding implemented yet");
+        }
+
+        int thumbFileOffset = (int)thumbItem.DataLocations[0].Offset;
+        int thumbFileLength = (int)thumbItem.DataLocations[0].Length;
+        stream.Skip((int)(thumbFileOffset - stream.Position));
+        using IMemoryOwner<byte> thumbMemory = this.configuration.MemoryAllocator.Allocate<byte>(thumbFileLength);
+        Span<byte> thumbSpan = thumbMemory.GetSpan();
+        stream.Read(thumbSpan);
+
+        return Image.Load<TPixel>(thumbSpan);
     }
 
     private static void SkipBox(BufferedReadStream stream, long boxLength)

@@ -1111,5 +1111,6 @@ public static class TestImages
         public const string Image2 = "Heic/image2.heic";
         public const string Image3 = "Heic/image3.heic";
         public const string Image4 = "Heic/image4.heic";
+        public const string Sample640x427 = "Heic/dwsample-heic-640.heic";
     }
 }

@@ -138,7 +138,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteHandlerBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 24);
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.hdlr, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
@@ -155,7 +155,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WritePrimaryItemBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 12);
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.pitm, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 1);
         bytesWritten += 2;
@@ -166,7 +166,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 6 + (items.Count * 9));
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iinf, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
         bytesWritten += 2;
@@ -191,7 +191,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteItemReferenceBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItemLink> links)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 4 + (links.Count << 4));
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iref, 0, 0);
         foreach (HeicItemLink link in links)
         {
@@ -255,7 +255,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteSpatialExtentPropertyBox(AutoExpandingMemory<byte> memory, int memoryOffset, HeicItem item)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 16);
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.ispe);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)item.Extent.Width);
         bytesWritten += 4;
@@ -268,7 +268,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteItemDataBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 10);
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.idat);
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
@@ -277,7 +277,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 100);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 30 + (items.Count << 3));
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iloc, 1, 0);
         buffer[bytesWritten++] = 0x44;
         buffer[bytesWritten++] = 0;

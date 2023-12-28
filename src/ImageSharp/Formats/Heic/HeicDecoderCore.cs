@@ -25,7 +25,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
     /// <summary>
     /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
     /// </summary>
-    private ImageMetadata? metadata;
+    private readonly ImageMetadata metadata;
 
     private uint primaryItem;
 
@@ -128,6 +128,12 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         if (item == null)
         {
             throw new ImageFormatException("No primary item found");
+        }
+
+        HeicMetadata meta = this.metadata.GetHeicMetadata();
+        if (this.itemLinks.Any(link => link.Type == Heic4CharCode.thmb))
+        {
+            meta.CompressionMethod = HeicCompressionMethod.LegacyJpeg;
         }
 
         return new ImageInfo(new PixelTypeInfo(item.BitsPerPixel), new(item.Extent.Width, item.Extent.Height), this.metadata);
@@ -432,6 +438,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.rloc:
                 case Heic4CharCode.udes:
                     // TODO: Implement
+                    properties.Add(new KeyValuePair<Heic4CharCode, object>(itemType, new object()));
                     break;
                 default:
                     throw new ImageFormatException($"Unknown item type in property box of '{PrettyPrint(itemType)}'");
@@ -593,6 +600,9 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         using IMemoryOwner<byte> thumbMemory = this.configuration.MemoryAllocator.Allocate<byte>(thumbFileLength);
         Span<byte> thumbSpan = thumbMemory.GetSpan();
         stream.Read(thumbSpan);
+
+        HeicMetadata meta = this.metadata.GetHeicMetadata();
+        meta.CompressionMethod = HeicCompressionMethod.LegacyJpeg;
 
         return Image.Load<TPixel>(thumbSpan);
     }

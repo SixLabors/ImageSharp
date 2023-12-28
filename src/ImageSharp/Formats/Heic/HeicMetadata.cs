@@ -20,8 +20,12 @@ public class HeicMetadata : IDeepCloneable
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
     private HeicMetadata(HeicMetadata other)
-    {
-    }
+        => this.CompressionMethod = other.CompressionMethod;
+
+    /// <summary>
+    /// Gets or sets the compression method used for the primary frame.
+    /// </summary>
+    public HeicCompressionMethod CompressionMethod { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new HeicMetadata(this);

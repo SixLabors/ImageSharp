@@ -114,6 +114,11 @@ public enum Heic4CharCode : uint
     udes = 0x75646573U,
 
     /// <summary>
+    /// IPMP Control Box.
+    /// </summary>
+    ipmc = 0x69706D63U,
+
+    /// <summary>
     /// Item Property Container.
     /// </summary>
     ipco = 0x6970636FU,
@@ -136,7 +141,7 @@ public enum Heic4CharCode : uint
     /// <summary>
     /// High Efficient File brand.
     /// </summary>
-    hif1 = 0x68696631U,
+    mif1 = 0x6D696631U,
 
     /// <summary>
     /// High Efficiency Coding tile.

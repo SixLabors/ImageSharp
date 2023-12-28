@@ -219,6 +219,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.grpl:
                 case Heic4CharCode.ipro:
                 case Heic4CharCode.uuid:
+                case Heic4CharCode.ipmc:
                     // Silently skip these boxes.
                     SkipBox(stream, length);
                     break;

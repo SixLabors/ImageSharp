@@ -37,6 +37,6 @@ public class HeicDecoderTests
         image.DebugSave(provider);
 
         image.CompareToReferenceOutput(provider);
-        Assert.Equal(HeicCompressionMethod.LegacyJpeg, heicMetadata.CompressionMethod);
+        Assert.Equal(HeicCompressionMethod.Hevc, heicMetadata.CompressionMethod);
     }
 }

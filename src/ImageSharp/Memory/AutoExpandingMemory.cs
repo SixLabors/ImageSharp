@@ -3,7 +3,7 @@
 
 using System.Buffers;
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Memory;
 
 /// <summary>
 /// Memory class that will expand dynamically when full.
@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heic;
 internal sealed class AutoExpandingMemory<T> : IDisposable
     where T : unmanaged
 {
+    private const int IncreaseFactor = 5;
     private readonly Configuration configuration;
     private IMemoryOwner<T> allocation;
 
@@ -32,7 +33,7 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
 
     public Span<T> GetSpan(int offset, int requestedSize)
     {
-        Guard.MustBeGreaterThan(offset, 0, nameof(offset));
+        Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
         Guard.MustBeGreaterThan(requestedSize, 0, nameof(requestedSize));
         this.EnsureCapacity(offset + requestedSize);
 
@@ -45,7 +46,7 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
     {
         if (requestedSize > this.allocation.Memory.Length)
         {
-            int newSize = requestedSize + (requestedSize / 5);
+            int newSize = requestedSize + (requestedSize / IncreaseFactor);
             IMemoryOwner<T> newAllocation = this.configuration.MemoryAllocator.Allocate<T>(newSize);
             this.allocation.Memory.CopyTo(newAllocation.Memory);
             this.allocation.Dispose();

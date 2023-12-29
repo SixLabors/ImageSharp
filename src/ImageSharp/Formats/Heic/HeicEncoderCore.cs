@@ -90,7 +90,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private static int WriteBoxHeader(Span<byte> buffer, Heic4CharCode type, byte version, uint flags)
     {
         int bytesWritten = 0;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 12U);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 12);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)type);
         bytesWritten += 4;
@@ -109,7 +109,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.ftyp);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.heic);
         bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0U);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.mif1);
         bytesWritten += 4;
@@ -280,7 +280,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
     private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 30 + (items.Count << 3));
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 30 + (items.Count * 8));
         int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iloc, 1, 0);
         buffer[bytesWritten++] = 0x44;
         buffer[bytesWritten++] = 0;

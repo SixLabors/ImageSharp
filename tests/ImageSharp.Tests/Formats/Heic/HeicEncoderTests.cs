@@ -23,7 +23,7 @@ public class HeicEncoderTests
         image.Save(stream, encoder);
         stream.Position = 0;
 
-        using Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(stream);
+        using Image<TPixel> encodedImage = Image.Load<TPixel>(stream);
         HeicMetadata heicMetadata = encodedImage.Metadata.GetHeicMetadata();
 
         ImageComparer.Exact.CompareImages(image, encodedImage);

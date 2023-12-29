@@ -1,18 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Image encoder for writing an image to a stream as a HEIC image.
+/// Image encoder for writing an image to a stream as a HEIF image.
 /// </summary>
-internal sealed class HeicEncoderCore : IImageEncoderInternals
+internal sealed class HeifEncoderCore : IImageEncoderInternals
 {
     /// <summary>
     /// The global configuration.
@@ -22,14 +21,14 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The encoder with options.
     /// </summary>
-    private readonly HeicEncoder encoder;
+    private readonly HeifEncoder encoder;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HeicEncoderCore"/> class.
+    /// Initializes a new instance of the <see cref="HeifEncoderCore"/> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
     /// <param name="encoder">The encoder with options.</param>
-    public HeicEncoderCore(Configuration configuration, HeicEncoder encoder)
+    public HeifEncoderCore(Configuration configuration, HeifEncoder encoder)
     {
         this.configuration = configuration;
         this.encoder = encoder;
@@ -49,8 +48,8 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         Guard.NotNull(stream, nameof(stream));
 
         byte[] pixels = await CompressPixels(image, cancellationToken);
-        List<HeicItem> items = new();
-        List<HeicItemLink> links = new();
+        List<HeifItem> items = new();
+        List<HeifItemLink> links = new();
         GenerateItems(image, pixels, items, links);
 
         // Write out the generated header and pixels.
@@ -58,25 +57,28 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         this.WriteMetadataBox(items, links, stream);
         this.WriteMediaDataBox(pixels, stream);
         stream.Flush();
+
+        HeifMetadata meta = image.Metadata.GetHeifMetadata();
+        meta.CompressionMethod = HeifCompressionMethod.LegacyJpeg;
     }
 
-    private static void GenerateItems<TPixel>(Image<TPixel> image, byte[] pixels, List<HeicItem> items, List<HeicItemLink> links)
+    private static void GenerateItems<TPixel>(Image<TPixel> image, byte[] pixels, List<HeifItem> items, List<HeifItemLink> links)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        HeicItem primaryItem = new(Heic4CharCode.jpeg, 1u);
-        primaryItem.DataLocations.Add(new HeicLocation(0L, pixels.LongLength));
+        HeifItem primaryItem = new(Heif4CharCode.jpeg, 1u);
+        primaryItem.DataLocations.Add(new HeifLocation(0L, pixels.LongLength));
         primaryItem.BitsPerPixel = 24;
         primaryItem.ChannelCount = 3;
         primaryItem.SetExtent(image.Size);
         items.Add(primaryItem);
 
         // Create a fake thumbnail, to make our own Decoder happy.
-        HeicItemLink thumbnail = new(Heic4CharCode.thmb, 1u);
+        HeifItemLink thumbnail = new(Heif4CharCode.thmb, 1u);
         thumbnail.DestinationIds.Add(1u);
         links.Add(thumbnail);
     }
 
-    private static int WriteBoxHeader(Span<byte> buffer, Heic4CharCode type)
+    private static int WriteBoxHeader(Span<byte> buffer, Heif4CharCode type)
     {
         int bytesWritten = 0;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 8U);
@@ -87,7 +89,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         return bytesWritten;
     }
 
-    private static int WriteBoxHeader(Span<byte> buffer, Heic4CharCode type, byte version, uint flags)
+    private static int WriteBoxHeader(Span<byte> buffer, Heif4CharCode type, byte version, uint flags)
     {
         int bytesWritten = 0;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 12);
@@ -106,25 +108,25 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private void WriteFileTypeBox(Stream stream)
     {
         Span<byte> buffer = stackalloc byte[24];
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.ftyp);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.heic);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.ftyp);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.heic);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.mif1);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.mif1);
         bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.heic);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.heic);
         bytesWritten += 4;
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer);
     }
 
-    private void WriteMetadataBox(List<HeicItem> items, List<HeicItemLink> links, Stream stream)
+    private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, Stream stream)
     {
         using AutoExpandingMemory<byte> memory = new(this.configuration, 0x1000);
         Span<byte> buffer = memory.GetSpan(12);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.meta, 0, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.meta, 0, 0);
         bytesWritten += WriteHandlerBox(memory, bytesWritten);
         bytesWritten += WritePrimaryItemBox(memory, bytesWritten);
         bytesWritten += WriteItemInfoBox(memory, bytesWritten, items);
@@ -141,10 +143,10 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private static int WriteHandlerBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 33);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.hdlr, 0, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.hdlr, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heic4CharCode.pict);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.pict);
         bytesWritten += 4;
         for (int i = 0; i < 13; i++)
         {
@@ -158,7 +160,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private static int WritePrimaryItemBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 14);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.pitm, 0, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.pitm, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 1);
         bytesWritten += 2;
 
@@ -166,16 +168,16 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         return bytesWritten;
     }
 
-    private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
+    private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 14 + (items.Count * 21));
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iinf, 0, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.iinf, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
         bytesWritten += 2;
-        foreach (HeicItem item in items)
+        foreach (HeifItem item in items)
         {
             int itemLengthOffset = bytesWritten;
-            bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heic4CharCode.infe, 2, 0);
+            bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.infe, 2, 0);
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 0);
@@ -191,11 +193,11 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         return bytesWritten;
     }
 
-    private static int WriteItemReferenceBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items, List<HeicItemLink> links)
+    private static int WriteItemReferenceBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items, List<HeifItemLink> links)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 12 + (links.Count * (12 + (items.Count * 2))));
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iref, 0, 0);
-        foreach (HeicItemLink link in links)
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.iref, 0, 0);
+        foreach (HeifItemLink link in links)
         {
             int itemLengthOffset = bytesWritten;
             bytesWritten += WriteBoxHeader(buffer[bytesWritten..], link.Type);
@@ -216,16 +218,16 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         return bytesWritten;
     }
 
-    private static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
+    private static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         const ushort numPropPerItem = 1;
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iprp);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.iprp);
 
         // Write 'ipco' box
         int ipcoLengthOffset = bytesWritten;
-        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heic4CharCode.ipco);
-        foreach (HeicItem item in items)
+        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.ipco);
+        foreach (HeifItem item in items)
         {
             bytesWritten += WriteSpatialExtentPropertyBox(memory, memoryOffset + bytesWritten, item);
         }
@@ -235,11 +237,11 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
 
         // Write 'ipma' box
         int ipmaLengthOffset = bytesWritten;
-        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heic4CharCode.ipma, 0, 0);
+        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.ipma, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)(items.Count * numPropPerItem));
         bytesWritten += 4;
         ushort propIndex = 0;
-        foreach (HeicItem item in items)
+        foreach (HeifItem item in items)
         {
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
@@ -256,10 +258,10 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
         return bytesWritten;
     }
 
-    private static int WriteSpatialExtentPropertyBox(AutoExpandingMemory<byte> memory, int memoryOffset, HeicItem item)
+    private static int WriteSpatialExtentPropertyBox(AutoExpandingMemory<byte> memory, int memoryOffset, HeifItem item)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.ispe, 0, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.ispe, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)item.Extent.Width);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)item.Extent.Height);
@@ -272,16 +274,16 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private static int WriteItemDataBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 10);
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.idat);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.idat);
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
     }
 
-    private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeicItem> items)
+    private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 30 + (items.Count * 8));
-        int bytesWritten = WriteBoxHeader(buffer, Heic4CharCode.iloc, 1, 0);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.iloc, 1, 0);
         buffer[bytesWritten++] = 0x44;
         buffer[bytesWritten++] = 0;
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 1);
@@ -293,10 +295,10 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
             buffer[bytesWritten++] = 0;
         }
 
-        IEnumerable<HeicLocation> itemLocs = items.SelectMany(item => item.DataLocations).Where(loc => loc != null);
+        IEnumerable<HeifLocation> itemLocs = items.SelectMany(item => item.DataLocations).Where(loc => loc != null);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)itemLocs.Count());
         bytesWritten += 2;
-        foreach (HeicLocation loc in itemLocs)
+        foreach (HeifLocation loc in itemLocs)
         {
             BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)loc.Offset);
             bytesWritten += 4;
@@ -311,7 +313,7 @@ internal sealed class HeicEncoderCore : IImageEncoderInternals
     private void WriteMediaDataBox(Span<byte> data, Stream stream)
     {
         Span<byte> buf = stackalloc byte[12];
-        int bytesWritten = WriteBoxHeader(buf, Heic4CharCode.mdat);
+        int bytesWritten = WriteBoxHeader(buf, Heif4CharCode.mdat);
         BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)(data.Length + bytesWritten));
         stream.Write(buf[..bytesWritten]);
 

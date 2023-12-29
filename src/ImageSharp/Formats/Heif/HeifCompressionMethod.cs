@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
 /// Compression algorithms possible inside an HEIF (High Efficiency File Format) based file.
 /// </summary>
-public enum HeicCompressionMethod
+public enum HeifCompressionMethod
 {
     /// <summary>
     /// High Efficiency Video Coding

@@ -5,13 +5,13 @@
 
 using System.CodeDom.Compiler;
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Supported 4 character codes for use in HEIC images.
+/// Supported 4 character codes for use in HEIF images.
 /// </summary>
 [GeneratedCode("T4", "")]
-public enum Heic4CharCode : uint
+public enum Heif4CharCode : uint
 {
     /// <summary>
     /// File Type.

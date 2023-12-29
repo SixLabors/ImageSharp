@@ -4,12 +4,12 @@
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Detects HEIC file headers.
+/// Detects HEIF file headers.
 /// </summary>
-public sealed class HeicImageFormatDetector : IImageFormatDetector
+public sealed class HeifImageFormatDetector : IImageFormatDetector
 {
     /// <inheritdoc/>
     public int HeaderSize => 12;
@@ -17,14 +17,14 @@ public sealed class HeicImageFormatDetector : IImageFormatDetector
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        format = IsSupportedFileFormat(header) ? HeicFormat.Instance : null;
+        format = IsSupportedFileFormat(header) ? HeifFormat.Instance : null;
         return format != null;
     }
 
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {
-        bool hasFtyp = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heic4CharCode.ftyp;
+        bool hasFtyp = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heif4CharCode.ftyp;
         uint brand = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8));
-        return hasFtyp && (brand == (uint)Heic4CharCode.heic || brand == (uint)Heic4CharCode.heix || brand == (uint)Heic4CharCode.avif);
+        return hasFtyp && (brand == (uint)Heif4CharCode.heic || brand == (uint)Heif4CharCode.heix || brand == (uint)Heif4CharCode.avif);
     }
 }

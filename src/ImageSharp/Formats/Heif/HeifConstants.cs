@@ -1,14 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Contains HEIC (and H.265) constant values defined in the specification.
+/// Contains HEIF constant values defined in the specification.
 /// </summary>
-internal static class HeicConstants
+internal static class HeifConstants
 {
-    public const Heic4CharCode HeicBrand = Heic4CharCode.heic;
+    public const Heif4CharCode HeicBrand = Heif4CharCode.heic;
 
     /// <summary>
     /// The list of mimetypes that equate to a HEIC.

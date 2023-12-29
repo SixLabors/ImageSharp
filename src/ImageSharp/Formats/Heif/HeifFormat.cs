@@ -1,21 +1,21 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
 /// Registers the image encoders, decoders and mime type detectors for the HEIC format.
 /// </summary>
-public sealed class HeicFormat : IImageFormat<HeicMetadata>
+public sealed class HeifFormat : IImageFormat<HeifMetadata>
 {
-    private HeicFormat()
+    private HeifFormat()
     {
     }
 
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static HeicFormat Instance { get; } = new();
+    public static HeifFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "HEIC";
@@ -24,11 +24,11 @@ public sealed class HeicFormat : IImageFormat<HeicMetadata>
     public string DefaultMimeType => "image/heif";
 
     /// <inheritdoc/>
-    public IEnumerable<string> MimeTypes => HeicConstants.MimeTypes;
+    public IEnumerable<string> MimeTypes => HeifConstants.MimeTypes;
 
     /// <inheritdoc/>
-    public IEnumerable<string> FileExtensions => HeicConstants.FileExtensions;
+    public IEnumerable<string> FileExtensions => HeifConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public HeicMetadata CreateDefaultFormatMetadata() => new();
+    public HeifMetadata CreateDefaultFormatMetadata() => new();
 }

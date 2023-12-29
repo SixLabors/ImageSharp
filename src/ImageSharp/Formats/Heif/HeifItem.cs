@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Provides definition for a HEIC Item.
+/// Provides definition for a HEIF Item.
 /// </summary>
-public class HeicItem(Heic4CharCode type, uint id)
+public class HeifItem(Heif4CharCode type, uint id)
 {
     /// <summary>
     /// Gets the ID of this Item.
@@ -16,7 +16,7 @@ public class HeicItem(Heic4CharCode type, uint id)
     /// <summary>
     /// Gets the type of this Item.
     /// </summary>
-    public Heic4CharCode Type { get; } = type;
+    public Heif4CharCode Type { get; } = type;
 
     /// <summary>
     /// Gets or sets the name of this item.
@@ -71,7 +71,7 @@ public class HeicItem(Heic4CharCode type, uint id)
     /// <summary>
     /// Gets the list of data locations for this item.
     /// </summary>
-    public List<HeicLocation> DataLocations { get; } = new List<HeicLocation>();
+    public List<HeifLocation> DataLocations { get; } = new List<HeifLocation>();
 
     /// <summary>
     /// Set the image extent.

@@ -1,17 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heic;
+namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Link between <see cref="HeicItem"/> instances within the same HEIC file.
+/// Link between <see cref="HeifItem"/> instances within the same HEIF file.
 /// </summary>
-public class HeicItemLink(Heic4CharCode type, uint sourceId)
+public class HeifItemLink(Heif4CharCode type, uint sourceId)
 {
     /// <summary>
     /// Gets the type of link.
     /// </summary>
-    public Heic4CharCode Type { get; } = type;
+    public Heif4CharCode Type { get; } = type;
 
     /// <summary>
     /// Gets the ID of the source item of this link.

@@ -1,32 +1,32 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heic;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Heic;
+namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
-[Trait("Format", "Heic")]
+[Trait("Format", "Heif")]
 [ValidateDisposedMemoryAllocations]
-public class HeicEncoderTests
+public class HeifEncoderTests
 {
     [Theory]
-    [WithFile(TestImages.Heic.Sample640x427, PixelTypes.Rgba32)]
-    public static void Encode<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Heif.Sample640x427, PixelTypes.Rgba32, HeifCompressionMethod.LegacyJpeg)]
+    public static void Encode<TPixel>(TestImageProvider<TPixel> provider, HeifCompressionMethod compressionMethod)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder());
         using MemoryStream stream = new();
-        HeicEncoder encoder = new();
+        HeifEncoder encoder = new();
         image.Save(stream, encoder);
         stream.Position = 0;
 
         using Image<TPixel> encodedImage = Image.Load<TPixel>(stream);
-        HeicMetadata heicMetadata = encodedImage.Metadata.GetHeicMetadata();
+        HeifMetadata heifMetadata = encodedImage.Metadata.GetHeifMetadata();
 
         ImageComparer.Exact.CompareImages(image, encodedImage);
-        //Assert.Equal(heicMetadata.Channels, channels);
+        Assert.Equal(compressionMethod, heifMetadata.CompressionMethod);
     }
 }

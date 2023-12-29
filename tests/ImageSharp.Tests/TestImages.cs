@@ -1112,7 +1112,11 @@ public static class TestImages
         public const string Image3 = "Heic/image3.heic";
         public const string Image4 = "Heic/image4.heic";
         public const string Sample640x427 = "Heic/dwsample-heic-640.heic";
+
         // Downloaded from: https://github.com/draktable-org/darktable/issues/14473
         public const string FujiFilmHif = "Heic/IMG-20230508-0053.hif";
+
+        // Downloaded from: https://github.com/AOMediaCodec/av1-avif/blob/master/testFiles/Microsoft/Irvine_CA.avif
+        public const string IrvineAvif = "Heic/Irvine_CA.avif";
     }
 }

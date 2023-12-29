@@ -131,10 +131,17 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
         }
 
         HeicMetadata meta = this.metadata.GetHeicMetadata();
-        if (this.itemLinks.Any(link => link.Type == Heic4CharCode.thmb))
+        HeicCompressionMethod compressionMethod = HeicCompressionMethod.Hevc;
+        if (item.Type == Heic4CharCode.av01)
         {
-            meta.CompressionMethod = HeicCompressionMethod.LegacyJpeg;
+            compressionMethod = HeicCompressionMethod.Av1;
         }
+        else if (this.itemLinks.Any(link => link.Type == Heic4CharCode.thmb))
+        {
+            compressionMethod = HeicCompressionMethod.LegacyJpeg;
+        }
+
+        meta.CompressionMethod = compressionMethod;
 
         return new ImageInfo(new PixelTypeInfo(item.BitsPerPixel), new(item.Extent.Width, item.Extent.Height), this.metadata);
     }
@@ -436,6 +443,7 @@ internal sealed class HeicDecoderCore : IImageDecoderInternals
                 case Heic4CharCode.irot:
                 case Heic4CharCode.iscl:
                 case Heic4CharCode.hvcC:
+                case Heic4CharCode.av1C:
                 case Heic4CharCode.rloc:
                 case Heic4CharCode.udes:
                     // TODO: Implement

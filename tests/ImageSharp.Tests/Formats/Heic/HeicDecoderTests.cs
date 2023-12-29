@@ -14,6 +14,7 @@ public class HeicDecoderTests
     [InlineData(TestImages.Heic.Image1, HeicCompressionMethod.Hevc)]
     [InlineData(TestImages.Heic.Sample640x427, HeicCompressionMethod.Hevc)]
     [InlineData(TestImages.Heic.FujiFilmHif, HeicCompressionMethod.LegacyJpeg)]
+    [InlineData(TestImages.Heic.IrvineAvif, HeicCompressionMethod.Av1)]
     public void Identify(string imagePath, HeicCompressionMethod compressionMethod)
     {
         TestFile testFile = TestFile.Create(imagePath);

@@ -25,6 +25,6 @@ public sealed class HeicImageFormatDetector : IImageFormatDetector
     {
         bool hasFtyp = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heic4CharCode.ftyp;
         uint brand = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8));
-        return hasFtyp && (brand == (uint)Heic4CharCode.heic || brand == (uint)Heic4CharCode.heix);
+        return hasFtyp && (brand == (uint)Heic4CharCode.heic || brand == (uint)Heic4CharCode.heix || brand == (uint)Heic4CharCode.avif);
     }
 }

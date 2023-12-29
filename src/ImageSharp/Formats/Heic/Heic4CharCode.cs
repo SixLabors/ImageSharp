@@ -79,6 +79,11 @@ public enum Heic4CharCode : uint
     hvcC = 0x68766343U,
 
     /// <summary>
+    /// AV1 configuration.
+    /// </summary>
+    av1C = 0x61763143U,
+
+    /// <summary>
     /// Image Mirror.
     /// </summary>
     imir = 0x696D6972U,
@@ -144,6 +149,11 @@ public enum Heic4CharCode : uint
     mif1 = 0x6D696631U,
 
     /// <summary>
+    /// AVIF brand.
+    /// </summary>
+    avif = 0x61766966U,
+
+    /// <summary>
     /// High Efficiency Coding tile.
     /// </summary>
     hvc1 = 0x68766331U,
@@ -152,6 +162,11 @@ public enum Heic4CharCode : uint
     /// Legacy JPEG coded tile.
     /// </summary>
     jpeg = 0x6A706567U,
+
+    /// <summary>
+    /// AOMedia Video Coding tile.
+    /// </summary>
+    av01 = 0x61763031U,
 
     /// <summary>
     /// Data Information.

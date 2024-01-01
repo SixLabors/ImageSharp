@@ -48,7 +48,7 @@ public class WebpFrameMetadata : IDeepCloneable
     internal static WebpFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
         => new()
         {
-            FrameDelay = (uint)metadata.Duration.Milliseconds,
+            FrameDelay = (uint)metadata.Duration.TotalMilliseconds,
             BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendMethod.Source : WebpBlendMethod.Over,
             DisposalMethod = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose
         };

@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -87,8 +86,15 @@ public class HalfVector4Tests
     {
         PixelTypeInfo info = HalfVector4.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<HalfVector4>() * 8, info.BitsPerPixel);
-        Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Half, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

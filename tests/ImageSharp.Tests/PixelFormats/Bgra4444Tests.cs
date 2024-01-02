@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -252,8 +251,15 @@ public class Bgra4444Tests
     {
         PixelTypeInfo info = Bgra4444.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Bgra4444>() * 8, info.BitsPerPixel);
-        Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(4, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(4, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(4, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(4, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(4, componentInfo.GetMaximumComponentPrecision());
     }
 }

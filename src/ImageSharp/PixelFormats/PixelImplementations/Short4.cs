@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -68,7 +67,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Short4>(4, PixelComponentPrecision.Short, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Short4>(PixelComponentInfo.Create<Short4>(4, 16, 16, 16, 16), PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();

@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats;

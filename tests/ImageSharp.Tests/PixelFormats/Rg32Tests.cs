@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Formats;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -90,8 +89,13 @@ public class Rg32Tests
     {
         PixelTypeInfo info = Rg32.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Rg32>() * 8, info.BitsPerPixel);
-        Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

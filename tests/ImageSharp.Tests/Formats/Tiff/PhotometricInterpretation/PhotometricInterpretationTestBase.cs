@@ -47,7 +47,7 @@ public abstract class PhotometricInterpretationTestBase
 
         using (var image = new Image<Rgba32>(resultWidth, resultHeight))
         {
-            image.Mutate(x => x.BackgroundColor(DefaultColor));
+            image.Mutate(x => x.BackgroundColor(Color.FromPixel(DefaultColor)));
             Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
 
             decodeAction(pixels);

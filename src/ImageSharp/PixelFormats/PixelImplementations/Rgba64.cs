@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -170,22 +169,6 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     }
 
     /// <summary>
-    /// Converts an <see cref="Rgba64"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Rgba64"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Rgba64 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Rgba64"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Rgba64"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Rgba64(Color color) => color.ToPixel<Rgba64>();
-
-    /// <summary>
     /// Compares two <see cref="Rgba64"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="Rgba64"/> on the left side of the operand.</param>
@@ -208,7 +191,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba64>(4, PixelComponentPrecision.UShort, PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba64>(PixelComponentInfo.Create<Rgba64>(4, 16, 16, 16, 16), PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();

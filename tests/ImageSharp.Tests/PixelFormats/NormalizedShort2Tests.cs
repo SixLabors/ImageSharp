@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -92,8 +91,13 @@ public class NormalizedShort2Tests
     {
         PixelTypeInfo info = NormalizedShort2.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<NormalizedShort2>() * 8, info.BitsPerPixel);
-        Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Short, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

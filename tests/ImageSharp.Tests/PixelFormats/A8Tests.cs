@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -116,8 +115,12 @@ public class A8Tests
     {
         PixelTypeInfo info = A8.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<A8>() * 8, info.BitsPerPixel);
-        Assert.Equal(1, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(1, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

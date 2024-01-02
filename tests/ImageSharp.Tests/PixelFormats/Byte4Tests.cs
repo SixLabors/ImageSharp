@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Formats;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -245,8 +244,15 @@ public class Byte4Tests
     {
         PixelTypeInfo info = Byte4.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Byte4>() * 8, info.BitsPerPixel);
-        Assert.Equal(4, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

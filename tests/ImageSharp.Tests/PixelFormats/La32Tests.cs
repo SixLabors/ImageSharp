@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -172,8 +171,13 @@ public class La32Tests
     {
         PixelTypeInfo info = La32.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<La32>() * 8, info.BitsPerPixel);
-        Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.UShort, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

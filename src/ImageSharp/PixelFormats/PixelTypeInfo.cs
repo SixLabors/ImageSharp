@@ -2,12 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.PixelFormats;
 
 // TODO: Review this type as it's used to represent 2 different things.
 // 1.The encoded image pixel format.
 // 2. The pixel format of the decoded image.
-namespace SixLabors.ImageSharp.Formats;
+namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Contains information about the pixels that make up an images visual data.
@@ -24,14 +23,9 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     public int BitsPerPixel { get; init; } = bitsPerPixel;
 
     /// <summary>
-    /// Gets the count of the color components
-    /// </summary>
-    public int ComponentCount { get; init; }
-
-    /// <summary>
     /// Gets the maximum precision of components within the pixel.
     /// </summary>
-    public PixelComponentPrecision? MaxComponentPrecision { get; init; }
+    public PixelComponentInfo? ComponentInfo { get; init; }
 
     /// <summary>
     /// Gets the pixel alpha transparency behavior.
@@ -39,16 +33,21 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     /// </summary>
     public PixelAlphaRepresentation? AlphaRepresentation { get; init; }
 
-    internal static PixelTypeInfo Create<TPixel>(
-        byte componentCount,
-        PixelComponentPrecision componentPrecision,
-        PixelAlphaRepresentation pixelAlphaRepresentation)
+    /// <summary>
+    /// Creates a new <see cref="PixelTypeInfo"/> instance.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="info">The pixel component info.</param>
+    /// <param name="alphaRepresentation">The pixel alpha representation.</param>
+    /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
+    public static PixelTypeInfo Create<TPixel>(
+        PixelComponentInfo info,
+        PixelAlphaRepresentation alphaRepresentation)
         where TPixel : unmanaged, IPixel<TPixel>
         => new()
         {
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
-            ComponentCount = componentCount,
-            MaxComponentPrecision = componentPrecision,
-            AlphaRepresentation = pixelAlphaRepresentation
+            ComponentInfo = info,
+            AlphaRepresentation = alphaRepresentation
         };
 }

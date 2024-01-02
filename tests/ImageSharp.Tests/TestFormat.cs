@@ -263,7 +263,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
     {
-        public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(2, PixelComponentPrecision.Byte, PixelAlphaRepresentation.None);
+        public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(PixelComponentInfo.Create<TestPixelForAgnosticDecode>(2, 8, 8), PixelAlphaRepresentation.None);
 
         public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
 

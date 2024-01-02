@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Formats;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -88,8 +87,13 @@ public class NormalizedByte2Tests
     {
         PixelTypeInfo info = NormalizedByte2.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<NormalizedByte2>() * 8, info.BitsPerPixel);
-        Assert.Equal(2, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.SByte, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
@@ -265,9 +264,14 @@ public class La16Tests
         {
             PixelTypeInfo info = La16.GetPixelTypeInfo();
             Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
-            Assert.Equal(2, info.ComponentCount);
             Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
-            Assert.Equal(PixelComponentPrecision.Byte, info.MaxComponentPrecision);
+
+            PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+            Assert.Equal(2, componentInfo.ComponentCount);
+            Assert.Equal(0, componentInfo.Padding);
+            Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+            Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+            Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
         }
     }
 }

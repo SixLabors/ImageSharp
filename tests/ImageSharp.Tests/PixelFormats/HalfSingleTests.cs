@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -74,8 +73,12 @@ public class HalfSingleTests
     {
         PixelTypeInfo info = HalfSingle.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<HalfSingle>() * 8, info.BitsPerPixel);
-        Assert.Equal(1, info.ComponentCount);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-        Assert.Equal(PixelComponentPrecision.Half, info.MaxComponentPrecision);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(1, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

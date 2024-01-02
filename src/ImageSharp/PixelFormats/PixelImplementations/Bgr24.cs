@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -51,22 +50,6 @@ public partial struct Bgr24 : IPixel<Bgr24>
     }
 
     /// <summary>
-    /// Converts an <see cref="Bgr24"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Bgr24"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Bgr24 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Bgr24"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Bgr24"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Bgr24(Color color) => color.ToBgr24();
-
-    /// <summary>
     /// Compares two <see cref="Bgr24"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="Bgr24"/> on the left side of the operand.</param>
@@ -89,7 +72,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr24>(3, PixelComponentPrecision.Byte, PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr24>(PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8), PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();

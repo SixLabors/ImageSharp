@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -61,7 +60,7 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
     public static bool operator !=(Bgr565 left, Bgr565 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr565>(3, PixelComponentPrecision.Byte, PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr565>(PixelComponentInfo.Create<Bgr565>(3, 5, 6, 5), PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
     public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();

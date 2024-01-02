@@ -391,7 +391,7 @@ public partial class PngEncoderTests
             TransparentColorMode = PngTransparentColorMode.Clear,
             ColorType = colorType
         };
-        Rgba32 rgba32 = Color.Blue;
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
         image.ProcessPixelRows(accessor =>
         {
             for (int y = 0; y < image.Height; y++)
@@ -418,7 +418,7 @@ public partial class PngEncoderTests
         // assert
         memStream.Position = 0;
         using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
-        Rgba32 expectedColor = Color.Blue;
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
         if (colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha)
         {
             byte luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
@@ -427,13 +427,14 @@ public partial class PngEncoderTests
 
         actual.ProcessPixelRows(accessor =>
         {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
                 if (y > 25)
                 {
-                    expectedColor = Color.Transparent;
+                    expectedColor = transparent;
                 }
 
                 for (int x = 0; x < accessor.Width; x++)

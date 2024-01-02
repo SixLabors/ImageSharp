@@ -329,7 +329,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             // TODO: We should be able to speed this up with SIMD and masking.
             Rgba32 rgba32 = default;
-            Rgba32 transparent = Color.Transparent;
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> span = accessor.GetRowSpan(y);
@@ -1066,7 +1066,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             else
             {
                 alpha.Clear();
-                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToRgb24();
+                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToPixel<Rgb24>();
                 alpha[1] = rgb.R;
                 alpha[3] = rgb.G;
                 alpha[5] = rgb.B;

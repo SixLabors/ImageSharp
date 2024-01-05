@@ -35,9 +35,9 @@ internal static class PaethFilter
         // row:  a d
         // The Paeth function predicts d to be whichever of a, b, or c is nearest to
         // p = a + b - c.
-        if (Sse2.IsSupported && bytesPerPixel is 4)
+        if (Ssse3.IsSupported && bytesPerPixel is 4)
         {
-            DecodeSse3(scanline, previousScanline);
+            DecodeSsse3(scanline, previousScanline);
         }
         else if (AdvSimd.Arm64.IsSupported && bytesPerPixel is 4)
         {
@@ -50,7 +50,7 @@ internal static class PaethFilter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecodeSse3(Span<byte> scanline, Span<byte> previousScanline)
+    private static void DecodeSsse3(Span<byte> scanline, Span<byte> previousScanline)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
         ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);

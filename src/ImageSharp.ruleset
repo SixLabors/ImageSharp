@@ -2,7 +2,5 @@
 <RuleSet Name="ImageSharp" ToolsVersion="17.0">
   <Include Path="..\shared-infrastructure\sixlabors.ruleset" Action="Default" />
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
-    <Rule Id="SA1011" Action="None" />
-    <Rule Id="SA1648" Action="None" /> <!--https://github.com/DotNetAnalyzers/StyleCopAnalyzers/issues/3595-->
   </Rules>
 </RuleSet>

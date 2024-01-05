@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Compression algorithms possible inside an HEIF (High Efficiency File Format) based file.
+/// Compression algorithms possible inside an HEIF (High Efficiency Image Format) based file.
 /// </summary>
 public enum HeifCompressionMethod
 {

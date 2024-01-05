@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Configuration options for use during HEIF encoding.
 /// </summary>
-internal interface IHeicEncoderOptions
+internal interface IHeifEncoderOptions
 {
     // None defined yet.
 }

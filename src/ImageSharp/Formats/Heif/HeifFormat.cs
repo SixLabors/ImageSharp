@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the HEIC format.
+/// Registers the image encoders, decoders and mime type detectors for the HEIF format.
 /// </summary>
 public sealed class HeifFormat : IImageFormat<HeifMetadata>
 {
@@ -18,7 +18,7 @@ public sealed class HeifFormat : IImageFormat<HeifMetadata>
     public static HeifFormat Instance { get; } = new();
 
     /// <inheritdoc/>
-    public string Name => "HEIC";
+    public string Name => "HEIF";
 
     /// <inheritdoc/>
     public string DefaultMimeType => "image/heif";

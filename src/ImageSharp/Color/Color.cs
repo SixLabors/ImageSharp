@@ -94,7 +94,7 @@ public readonly partial struct Color : IEquatable<Color>
     {
         // Avoid boxing in case we can convert to Vector4 safely and efficiently
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
-        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentPrecision.Float)
+        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
             return new(pixel.ToScaledVector4());
         }
@@ -118,7 +118,7 @@ public readonly partial struct Color : IEquatable<Color>
 
         // Avoid boxing in case we can convert to Vector4 safely and efficiently
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
-        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentPrecision.Float)
+        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
             for (int i = 0; i < destination.Length; i++)
             {

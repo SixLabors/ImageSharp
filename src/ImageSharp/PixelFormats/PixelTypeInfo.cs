@@ -4,8 +4,9 @@
 using System.Runtime.CompilerServices;
 
 // TODO: Review this type as it's used to represent 2 different things.
-// 1.The encoded image pixel format.
+// 1. The encoded image pixel format.
 // 2. The pixel format of the decoded image.
+// Only the bits per pixel is used by the decoder, we should make it a property of the image metadata.
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>

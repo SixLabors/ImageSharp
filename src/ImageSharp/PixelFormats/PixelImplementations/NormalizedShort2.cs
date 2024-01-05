@@ -62,7 +62,11 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
     public static bool operator !=(NormalizedShort2 left, NormalizedShort2 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedShort2>(PixelComponentInfo.Create<NormalizedShort2>(2, 16, 16), PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<NormalizedShort2>(
+            PixelComponentInfo.Create<NormalizedShort2>(2, 16, 16),
+            PixelColorType.Red | PixelColorType.Green,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
     public readonly PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations();

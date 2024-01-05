@@ -271,7 +271,11 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     }
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba32>(PixelComponentInfo.Create<Rgba32>(4, 8, 8, 8, 8), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgba32>(
+            PixelComponentInfo.Create<Rgba32>(4, 8, 8, 8, 8),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();

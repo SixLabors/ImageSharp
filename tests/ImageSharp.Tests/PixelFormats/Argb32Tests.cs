@@ -149,6 +149,7 @@ public class Argb32Tests
         PixelTypeInfo info = Argb32.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Argb32>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Alpha | PixelColorType.RGB, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

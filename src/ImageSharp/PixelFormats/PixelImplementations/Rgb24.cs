@@ -91,7 +91,11 @@ public partial struct Rgb24 : IPixel<Rgb24>
     public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb24>(PixelComponentInfo.Create<Rgb24>(3, 8, 8, 8), PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgb24>(
+            PixelComponentInfo.Create<Rgb24>(3, 8, 8, 8),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();

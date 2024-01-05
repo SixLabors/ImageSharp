@@ -77,7 +77,11 @@ public partial struct RgbaDouble(double r, double g, double b, double a = 1) : I
     public static bool operator !=(RgbaDouble left, RgbaDouble right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaDouble>(PixelComponentInfo.Create<RgbaDouble>(4, 64, 64, 64, 64), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<RgbaDouble>(
+            PixelComponentInfo.Create<RgbaDouble>(4, 64, 64, 64, 64),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<RgbaDouble> CreatePixelOperations() => new();

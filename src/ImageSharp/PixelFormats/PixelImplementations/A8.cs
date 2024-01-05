@@ -56,7 +56,11 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<A8>(PixelComponentInfo.Create<A8>(1, 8), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<A8>(
+            PixelComponentInfo.Create<A8>(1, 8),
+            PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations();

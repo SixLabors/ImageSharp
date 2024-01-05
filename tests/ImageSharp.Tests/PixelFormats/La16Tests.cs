@@ -265,6 +265,7 @@ public class La16Tests
             PixelTypeInfo info = La16.GetPixelTypeInfo();
             Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
             Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+            Assert.Equal(PixelColorType.Grayscale | PixelColorType.Alpha, info.ColorType);
 
             PixelComponentInfo componentInfo = info.ComponentInfo.Value;
             Assert.Equal(2, componentInfo.ComponentCount);

@@ -23,9 +23,14 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     public int BitsPerPixel { get; init; } = bitsPerPixel;
 
     /// <summary>
-    /// Gets the maximum precision of components within the pixel.
+    /// Gets the component bit depth and padding within the pixel.
     /// </summary>
     public PixelComponentInfo? ComponentInfo { get; init; }
+
+    /// <summary>
+    /// Gets the pixel color type.
+    /// </summary>
+    public PixelColorType? ColorType { get; init; }
 
     /// <summary>
     /// Gets the pixel alpha transparency behavior.
@@ -38,16 +43,19 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     /// </summary>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="info">The pixel component info.</param>
+    /// <param name="colorType">The pixel color type.</param>
     /// <param name="alphaRepresentation">The pixel alpha representation.</param>
     /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
     public static PixelTypeInfo Create<TPixel>(
         PixelComponentInfo info,
+        PixelColorType colorType,
         PixelAlphaRepresentation alphaRepresentation)
         where TPixel : unmanaged, IPixel<TPixel>
         => new()
         {
             BitsPerPixel = Unsafe.SizeOf<TPixel>() * 8,
             ComponentInfo = info,
+            ColorType = colorType,
             AlphaRepresentation = alphaRepresentation
         };
 }

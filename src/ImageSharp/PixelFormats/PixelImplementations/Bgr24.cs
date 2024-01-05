@@ -72,7 +72,11 @@ public partial struct Bgr24 : IPixel<Bgr24>
     public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgr24>(PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8), PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Bgr24>(
+            PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8),
+            PixelColorType.BGR,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();

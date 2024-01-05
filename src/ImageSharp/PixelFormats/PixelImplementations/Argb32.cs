@@ -168,7 +168,11 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Argb32>(PixelComponentInfo.Create<Argb32>(4, 8, 8, 8, 8), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Argb32>(
+            PixelComponentInfo.Create<Argb32>(4, 8, 8, 8, 8),
+            PixelColorType.Alpha | PixelColorType.RGB,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();

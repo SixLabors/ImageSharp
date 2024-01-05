@@ -70,7 +70,11 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static bool operator !=(Rgb48 left, Rgb48 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb48>(PixelComponentInfo.Create<Rgb48>(3, 16, 16, 16), PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgb48>(
+            PixelComponentInfo.Create<Rgb48>(3, 16, 16, 16),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations();

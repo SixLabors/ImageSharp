@@ -46,7 +46,11 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     public static bool operator !=(HalfSingle left, HalfSingle right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfSingle>(PixelComponentInfo.Create<HalfSingle>(1, 16), PixelAlphaRepresentation.None);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<HalfSingle>(
+            PixelComponentInfo.Create<HalfSingle>(1, 16),
+            PixelColorType.Red,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
     public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();

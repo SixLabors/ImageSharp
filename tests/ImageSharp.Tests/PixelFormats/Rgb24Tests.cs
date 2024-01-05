@@ -137,6 +137,7 @@ public class Rgb24Tests
         PixelTypeInfo info = Rgb24.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Rgb24>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(3, componentInfo.ComponentCount);

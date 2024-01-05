@@ -61,7 +61,11 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba1010102>(PixelComponentInfo.Create<Rgba1010102>(4, 10, 10, 10, 2), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgba1010102>(
+            PixelComponentInfo.Create<Rgba1010102>(4, 10, 10, 10, 2),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations();

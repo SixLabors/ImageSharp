@@ -90,6 +90,7 @@ public class Rg32Tests
         PixelTypeInfo info = Rg32.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Rg32>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

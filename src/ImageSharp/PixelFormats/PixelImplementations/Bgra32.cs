@@ -121,7 +121,11 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Bgra32>(PixelComponentInfo.Create<Bgra32>(4, 8, 8, 8, 8), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Bgra32>(
+            PixelComponentInfo.Create<Bgra32>(4, 8, 8, 8, 8),
+            PixelColorType.BGR | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations();

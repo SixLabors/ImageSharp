@@ -238,6 +238,7 @@ public class NormalizedByte4Tests
         PixelTypeInfo info = NormalizedByte4.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<NormalizedByte4>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

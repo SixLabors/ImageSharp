@@ -313,6 +313,7 @@ public class Rgba32Tests
         PixelTypeInfo info = Rgba32.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Rgba32>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

@@ -191,7 +191,11 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
     /// <inheritdoc />
-    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba64>(PixelComponentInfo.Create<Rgba64>(4, 16, 16, 16, 16), PixelAlphaRepresentation.Unassociated);
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgba64>(
+            PixelComponentInfo.Create<Rgba64>(4, 16, 16, 16, 16),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();

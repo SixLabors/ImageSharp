@@ -278,6 +278,7 @@ public class Bgra5551Tests
         PixelTypeInfo info = Bgra5551.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<Bgra5551>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.BGR | PixelColorType.Alpha, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(4, componentInfo.ComponentCount);

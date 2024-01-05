@@ -92,6 +92,7 @@ public class NormalizedShort2Tests
         PixelTypeInfo info = NormalizedShort2.GetPixelTypeInfo();
         Assert.Equal(Unsafe.SizeOf<NormalizedShort2>() * 8, info.BitsPerPixel);
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
 
         PixelComponentInfo componentInfo = info.ComponentInfo.Value;
         Assert.Equal(2, componentInfo.ComponentCount);

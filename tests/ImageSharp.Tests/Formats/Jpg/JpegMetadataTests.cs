@@ -56,7 +56,7 @@ public class JpegMetadataTests
 
         var meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
 
-    Assert.Equal(meta.Quality, qualityLuma);
+        Assert.Equal(meta.Quality, qualityLuma);
     }
 
     [Fact]

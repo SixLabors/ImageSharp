@@ -15,6 +15,7 @@ public class JpegMetadata : IDeepCloneable
     /// </summary>
     public JpegMetadata()
     {
+        this.Comments = new List<Memory<char>>();
     }
 
     /// <summary>
@@ -25,6 +26,7 @@ public class JpegMetadata : IDeepCloneable
     {
         this.ColorType = other.ColorType;
 
+        this.Comments = other.Comments;
         this.LuminanceQuality = other.LuminanceQuality;
         this.ChrominanceQuality = other.ChrominanceQuality;
     }
@@ -100,6 +102,11 @@ public class JpegMetadata : IDeepCloneable
     /// Progressive jpeg images encode component data across multiple scans.
     /// </remarks>
     public bool? Progressive { get; internal set; }
+
+    /// <summary>
+    /// Gets the comments.
+    /// </summary>
+    public ICollection<Memory<char>>? Comments { get; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new JpegMetadata(this);

@@ -155,6 +155,50 @@ public partial class JpegEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2067_CommentMarker, PixelTypes.Rgba32)]
+    public void Encode_PreservesComments<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // arrange
+        using var input = provider.GetImage(JpegDecoder.Instance);
+        using var memStream = new MemoryStream();
+
+        // act
+        input.Save(memStream, JpegEncoder);
+
+        // assert
+        memStream.Position = 0;
+        using var output = Image.Load<Rgba32>(memStream);
+        JpegMetadata actual = output.Metadata.GetJpegMetadata();
+        Assert.NotEmpty(actual.Comments);
+        Assert.Equal(1, actual.Comments.Count);
+        Assert.Equal("TEST COMMENT", actual.Comments.ElementAt(0).ToString());
+    }
+
+    [Fact]
+    public void Encode_SavesMultipleComments()
+    {
+        // arrange
+        using var input = new Image<Rgba32>(1, 1);
+        JpegMetadata meta = input.Metadata.GetJpegMetadata();
+        using var memStream = new MemoryStream();
+
+        // act
+        meta.SaveComment("First comment");
+        meta.SaveComment("Second Comment");
+        input.Save(memStream, JpegEncoder);
+
+        // assert
+        memStream.Position = 0;
+        using var output = Image.Load<Rgba32>(memStream);
+        JpegMetadata actual = output.Metadata.GetJpegMetadata();
+        Assert.NotEmpty(actual.Comments);
+        Assert.Equal(2, actual.Comments.Count);
+        Assert.Equal(meta.Comments.ElementAt(0).ToString(), actual.Comments.ElementAt(0).ToString());
+        Assert.Equal(meta.Comments.ElementAt(1).ToString(), actual.Comments.ElementAt(1).ToString());
+    }
+
+    [Theory]
     [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegEncodingColor.Luminance)]
     [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
     [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]

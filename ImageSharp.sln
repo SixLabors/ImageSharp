@@ -237,6 +237,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{5C9B68
 		tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg = tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg
 		tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg = tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg
 		tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg = tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg
+		tests\Images\Input\Jpg\issues\issue-2067-comment.jpg = tests\Images\Input\Jpg\issues\issue-2067-comment.jpg
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fuzz", "fuzz", "{516A3532-6AC2-417B-AD79-9BD5D0D378A0}"

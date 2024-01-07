@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers.Binary;
+using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -89,6 +90,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // Write Exif, XMP, ICC and IPTC profiles
         this.WriteProfiles(metadata, buffer);
 
+        // Write comments
+        this.WriteComment(jpegMetadata);
+
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
 
@@ -165,6 +169,47 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         buffer[16] = 0x00; // Thumbnail width
 
         this.outputStream.Write(buffer, 0, 18);
+    }
+
+    /// <summary>
+    /// Writes comment
+    /// </summary>
+    /// <param name="metadata">The image metadata.</param>
+    private void WriteComment(JpegMetadata metadata)
+    {
+        if (metadata.Comments is { Count: 0 })
+        {
+            return;
+        }
+
+        // Length (comment strings lengths) + (comments markers with payload sizes)
+        int commentsBytes = metadata.Comments.Sum(x => x.Length) + (metadata.Comments.Count * 4);
+        int commentStart = 0;
+        Span<byte> commentBuffer = stackalloc byte[commentsBytes];
+
+        foreach (Memory<char> comment in metadata.Comments)
+        {
+            int totalComLength = comment.Length + 4;
+
+            Span<byte> commentData = commentBuffer.Slice(commentStart, totalComLength);
+            Span<byte> markers = commentData.Slice(0, 2);
+            Span<byte> payloadSize = commentData.Slice(2, 2);
+            Span<byte> payload = commentData.Slice(4, comment.Length);
+
+            // Beginning of comment ff fe
+            markers[0] = JpegConstants.Markers.XFF;
+            markers[1] = JpegConstants.Markers.COM;
+
+            // Write payload size
+            BinaryPrimitives.WriteInt16BigEndian(payloadSize, (short)(commentData.Length - 2));
+
+            Encoding.ASCII.GetBytes(comment.Span, payload);
+
+            // Indicate begin of next comment in buffer
+            commentStart += totalComLength;
+        }
+
+        this.outputStream.Write(commentBuffer, 0, commentBuffer.Length);
     }
 
     /// <summary>

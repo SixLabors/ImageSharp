@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -481,7 +482,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
                     case JpegConstants.Markers.APP15:
                     case JpegConstants.Markers.COM:
-                        stream.Skip(markerContentByteSize);
+                        this.ProcessComMarker(stream, markerContentByteSize);
                         break;
 
                     case JpegConstants.Markers.DAC:
@@ -513,6 +514,23 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
+    }
+
+    /// <summary>
+    /// Assigns COM marker bytes to comment property
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="markerContentByteSize">The remaining bytes in the segment block.</param>
+    private void ProcessComMarker(BufferedReadStream stream, int markerContentByteSize)
+    {
+        Span<byte> temp = stackalloc byte[markerContentByteSize];
+        char[] chars = new char[markerContentByteSize];
+        JpegMetadata metadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
+
+        stream.Read(temp);
+        Encoding.ASCII.GetChars(temp, chars);
+
+        metadata.Comments.Add(chars);
     }
 
     /// <summary>

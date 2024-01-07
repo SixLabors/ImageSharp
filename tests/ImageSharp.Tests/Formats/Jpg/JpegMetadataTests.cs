@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Collections.ObjectModel;
 using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -55,6 +56,27 @@ public class JpegMetadataTests
 
         var meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
 
-        Assert.Equal(meta.Quality, qualityLuma);
+    Assert.Equal(meta.Quality, qualityLuma);
+    }
+
+    [Fact]
+    public void Comment_EmptyComment()
+    {
+        var meta = new JpegMetadata();
+
+        Assert.True(Array.Empty<Memory<char>>().SequenceEqual(meta.Comments));
+    }
+
+    [Fact]
+    public void Comment_OnlyComment()
+    {
+        string comment = "test comment";
+        var expectedCollection = new Collection<Memory<char>> { new(comment.ToCharArray()) };
+
+        var meta = new JpegMetadata();
+        meta.Comments?.Add(comment.ToCharArray());
+
+        Assert.Equal(1, meta.Comments?.Count);
+        Assert.True(expectedCollection.FirstOrDefault().ToString() == meta.Comments?.FirstOrDefault().ToString());
     }
 }

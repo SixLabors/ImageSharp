@@ -425,6 +425,21 @@ public partial class JpegDecoderTests
         VerifyEncodedStrings(exif);
     }
 
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2067_CommentMarker, PixelTypes.Rgba32)]
+    public void JpegDecoder_DecodeMetadataComment<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        string expectedComment = "TEST COMMENT";
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        JpegMetadata metadata = image.Metadata.GetJpegMetadata();
+
+        Assert.Equal(1, metadata.Comments?.Count);
+        Assert.Equal(expectedComment, metadata.GetComment(0));
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
     private static void VerifyEncodedStrings(ExifProfile exif)
     {
         Assert.NotNull(exif);

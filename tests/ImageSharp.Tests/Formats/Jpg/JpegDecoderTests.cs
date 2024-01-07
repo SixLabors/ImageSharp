@@ -364,19 +364,4 @@ public partial class JpegDecoderTests
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
-
-    [Theory]
-    [WithFile(TestImages.Jpeg.Issues.Issue2067_CommentMarker, PixelTypes.Rgba32)]
-    public void JpegDecoder_DecodeMetadataComment<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        string expectedComment = "TEST COMMENT";
-        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-        JpegMetadata metadata = image.Metadata.GetJpegMetadata();
-
-        Assert.Equal(1, metadata.Comments?.Count);
-        Assert.Equal(expectedComment, metadata.GetComments()?.FirstOrDefault());
-        image.DebugSave(provider);
-        image.CompareToOriginal(provider);
-    }
 }

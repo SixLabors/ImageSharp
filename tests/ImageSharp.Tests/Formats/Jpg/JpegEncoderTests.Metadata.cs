@@ -184,8 +184,8 @@ public partial class JpegEncoderTests
         using var memStream = new MemoryStream();
 
         // act
-        meta.SaveComment("First comment");
-        meta.SaveComment("Second Comment");
+        meta.SetComment(0, "First comment");
+        meta.SetComment(1, "Second Comment");
         input.Save(memStream, JpegEncoder);
 
         // assert
@@ -193,9 +193,9 @@ public partial class JpegEncoderTests
         using var output = Image.Load<Rgba32>(memStream);
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
-        Assert.Equal(2, actual.Comments.Count);
-        Assert.Equal(meta.Comments.ElementAt(0).ToString(), actual.Comments.ElementAt(0).ToString());
-        Assert.Equal(meta.Comments.ElementAt(1).ToString(), actual.Comments.ElementAt(1).ToString());
+        Assert.Equal(2, actual.Comments?.Count);
+        Assert.Equal(meta.Comments?.ElementAt(0).ToString(), actual.Comments?.ElementAt(0).ToString());
+        Assert.Equal(meta.Comments?.ElementAt(1).ToString(), actual.Comments?.ElementAt(1).ToString());
     }
 
     [Theory]

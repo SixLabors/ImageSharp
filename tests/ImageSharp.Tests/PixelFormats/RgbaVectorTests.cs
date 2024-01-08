@@ -19,12 +19,12 @@ public class RgbaVectorTests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new RgbaVector(0, 0, 0F);
-        var color2 = new RgbaVector(0, 0, 0, 1F);
-        var color3 = RgbaVector.FromHex("#000");
-        var color4 = RgbaVector.FromHex("#000F");
-        var color5 = RgbaVector.FromHex("#000000");
-        var color6 = RgbaVector.FromHex("#000000FF");
+        RgbaVector color1 = new(0, 0, 0F);
+        RgbaVector color2 = new(0, 0, 0, 1F);
+        RgbaVector color3 = RgbaVector.FromHex("#000");
+        RgbaVector color4 = RgbaVector.FromHex("#000F");
+        RgbaVector color5 = RgbaVector.FromHex("#000000");
+        RgbaVector color6 = RgbaVector.FromHex("#000000FF");
 
         Assert.Equal(color1, color2);
         Assert.Equal(color1, color3);
@@ -39,11 +39,11 @@ public class RgbaVectorTests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new RgbaVector(1, 0, 0, 1);
-        var color2 = new RgbaVector(0, 0, 0, 1);
-        var color3 = RgbaVector.FromHex("#000");
-        var color4 = RgbaVector.FromHex("#000000");
-        var color5 = RgbaVector.FromHex("#FF000000");
+        RgbaVector color1 = new(1, 0, 0, 1);
+        RgbaVector color2 = new(0, 0, 0, 1);
+        RgbaVector color3 = RgbaVector.FromHex("#000");
+        RgbaVector color4 = RgbaVector.FromHex("#000000");
+        RgbaVector color5 = RgbaVector.FromHex("#FF000000");
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color1, color3);
@@ -57,13 +57,13 @@ public class RgbaVectorTests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var color1 = new RgbaVector(1, .1F, .133F, .864F);
+        RgbaVector color1 = new(1, .1F, .133F, .864F);
         Assert.Equal(1F, color1.R);
         Assert.Equal(.1F, color1.G);
         Assert.Equal(.133F, color1.B);
         Assert.Equal(.864F, color1.A);
 
-        var color2 = new RgbaVector(1, .1f, .133f);
+        RgbaVector color2 = new(1, .1f, .133f);
         Assert.Equal(1F, color2.R);
         Assert.Equal(.1F, color2.G);
         Assert.Equal(.133F, color2.B);
@@ -76,7 +76,7 @@ public class RgbaVectorTests
     [Fact]
     public void FromAndToHex()
     {
-        var color = RgbaVector.FromHex("#AABBCCDD");
+        RgbaVector color = RgbaVector.FromHex("#AABBCCDD");
         Assert.Equal(170 / 255F, color.R);
         Assert.Equal(187 / 255F, color.G);
         Assert.Equal(204 / 255F, color.B);
@@ -104,7 +104,7 @@ public class RgbaVectorTests
     [Fact]
     public void FloatLayout()
     {
-        var color = new RgbaVector(1F, 2, 3, 4);
+        RgbaVector color = new(1F, 2, 3, 4);
         Vector4 colorBase = Unsafe.As<RgbaVector, Vector4>(ref Unsafe.Add(ref color, 0));
         float[] ordered = new float[4];
         colorBase.CopyTo(ordered);
@@ -119,9 +119,9 @@ public class RgbaVectorTests
     public void RgbaVector_FromRgb48()
     {
         // arrange
-        var input = default(RgbaVector);
-        var actual = default(Rgb48);
-        var expected = new Rgb48(65535, 0, 65535);
+        RgbaVector input = default;
+        Rgb48 actual = default;
+        Rgb48 expected = new(65535, 0, 65535);
 
         // act
         input.FromRgb48(expected);
@@ -135,9 +135,9 @@ public class RgbaVectorTests
     public void RgbaVector_FromRgba64()
     {
         // arrange
-        var input = default(RgbaVector);
-        var actual = default(Rgba64);
-        var expected = new Rgba64(65535, 0, 65535, 0);
+        RgbaVector input = default;
+        Rgba64 actual = default;
+        Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
         input.FromRgba64(expected);
@@ -151,7 +151,7 @@ public class RgbaVectorTests
     public void RgbaVector_FromBgra5551()
     {
         // arrange
-        var rgb = default(RgbaVector);
+        RgbaVector rgb = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -165,7 +165,7 @@ public class RgbaVectorTests
     public void RgbaVector_FromGrey16()
     {
         // arrange
-        var rgba = default(RgbaVector);
+        RgbaVector rgba = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -179,7 +179,7 @@ public class RgbaVectorTests
     public void RgbaVector_FromGrey8()
     {
         // arrange
-        var rgba = default(RgbaVector);
+        RgbaVector rgba = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -203,5 +203,23 @@ public class RgbaVectorTests
         clone[0, 0].ToRgba32(ref cloneColor);
 
         Assert.Equal(srcColor, cloneColor);
+    }
+
+    [Fact]
+    public void RgbaVector_PixelInformation()
+    {
+        PixelTypeInfo info = RgbaVector.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<RgbaVector>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(32, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(32, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(32, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(32, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(32, componentInfo.GetMaximumComponentPrecision());
     }
 }

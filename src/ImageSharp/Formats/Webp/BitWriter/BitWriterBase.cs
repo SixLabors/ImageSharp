@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 
@@ -157,7 +158,7 @@ internal abstract class BitWriterBase
     /// <param name="loopCount">The number of times to loop the animation. If it is 0, this means infinitely.</param>
     public static void WriteAnimationParameter(Stream stream, Color background, ushort loopCount)
     {
-        WebpAnimationParameter chunk = new(background.ToBgra32().PackedValue, loopCount);
+        WebpAnimationParameter chunk = new(background.ToPixel<Bgra32>().PackedValue, loopCount);
         chunk.WriteTo(stream);
     }
 

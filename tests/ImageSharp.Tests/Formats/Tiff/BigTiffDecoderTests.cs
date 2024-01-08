@@ -65,7 +65,7 @@ public class BigTiffDecoderTests : TiffDecoderBaseTester
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo info = Image.Identify(stream);
 
-        Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
+        Assert.Equal(expectedPixelSize, info.PixelType.BitsPerPixel);
         Assert.Equal(expectedWidth, info.Width);
         Assert.Equal(expectedHeight, info.Height);
         Assert.NotNull(info.Metadata);

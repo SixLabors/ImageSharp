@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +16,10 @@ public class Rgba1010102Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Rgba1010102(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Rgba1010102(new Vector4(0.0f));
-        var color3 = new Rgba1010102(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        var color4 = new Rgba1010102(1.0f, 0.0f, 1.0f, 1.0f);
+        Rgba1010102 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Rgba1010102 color2 = new(new Vector4(0.0f));
+        Rgba1010102 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+        Rgba1010102 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +31,10 @@ public class Rgba1010102Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Rgba1010102(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Rgba1010102(new Vector4(1.0f));
-        var color3 = new Rgba1010102(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Rgba1010102(1.0f, 1.0f, 0.0f, 1.0f);
+        Rgba1010102 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Rgba1010102 color2 = new(new Vector4(1.0f));
+        Rgba1010102 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Rgba1010102 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -66,7 +67,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_ToScaledVector4()
     {
         // arrange
-        var rgba = new Rgba1010102(Vector4.One);
+        Rgba1010102 rgba = new(Vector4.One);
 
         // act
         Vector4 actual = rgba.ToScaledVector4();
@@ -82,8 +83,8 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromScaledVector4()
     {
         // arrange
-        var rgba = new Rgba1010102(Vector4.One);
-        var actual = default(Rgba1010102);
+        Rgba1010102 rgba = new(Vector4.One);
+        Rgba1010102 actual = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -98,7 +99,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromBgra5551()
     {
         // arrange
-        var rgba = new Rgba1010102(Vector4.One);
+        Rgba1010102 rgba = new(Vector4.One);
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -112,7 +113,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromArgb32()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -126,8 +127,8 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromRgba32()
     {
         // arrange
-        var rgba1 = default(Rgba1010102);
-        var rgba2 = default(Rgba1010102);
+        Rgba1010102 rgba1 = default;
+        Rgba1010102 rgba2 = default;
         uint expectedPackedValue1 = uint.MaxValue;
         uint expectedPackedValue2 = 0xFFF003FF;
 
@@ -144,7 +145,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromBgr24()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -158,7 +159,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromGrey8()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -172,7 +173,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromGrey16()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -186,7 +187,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromRgb24()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -200,7 +201,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromRgb48()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -214,7 +215,7 @@ public class Rgba1010102Tests
     public void Rgba1010102_FromRgba64()
     {
         // arrange
-        var rgba = default(Rgba1010102);
+        Rgba1010102 rgba = default;
         uint expectedPackedValue = uint.MaxValue;
 
         // act
@@ -235,8 +236,8 @@ public class Rgba1010102Tests
     public void Rgba1010102_ToRgba32()
     {
         // arrange
-        var rgba = new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f);
-        var expected = new Rgba32(25, 0, 128, 0);
+        Rgba1010102 rgba = new(0.1f, -0.3f, 0.5f, -0.7f);
+        Rgba32 expected = new(25, 0, 128, 0);
 
         // act
         Rgba32 actual = default;
@@ -244,5 +245,23 @@ public class Rgba1010102Tests
 
         // assert
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Rgba1010102_PixelInformation()
+    {
+        PixelTypeInfo info = Rgba1010102.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rgba1010102>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(10, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(10, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(10, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(2, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(10, componentInfo.GetMaximumComponentPrecision());
     }
 }

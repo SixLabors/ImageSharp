@@ -70,7 +70,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     protected virtual PixelOperations<TPixel> Operations { get; } = PixelOperations<TPixel>.Instance;
 
-    protected bool HasUnassociatedAlpha => this.Operations.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
+    protected bool HasUnassociatedAlpha => TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
 
     internal static TPixel[] CreateExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
     {
@@ -105,7 +105,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     [Fact]
     public void PixelTypeInfoHasCorrectBitsPerPixel()
     {
-        int bits = this.Operations.GetPixelTypeInfo().BitsPerPixel;
+        int bits = TPixel.GetPixelTypeInfo().BitsPerPixel;
         Assert.Equal(Unsafe.SizeOf<TPixel>() * 8, bits);
     }
 
@@ -123,7 +123,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         Rgba32 dest = default;
         pixel.ToRgba32(ref dest);
 
-        bool hasAlpha = this.Operations.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
+        bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
         byte expectedAlpha = hasAlpha ? Alpha : NoAlpha;
         Assert.Equal(expectedAlpha, dest.A);

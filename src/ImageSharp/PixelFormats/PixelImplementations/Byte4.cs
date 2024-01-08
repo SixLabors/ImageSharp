@@ -61,6 +61,13 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     public static bool operator !=(Byte4 left, Byte4 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Byte4>(
+            PixelComponentInfo.Create<Byte4>(4, 8, 8, 8, 8),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
+
+    /// <inheritdoc />
     public readonly PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>

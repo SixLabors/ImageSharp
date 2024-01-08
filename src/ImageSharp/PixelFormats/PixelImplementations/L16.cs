@@ -48,6 +48,13 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     public static bool operator !=(L16 left, L16 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<L16>(
+            PixelComponentInfo.Create<L16>(1, 16),
+            PixelColorType.Grayscale,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc />
     public readonly PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>

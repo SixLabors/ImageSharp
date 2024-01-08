@@ -34,7 +34,7 @@ internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 CieLab lab = new(l, (sbyte)data[offset + 1], (sbyte)data[offset + 2]);
                 Rgb rgb = ColorSpaceConverter.ToRgb(lab);
 
-                color.FromVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
+                color.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
                 pixelRow[x] = color;
 
                 offset += 3;

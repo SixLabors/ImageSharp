@@ -35,9 +35,9 @@ public class ImageFrameTests
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             Rgba32 val = frame[3, 4];
             Assert.Equal(default(Rgba32), val);
-            frame[3, 4] = Color.Red;
+            frame[3, 4] = Color.Red.ToPixel<Rgba32>();
             val = frame[3, 4];
-            Assert.Equal(Color.Red.ToRgba32(), val);
+            Assert.Equal(Color.Red.ToPixel<Rgba32>(), val);
         }
 
         public static TheoryData<bool, int> OutOfRangeData = new TheoryData<bool, int>()

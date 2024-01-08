@@ -13,12 +13,5 @@ public partial struct Byte4
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal class PixelOperations : PixelOperations<Byte4>
-    {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<Byte4>(PixelAlphaRepresentation.Unassociated), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-    }
+    internal class PixelOperations : PixelOperations<Byte4>;
 }

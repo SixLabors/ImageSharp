@@ -50,7 +50,7 @@ internal static class AnimationUtilities
         Span<Rgba32> next = buffers.GetSpan().Slice(currentFrame.Width * 2, currentFrame.Width);
         Span<Rgba32> result = buffers.GetSpan()[(currentFrame.Width * 3)..];
 
-        Rgba32 bg = replacement;
+        Rgba32 bg = replacement.ToPixel<Rgba32>();
 
         int top = int.MinValue;
         int bottom = int.MaxValue;
@@ -232,7 +232,7 @@ internal static class AnimationUtilities
                 ref Rgba32 r = ref Unsafe.Add(ref MemoryMarshal.GetReference(result), x);
 
                 bool peq = c.Rgba == (previousFrame != null ? p.Rgba : bg.Rgba);
-                Rgba32 val = (blend & peq) ? replacement : c;
+                Rgba32 val = (blend & peq) ? bg : c;
 
                 peq &= nextFrame == null || (n.Rgba >> 24 >= c.Rgba >> 24);
                 r = val;

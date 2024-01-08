@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 // Note the value assignment, This will allow us to add 1, 2, and 4 bit encoding when we support it.

@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters;
 internal class PolaroidProcessor<TPixel> : FilterProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly Color LightOrange = Color.FromRgba(255, 153, 102, 128);
-    private static readonly Color VeryDarkOrange = Color.FromRgb(102, 34, 0);
+    private static readonly Color LightOrange = Color.FromPixel(new Rgba32(255, 153, 102, 128));
+    private static readonly Color VeryDarkOrange = Color.FromPixel(new Rgb24(102, 34, 0));
     private readonly PolaroidProcessor definition;
 
     /// <summary>

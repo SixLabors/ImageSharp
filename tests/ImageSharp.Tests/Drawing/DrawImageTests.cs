@@ -119,7 +119,7 @@ public class DrawImageTests
     public void WorksWithDifferentLocations(TestImageProvider<Rgba32> provider, int x, int y)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToPixel<Rgba32>());
 
         background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 
@@ -144,7 +144,7 @@ public class DrawImageTests
     public void WorksWithDifferentBounds(TestImageProvider<Rgba32> provider, int width, int height)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToPixel<Rgba32>());
 
         background.Mutate(c => c.DrawImage(overlay, new Rectangle(0, 0, width, height), PixelColorBlendingMode.Normal, 1F));
 

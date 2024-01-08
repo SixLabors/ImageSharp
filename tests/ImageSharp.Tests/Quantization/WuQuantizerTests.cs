@@ -14,7 +14,7 @@ public class WuQuantizerTests
         Configuration config = Configuration.Default;
         var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
-        using var image = new Image<Rgba32>(config, 1, 1, Color.Black);
+        using var image = new Image<Rgba32>(config, 1, 1, Color.Black.ToPixel<Rgba32>());
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
         using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
@@ -24,7 +24,7 @@ public class WuQuantizerTests
         Assert.Equal(1, result.Width);
         Assert.Equal(1, result.Height);
 
-        Assert.Equal(Color.Black, (Color)result.Palette.Span[0]);
+        Assert.Equal(Color.Black, Color.FromPixel(result.Palette.Span[0]));
         Assert.Equal(0, result.DangerousGetRowSpan(0)[0]);
     }
 

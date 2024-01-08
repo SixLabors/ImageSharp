@@ -53,6 +53,13 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     public static bool operator !=(HalfVector2 left, HalfVector2 right) => !left.Equals(right);
 
     /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<HalfVector2>(
+            PixelComponentInfo.Create<HalfVector2>(2, 16, 16),
+            PixelColorType.Red | PixelColorType.Green,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc />
     public readonly PixelOperations<HalfVector2> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>

@@ -19,12 +19,6 @@ public partial struct RgbaVector
     /// </summary>
     internal class PixelOperations : PixelOperations<RgbaVector>
     {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new(() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-
         /// <inheritdoc />
         public override void From<TSourcePixel>(
             Configuration configuration,

@@ -73,6 +73,13 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(La32 left, La32 right) => !left.Equals(right);
 
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<La32>(
+            PixelComponentInfo.Create<La32>(2, 16, 16),
+            PixelColorType.Grayscale | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
+
     /// <inheritdoc/>
     public readonly PixelOperations<La32> CreatePixelOperations() => new PixelOperations();
 

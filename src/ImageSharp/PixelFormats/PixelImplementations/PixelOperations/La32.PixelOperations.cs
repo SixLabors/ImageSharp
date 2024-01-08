@@ -13,12 +13,5 @@ public partial struct La32
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<La32>
-    {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<La32>(PixelAlphaRepresentation.Unassociated), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-    }
+    internal partial class PixelOperations : PixelOperations<La32>;
 }

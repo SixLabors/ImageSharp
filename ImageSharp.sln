@@ -38,6 +38,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3
 		src\Directory.Build.props = src\Directory.Build.props
 		src\Directory.Build.targets = src\Directory.Build.targets
 		src\README.md = src\README.md
+		src\ImageSharp.ruleset = src\ImageSharp.ruleset
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "src\ImageSharp\ImageSharp.csproj", "{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}"

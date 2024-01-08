@@ -13,12 +13,5 @@ public partial struct Bgr24
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal partial class PixelOperations : PixelOperations<Bgr24>
-    {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<Bgr24>(PixelAlphaRepresentation.None), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-    }
+    internal partial class PixelOperations : PixelOperations<Bgr24>;
 }

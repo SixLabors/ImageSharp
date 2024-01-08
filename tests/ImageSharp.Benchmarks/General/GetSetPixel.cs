@@ -21,7 +21,7 @@ public class GetSetPixel
     public Rgba32 GetSetImageSharp()
     {
         using Image<Rgba32> image = new(400, 400);
-        image[200, 200] = Color.White;
+        image[200, 200] = Color.White.ToPixel<Rgba32>();
         return image[200, 200];
     }
 }

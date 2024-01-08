@@ -13,7 +13,7 @@ public class Diffuse
     [Benchmark]
     public Size DoDiffuse()
     {
-        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond.ToPixel<Rgba32>());
         image.Mutate(x => x.Dither(KnownDitherings.FloydSteinberg));
 
         return image.Size;
@@ -22,7 +22,7 @@ public class Diffuse
     [Benchmark]
     public Size DoDither()
     {
-        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+        using Image<Rgba32> image = new(Configuration.Default, 800, 800, Color.BlanchedAlmond.ToPixel<Rgba32>());
         image.Mutate(x => x.Dither());
 
         return image.Size;

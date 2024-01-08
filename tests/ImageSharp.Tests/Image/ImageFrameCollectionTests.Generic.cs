@@ -237,7 +237,7 @@ public abstract partial class ImageFrameCollectionTests
             using (this.Image.Frames.CreateFrame(Color.HotPink))
             {
                 Assert.Equal(2, this.Image.Frames.Count);
-                this.Image.Frames[1].ComparePixelBufferTo(Color.HotPink);
+                this.Image.Frames[1].ComparePixelBufferTo(Color.HotPink.ToPixel<Rgba32>());
             }
         }
 

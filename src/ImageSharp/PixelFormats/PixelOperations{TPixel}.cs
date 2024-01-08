@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats;
@@ -18,7 +17,6 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public partial class PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly Lazy<PixelTypeInfo> LazyInfo = new(() => PixelTypeInfo.Create<TPixel>(), true);
     private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(() => default(TPixel).CreatePixelOperations(), true);
 
     /// <summary>
@@ -32,7 +30,7 @@ public partial class PixelOperations<TPixel>
     /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
     /// </summary>
     /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
-    public virtual PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
+    public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
 
     /// <summary>
     /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -21,7 +22,7 @@ public class Rgb24Tests
     [MemberData(nameof(ColorData))]
     public void Constructor(byte r, byte g, byte b)
     {
-        var p = new Rgb24(r, g, b);
+        Rgb24 p = new(r, g, b);
 
         Assert.Equal(r, p.R);
         Assert.Equal(g, p.G);
@@ -31,7 +32,7 @@ public class Rgb24Tests
     [Fact]
     public unsafe void ByteLayoutIsSequentialRgb()
     {
-        var color = new Rgb24(1, 2, 3);
+        Rgb24 color = new(1, 2, 3);
         byte* ptr = (byte*)&color;
 
         Assert.Equal(1, ptr[0]);
@@ -43,8 +44,8 @@ public class Rgb24Tests
     [MemberData(nameof(ColorData))]
     public void Equals_WhenTrue(byte r, byte g, byte b)
     {
-        var x = new Rgb24(r, g, b);
-        var y = new Rgb24(r, g, b);
+        Rgb24 x = new(r, g, b);
+        Rgb24 y = new(r, g, b);
 
         Assert.True(x.Equals(y));
         Assert.True(x.Equals((object)y));
@@ -57,8 +58,8 @@ public class Rgb24Tests
     [InlineData(1, 255, 0, 0, 255, 0)]
     public void Equals_WhenFalse(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
     {
-        var a = new Rgb24(r1, g1, b1);
-        var b = new Rgb24(r2, g2, b2);
+        Rgb24 a = new(r1, g1, b1);
+        Rgb24 b = new(r2, g2, b2);
 
         Assert.False(a.Equals(b));
         Assert.False(a.Equals((object)b));
@@ -67,7 +68,7 @@ public class Rgb24Tests
     [Fact]
     public void FromRgba32()
     {
-        var rgb = default(Rgb24);
+        Rgb24 rgb = default;
         rgb.FromRgba32(new Rgba32(1, 2, 3, 4));
 
         Assert.Equal(1, rgb.R);
@@ -84,7 +85,7 @@ public class Rgb24Tests
     [Fact]
     public void FromVector4()
     {
-        var rgb = default(Rgb24);
+        Rgb24 rgb = default;
         rgb.FromVector4(Vec(1, 2, 3, 4));
 
         Assert.Equal(1, rgb.R);
@@ -95,7 +96,7 @@ public class Rgb24Tests
     [Fact]
     public void ToVector4()
     {
-        var rgb = new Rgb24(1, 2, 3);
+        Rgb24 rgb = new(1, 2, 3);
 
         Assert.Equal(Vec(1, 2, 3), rgb.ToVector4());
     }
@@ -104,9 +105,9 @@ public class Rgb24Tests
     public void ToRgba32()
     {
         // arrange
-        var rgb = new Rgb24(1, 2, 3);
+        Rgb24 rgb = new(1, 2, 3);
         Rgba32 rgba = default;
-        var expected = new Rgba32(1, 2, 3, 255);
+        Rgba32 expected = new(1, 2, 3, 255);
 
         // act
         rgb.ToRgba32(ref rgba);
@@ -119,7 +120,7 @@ public class Rgb24Tests
     public void Rgb24_FromBgra5551()
     {
         // arrange
-        var rgb = new Rgb24(255, 255, 255);
+        Rgb24 rgb = new(255, 255, 255);
 
         // act
         rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
@@ -128,5 +129,22 @@ public class Rgb24Tests
         Assert.Equal(255, rgb.R);
         Assert.Equal(255, rgb.G);
         Assert.Equal(255, rgb.B);
+    }
+
+    [Fact]
+    public void Rgb24_PixelInformation()
+    {
+        PixelTypeInfo info = Rgb24.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rgb24>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(3, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

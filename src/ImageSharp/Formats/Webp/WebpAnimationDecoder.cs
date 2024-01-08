@@ -102,7 +102,7 @@ internal class WebpAnimationDecoder : IDisposable
             {
                 case WebpChunkType.FrameData:
                     Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
-                        ? new Color(new Bgra32(0, 0, 0, 0))
+                        ? Color.FromPixel(new Bgra32(0, 0, 0, 0))
                         : features.AnimationBackgroundColor!.Value;
                     uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, backgroundColor);
                     remainingBytes -= (int)dataSize;

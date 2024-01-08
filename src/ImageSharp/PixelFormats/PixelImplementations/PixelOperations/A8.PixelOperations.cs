@@ -13,12 +13,5 @@ public partial struct A8
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal class PixelOperations : PixelOperations<A8>
-    {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<A8>(PixelAlphaRepresentation.Unassociated), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-    }
+    internal class PixelOperations : PixelOperations<A8>;
 }

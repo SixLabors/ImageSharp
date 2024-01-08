@@ -70,7 +70,7 @@ using Xunit.Abstractions;
 
     void GenerateSpecializedClass(string pixelType, string alpha)
     {#>
-    
+
     public partial class <#=pixelType#>_OperationsTests : PixelOperationsTests<<#=pixelType#>>
     {
         public <#=pixelType#>_OperationsTests(ITestOutputHelper output)
@@ -78,15 +78,10 @@ using Xunit.Abstractions;
         {
         }
 
-        protected override PixelOperations<<#=pixelType#>> Operations => <#=pixelType#>.PixelOperations.Instance;
-
-        [Fact]
-        public void IsSpecialImplementation() => Assert.IsType<<#=pixelType#>.PixelOperations>(PixelOperations<<#=pixelType#>>.Instance);
-
         [Fact]
         public void PixelTypeInfoHasCorrectAlphaRepresentation()
         {
-            var alphaRepresentation = this.Operations.GetPixelTypeInfo().AlphaRepresentation;
+            var alphaRepresentation = <#=pixelType#>.GetPixelTypeInfo().AlphaRepresentation;
             Assert.Equal(<#=alpha#>, alphaRepresentation);
         }
     }

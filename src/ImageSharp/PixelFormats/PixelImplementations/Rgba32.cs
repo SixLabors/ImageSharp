@@ -175,22 +175,6 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     }
 
     /// <summary>
-    /// Converts an <see cref="Rgba32"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Rgba32"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Rgba32 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Rgba32"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Rgba32"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Rgba32(Color color) => color.ToRgba32();
-
-    /// <summary>
     /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
     /// <see cref="Rgba32"/>.
     /// </summary>
@@ -285,6 +269,13 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         result = Unsafe.As<uint, Rgba32>(ref packedValue);
         return true;
     }
+
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgba32>(
+            PixelComponentInfo.Create<Rgba32>(4, 8, 8, 8, 8),
+            PixelColorType.RGB | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();

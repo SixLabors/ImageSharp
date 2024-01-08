@@ -146,22 +146,6 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     }
 
     /// <summary>
-    /// Converts an <see cref="Abgr32"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Abgr32"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Abgr32 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Abgr32"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Abgr32"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Abgr32(Color color) => color.ToAbgr32();
-
-    /// <summary>
     /// Compares two <see cref="Argb32"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="Abgr32"/> on the left side of the operand.</param>
@@ -182,6 +166,13 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Abgr32 left, Abgr32 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Abgr32>(
+            PixelComponentInfo.Create<Abgr32>(4, 8, 8, 8, 8),
+            PixelColorType.Alpha | PixelColorType.BGR,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
     public readonly PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();

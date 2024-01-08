@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +16,10 @@ public class Bgra5551Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Bgra5551(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Bgra5551(new Vector4(0.0f));
-        var color3 = new Bgra5551(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Bgra5551(1.0f, 0.0f, 0.0f, 1.0f);
+        Bgra5551 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Bgra5551 color2 = new(new Vector4(0.0f));
+        Bgra5551 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Bgra5551 color4 = new(1.0f, 0.0f, 0.0f, 1.0f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +31,10 @@ public class Bgra5551Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Bgra5551(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Bgra5551(new Vector4(1.0f));
-        var color3 = new Bgra5551(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Bgra5551(1.0f, 1.0f, 0.0f, 1.0f);
+        Bgra5551 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Bgra5551 color2 = new(new Vector4(1.0f));
+        Bgra5551 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Bgra5551 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -71,7 +72,7 @@ public class Bgra5551Tests
     public void Bgra5551_ToScaledVector4()
     {
         // arrange
-        var bgra = new Bgra5551(Vector4.One);
+        Bgra5551 bgra = new(Vector4.One);
 
         // act
         Vector4 actual = bgra.ToScaledVector4();
@@ -87,9 +88,9 @@ public class Bgra5551Tests
     public void Bgra5551_ToRgba32()
     {
         // arrange
-        var bgra = new Bgra5551(Vector4.One);
-        var expected = new Rgba32(Vector4.One);
-        var actual = default(Rgba32);
+        Bgra5551 bgra = new(Vector4.One);
+        Rgba32 expected = new(Vector4.One);
+        Rgba32 actual = default;
 
         // act
         bgra.ToRgba32(ref actual);
@@ -103,7 +104,7 @@ public class Bgra5551Tests
         // arrange
         Vector4 scaled = new Bgra5551(Vector4.One).ToScaledVector4();
         int expected = 0xFFFF;
-        var pixel = default(Bgra5551);
+        Bgra5551 pixel = default;
 
         // act
         pixel.FromScaledVector4(scaled);
@@ -117,9 +118,9 @@ public class Bgra5551Tests
     public void Bgra5551_FromBgra5551()
     {
         // arrange
-        var bgra = default(Bgra5551);
-        var actual = default(Bgra5551);
-        var expected = new Bgra5551(1.0f, 0.0f, 1.0f, 1.0f);
+        Bgra5551 bgra = default;
+        Bgra5551 actual = default;
+        Bgra5551 expected = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         // act
         bgra.FromBgra5551(expected);
@@ -133,8 +134,8 @@ public class Bgra5551Tests
     public void Bgra5551_FromRgba32()
     {
         // arrange
-        var bgra1 = default(Bgra5551);
-        var bgra2 = default(Bgra5551);
+        Bgra5551 bgra1 = default;
+        Bgra5551 bgra2 = default;
         ushort expectedPackedValue1 = ushort.MaxValue;
         ushort expectedPackedValue2 = 0xFC1F;
 
@@ -151,8 +152,8 @@ public class Bgra5551Tests
     public void Bgra5551_FromBgra32()
     {
         // arrange
-        var bgra1 = default(Bgra5551);
-        var bgra2 = default(Bgra5551);
+        Bgra5551 bgra1 = default;
+        Bgra5551 bgra2 = default;
         ushort expectedPackedValue1 = ushort.MaxValue;
         ushort expectedPackedValue2 = 0xFC1F;
 
@@ -169,7 +170,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromArgb32()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -183,7 +184,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromRgb48()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -197,7 +198,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromRgba64()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -211,7 +212,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromGrey16()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -225,7 +226,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromGrey8()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -239,7 +240,7 @@ public class Bgra5551Tests
     public void Bgra5551_FromBgr24()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551 bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -253,7 +254,8 @@ public class Bgra5551Tests
     public void Bgra5551_FromRgb24()
     {
         // arrange
-        var bgra = default(Bgra5551);
+        Bgra5551
+            bgra = default;
         ushort expectedPackedValue = ushort.MaxValue;
 
         // act
@@ -268,5 +270,23 @@ public class Bgra5551Tests
     {
         Assert.Equal(Vector4.Zero, new Bgra5551(Vector4.One * -1234.0f).ToVector4());
         Assert.Equal(Vector4.One, new Bgra5551(Vector4.One * 1234.0f).ToVector4());
+    }
+
+    [Fact]
+    public void Bgra5551_PixelInformation()
+    {
+        PixelTypeInfo info = Bgra5551.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Bgra5551>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.BGR | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(5, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(5, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(5, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(1, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(5, componentInfo.GetMaximumComponentPrecision());
     }
 }

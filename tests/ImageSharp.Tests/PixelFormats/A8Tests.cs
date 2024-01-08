@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -28,8 +29,8 @@ public class A8Tests
     [Fact]
     public void A8_Equality()
     {
-        var left = new A8(16);
-        var right = new A8(32);
+        A8 left = new(16);
+        A8 right = new(32);
 
         Assert.True(left == new A8(16));
         Assert.True(left != right);
@@ -56,7 +57,7 @@ public class A8Tests
     public void A8_ToScaledVector4()
     {
         // Arrange
-        var alpha = new A8(.5F);
+        A8 alpha = new(.5F);
 
         // Act
         Vector4 actual = alpha.ToScaledVector4();
@@ -72,10 +73,10 @@ public class A8Tests
     public void A8_ToVector4()
     {
         // Arrange
-        var alpha = new A8(.5F);
+        A8 alpha = new(.5F);
 
         // Act
-        var actual = alpha.ToVector4();
+        Vector4 actual = alpha.ToVector4();
 
         // Assert
         Assert.Equal(0, actual.X);
@@ -87,8 +88,8 @@ public class A8Tests
     [Fact]
     public void A8_ToRgba32()
     {
-        var input = new A8(128);
-        var expected = new Rgba32(0, 0, 0, 128);
+        A8 input = new(128);
+        Rgba32 expected = new(0, 0, 0, 128);
 
         Rgba32 actual = default;
         input.ToRgba32(ref actual);
@@ -99,7 +100,7 @@ public class A8Tests
     public void A8_FromBgra5551()
     {
         // arrange
-        var alpha = default(A8);
+        A8 alpha = default;
         byte expected = byte.MaxValue;
 
         // act
@@ -107,5 +108,20 @@ public class A8Tests
 
         // assert
         Assert.Equal(expected, alpha.PackedValue);
+    }
+
+    [Fact]
+    public void A8_PixelInformation()
+    {
+        PixelTypeInfo info = A8.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<A8>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(1, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

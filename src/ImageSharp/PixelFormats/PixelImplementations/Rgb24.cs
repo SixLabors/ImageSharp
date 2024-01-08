@@ -53,22 +53,6 @@ public partial struct Rgb24 : IPixel<Rgb24>
     }
 
     /// <summary>
-    /// Converts an <see cref="Rgb24"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Rgb24"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Rgb24 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Rgb24"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Rgb24"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Rgb24(Color color) => color.ToRgb24();
-
-    /// <summary>
     /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
     /// <see cref="Rgb24"/>.
     /// </summary>
@@ -105,6 +89,13 @@ public partial struct Rgb24 : IPixel<Rgb24>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Rgb24>(
+            PixelComponentInfo.Create<Rgb24>(3, 8, 8, 8),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();

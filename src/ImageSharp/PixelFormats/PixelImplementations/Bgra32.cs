@@ -99,22 +99,6 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     }
 
     /// <summary>
-    /// Converts an <see cref="Bgra32"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Bgra32"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Bgra32 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Bgra32"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Bgra32"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Bgra32(Color color) => color.ToBgra32();
-
-    /// <summary>
     /// Compares two <see cref="Bgra32"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="Bgra32"/> on the left side of the operand.</param>
@@ -135,6 +119,13 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     /// </returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Bgra32>(
+            PixelComponentInfo.Create<Bgra32>(4, 8, 8, 8, 8),
+            PixelColorType.BGR | PixelColorType.Alpha,
+            PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
     public readonly PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations();

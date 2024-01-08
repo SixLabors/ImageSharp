@@ -1240,10 +1240,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        for (int i = 0; i < colorTable.Length; i++)
-        {
-            colorTable[i] = new Color(rgbTable[i]);
-        }
+        Color.FromPixel(rgbTable, colorTable);
 
         if (alpha.Length > 0)
         {
@@ -1276,14 +1273,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                     ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                    pngMetadata.TransparentColor = new(new Rgb48(rc, gc, bc));
+                    pngMetadata.TransparentColor = Color.FromPixel(new Rgb48(rc, gc, bc));
                     return;
                 }
 
                 byte r = ReadByteLittleEndian(alpha, 0);
                 byte g = ReadByteLittleEndian(alpha, 2);
                 byte b = ReadByteLittleEndian(alpha, 4);
-                pngMetadata.TransparentColor = new(new Rgb24(r, g, b));
+                pngMetadata.TransparentColor = Color.FromPixel(new Rgb24(r, g, b));
             }
         }
         else if (this.pngColorType == PngColorType.Grayscale)

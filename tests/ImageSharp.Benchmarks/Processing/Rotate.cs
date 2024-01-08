@@ -13,7 +13,7 @@ public class Rotate
     [Benchmark]
     public Size DoRotate()
     {
-        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.BlanchedAlmond);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.BlanchedAlmond.ToPixel<Rgba32>());
         image.Mutate(x => x.Rotate(37.5F));
 
         return image.Size;

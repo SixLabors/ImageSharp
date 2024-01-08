@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +16,10 @@ public class NormalizedByte4Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new NormalizedByte4(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new NormalizedByte4(new Vector4(0.0f));
-        var color3 = new NormalizedByte4(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        var color4 = new NormalizedByte4(1.0f, 0.0f, 1.0f, 1.0f);
+        NormalizedByte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        NormalizedByte4 color2 = new(new Vector4(0.0f));
+        NormalizedByte4 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+        NormalizedByte4 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +31,10 @@ public class NormalizedByte4Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new NormalizedByte4(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new NormalizedByte4(new Vector4(1.0f));
-        var color3 = new NormalizedByte4(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new NormalizedByte4(1.0f, 1.0f, 0.0f, 1.0f);
+        NormalizedByte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        NormalizedByte4 color2 = new(new Vector4(1.0f));
+        NormalizedByte4 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        NormalizedByte4 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -63,7 +64,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_ToScaledVector4()
     {
         // arrange
-        var short4 = new NormalizedByte4(-Vector4.One);
+        NormalizedByte4 short4 = new(-Vector4.One);
 
         // act
         Vector4 actual = short4.ToScaledVector4();
@@ -79,7 +80,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromScaledVector4()
     {
         // arrange
-        var pixel = default(NormalizedByte4);
+        NormalizedByte4 pixel = default;
         Vector4 scaled = new NormalizedByte4(-Vector4.One).ToScaledVector4();
         uint expected = 0x81818181;
 
@@ -95,7 +96,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromArgb32()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -109,7 +110,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromBgr24()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -123,7 +124,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromGrey8()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -137,7 +138,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromGrey16()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -151,7 +152,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromRgb24()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -165,7 +166,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromRgba32()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -179,7 +180,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromBgra5551()
     {
         // arrange
-        var normalizedByte4 = default(NormalizedByte4);
+        NormalizedByte4 normalizedByte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -193,7 +194,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromRgb48()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -207,7 +208,7 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_FromRgba64()
     {
         // arrange
-        var byte4 = default(NormalizedByte4);
+        NormalizedByte4 byte4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -221,13 +222,31 @@ public class NormalizedByte4Tests
     public void NormalizedByte4_ToRgba32()
     {
         // arrange
-        var byte4 = new NormalizedByte4(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
-        var expected = new Rgba32(Vector4.One);
-        var actual = default(Rgba32);
+        NormalizedByte4 byte4 = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+        Rgba32 expected = new(Vector4.One);
+        Rgba32 actual = default;
 
         // act
         byte4.ToRgba32(ref actual);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void NormalizedByte4_PixelInformation()
+    {
+        PixelTypeInfo info = NormalizedByte4.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<NormalizedByte4>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

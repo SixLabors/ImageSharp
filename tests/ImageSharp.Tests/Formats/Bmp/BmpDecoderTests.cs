@@ -477,7 +477,7 @@ public class BmpDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
-        Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
     [Theory]

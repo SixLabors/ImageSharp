@@ -154,8 +154,8 @@ public partial class ImageTests
                 using (var memoryManager = new BitmapMemoryManager(bmp))
                 {
                     Memory<Bgra32> memory = memoryManager.Memory;
-                    Bgra32 bg = Color.Red;
-                    Bgra32 fg = Color.Green;
+                    Bgra32 bg = Color.Red.ToPixel<Bgra32>();
+                    Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
                     using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                     {
@@ -198,8 +198,8 @@ public partial class ImageTests
             using (var bmp = new Bitmap(51, 23))
             {
                 var memoryManager = new BitmapMemoryManager(bmp);
-                Bgra32 bg = Color.Red;
-                Bgra32 fg = Color.Green;
+                Bgra32 bg = Color.Red.ToPixel<Bgra32>();
+                Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
                 using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                 {
@@ -258,8 +258,8 @@ public partial class ImageTests
                 {
                     Memory<Bgra32> pixelMemory = memoryManager.Memory;
                     Memory<byte> byteMemory = new CastMemoryManager<Bgra32, byte>(pixelMemory).Memory;
-                    Bgra32 bg = Color.Red;
-                    Bgra32 fg = Color.Green;
+                    Bgra32 bg = Color.Red.ToPixel<Bgra32>();
+                    Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
                     using (var image = Image.WrapMemory<Bgra32>(byteMemory, bmp.Width, bmp.Height))
                     {
@@ -355,8 +355,8 @@ public partial class ImageTests
                 using (var memoryManager = new BitmapMemoryManager(bmp))
                 {
                     Memory<Bgra32> pixelMemory = memoryManager.Memory;
-                    Bgra32 bg = Color.Red;
-                    Bgra32 fg = Color.Green;
+                    Bgra32 bg = Color.Red.ToPixel<Bgra32>();
+                    Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
                     fixed (void* p = pixelMemory.Span)
                     {

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -18,12 +19,12 @@ public class Rgba32Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Rgba32(0, 0, 0);
-        var color2 = new Rgba32(0, 0, 0, 1F);
-        var color3 = Rgba32.ParseHex("#000");
-        var color4 = Rgba32.ParseHex("#000F");
-        var color5 = Rgba32.ParseHex("#000000");
-        var color6 = Rgba32.ParseHex("#000000FF");
+        Rgba32 color1 = new(0, 0, 0);
+        Rgba32 color2 = new(0, 0, 0, 1F);
+        Rgba32 color3 = Rgba32.ParseHex("#000");
+        Rgba32 color4 = Rgba32.ParseHex("#000F");
+        Rgba32 color5 = Rgba32.ParseHex("#000000");
+        Rgba32 color6 = Rgba32.ParseHex("#000000FF");
 
         Assert.Equal(color1, color2);
         Assert.Equal(color1, color3);
@@ -38,11 +39,11 @@ public class Rgba32Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Rgba32(255, 0, 0, 255);
-        var color2 = new Rgba32(0, 0, 0, 255);
-        var color3 = Rgba32.ParseHex("#000");
-        var color4 = Rgba32.ParseHex("#000000");
-        var color5 = Rgba32.ParseHex("#FF000000");
+        Rgba32 color1 = new(255, 0, 0, 255);
+        Rgba32 color2 = new(0, 0, 0, 255);
+        Rgba32 color3 = Rgba32.ParseHex("#000");
+        Rgba32 color4 = Rgba32.ParseHex("#000000");
+        Rgba32 color5 = Rgba32.ParseHex("#FF000000");
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color1, color3);
@@ -56,25 +57,25 @@ public class Rgba32Tests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var color1 = new Rgba32(1, .1f, .133f, .864f);
+        Rgba32 color1 = new(1, .1f, .133f, .864f);
         Assert.Equal(255, color1.R);
         Assert.Equal((byte)Math.Round(.1f * 255), color1.G);
         Assert.Equal((byte)Math.Round(.133f * 255), color1.B);
         Assert.Equal((byte)Math.Round(.864f * 255), color1.A);
 
-        var color2 = new Rgba32(1, .1f, .133f);
+        Rgba32 color2 = new(1, .1f, .133f);
         Assert.Equal(255, color2.R);
         Assert.Equal(Math.Round(.1f * 255), color2.G);
         Assert.Equal(Math.Round(.133f * 255), color2.B);
         Assert.Equal(255, color2.A);
 
-        var color4 = new Rgba32(new Vector3(1, .1f, .133f));
+        Rgba32 color4 = new(new Vector3(1, .1f, .133f));
         Assert.Equal(255, color4.R);
         Assert.Equal(Math.Round(.1f * 255), color4.G);
         Assert.Equal(Math.Round(.133f * 255), color4.B);
         Assert.Equal(255, color4.A);
 
-        var color5 = new Rgba32(new Vector4(1, .1f, .133f, .5f));
+        Rgba32 color5 = new(new Vector4(1, .1f, .133f, .5f));
         Assert.Equal(255, color5.R);
         Assert.Equal(Math.Round(.1f * 255), color5.G);
         Assert.Equal(Math.Round(.133f * 255), color5.B);
@@ -88,7 +89,7 @@ public class Rgba32Tests
     public void FromAndToHex()
     {
         // 8 digit hex matches css4 spec. RRGGBBAA
-        var color = Rgba32.ParseHex("#AABBCCDD"); // 170, 187, 204, 221
+        Rgba32 color = Rgba32.ParseHex("#AABBCCDD"); // 170, 187, 204, 221
         Assert.Equal(170, color.R);
         Assert.Equal(187, color.G);
         Assert.Equal(204, color.B);
@@ -111,7 +112,7 @@ public class Rgba32Tests
     [Fact]
     public unsafe void ByteLayout()
     {
-        var color = new Rgba32(1, 2, 3, 4);
+        Rgba32 color = new(1, 2, 3, 4);
         byte* colorBase = (byte*)&color;
         Assert.Equal(1, colorBase[0]);
         Assert.Equal(2, colorBase[1]);
@@ -146,7 +147,7 @@ public class Rgba32Tests
     public void Rgba32_ToScaledVector4()
     {
         // arrange
-        var rgba = new Rgba32(Vector4.One);
+        Rgba32 rgba = new(Vector4.One);
 
         // act
         Vector4 actual = rgba.ToScaledVector4();
@@ -162,8 +163,8 @@ public class Rgba32Tests
     public void Rgba32_FromScaledVector4()
     {
         // arrange
-        var rgba = new Rgba32(Vector4.One);
-        var actual = default(Rgba32);
+        Rgba32 rgba = new(Vector4.One);
+        Rgba32 actual = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -185,9 +186,9 @@ public class Rgba32Tests
     public void Rgba32_ToRgba32()
     {
         // arrange
-        var rgba = new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(0x1a, 0, 0x80, 0);
+        Rgba32 rgba = new(+0.1f, -0.3f, +0.5f, -0.7f);
+        Rgba32 actual = default;
+        Rgba32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
         actual.FromRgba32(rgba);
@@ -200,9 +201,9 @@ public class Rgba32Tests
     public void Rgba32_FromRgba32_ToRgba32()
     {
         // arrange
-        var rgba = default(Rgba32);
-        var actual = default(Rgba32);
-        var expected = new Rgba32(0x1a, 0, 0x80, 0);
+        Rgba32 rgba = default;
+        Rgba32 actual = default;
+        Rgba32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
         rgba.FromRgba32(expected);
@@ -216,9 +217,9 @@ public class Rgba32Tests
     public void Rgba32_FromBgra32_ToRgba32()
     {
         // arrange
-        var rgba = default(Rgba32);
-        var actual = default(Bgra32);
-        var expected = new Bgra32(0x1a, 0, 0x80, 0);
+        Rgba32 rgba = default;
+        Bgra32 actual = default;
+        Bgra32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
         rgba.FromBgra32(expected);
@@ -232,9 +233,9 @@ public class Rgba32Tests
     public void Rgba32_FromAbgr32_ToRgba32()
     {
         // arrange
-        var rgba = default(Rgba32);
-        var actual = default(Abgr32);
-        var expected = new Abgr32(0x1a, 0, 0x80, 0);
+        Rgba32 rgba = default;
+        Abgr32 actual = default;
+        Abgr32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
         rgba.FromAbgr32(expected);
@@ -248,9 +249,9 @@ public class Rgba32Tests
     public void Rgba32_FromArgb32_ToArgb32()
     {
         // arrange
-        var rgba = default(Rgba32);
-        var actual = default(Argb32);
-        var expected = new Argb32(0x1a, 0, 0x80, 0);
+        Rgba32 rgba = default;
+        Argb32 actual = default;
+        Argb32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
         rgba.FromArgb32(expected);
@@ -264,9 +265,9 @@ public class Rgba32Tests
     public void Rgba32_FromRgb48()
     {
         // arrange
-        var input = default(Rgba32);
-        var actual = default(Rgb48);
-        var expected = new Rgb48(65535, 0, 65535);
+        Rgba32 input = default;
+        Rgb48 actual = default;
+        Rgb48 expected = new(65535, 0, 65535);
 
         // act
         input.FromRgb48(expected);
@@ -280,9 +281,9 @@ public class Rgba32Tests
     public void Rgba32_FromRgba64()
     {
         // arrange
-        var input = default(Rgba32);
-        var actual = default(Rgba64);
-        var expected = new Rgba64(65535, 0, 65535, 0);
+        Rgba32 input = default;
+        Rgba64 actual = default;
+        Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
         input.FromRgba64(expected);
@@ -296,7 +297,7 @@ public class Rgba32Tests
     public void Rgba32_FromBgra5551()
     {
         // arrange
-        var rgb = default(Rgba32);
+        Rgba32 rgb = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -304,5 +305,23 @@ public class Rgba32Tests
 
         // assert
         Assert.Equal(expected, rgb.PackedValue);
+    }
+
+    [Fact]
+    public void Rgba32_PixelInformation()
+    {
+        PixelTypeInfo info = Rgba32.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rgba32>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

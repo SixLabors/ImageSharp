@@ -202,7 +202,7 @@ internal static class PngScanlineProcessor
         for (nuint x = pixelOffset, o = 0; x < frameControl.XMax; x += increment, o++)
         {
             uint index = Unsafe.Add(ref scanlineSpanRef, o);
-            pixel.FromRgba32(Unsafe.Add(ref paletteBase, index).ToRgba32());
+            pixel.FromRgba32(Unsafe.Add(ref paletteBase, index).ToPixel<Rgba32>());
             Unsafe.Add(ref rowSpanRef, x) = pixel;
         }
     }

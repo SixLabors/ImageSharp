@@ -5,4 +5,5 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuFilmGrainParameters
 {
+    public bool ApplyGrain { get; set; }
 }

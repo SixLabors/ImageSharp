@@ -3,7 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-internal class ObuLoopFilterParameters
+internal class ObuDeltaQParameters
 {
-    public int[] FilterLevel { get; internal set; } = new int[2];
+    public bool IsPresent { get; set; }
+
+    public int Resolution { get; set; }
 }

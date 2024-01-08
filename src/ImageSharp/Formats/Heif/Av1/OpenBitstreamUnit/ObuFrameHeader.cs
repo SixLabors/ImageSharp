@@ -13,35 +13,43 @@ internal class ObuFrameHeader
 
     public bool AllowHighPrecisionMotionVector { get; set; }
 
-    public ObuTileInfo TilesInfo { get; internal set; } = new ObuTileInfo();
+    public ObuTileInfo TilesInfo { get; set; } = new ObuTileInfo();
 
-    public bool CodedLossless { get; internal set; }
+    public bool CodedLossless { get; set; }
 
-    public bool[] LosslessArray { get; internal set; } = new bool[ObuConstants.MaxSegmentCount];
+    public bool[] LosslessArray { get; set; } = new bool[ObuConstants.MaxSegmentCount];
 
     public ObuQuantizationParameters QuantizationParameters { get; set; } = new ObuQuantizationParameters();
 
     public ObuSegmentationParameters SegmentationParameters { get; set; } = new ObuSegmentationParameters();
 
-    public bool AllLossless { get; internal set; }
+    public bool AllLossless { get; set; }
 
-    public bool AllowWarpedMotion { get; internal set; }
+    public bool AllowWarpedMotion { get; set; }
 
-    public ObuReferenceMode ReferenceMode { get; internal set; }
+    public ObuReferenceMode ReferenceMode { get; set; }
 
-    public ObuFilmGrainParameters FilmGrainParameters { get; internal set; } = new ObuFilmGrainParameters();
+    public ObuFilmGrainParameters FilmGrainParameters { get; set; } = new ObuFilmGrainParameters();
 
-    public bool ReducedTxSet { get; internal set; }
+    public bool ReducedTransformSet { get; set; }
 
-    public ObuLoopFilterParameters LoopFilterParameters { get; internal set; } = new ObuLoopFilterParameters();
+    public ObuLoopFilterParameters LoopFilterParameters { get; set; } = new ObuLoopFilterParameters();
 
-    public ObuLoopRestorationParameters[] LoopRestorationParameters { get; internal set; } = new ObuLoopRestorationParameters[3];
+    public ObuLoopRestorationParameters[] LoopRestorationParameters { get; set; } = new ObuLoopRestorationParameters[3];
 
-    public ObuConstraintDirectionalEnhancementFilterParameters ConstraintDirectionalEnhancementFilterParameters { get; internal set; } = new ObuConstraintDirectionalEnhancementFilterParameters();
+    public ObuConstraintDirectionalEnhancementFilterParameters CdefParameters { get; set; } = new ObuConstraintDirectionalEnhancementFilterParameters();
 
-    public int ModeInfoStride { get; internal set; }
+    public int ModeInfoStride { get; set; }
 
-    public bool DisableFrameEndUpdateCdf { get; internal set; }
+    public bool DisableFrameEndUpdateCdf { get; set; }
+
+    public ObuSkipModeParameters SkipModeParameters { get; set; } = new ObuSkipModeParameters();
+
+    public Av1TransformMode TransformMode { get; set; }
+
+    public ObuDeltaLoopFilterParameters DeltaLoopFilterParameters { get; set; } = new ObuDeltaLoopFilterParameters();
+
+    public ObuDeltaQParameters DeltaQParameters { get; set; } = new ObuDeltaQParameters();
 
     internal ObuFrameSize FrameSize { get; set; } = new ObuFrameSize();
 

@@ -5,6 +5,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuOrderHintInfo
 {
+    public bool EnableOrderHint { get; internal set; }
+
     internal bool EnableJointCompound { get; set; }
 
     internal bool EnableReferenceFrameMotionVectors { get; set; }

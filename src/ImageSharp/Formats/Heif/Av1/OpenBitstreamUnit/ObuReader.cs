@@ -693,10 +693,10 @@ internal class ObuReader
             // Single image is always Intra.
         }
 
-        SetupFrameBufferReferences(sequenceHeader, frameInfo);
-        CheckAddTemporalMotionVectorBuffer(sequenceHeader, frameInfo);
-        SetupFrameSignBias(sequenceHeader, frameInfo);
+        // SetupFrameBufferReferences(sequenceHeader, frameInfo);
+        // CheckAddTemporalMotionVectorBuffer(sequenceHeader, frameInfo);
 
+        // SetupFrameSignBias(sequenceHeader, frameInfo);
         if (sequenceHeader.IsReducedStillPictureHeader || frameInfo.DisableCdfUpdate)
         {
             frameInfo.DisableFrameEndUpdateCdf = true;
@@ -704,22 +704,21 @@ internal class ObuReader
 
         if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
         {
-            SetupPastIndependence();
+            // SetupPastIndependence();
         }
 
-        GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
-
+        // GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
         frameInfo.TilesInfo = ReadTileInfo(reader, sequenceHeader, frameInfo);
-        frameInfo.QuantizationParameters = ReadQuantizationParameters(reader, sequenceHeader.ColorConfig, planesCount);
-        ReadSegmentationParameters(reader, sequenceHeader, frameInfo);
-        ReadDeltaQParameters(reader, frameInfo);
-        ReadDeltaLoopFilterParameters(reader, frameInfo);
-        SetupSegmentationDequantization();
+        ReadQuantizationParameters(reader, frameInfo.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
+        ReadSegmentationParameters(reader, sequenceHeader, frameInfo, planesCount);
+        ReadFrameDeltaQParameters(reader, frameInfo);
+        ReadFrameDeltaLoopFilterParameters(reader, frameInfo);
 
+        // SetupSegmentationDequantization();
         Av1MainParseContext mainParseContext = new();
         if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
         {
-            ResetParseContext(mainParseContext, frameInfo.QuantizationParameters.BaseQIndex);
+            // ResetParseContext(mainParseContext, frameInfo.QuantizationParameters.BaseQIndex);
         }
 
         int tilesCount = frameInfo.TilesInfo.TileColumnCount * frameInfo.TilesInfo.TileRowCount;
@@ -758,20 +757,20 @@ internal class ObuReader
 
         frameInfo.AllLossless = frameInfo.CodedLossless && frameInfo.FrameSize.FrameWidth == frameInfo.FrameSize.SuperResolutionUpscaledWidth;
         ReadLoopFilterParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadConstraintDirectionalEnhancementFilterParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadLoopRestorationParameter(reader, sequenceHeader, frameInfo, planesCount);
+        ReadCdefParameters(reader, sequenceHeader, frameInfo, planesCount);
+        ReadLoopRestorationParameters(reader, sequenceHeader, frameInfo, planesCount);
         ReadTransformMode(reader, frameInfo);
 
         frameInfo.ReferenceMode = ReadFrameReferenceMode(reader, isIntraFrame);
-        ReadSkipModeParameters(reader, frameInfo, isIntraFrame, sequenceHeader, frameInfo.ReferenceMode);
+        ReadSkipModeParameters(reader, sequenceHeader, frameInfo, isIntraFrame, frameInfo.ReferenceMode);
         if (isIntraFrame || frameInfo.ErrorResilientMode || !sequenceHeader.EnableWarpedMotion)
         {
             frameInfo.AllowWarpedMotion = false;
         }
 
-        frameInfo.ReducedTxSet = reader.ReadBoolean();
+        frameInfo.ReducedTransformSet = reader.ReadBoolean();
         ReadGlobalMotionParameters(reader, sequenceHeader, frameInfo, isIntraFrame);
-        frameInfo.FilmGrainParameters = ReadFilmGrainParameters(reader, sequenceHeader, frameInfo);
+        frameInfo.FilmGrainParameters = ReadFilmGrainFilterParameters(reader, sequenceHeader, frameInfo);
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
@@ -839,11 +838,11 @@ internal class ObuReader
         header.PayloadSize -= headerBytes;
 
         bool noIbc = !frameInfo.AllowIntraBlockCopy;
-        bool doLoopFilter = noIbc && (frameInfo.LoopFilterParameters.FilterLevel[0] || frameInfo.LoopFilterParameters.FilterLevel[1]);
+        bool doLoopFilter = noIbc && (frameInfo.LoopFilterParameters.FilterLevel[0] != 0 || frameInfo.LoopFilterParameters.FilterLevel[1] != 0);
         bool doCdef = noIbc && (!frameInfo.CodedLossless &&
-            (frameInfo.ConstraintDirectionalEnhancementFilterParameters.BitCount ||
-            frameInfo.ConstraintDirectionalEnhancementFilterParameters.YStrength[0] != 0 ||
-            frameInfo.ConstraintDirectionalEnhancementFilterParameters.UVStrength[0] != 0));
+            (frameInfo.CdefParameters.BitCount != 0 ||
+            frameInfo.CdefParameters.YStrength[0] != 0 ||
+            frameInfo.CdefParameters.UVStrength[0] != 0));
         bool doLoopRestoration = noIbc &&
             (frameInfo.LoopRestorationParameters[(int)Av1Plane.Y].FrameRestorationType != ObuRestorationType.RestoreNone ||
             frameInfo.LoopRestorationParameters[(int)Av1Plane.U].FrameRestorationType != ObuRestorationType.RestoreNone ||
@@ -862,7 +861,7 @@ internal class ObuReader
             }
 
             // TODO: Pass more info to the decoder.
-            DecodeTile(sequenceHeader, frameInfo, tileInfo, tileNum);
+            // DecodeTile(sequenceHeader, frameInfo, tileInfo, tileNum);
         }
 
         if (tileGroupEnd != tileCount - 1)
@@ -870,7 +869,240 @@ internal class ObuReader
             return;
         }
 
-        FinishDecodeTiles(sequenceHeader, frameInfo, doCdef, doLoopRestoration);
+        // FinishDecodeTiles(sequenceHeader, frameInfo, doCdef, doLoopRestoration);
+    }
+
+    private static int ReadDeltaQ(Av1BitStreamReader reader)
+    {
+        int deltaQ = 0;
+        if (reader.ReadBoolean())
+        {
+            deltaQ = (int)reader.ReadLiteral(7);
+        }
+
+        return deltaQ;
+    }
+
+    private static void ReadFrameDeltaQParameters(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    {
+        frameInfo.DeltaQParameters.Resolution = 0;
+        frameInfo.DeltaQParameters.IsPresent = false;
+        if (frameInfo.QuantizationParameters.BaseQIndex > 0)
+        {
+            frameInfo.DeltaQParameters.IsPresent = reader.ReadBoolean();
+        }
+
+        if (frameInfo.DeltaQParameters.IsPresent)
+        {
+            frameInfo.DeltaQParameters.Resolution = (int)reader.ReadLiteral(2);
+        }
+    }
+
+    private static void ReadFrameDeltaLoopFilterParameters(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    {
+        frameInfo.DeltaLoopFilterParameters.IsPresent = false;
+        frameInfo.DeltaLoopFilterParameters.Resolution = 0;
+        frameInfo.DeltaLoopFilterParameters.Multi = false;
+        if (frameInfo.DeltaQParameters.IsPresent)
+        {
+            if (!frameInfo.AllowIntraBlockCopy)
+            {
+                frameInfo.DeltaLoopFilterParameters.IsPresent = reader.ReadBoolean();
+            }
+
+            if (frameInfo.DeltaLoopFilterParameters.IsPresent)
+            {
+                frameInfo.DeltaLoopFilterParameters.Resolution = (int)reader.ReadLiteral(4);
+                frameInfo.DeltaLoopFilterParameters.Multi = reader.ReadBoolean();
+            }
+        }
+    }
+
+    private static void ReadQuantizationParameters(Av1BitStreamReader reader, ObuQuantizationParameters quantParams, ObuColorConfig colorInfo, int planesCount)
+    {
+        quantParams.BaseQIndex = (int)reader.ReadLiteral(8);
+        quantParams.DeltaQDc[(int)Av1Plane.Y] = ReadDeltaQ(reader);
+        quantParams.DeltaQAc[(int)Av1Plane.Y] = 0;
+        if (planesCount > 1)
+        {
+            bool areUvDeltaDifferent = false;
+            quantParams.DeltaQDc[(int)Av1Plane.U] = ReadDeltaQ(reader);
+            quantParams.DeltaQAc[(int)Av1Plane.U] = ReadDeltaQ(reader);
+            if (areUvDeltaDifferent)
+            {
+                quantParams.DeltaQDc[(int)Av1Plane.V] = ReadDeltaQ(reader);
+                quantParams.DeltaQAc[(int)Av1Plane.V] = ReadDeltaQ(reader);
+            }
+            else
+            {
+                quantParams.DeltaQDc[(int)Av1Plane.V] = quantParams.DeltaQDc[(int)Av1Plane.U];
+                quantParams.DeltaQAc[(int)Av1Plane.V] = quantParams.DeltaQAc[(int)Av1Plane.U];
+            }
+        }
+        else
+        {
+            quantParams.DeltaQDc[(int)Av1Plane.U] = 0;
+            quantParams.DeltaQAc[(int)Av1Plane.U] = 0;
+            quantParams.DeltaQDc[(int)Av1Plane.V] = 0;
+            quantParams.DeltaQAc[(int)Av1Plane.V] = 0;
+        }
+
+        quantParams.IsUsingQMatrix = reader.ReadBoolean();
+        if (quantParams.IsUsingQMatrix)
+        {
+            quantParams.QMatrix[(int)Av1Plane.Y] = (int)reader.ReadLiteral(4);
+            quantParams.QMatrix[(int)Av1Plane.U] = (int)reader.ReadLiteral(4);
+            if (!colorInfo.HasSeparateUvDeltaQ)
+            {
+                quantParams.QMatrix[(int)Av1Plane.V] = quantParams.QMatrix[(int)Av1Plane.U];
+            }
+            else
+            {
+                quantParams.QMatrix[(int)Av1Plane.V] = (int)reader.ReadLiteral(4);
+            }
+        }
+        else
+        {
+            quantParams.QMatrix[(int)Av1Plane.Y] = 0;
+            quantParams.QMatrix[(int)Av1Plane.U] = 0;
+            quantParams.QMatrix[(int)Av1Plane.V] = 0;
+        }
+    }
+
+    private static void ReadSegmentationParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    {
+        frameInfo.SegmentationParameters.SegmentationEnabled = reader.ReadBoolean();
+        if (!frameInfo.SegmentationParameters.SegmentationEnabled)
+        {
+            // CopyFeatureInfo();
+            return;
+        }
+
+        // TODO: Parse more stuff.
+    }
+
+    private static void ReadLoopFilterParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    {
+        if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy)
+        {
+            frameInfo.LoopFilterParameters.FilterLevel[0] = 0;
+            frameInfo.LoopFilterParameters.FilterLevel[1] = 0;
+            return;
+        }
+
+        // TODO: Parse more stuff.
+    }
+
+    private static void ReadTransformMode(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    {
+        if (frameInfo.CodedLossless)
+        {
+            frameInfo.TransformMode = Av1TransformMode.Only4x4;
+        }
+        else
+        {
+            if (reader.ReadBoolean())
+            {
+                frameInfo.TransformMode = Av1TransformMode.Select;
+            }
+            else
+            {
+                frameInfo.TransformMode = Av1TransformMode.Largest;
+            }
+        }
+    }
+
+    private static void ReadLoopRestorationParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    {
+        _ = planesCount;
+        if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || !sequenceHeader.EnableRestoration)
+        {
+            frameInfo.LoopRestorationParameters[0].FrameRestorationType = ObuRestorationType.RestoreNone;
+            frameInfo.LoopRestorationParameters[1].FrameRestorationType = ObuRestorationType.RestoreNone;
+            frameInfo.LoopRestorationParameters[2].FrameRestorationType = ObuRestorationType.RestoreNone;
+            return;
+        }
+
+        // TODO: Parse more stuff.
+    }
+
+    private static void ReadCdefParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    {
+        _ = planesCount;
+        if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || sequenceHeader.CdefLevel == 0)
+        {
+            frameInfo.CdefParameters.BitCount = 0;
+            frameInfo.CdefParameters.YStrength[0] = 0;
+            frameInfo.CdefParameters.YStrength[4] = 0;
+            frameInfo.CdefParameters.UVStrength[0] = 0;
+            frameInfo.CdefParameters.UVStrength[4] = 0;
+            frameInfo.CdefParameters.Damping = 0;
+            return;
+        }
+
+        // TODO: Parse more stuff.
+    }
+
+    private static void ReadGlobalMotionParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame)
+    {
+        _ = reader;
+        _ = sequenceHeader;
+        _ = frameInfo;
+        if (isIntraFrame)
+        {
+            return;
+        }
+
+        // TODO: Parse more stuff.
+    }
+
+    private static ObuReferenceMode ReadFrameReferenceMode(Av1BitStreamReader reader, bool isIntraFrame)
+    {
+        if (isIntraFrame)
+        {
+            return ObuReferenceMode.SingleReference;
+        }
+
+        return (ObuReferenceMode)reader.ReadLiteral(1);
+    }
+
+    private static void ReadSkipModeParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame, ObuReferenceMode referenceSelect)
+    {
+        if (isIntraFrame || referenceSelect == ObuReferenceMode.ReferenceModeSelect || !sequenceHeader.OrderHintInfo.EnableOrderHint)
+        {
+            frameInfo.SkipModeParameters.SkipModeAllowed = false;
+        }
+        else
+        {
+            // TODO: Parse more stuff.
+        }
+
+        if (frameInfo.SkipModeParameters.SkipModeAllowed)
+        {
+            frameInfo.SkipModeParameters.SkipModeFlag = reader.ReadBoolean();
+        }
+        else
+        {
+            frameInfo.SkipModeParameters.SkipModeFlag = false;
+        }
+    }
+
+    private static ObuFilmGrainParameters ReadFilmGrainFilterParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    {
+        ObuFilmGrainParameters grainParams = new();
+        if (!sequenceHeader.AreFilmGrainingParametersPresent || (!frameInfo.ShowFrame && !frameInfo.ShowableFrame))
+        {
+            return grainParams;
+        }
+
+        grainParams.ApplyGrain = reader.ReadBoolean();
+        if (!grainParams.ApplyGrain)
+        {
+            return grainParams;
+        }
+
+        // TODO: Implement parsing.
+        return grainParams;
     }
 
     private static bool IsValidSequenceLevel(int sequenceLevelIndex)

@@ -3,7 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-internal class ObuLoopFilterParameters
+internal class ObuSkipModeParameters
 {
-    public int[] FilterLevel { get; internal set; } = new int[2];
+    public bool SkipModeAllowed { get; set; }
+
+    public bool SkipModeFlag { get; internal set; }
 }

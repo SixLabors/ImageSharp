@@ -5,9 +5,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuConstraintDirectionalEnhancementFilterParameters
 {
-    public bool BitCount { get; internal set; }
+    public int BitCount { get; internal set; }
 
-    public int[] YStrength { get; internal set; }
+    public int[] YStrength { get; internal set; } = new int[4];
 
-    public int[] UVStrength { get; internal set; }
+    public int[] UVStrength { get; internal set; } = new int[4];
+
+    public int Damping { get; internal set; }
 }

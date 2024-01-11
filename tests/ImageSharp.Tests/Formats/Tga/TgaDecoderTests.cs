@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
@@ -724,7 +723,7 @@ public class TgaDecoderTests
     {
         using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
-            // Using here the reference output instead of the the reference decoder,
+            // Using here the reference output instead of the reference decoder,
             // because the reference decoder does not ignore the alpha data here.
             image.DebugSave(provider);
             image.CompareToReferenceOutput(ImageComparer.Exact, provider);
@@ -769,6 +768,19 @@ public class TgaDecoderTests
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2629
+    [Theory]
+    [WithFile(Issue2629, PixelTypes.Rgba32)]
+    public void TgaDecoder_CanDecode_Issue2629<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
+        {
+            image.DebugSave(provider);
+            ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
+        }
     }
 
     [Theory]

@@ -8,7 +8,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal ref struct Av1BitStreamReader(Span<byte> data)
 {
     private const int WordSize = sizeof(byte) * 8;
-    private const int DoubleWordSize = 2 * WordSize;
     private readonly Span<byte> data = data;
     private int wordPosition = 0;
     private int bitOffset = 0;

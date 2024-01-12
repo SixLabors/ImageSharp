@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal ref struct Av1BitStreamWriter(Stream stream)
 {
-    private const int WordSize = sizeof(byte) * 8;
+    private const int WordSize = 8;
     private readonly Stream stream = stream;
     private byte buffer = 0;
     private int bitOffset = 0;
@@ -35,7 +35,7 @@ internal ref struct Av1BitStreamWriter(Stream stream)
     {
         int shift = 24;
         uint padded = value << ((32 - bitCount) - this.bitOffset);
-        while (bitCount >= 8)
+        while ((bitCount + this.bitOffset) >= 8)
         {
             byte current = (byte)(((padded >> shift) & 0xff) | this.buffer);
             this.stream.WriteByte(current);
@@ -52,5 +52,15 @@ internal ref struct Av1BitStreamWriter(Stream stream)
         }
     }
 
-    internal void WriteBoolean(bool value) => this.WriteLiteral(value ? 1U : 0U, 1);
+    internal void WriteBoolean(bool value)
+    {
+        byte boolByte = value ? (byte)1 : (byte)0;
+        this.buffer = (byte)(((boolByte << (7 - this.bitOffset)) & 0xff) | this.buffer);
+        this.bitOffset++;
+        if (this.bitOffset == WordSize)
+        {
+            this.stream.WriteByte(this.buffer);
+            this.bitOffset = 0;
+        }
+    }
 }

@@ -1,11 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal ref struct Av1BitStreamReader(Span<byte> data)
 {
-    private const int WordSize = sizeof(byte);
+    private const int WordSize = sizeof(byte) * 8;
     private const int DoubleWordSize = 2 * WordSize;
     private readonly Span<byte> data = data;
     private int wordPosition = 0;
@@ -33,25 +35,14 @@ internal ref struct Av1BitStreamReader(Span<byte> data)
 
     public uint ReadLiteral(int bitCount)
     {
-        uint bits = (uint)(this.data[this.wordPosition] << this.bitOffset) >> (WordSize - bitCount);
-        this.bitOffset += bitCount;
-        while (this.bitOffset > WordSize)
-        {
-            uint nextWord = this.data[this.wordPosition + 1];
-            bits |= nextWord << (DoubleWordSize - bitCount);
-        }
-
-        if (this.bitOffset >= WordSize)
-        {
-            this.bitOffset -= WordSize;
-        }
-
-        return bits;
+        uint bits = BinaryPrimitives.ReadUInt32BigEndian(this.data[this.wordPosition..]);
+        this.Skip(bitCount);
+        return bits >> (32 - bitCount);
     }
 
     internal bool ReadBoolean()
     {
-        bool bit = (this.data[this.wordPosition] & (1 << (WordSize - this.bitOffset))) > 0;
+        bool bit = (this.data[this.wordPosition] & (1 << (WordSize - this.bitOffset - 1))) > 0;
         this.Skip(1);
         return bit;
     }

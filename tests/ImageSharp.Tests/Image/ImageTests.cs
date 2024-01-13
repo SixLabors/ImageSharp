@@ -61,7 +61,7 @@ public partial class ImageTests
         public void Configuration_Width_Height_BackgroundColor()
         {
             Configuration configuration = Configuration.Default.Clone();
-            Rgba32 color = Color.Aquamarine;
+            Rgba32 color = Color.Aquamarine.ToPixel<Rgba32>();
 
             using (Image<Rgba32> image = new(configuration, 11, 23, color))
             {
@@ -116,9 +116,9 @@ public partial class ImageTests
             using Image<Rgba32> image = new(this.configuration, 10, 10);
             Rgba32 val = image[3, 4];
             Assert.Equal(default(Rgba32), val);
-            image[3, 4] = Color.Red;
+            image[3, 4] = Color.Red.ToPixel<Rgba32>();
             val = image[3, 4];
-            Assert.Equal(Color.Red.ToRgba32(), val);
+            Assert.Equal(Color.Red.ToPixel<Rgba32>(), val);
         }
 
         public static TheoryData<bool, int> OutOfRangeData = new()

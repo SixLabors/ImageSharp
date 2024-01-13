@@ -51,7 +51,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         public override Image<TPixel> GetImage()
         {
             Image<TPixel> image = base.GetImage();
-            Color color = new Rgba32(this.r, this.g, this.b, this.a);
+            Color color = Color.FromPixel(new Rgba32(this.r, this.g, this.b, this.a));
 
             image.GetRootFramePixelBuffer().FastMemoryGroup.Fill(color.ToPixel<TPixel>());
             return image;

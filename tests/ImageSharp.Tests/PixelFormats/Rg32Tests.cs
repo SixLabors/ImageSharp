@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -33,7 +34,7 @@ public class Rg32Tests
     public void Rg32_ToScaledVector4()
     {
         // arrange
-        var rg32 = new Rg32(Vector2.One);
+        Rg32 rg32 = new(Vector2.One);
 
         // act
         Vector4 actual = rg32.ToScaledVector4();
@@ -49,8 +50,8 @@ public class Rg32Tests
     public void Rg32_FromScaledVector4()
     {
         // arrange
-        var rg32 = new Rg32(Vector2.One);
-        var pixel = default(Rg32);
+        Rg32 rg32 = new(Vector2.One);
+        Rg32 pixel = default;
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -66,7 +67,7 @@ public class Rg32Tests
     public void Rg32_FromBgra5551()
     {
         // arrange
-        var rg32 = new Rg32(Vector2.One);
+        Rg32 rg32 = new(Vector2.One);
         uint expected = 0xFFFFFFFF;
 
         // act
@@ -81,5 +82,21 @@ public class Rg32Tests
     {
         Assert.Equal(Vector2.Zero, new Rg32(Vector2.One * -1234.0f).ToVector2());
         Assert.Equal(Vector2.One, new Rg32(Vector2.One * 1234.0f).ToVector2());
+    }
+
+    [Fact]
+    public void Rg32_PixelInformation()
+    {
+        PixelTypeInfo info = Rg32.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rg32>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Red | PixelColorType.Green, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

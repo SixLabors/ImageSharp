@@ -27,7 +27,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 Cmyk cmyk = new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, data[offset + 3] * Inv255);
                 Rgb rgb = ColorSpaceConverter.ToRgb(in cmyk);
 
-                color.FromVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
+                color.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
                 pixelRow[x] = color;
 
                 offset += 4;

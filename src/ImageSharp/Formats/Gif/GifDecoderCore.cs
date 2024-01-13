@@ -711,10 +711,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
             Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
             ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                colorTable[i] = new Color(rgbTable[i]);
-            }
+            Color.FromPixel(rgbTable, colorTable);
 
             gifMeta.LocalColorTable = colorTable;
         }
@@ -789,10 +786,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
                 Color[] colorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
                 ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(globalColorTableSpan);
-                for (int i = 0; i < colorTable.Length; i++)
-                {
-                    colorTable[i] = new Color(rgbTable[i]);
-                }
+                Color.FromPixel(rgbTable, colorTable);
 
                 this.gifMetadata.GlobalColorTable = colorTable;
             }

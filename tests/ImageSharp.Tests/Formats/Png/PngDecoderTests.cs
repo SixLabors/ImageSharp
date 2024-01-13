@@ -581,7 +581,7 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -594,7 +594,7 @@ public partial class PngDecoderTests
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410

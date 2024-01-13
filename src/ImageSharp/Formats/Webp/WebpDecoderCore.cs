@@ -438,7 +438,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         byte green = (byte)stream.ReadByte();
         byte red = (byte)stream.ReadByte();
         byte alpha = (byte)stream.ReadByte();
-        features.AnimationBackgroundColor = new Color(new Rgba32(red, green, blue, alpha));
+        features.AnimationBackgroundColor = Color.FromPixel(new Rgba32(red, green, blue, alpha));
         int bytesRead = stream.Read(buffer, 0, 2);
         if (bytesRead != 2)
         {

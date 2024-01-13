@@ -13,12 +13,5 @@ public partial struct HalfVector4
     /// <summary>
     /// Provides optimized overrides for bulk operations.
     /// </summary>
-    internal class PixelOperations : PixelOperations<HalfVector4>
-    {
-        private static readonly Lazy<PixelTypeInfo> LazyInfo =
-            new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<HalfVector4>(PixelAlphaRepresentation.Unassociated), true);
-
-        /// <inheritdoc />
-        public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
-    }
+    internal class PixelOperations : PixelOperations<HalfVector4>;
 }

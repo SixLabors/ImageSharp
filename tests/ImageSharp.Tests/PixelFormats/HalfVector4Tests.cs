@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -38,7 +39,7 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        var halfVector4 = new HalfVector4(-Vector4.One);
+        HalfVector4 halfVector4 = new(-Vector4.One);
 
         // act
         Vector4 actual = halfVector4.ToScaledVector4();
@@ -54,7 +55,7 @@ public class HalfVector4Tests
     public void HalfVector4_FromScaledVector4()
     {
         // arrange
-        var halfVector4 = default(HalfVector4);
+        HalfVector4 halfVector4 = default;
         Vector4 scaled = new HalfVector4(-Vector4.One).ToScaledVector4();
         ulong expected = 13547034390470638592uL;
 
@@ -70,7 +71,7 @@ public class HalfVector4Tests
     public void HalfVector4_FromBgra5551()
     {
         // arrange
-        var halfVector4 = default(HalfVector4);
+        HalfVector4 halfVector4 = default;
         Vector4 expected = Vector4.One;
 
         // act
@@ -78,5 +79,23 @@ public class HalfVector4Tests
 
         // assert
         Assert.Equal(expected, halfVector4.ToScaledVector4());
+    }
+
+    [Fact]
+    public void HalfVector4_PixelInformation()
+    {
+        PixelTypeInfo info = HalfVector4.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<HalfVector4>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

@@ -22,8 +22,8 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         TPixel colorBlack = default;
         TPixel colorWhite = default;
 
-        colorBlack.FromRgba32(Color.Black);
-        colorWhite.FromRgba32(Color.White);
+        colorBlack.FromRgba32(Color.Black.ToPixel<Rgba32>());
+        colorWhite.FromRgba32(Color.White.ToPixel<Rgba32>());
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
         for (nuint y = (uint)top; y < (uint)(top + height); y++)
         {

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Common.Helpers;
-
 namespace SixLabors.ImageSharp.Formats.Webp.Chunks;
 
 internal readonly struct WebpFrameData

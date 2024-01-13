@@ -51,22 +51,32 @@ internal static partial class SimdUtils
 
         /// <summary>
         /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
-        /// using the control and store the results in <paramref name="dest"/>.
+        /// using the control and store the results in <paramref name="destination"/>.
         /// </summary>
         /// <param name="source">The source span of floats.</param>
-        /// <param name="dest">The destination span of floats.</param>
+        /// <param name="destination">The destination span of floats.</param>
         /// <param name="control">The byte control.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Shuffle4Reduce(
             ref ReadOnlySpan<float> source,
-            ref Span<float> dest,
+            ref Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if (Avx.IsSupported || Sse.IsSupported)
+            if (Vector512.IsHardwareAccelerated || Vector256.IsHardwareAccelerated || Vector128.IsHardwareAccelerated)
             {
-                int remainder = Avx.IsSupported
-                    ? Numerics.ModuloP2(source.Length, Vector256<float>.Count)
-                    : Numerics.ModuloP2(source.Length, Vector128<float>.Count);
+                int remainder = 0;
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector512<float>.Count);
+                }
+                else if (Vector256.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector256<float>.Count);
+                }
+                else if (Vector128.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector128<float>.Count);
+                }
 
                 int adjustedCount = source.Length - remainder;
 
@@ -74,17 +84,17 @@ internal static partial class SimdUtils
                 {
                     Shuffle4(
                         source[..adjustedCount],
-                        dest[..adjustedCount],
+                        destination[..adjustedCount],
                         control);
 
                     source = source[adjustedCount..];
-                    dest = dest[adjustedCount..];
+                    destination = destination[adjustedCount..];
                 }
             }
         }
 
         /// <summary>
-        /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
+        /// Shuffle 8-bit integers <paramref name="source"/>
         /// using the control and store the results in <paramref name="dest"/>.
         /// </summary>
         /// <param name="source">The source span of bytes.</param>
@@ -96,11 +106,21 @@ internal static partial class SimdUtils
             ref Span<byte> dest,
             byte control)
         {
-            if (Avx2.IsSupported || Ssse3.IsSupported)
+            if (Vector512.IsHardwareAccelerated || Vector256.IsHardwareAccelerated || Vector128.IsHardwareAccelerated)
             {
-                int remainder = Avx2.IsSupported
-                    ? Numerics.ModuloP2(source.Length, Vector256<byte>.Count)
-                    : Numerics.ModuloP2(source.Length, Vector128<byte>.Count);
+                int remainder = 0;
+                if (Vector512.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
+                }
+                else if (Vector256.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
+                }
+                else if (Vector128.IsHardwareAccelerated)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector128<byte>.Count);
+                }
 
                 int adjustedCount = source.Length - remainder;
 
@@ -218,76 +238,102 @@ internal static partial class SimdUtils
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Shuffle4(
             ReadOnlySpan<float> source,
-            Span<float> dest,
+            Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if (Avx.IsSupported)
+            if (Vector512.IsHardwareAccelerated)
             {
-                ref Vector256<float> sourceBase =
-                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+                Span<int> temp = stackalloc int[Vector512<int>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector512<int> mask = Unsafe.As<int, Vector512<int>>(ref MemoryMarshal.GetReference(temp));
 
-                ref Vector256<float> destBase =
-                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
+                ref Vector512<float> sourceBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector512<float> destinationBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
 
-                nint n = (nint)dest.Vector256Count<float>();
-                nint m = Numerics.Modulo4(n);
-                nint u = n - m;
+                nuint n = (uint)destination.Length / (uint)Vector512<float>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
 
-                for (nint i = 0; i < u; i += 4)
+                for (nuint i = 0; i < u; i += 4)
                 {
-                    ref Vector256<float> vd0 = ref Unsafe.Add(ref destBase, i);
-                    ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector512<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector512<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Avx.Permute(vs0, control);
-                    Unsafe.Add(ref vd0, 1) = Avx.Permute(Unsafe.Add(ref vs0, 1), control);
-                    Unsafe.Add(ref vd0, 2) = Avx.Permute(Unsafe.Add(ref vs0, 2), control);
-                    Unsafe.Add(ref vd0, 3) = Avx.Permute(Unsafe.Add(ref vs0, 3), control);
+                    vd0 = Vector512.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
-                    for (nint i = u; i < n; i++)
+                    for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
+                        Unsafe.Add(ref destinationBase, i) = Vector512.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
-            else
+            else if (Vector256.IsHardwareAccelerated)
             {
-                // Sse
-                ref Vector128<float> sourceBase =
-                    ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+                Span<int> temp = stackalloc int[Vector256<int>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector256<int> mask = Unsafe.As<int, Vector256<int>>(ref MemoryMarshal.GetReference(temp));
 
-                ref Vector128<float> destBase =
-                    ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+                ref Vector256<float> sourceBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector256<float> destinationBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
 
-                nint n = (nint)((uint)dest.Length / (uint)Vector128<float>.Count);
-                nint m = Numerics.Modulo4(n);
-                nint u = n - m;
+                nuint n = (uint)destination.Length / (uint)Vector256<float>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
 
-                for (nint i = 0; i < u; i += 4)
+                for (nuint i = 0; i < u; i += 4)
                 {
-                    ref Vector128<float> vd0 = ref Unsafe.Add(ref destBase, i);
-                    ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector256<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Sse.Shuffle(vs0, vs0, control);
-
-                    Vector128<float> vs1 = Unsafe.Add(ref vs0, 1);
-                    Unsafe.Add(ref vd0, 1) = Sse.Shuffle(vs1, vs1, control);
-
-                    Vector128<float> vs2 = Unsafe.Add(ref vs0, 2);
-                    Unsafe.Add(ref vd0, 2) = Sse.Shuffle(vs2, vs2, control);
-
-                    Vector128<float> vs3 = Unsafe.Add(ref vs0, 3);
-                    Unsafe.Add(ref vd0, 3) = Sse.Shuffle(vs3, vs3, control);
+                    vd0 = Vector256.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
-                    for (nint i = u; i < n; i++)
+                    for (nuint i = u; i < n; i++)
                     {
-                        Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
-                        Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
+                        Unsafe.Add(ref destinationBase, i) = Vector256.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
+                    }
+                }
+            }
+            else if (Vector128.IsHardwareAccelerated)
+            {
+                Span<int> temp = stackalloc int[Vector128<int>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector128<int> mask = Unsafe.As<int, Vector128<int>>(ref MemoryMarshal.GetReference(temp));
+
+                ref Vector128<float> sourceBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));
+
+                nuint n = (uint)destination.Length / (uint)Vector128<float>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
+
+                for (nuint i = 0; i < u; i += 4)
+                {
+                    ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector128<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
+
+                    vd0 = Vector128.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
+                }
+
+                if (m > 0)
+                {
+                    for (nuint i = u; i < n; i++)
+                    {
+                        Unsafe.Add(ref destinationBase, i) = Vector128.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
@@ -296,80 +342,102 @@ internal static partial class SimdUtils
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Shuffle4(
             ReadOnlySpan<byte> source,
-            Span<byte> dest,
+            Span<byte> destination,
             byte control)
         {
-            if (Avx2.IsSupported)
+            if (Vector512.IsHardwareAccelerated)
             {
-                // I've chosen to do this for convenience while we determine what
-                // shuffle controls to add to the library.
-                // We can add static ROS instances if need be in the future.
-                Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
-                Shuffle.MMShuffleSpan(ref bytes, control);
-                Vector256<byte> vshuffle = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
+                Span<byte> temp = stackalloc byte[Vector512<byte>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector512<byte> mask = Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(temp));
 
-                ref Vector256<byte> sourceBase =
-                    ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector512<byte> sourceBase = ref Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector512<byte> destinationBase = ref Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(destination));
 
-                ref Vector256<byte> destBase =
-                    ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
+                nuint n = (uint)destination.Length / (uint)Vector512<byte>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
 
-                nint n = (nint)((uint)dest.Length / (uint)Vector256<byte>.Count);
-                nint m = Numerics.Modulo4(n);
-                nint u = n - m;
-
-                for (nint i = 0; i < u; i += 4)
+                for (nuint i = 0; i < u; i += 4)
                 {
-                    ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
-                    ref Vector256<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+                    ref Vector512<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector512<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Avx2.Shuffle(vs0, vshuffle);
-                    Unsafe.Add(ref vd0, 1) = Avx2.Shuffle(Unsafe.Add(ref vs0, 1), vshuffle);
-                    Unsafe.Add(ref vd0, 2) = Avx2.Shuffle(Unsafe.Add(ref vs0, 2), vshuffle);
-                    Unsafe.Add(ref vd0, 3) = Avx2.Shuffle(Unsafe.Add(ref vs0, 3), vshuffle);
+                    vd0 = Vector512.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector512.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
-                    for (nint i = u; i < n; i++)
+                    for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destBase, i) = Avx2.Shuffle(Unsafe.Add(ref sourceBase, i), vshuffle);
+                        Unsafe.Add(ref destinationBase, i) = Vector512.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
-            else
+            else if (Vector256.IsHardwareAccelerated)
             {
-                // Ssse3
-                Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                Shuffle.MMShuffleSpan(ref bytes, control);
-                Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+                Span<byte> temp = stackalloc byte[Vector256<byte>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector256<byte> mask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(temp));
 
-                ref Vector128<byte> sourceBase =
-                    ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector256<byte> sourceBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector256<byte> destinationBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
-                ref Vector128<byte> destBase =
-                    ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
+                nuint n = (uint)destination.Length / (uint)Vector256<byte>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
 
-                nint n = (nint)((uint)dest.Length / (uint)Vector128<byte>.Count);
-                nint m = Numerics.Modulo4(n);
-                nint u = n - m;
-
-                for (nint i = 0; i < u; i += 4)
+                for (nuint i = 0; i < u; i += 4)
                 {
-                    ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
-                    ref Vector128<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+                    ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector256<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Ssse3.Shuffle(vs0, vshuffle);
-                    Unsafe.Add(ref vd0, 1) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 1), vshuffle);
-                    Unsafe.Add(ref vd0, 2) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 2), vshuffle);
-                    Unsafe.Add(ref vd0, 3) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 3), vshuffle);
+                    vd0 = Vector256.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector256.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
-                    for (nint i = u; i < n; i++)
+                    for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(Unsafe.Add(ref sourceBase, i), vshuffle);
+                        Unsafe.Add(ref destinationBase, i) = Vector256.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
+                    }
+                }
+            }
+            else if (Vector128.IsHardwareAccelerated)
+            {
+                Span<byte> temp = stackalloc byte[Vector128<byte>.Count];
+                Shuffle.MMShuffleSpan(ref temp, control);
+                Vector128<byte> mask = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(temp));
+
+                ref Vector128<byte> sourceBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Vector128<byte> destinationBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(destination));
+
+                nuint n = (uint)destination.Length / (uint)Vector128<byte>.Count;
+                nuint m = Numerics.Modulo4(n);
+                nuint u = n - m;
+
+                for (nuint i = 0; i < u; i += 4)
+                {
+                    ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                    ref Vector128<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
+
+                    vd0 = Vector128.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector128.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
+                }
+
+                if (m > 0)
+                {
+                    for (nuint i = u; i < n; i++)
+                    {
+                        Unsafe.Add(ref destinationBase, i) = Vector128.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }

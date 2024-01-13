@@ -24,12 +24,12 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
         => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
+        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
         Span<byte> temp = stackalloc byte[4];
         ref byte t = ref MemoryMarshal.GetReference(temp);
@@ -52,10 +52,10 @@ internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
     public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle3210);
+        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, SimdUtils.Shuffle.MMShuffle3210);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);

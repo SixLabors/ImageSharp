@@ -24,12 +24,12 @@ internal readonly struct DefaultShuffle3 : IShuffle3
         => HwIntrinsics.Shuffle3Reduce(ref source, ref dest, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
+        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
 
         for (nuint i = 0; i < (uint)source.Length; i += 3)
         {

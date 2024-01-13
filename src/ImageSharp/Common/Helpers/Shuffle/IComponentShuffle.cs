@@ -19,24 +19,26 @@ namespace SixLabors.ImageSharp;
 internal interface IComponentShuffle
 {
     /// <summary>
-    /// Shuffles then slices 8-bit integers within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// Shuffles then slices 8-bit integers in <paramref name="source"/>
+    /// using the control and store the results in <paramref name="destination"/>.
+    /// If successful, this method will reduce the length of <paramref name="source"/> length
+    /// by the shuffle amount.
     /// </summary>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
-    void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest);
+    /// <param name="destination">The destination span of bytes.</param>
+    void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination);
 
     /// <summary>
-    /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// Shuffle 8-bit integers in <paramref name="source"/>
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
+    /// <param name="destination">The destination span of bytes.</param>
     /// <remarks>
-    /// Implementation can assume that source.Length is less or equal than dest.Length.
+    /// Implementation can assume that source.Length is less or equal than destination.Length.
     /// Loops should iterate using source.Length.
     /// </remarks>
-    void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest);
+    void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination);
 }
 
 /// <inheritdoc/>
@@ -44,24 +46,21 @@ internal interface IShuffle4 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultShuffle4 : IShuffle4
+internal readonly struct DefaultShuffle4(byte control) : IShuffle4
 {
-    public DefaultShuffle4(byte control)
-        => this.Control = control;
-
-    public byte Control { get; }
+    public byte Control { get; } = control;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, this.Control);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, this.Control);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
-        Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
+        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
@@ -76,14 +75,14 @@ internal readonly struct DefaultShuffle4 : IShuffle4
 internal readonly struct WXYZShuffle4 : IShuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle2103);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle2103);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
         uint n = (uint)source.Length / 4;
 
         for (nuint i = 0; i < n; i++)
@@ -100,14 +99,14 @@ internal readonly struct WXYZShuffle4 : IShuffle4
 internal readonly struct WZYXShuffle4 : IShuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle0123);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle0123);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
         uint n = (uint)source.Length / 4;
 
         for (nuint i = 0; i < n; i++)
@@ -124,14 +123,14 @@ internal readonly struct WZYXShuffle4 : IShuffle4
 internal readonly struct YZWXShuffle4 : IShuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle0321);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle0321);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
         uint n = (uint)source.Length / 4;
 
         for (nuint i = 0; i < n; i++)
@@ -148,14 +147,14 @@ internal readonly struct YZWXShuffle4 : IShuffle4
 internal readonly struct ZYXWShuffle4 : IShuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle3012);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle3012);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
         uint n = (uint)source.Length / 4;
 
         for (nuint i = 0; i < n; i++)
@@ -179,14 +178,14 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
 internal readonly struct XWZYShuffle4 : IShuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle1230);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle1230);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
         uint n = (uint)source.Length / 4;
 
         for (nuint i = 0; i < n; i++)

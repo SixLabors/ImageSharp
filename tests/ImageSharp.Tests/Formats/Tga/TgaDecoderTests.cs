@@ -723,10 +723,8 @@ public class TgaDecoderTests
     {
         using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
-            // Using here the reference output instead of the reference decoder,
-            // because the reference decoder does not ignore the alpha data here.
             image.DebugSave(provider);
-            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+            ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
         }
     }
 

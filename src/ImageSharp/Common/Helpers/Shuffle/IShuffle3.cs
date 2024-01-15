@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static SixLabors.ImageSharp.SimdUtils;
@@ -12,22 +13,21 @@ internal interface IShuffle3 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultShuffle3 : IShuffle3
+internal readonly struct DefaultShuffle3([ConstantExpected] byte control) : IShuffle3
 {
-    public DefaultShuffle3(byte control)
-        => this.Control = control;
-
-    public byte Control { get; }
+    public byte Control { get; } = control;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle3Reduce(ref source, ref dest, this.Control);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+#pragma warning disable CA1857 // A constant is expected for the parameter
+        => HwIntrinsics.Shuffle3Reduce(ref source, ref destination, this.Control);
+#pragma warning restore CA1857 // A constant is expected for the parameter
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
         SimdUtils.Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
 

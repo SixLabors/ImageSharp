@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static SixLabors.ImageSharp.SimdUtils;
@@ -12,26 +13,25 @@ internal interface IShuffle4Slice3 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
+internal readonly struct DefaultShuffle4Slice3([ConstantExpected] byte control) : IShuffle4Slice3
 {
-    public DefaultShuffle4Slice3(byte control)
-        => this.Control = control;
-
-    public byte Control { get; }
+    public byte Control { get; } = control;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, this.Control);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+#pragma warning disable CA1857 // A constant is expected for the parameter
+        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref destination, this.Control);
+#pragma warning restore CA1857 // A constant is expected for the parameter
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
         SimdUtils.Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
 
-        for (nuint i = 0, j = 0; i < (uint)dest.Length; i += 3, j += 4)
+        for (nuint i = 0, j = 0; i < (uint)destination.Length; i += 3, j += 4)
         {
             Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + j);
             Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
@@ -43,14 +43,14 @@ internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
 internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, SimdUtils.Shuffle.MMShuffle3210);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle3210);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
+        ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(destination));
 
         nint n = (nint)(uint)source.Length / 4;
         nint m = Numerics.Modulo4(n);

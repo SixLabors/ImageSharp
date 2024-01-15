@@ -11,18 +11,93 @@ using System.Runtime.Intrinsics.X86;
 namespace SixLabors.ImageSharp.Common.Helpers;
 
 /// <summary>
-/// Defines utility methods for <see cref="Vector128{T}"/> that have not yet been normalized in the runtime.
+/// Defines utility methods for <see cref="Vector128{T}"/> that have either:
+/// <list type="number">
+/// <item>Not yet been normalized in the runtime.</item>
+/// <item>Produce codegen that is poorly optimized by the runtime.</item>
+/// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
 internal static class Vector128Utilities
 {
     /// <summary>
-    /// Gets a value indicating whether right shift operations are supported.
+    /// Gets a value indicating whether shuffle operations are supported.
     /// </summary>
-    public static bool SupportsRightShift
+    public static bool SupportsShuffleFloat
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Sse.IsSupported;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether shuffle operations are supported.
+    /// </summary>
+    public static bool SupportsShuffleByte
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Ssse3.IsSupported || AdvSimd.Arm64.IsSupported;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether right align operations are supported.
+    /// </summary>
+    public static bool SupportsRightAlign
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Ssse3.IsSupported || AdvSimd.IsSupported;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether right or left byte shift operations are supported.
+    /// </summary>
+    public static bool SupportsShiftByte
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Sse2.IsSupported || AdvSimd.IsSupported;
+    }
+
+    /// <summary>
+    /// Creates a new vector by selecting values from an input vector using the control.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="control">The shuffle control byte.</param>
+    /// <returns>The <see cref="Vector128{Single}"/>.</returns>
+    public static Vector128<float> Shuffle(Vector128<float> vector, [ConstantExpected] byte control)
+    {
+        if (Sse.IsSupported)
+        {
+            return Sse.Shuffle(vector, vector, control);
+        }
+
+        ThrowUnreachableException();
+        return default;
+    }
+
+    /// <summary>
+    /// Creates a new vector by selecting values from an input vector using a set of indices.
+    /// </summary>
+    /// <param name="vector">
+    /// The input vector from which values are selected.</param>
+    /// <param name="indices">
+    /// The per-element indices used to select a value from <paramref name="vector" />.
+    /// </param>
+    /// <returns>
+    /// A new vector containing the values from <paramref name="vector" /> selected by the given <paramref name="indices" />.
+    /// </returns>
+    public static Vector128<byte> Shuffle(Vector128<byte> vector, Vector128<byte> indices)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.Shuffle(vector, indices);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.VectorTableLookup(vector, indices);
+        }
+
+        ThrowUnreachableException();
+        return default;
     }
 
     /// <summary>
@@ -80,7 +155,7 @@ internal static class Vector128Utilities
     /// <returns>The <see cref="Vector128{Byte}"/>.</returns>
     public static Vector128<byte> AlignRight(Vector128<byte> left, Vector128<byte> right, [ConstantExpected(Max = (byte)15)] byte mask)
     {
-        if (Sse3.IsSupported)
+        if (Ssse3.IsSupported)
         {
             return Ssse3.AlignRight(left, right, mask);
         }

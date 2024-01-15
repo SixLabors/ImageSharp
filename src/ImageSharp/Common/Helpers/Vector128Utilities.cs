@@ -111,9 +111,7 @@ internal static class Vector128Utilities
     {
         if (Sse2.IsSupported)
         {
-#pragma warning disable CA1857 // A constant is expected for the parameter
-            return Sse2.ShiftRightLogical128BitLane(value, (byte)(16 - numBytes));
-#pragma warning restore CA1857 // A constant is expected for the parameter
+            return Sse2.ShiftRightLogical128BitLane(value, numBytes);
         }
 
         if (AdvSimd.IsSupported)
@@ -141,7 +139,9 @@ internal static class Vector128Utilities
 
         if (AdvSimd.IsSupported)
         {
-            return AdvSimd.ExtractVector128(Vector128<byte>.Zero, value, numBytes);
+#pragma warning disable CA1857 // A constant is expected for the parameter
+            return AdvSimd.ExtractVector128(Vector128<byte>.Zero, value, (byte)(16 - numBytes));
+#pragma warning restore CA1857 // A constant is expected for the parameter
         }
 
         ThrowUnreachableException();

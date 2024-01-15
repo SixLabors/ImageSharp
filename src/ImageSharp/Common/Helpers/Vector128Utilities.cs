@@ -111,7 +111,9 @@ internal static class Vector128Utilities
     {
         if (Sse2.IsSupported)
         {
-            return Sse2.ShiftRightLogical128BitLane(value, numBytes);
+#pragma warning disable CA1857 // A constant is expected for the parameter
+            return Sse2.ShiftRightLogical128BitLane(value, (byte)(16 - numBytes));
+#pragma warning restore CA1857 // A constant is expected for the parameter
         }
 
         if (AdvSimd.IsSupported)

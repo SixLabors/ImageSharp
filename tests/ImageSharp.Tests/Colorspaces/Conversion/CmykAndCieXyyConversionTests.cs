@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorSpaces;
@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 /// <summary>
 /// Tests <see cref="Cmyk"/>-<see cref="CieXyy"/> conversions.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CmykAndCieXyyConversionTests
 {
     private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);

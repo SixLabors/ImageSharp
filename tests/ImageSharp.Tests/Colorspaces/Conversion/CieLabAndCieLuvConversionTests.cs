@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorSpaces;
@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 /// Test data generated using:
 /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class CieLabAndCieLuvConversionTests
 {
     private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0002F);

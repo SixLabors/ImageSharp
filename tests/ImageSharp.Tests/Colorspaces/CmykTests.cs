@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces;
 /// <summary>
 /// Tests the <see cref="Cmyk"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CmykTests
 {
     [Fact]

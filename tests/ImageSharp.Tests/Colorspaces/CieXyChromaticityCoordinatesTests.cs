@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces;
 /// <summary>
 /// Tests the <see cref="CieXyChromaticityCoordinates"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CieXyChromaticityCoordinatesTests
 {
     [Fact]

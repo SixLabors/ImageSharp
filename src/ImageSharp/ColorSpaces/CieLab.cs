@@ -79,13 +79,13 @@ public readonly struct CieLab : IEquatable<CieLab>
 
     /// <summary>
     /// Gets the a color component.
-    /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
+    /// <remarks>A value usually ranging from −128 to 127. Negative is green, positive magenta.</remarks>
     /// </summary>
     public readonly float A { get; }
 
     /// <summary>
     /// Gets the b color component.
-    /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
+    /// <remarks>A value usually ranging from −128 to 127. Negative is blue, positive is yellow</remarks>
     /// </summary>
     public readonly float B { get; }
 

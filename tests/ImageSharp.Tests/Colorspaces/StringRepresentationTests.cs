@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces;
 
+[Trait("Color", "Conversion")]
 public class StringRepresentationTests
 {
     private static readonly Vector3 One = new Vector3(1);

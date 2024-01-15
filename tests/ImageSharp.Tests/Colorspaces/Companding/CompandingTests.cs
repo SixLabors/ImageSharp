@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Companding;
 /// <summary>
 /// Tests various companding algorithms. Expanded numbers are hand calculated from formulas online.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CompandingTests
 {
     private static readonly ApproximateFloatComparer FloatComparer = new ApproximateFloatComparer(.00001F);

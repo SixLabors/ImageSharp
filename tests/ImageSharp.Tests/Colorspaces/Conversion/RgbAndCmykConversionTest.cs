@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorSpaces;
@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 /// <see href="http://www.colorhexa.com"/>
 /// <see href="http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class RgbAndCmykConversionTest
 {
     private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();

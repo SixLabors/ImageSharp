@@ -49,8 +49,8 @@ public class ImagingTestCaseUtility
         }
 
         string fn = appendSourceFileOrDescription
-                        ? Path.GetFileNameWithoutExtension(this.SourceFileOrDescription)
-                        : string.Empty;
+            ? Path.GetFileNameWithoutExtension(this.SourceFileOrDescription)
+            : string.Empty;
 
         if (string.IsNullOrWhiteSpace(extension))
         {
@@ -62,7 +62,7 @@ public class ImagingTestCaseUtility
             extension = ".bmp";
         }
 
-        extension = extension.ToLower();
+        extension = extension.ToLowerInvariant();
 
         if (extension[0] != '.')
         {
@@ -86,7 +86,7 @@ public class ImagingTestCaseUtility
             }
         }
 
-        details = details ?? string.Empty;
+        details ??= string.Empty;
         if (details != string.Empty)
         {
             details = '_' + details;

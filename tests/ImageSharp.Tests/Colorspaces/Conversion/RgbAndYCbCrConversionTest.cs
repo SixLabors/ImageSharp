@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorSpaces;
@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 /// <remarks>
 /// Test data generated mathematically
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class RgbAndYCbCrConversionTest
 {
     private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();

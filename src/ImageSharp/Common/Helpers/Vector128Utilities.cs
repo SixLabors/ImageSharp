@@ -140,7 +140,7 @@ internal static class Vector128Utilities
         if (AdvSimd.IsSupported)
         {
 #pragma warning disable CA1857 // A constant is expected for the parameter
-            return AdvSimd.ExtractVector128(Vector128<byte>.Zero, value, (byte)(16 - numBytes));
+            return AdvSimd.ExtractVector128(Vector128<byte>.Zero, value, (byte)(Vector128<byte>.Count - numBytes));
 #pragma warning restore CA1857 // A constant is expected for the parameter
         }
 

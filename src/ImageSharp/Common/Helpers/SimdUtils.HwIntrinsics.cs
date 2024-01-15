@@ -548,7 +548,7 @@ internal static partial class SimdUtils
             if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsShiftByte)
             {
                 Vector128<byte> maskSlice4Nx16 = ShuffleMaskSlice4Nx16();
-                Vector128<byte> maskE = Ssse3.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
+                Vector128<byte> maskE = Vector128Utilities.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
 
                 Span<byte> temp = stackalloc byte[Vector128<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);

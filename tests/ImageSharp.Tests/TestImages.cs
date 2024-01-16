@@ -618,6 +618,8 @@ public static class TestImages
 
         public const string Github_RLE_legacy = "Tga/Github_RLE_legacy.tga";
         public const string WhiteStripesPattern = "Tga/whitestripes.png";
+
+        public const string Issue2629 = "Tga/issues/Issue2629.tga";
     }
 
     public static class Webp

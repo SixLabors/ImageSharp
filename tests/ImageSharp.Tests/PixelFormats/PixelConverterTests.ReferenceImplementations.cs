@@ -104,7 +104,7 @@ public abstract partial class PixelConverterTests
                 {
                     ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                     ref L16 dp = ref Unsafe.Add(ref l16Ref, i);
-                    dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
+                    dp.Pack(sp.ToScaledVector4());
                 }
 
                 return;

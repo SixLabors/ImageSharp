@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -41,15 +42,8 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// </summary>
     public byte B;
 
-    /// <summary>
-    /// The maximum byte value.
-    /// </summary>
-    private static readonly Vector4 MaxBytes = new(255);
-
-    /// <summary>
-    /// The half vector value.
-    /// </summary>
-    private static readonly Vector4 Half = new(0.5F);
+    private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
+    private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -57,7 +51,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="r">The red component.</param>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(byte r, byte g, byte b)
     {
         this.R = r;
@@ -73,7 +67,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
     /// <param name="a">The alpha component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(byte r, byte g, byte b, byte a)
     {
         this.R = r;
@@ -89,9 +83,9 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
     /// <param name="a">The alpha component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(float r, float g, float b, float a = 1)
-        : this() => this.Pack(r, g, b, a);
+        : this() => Pack(r, g, b, a);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -99,9 +93,9 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="vector">
     /// The vector containing the components for the packed vector.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(Vector3 vector)
-        : this() => this.Pack(ref vector);
+        : this() => Pack(vector);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -109,9 +103,9 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="vector">
     /// The vector containing the components for the packed vector.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(Vector4 vector)
-        : this() => this.Pack(ref vector);
+        : this() => Pack(vector);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -119,7 +113,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="packed">
     /// The packed value.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(uint packed)
         : this() => this.Argb = packed;
 
@@ -128,20 +122,20 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// </summary>
     public uint Argb
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => Unsafe.As<Argb32, uint>(ref Unsafe.AsRef(in this));
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => Unsafe.As<Argb32, uint>(ref this) = value;
     }
 
     /// <inheritdoc/>
     public uint PackedValue
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => this.Argb;
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => this.Argb = value;
     }
 
@@ -153,7 +147,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Argb32 left, Argb32 right) => left.Equals(right);
 
     /// <summary>
@@ -164,8 +158,20 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B, this.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -178,156 +184,87 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromVector4(Vector4 source) => Pack(source);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.Pack(ref vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromArgb32(Argb32 source) => new() { PackedValue = source.PackedValue };
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.PackedValue = source.PackedValue;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromL8(L8 source) => new(source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromL16(L16 source)
     {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = byte.MaxValue;
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
+        return new(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromLa16(La16 source) => new(source.L, source.L, source.L, source.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromLa32(La32 source)
     {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
+        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source)
-    {
-        this.R = source.PackedValue;
-        this.G = source.PackedValue;
-        this.B = source.PackedValue;
-        this.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromRgba32(Rgba32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.PackedValue);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-        this.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromRgb48(Rgb48 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B),
+            A = byte.MaxValue
+        };
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source)
-    {
-        this.R = source.L;
-        this.G = source.L;
-        this.B = source.L;
-        this.A = source.A;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.L);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-        this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = byte.MaxValue;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest)
-    {
-        dest.R = this.R;
-        dest.G = this.G;
-        dest.B = this.B;
-        dest.A = this.A;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source)
-    {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
-        this.A = byte.MaxValue;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source)
-    {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
-        this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromRgba64(Rgba64 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B),
+            A = ColorNumerics.From16BitTo8Bit(source.A)
+        };
 
     /// <inheritdoc/>
     public override readonly bool Equals(object? obj) => obj is Argb32 argb32 && this.Equals(argb32);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(Argb32 other) => this.Argb == other.Argb;
 
     /// <summary>
@@ -337,7 +274,6 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     public override readonly string ToString() => $"Argb({this.A}, {this.R}, {this.G}, {this.B})";
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.Argb.GetHashCode();
 
     /// <summary>
@@ -347,38 +283,28 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="y">The y-component</param>
     /// <param name="z">The z-component</param>
     /// <param name="w">The w-component</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(float x, float y, float z, float w)
-    {
-        var value = new Vector4(x, y, z, w);
-        this.Pack(ref value);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Argb32 Pack(float x, float y, float z, float w) => Pack(new Vector4(x, y, z, w));
 
     /// <summary>
     /// Packs a <see cref="Vector3"/> into a uint.
     /// </summary>
     /// <param name="vector">The vector containing the values to pack.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(ref Vector3 vector)
-    {
-        var value = new Vector4(vector, 1);
-        this.Pack(ref value);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Argb32 Pack(Vector3 vector) => Pack(new Vector4(vector, 1f));
 
     /// <summary>
     /// Packs a <see cref="Vector4"/> into a color.
     /// </summary>
     /// <param name="vector">The vector containing the values to pack.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(ref Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Argb32 Pack(Vector4 vector)
     {
         vector *= MaxBytes;
         vector += Half;
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
-        this.R = (byte)vector.X;
-        this.G = (byte)vector.Y;
-        this.B = (byte)vector.Z;
-        this.A = (byte)vector.W;
+        Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
+        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 }

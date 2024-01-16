@@ -114,7 +114,7 @@ public class L16Tests
         // Arrange
         L16 gray = default;
         const byte rgb = 128;
-        ushort scaledRgb = ColorNumerics.UpscaleFrom8BitTo16Bit(rgb);
+        ushort scaledRgb = ColorNumerics.From8BitTo16Bit(rgb);
         ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
         // Act
@@ -132,7 +132,7 @@ public class L16Tests
     public void L16_ToRgba32(ushort input)
     {
         // Arrange
-        ushort expected = ColorNumerics.DownScaleFrom16BitTo8Bit(input);
+        ushort expected = ColorNumerics.From16BitTo8Bit(input);
         L16 gray = new(input);
 
         // Act

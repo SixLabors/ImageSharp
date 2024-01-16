@@ -12,12 +12,15 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
 /// </para>
 /// </summary>
-public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<ushort>
+/// <remarks>
+/// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
+/// </remarks>
+/// <param name="vector">The vector containing the component values.</param>
+public partial struct NormalizedByte2(Vector2 vector) : IPixel<NormalizedByte2>, IPackedVector<ushort>
 {
-    private const float MaxPos = 127F;
-
+    private const float MaxPos = 127f;
     private static readonly Vector2 Half = new(MaxPos);
-    private static readonly Vector2 MinusOne = new(-1F);
+    private static readonly Vector2 MinusOne = new(-1f);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
@@ -29,14 +32,8 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="NormalizedByte2"/> struct.
-    /// </summary>
-    /// <param name="vector">The vector containing the component values.</param>
-    public NormalizedByte2(Vector2 vector) => this.PackedValue = Pack(vector);
-
     /// <inheritdoc/>
-    public ushort PackedValue { get; set; }
+    public ushort PackedValue { get; set; } = Pack(vector);
 
     /// <summary>
     /// Compares two <see cref="NormalizedByte2"/> objects for equality.
@@ -46,7 +43,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(NormalizedByte2 left, NormalizedByte2 right) => left.Equals(right);
 
     /// <summary>
@@ -57,8 +54,22 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(NormalizedByte2 left, NormalizedByte2 right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4()
+    {
+        Vector2 scaled = this.ToVector2();
+        scaled += Vector2.One;
+        scaled /= 2f;
+        return new Vector4(scaled, 0f, 1f);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new(this.ToVector2(), 0f, 1f);
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -71,98 +82,24 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     public readonly PixelOperations<NormalizedByte2> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte2 FromScaledVector4(Vector4 source)
     {
-        Vector2 scaled = new Vector2(vector.X, vector.Y) * 2F;
+        Vector2 scaled = new Vector2(source.X, source.Y) * 2f;
         scaled -= Vector2.One;
-        this.PackedValue = Pack(scaled);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToScaledVector4()
-    {
-        var scaled = this.ToVector2();
-        scaled += Vector2.One;
-        scaled /= 2F;
-        return new Vector4(scaled, 0F, 1F);
+        return new() { PackedValue = Pack(scaled) };
     }
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector)
-    {
-        var vector2 = new Vector2(vector.X, vector.Y);
-        this.PackedValue = Pack(vector2);
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new(this.ToVector2(), 0F, 1F);
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte2 FromVector4(Vector4 source) => new() { PackedValue = Pack(new Vector2(source.X, source.Y)) };
 
     /// <summary>
     /// Expands the packed representation into a <see cref="Vector2"/>.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector2 ToVector2() => new(
             (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
             (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos);
@@ -171,21 +108,19 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     public override readonly bool Equals(object? obj) => obj is NormalizedByte2 other && this.Equals(other);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(NormalizedByte2 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
     public override readonly string ToString()
     {
-        var vector = this.ToVector2();
+        Vector2 vector = this.ToVector2();
         return FormattableString.Invariant($"NormalizedByte2({vector.X:#0.##}, {vector.Y:#0.##})");
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Pack(Vector2 vector)
     {
         vector = Vector2.Clamp(vector, MinusOne, Vector2.One) * Half;

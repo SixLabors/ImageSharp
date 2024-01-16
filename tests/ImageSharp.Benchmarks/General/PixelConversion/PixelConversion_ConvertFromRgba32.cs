@@ -117,12 +117,26 @@ public class PixelConversion_ConvertFromRgba32_Compatible : PixelConversion_Conv
         }
     }
 
-    /*   Method | Count |     Mean |    Error |   StdDev | Scaled | ScaledSD |
-     ---------- |------ |---------:|---------:|---------:|-------:|---------:|
-          ByRef |   256 | 128.5 ns | 1.217 ns | 1.138 ns |   1.00 |     0.00 |
-          ByVal |   256 | 196.7 ns | 2.792 ns | 2.612 ns |   1.53 |     0.02 |
-      FromBytes |   256 | 321.7 ns | 2.180 ns | 1.820 ns |   2.50 |     0.03 |
-         Inline |   256 | 129.9 ns | 2.759 ns | 2.581 ns |   1.01 |     0.02 | */
+    /*
+    BenchmarkDotNet v0.13.10, Windows 11 (10.0.22631.3007/23H2/2023Update/SunValley3)
+    11th Gen Intel Core i7-11370H 3.30GHz, 1 CPU, 8 logical and 4 physical cores
+    .NET SDK 8.0.100
+      [Host]     : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX2
+      DefaultJob : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX2
+
+
+    | Method    | Count | Mean       | Error   | StdDev  | Ratio |
+    |---------- |------ |-----------:|--------:|--------:|------:|
+    | ByRef     | 256   |   102.5 ns | 0.44 ns | 0.39 ns |  1.00 |
+    | ByVal     | 256   |   102.2 ns | 0.30 ns | 0.25 ns |  1.00 |
+    | FromBytes | 256   |   200.5 ns | 1.01 ns | 0.90 ns |  1.96 |
+    | Inline    | 256   |   107.0 ns | 0.90 ns | 0.84 ns |  1.04 |
+    |           |       |            |         |         |       |
+    | ByRef     | 2048  |   770.8 ns | 3.22 ns | 2.86 ns |  1.00 |
+    | ByVal     | 2048  |   770.3 ns | 2.05 ns | 1.92 ns |  1.00 |
+    | FromBytes | 2048  | 1,546.8 ns | 7.51 ns | 6.66 ns |  2.01 |
+    | Inline    | 2048  |   797.6 ns | 2.90 ns | 2.26 ns |  1.03 |
+    */
 }
 
 public class PixelConversion_ConvertFromRgba32_Permuted_RgbaToArgb : PixelConversion_ConvertFromRgba32

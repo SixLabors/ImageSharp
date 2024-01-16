@@ -71,7 +71,7 @@ public partial struct RgbaVector
                 ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.ConvertFromRgbaScaledVector4(sp);
+                dp.Pack(sp);
             }
         }
 
@@ -90,7 +90,7 @@ public partial struct RgbaVector
                 ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
                 ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
 
-                dp.ConvertFromRgbaScaledVector4(sp);
+                dp.Pack(sp);
             }
         }
     }

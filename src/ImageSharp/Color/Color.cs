@@ -98,10 +98,8 @@ public readonly partial struct Color : IEquatable<Color>
         {
             return new(pixel.ToScaledVector4());
         }
-        else
-        {
-            return new(pixel);
-        }
+
+        return new(pixel);
     }
 
     /// <summary>

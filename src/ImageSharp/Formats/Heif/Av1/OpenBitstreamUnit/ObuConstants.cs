@@ -7,7 +7,7 @@ internal static class ObuConstants
 {
     public const ObuSequenceProfile MaxSequenceProfile = ObuSequenceProfile.Professional;
 
-    public const int LevelBits = -1;
+    public const int LevelBits = 5;
 
     /// <summary>
     /// Number of fractional bits for computing position in upscaling.

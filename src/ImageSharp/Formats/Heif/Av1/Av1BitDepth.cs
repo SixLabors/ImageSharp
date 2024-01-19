@@ -3,9 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal enum Av1TransformMode : byte
+internal enum Av1BitDepth : int
 {
-    Only4x4 = 0,
-    Largest = 1,
-    Select = 2,
+    EightBit = 0,
+    TenBit = 1,
+    TwelveBit = 2,
 }

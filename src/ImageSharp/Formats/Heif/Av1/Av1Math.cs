@@ -77,6 +77,21 @@ internal static class Av1Math
         return z;
     }
 
+    public static int Clip3(int x, int y, int z)
+    {
+        if (z < x)
+        {
+            return x;
+        }
+
+        if (z > y)
+        {
+            return y;
+        }
+
+        return z;
+    }
+
     public static uint Round2(uint value, int n)
     {
         if (n == 0)

@@ -7,6 +7,7 @@ using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -442,8 +443,17 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.pixi, new int[] { channelCount, bitsPerPixel }));
 
                     break;
-                case Heif4CharCode.altt:
                 case Heif4CharCode.colr:
+                    Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer);
+                    if (profileType is Heif4CharCode.rICC or Heif4CharCode.prof)
+                    {
+                        byte[] iccData = new byte[itemLength - 4];
+                        buffer[4..].CopyTo(iccData);
+                        this.metadata.IccProfile = new IccProfile(iccData);
+                    }
+
+                    break;
+                case Heif4CharCode.altt:
                 case Heif4CharCode.imir:
                 case Heif4CharCode.irot:
                 case Heif4CharCode.iscl:

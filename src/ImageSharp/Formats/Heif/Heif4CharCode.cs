@@ -248,4 +248,14 @@ public enum Heif4CharCode : uint
     /// </summary>
     free = 0x66726565U,
 
+    /// <summary>
+    /// ICC Color Profile.
+    /// </summary>
+    rICC = 0x72494343U,
+
+    /// <summary>
+    /// ICC Color Profile.
+    /// </summary>
+    prof = 0x70726F66U,
+
 }

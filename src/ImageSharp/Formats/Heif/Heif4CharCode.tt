@@ -54,6 +54,8 @@
         "pict", "Picture handler type",
         "uuid", "Unique Identifier",
         "free", "Free space",
+        "rICC", "ICC Color Profile",
+        "prof", "ICC Color Profile",
     };
 #>
 

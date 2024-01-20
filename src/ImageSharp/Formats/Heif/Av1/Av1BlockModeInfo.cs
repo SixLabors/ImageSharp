@@ -12,5 +12,4 @@ internal class Av1BlockModeInfo
     public Av1PredictionMode PredictionMode { get; }
 
     public Av1PartitionType Partition { get; }
-
 }

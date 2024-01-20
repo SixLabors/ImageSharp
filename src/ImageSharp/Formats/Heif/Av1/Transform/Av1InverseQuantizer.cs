@@ -8,8 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
 
 internal class Av1InverseQuantizer
 {
-
-    public int InverseQuantize(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, ObuPartitionInfo part, Av1BlockModeInfo mode, int[] qCoefficients, Av1TransformMode txType, Av1TransformSize txSize, Av1Plane plane)
+    public static int InverseQuantize(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, ObuPartitionInfo part, Av1BlockModeInfo mode, int[] qCoefficients, Av1TransformMode txType, Av1TransformSize txSize, Av1Plane plane)
     {
         return 0;
     }

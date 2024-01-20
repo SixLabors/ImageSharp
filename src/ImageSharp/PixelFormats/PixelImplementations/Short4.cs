@@ -12,11 +12,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [-37267, -37267, -37267, -37267] to [37267, 37267, 37267, 37267] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="Short4"/> struct.
-/// </remarks>
-/// <param name="vector">A vector containing the initial values for the components.</param>
-public partial struct Short4(Vector4 vector) : IPixel<Short4>, IPackedVector<ulong>
+public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
 {
     // Largest two byte positive number 0xFFFF >> 1;
     private const float MaxPos = 0x7FFF;
@@ -39,8 +35,14 @@ public partial struct Short4(Vector4 vector) : IPixel<Short4>, IPackedVector<ulo
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Short4"/> struct.
+    /// </summary>
+    /// <param name="vector">A vector containing the initial values for the components.</param>
+    public Short4(Vector4 vector) => this.PackedValue = Pack(vector);
+
     /// <inheritdoc/>
-    public ulong PackedValue { get; set; } = Pack(vector);
+    public ulong PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="Short4"/> objects for equality.
@@ -63,6 +65,10 @@ public partial struct Short4(Vector4 vector) : IPixel<Short4>, IPackedVector<ulo
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,6 +111,58 @@ public partial struct Short4(Vector4 vector) : IPixel<Short4>, IPackedVector<ulo
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Short4 FromVector4(Vector4 source) => new(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Short4 other && this.Equals(other);

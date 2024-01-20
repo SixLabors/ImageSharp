@@ -44,95 +44,95 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     static abstract TSelf FromVector4(Vector4 source);
 
     /// <summary>
+    /// Initializes the pixel instance from an <see cref="Abgr32"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Abgr32"/> value.</param>
+    /// <returns>The <typeparamref name="TSelf"/>.</returns>
+    static abstract TSelf FromAbgr32(Abgr32 source);
+
+    /// <summary>
     /// Initializes the pixel instance from an <see cref="Argb32"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Argb32"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromArgb32(Argb32 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromArgb32(Argb32 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Bgra5551"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Bgra5551"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromBgra5551(Bgra5551 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromBgra5551(Bgra5551 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Bgr24"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Bgr24"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromBgr24(Bgr24 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromBgr24(Bgr24 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Bgra32"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Bgra32"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromBgra32(Bgra32 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
-
-    /// <summary>
-    /// Initializes the pixel instance from an <see cref="Abgr32"/> value.
-    /// </summary>
-    /// <param name="source">The <see cref="Abgr32"/> value.</param>
-    /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromAbgr32(Abgr32 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromBgra32(Bgra32 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="L8"/> value.
     /// </summary>
     /// <param name="source">The <see cref="L8"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromL8(L8 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromL8(L8 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="L16"/> value.
     /// </summary>
     /// <param name="source">The <see cref="L16"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromL16(L16 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromL16(L16 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="La16"/> value.
     /// </summary>
     /// <param name="source">The <see cref="La16"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromLa16(La16 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromLa16(La16 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="La32"/> value.
     /// </summary>
     /// <param name="source">The <see cref="La32"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromLa32(La32 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromLa32(La32 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Rgb24"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Rgb24"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromRgb24(Rgb24 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromRgb24(Rgb24 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Rgba32"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Rgba32"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromRgba32(Rgba32 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromRgba32(Rgba32 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Rgb48"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Rgb48"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromRgb48(Rgb48 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromRgb48(Rgb48 source);
 
     /// <summary>
     /// Initializes the pixel instance from an <see cref="Rgba64"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Rgba64"/> value.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
-    static virtual TSelf FromRgba64(Rgba64 source) => TSelf.FromScaledVector4(source.ToScaledVector4());
+    static abstract TSelf FromRgba64(Rgba64 source);
 #pragma warning restore CA1000 // Do not declare static members on generic types
 }
 
@@ -145,7 +145,7 @@ public interface IPixel
     /// Convert the pixel instance into <see cref="Rgba32"/> representation.
     /// </summary>
     /// <returns>The <see cref="Rgba32"/></returns>
-    virtual Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToVector4());
+    Rgba32 ToRgba32();
 
     /// <summary>
     /// Expands the pixel into a generic ("scaled") <see cref="Vector4"/> representation

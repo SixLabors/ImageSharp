@@ -33,7 +33,7 @@ public partial class PixelOperations<TPixel>
     public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
 
     /// <summary>
-    /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
+    /// Bulk version of <see cref="IPixel{TPixel}.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
     /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
     /// </summary>
     /// <remarks>
@@ -42,21 +42,21 @@ public partial class PixelOperations<TPixel>
     /// </remarks>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
     /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination colors.</param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
     public virtual void FromVector4Destructive(
         Configuration configuration,
         Span<Vector4> sourceVectors,
-        Span<TPixel> destinationPixels,
+        Span<TPixel> destination,
         PixelConversionModifiers modifiers)
     {
         Guard.NotNull(configuration, nameof(configuration));
 
-        Utils.Vector4Converters.Default.FromVector4(sourceVectors, destinationPixels, modifiers);
+        Utils.Vector4Converters.Default.FromVector4(sourceVectors, destination, modifiers);
     }
 
     /// <summary>
-    /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
+    /// Bulk version of <see cref="IPixel{TPixel}.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
     /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
     /// </summary>
     /// <remarks>
@@ -65,77 +65,77 @@ public partial class PixelOperations<TPixel>
     /// </remarks>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
     /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination colors.</param>
     public void FromVector4Destructive(
         Configuration configuration,
         Span<Vector4> sourceVectors,
-        Span<TPixel> destinationPixels)
-        => this.FromVector4Destructive(configuration, sourceVectors, destinationPixels, PixelConversionModifiers.None);
+        Span<TPixel> destination)
+        => this.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.None);
 
     /// <summary>
     /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source colors.</param>
     /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
     /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
     public virtual void ToVector4(
         Configuration configuration,
-        ReadOnlySpan<TPixel> sourcePixels,
+        ReadOnlySpan<TPixel> source,
         Span<Vector4> destinationVectors,
         PixelConversionModifiers modifiers)
     {
         Guard.NotNull(configuration, nameof(configuration));
 
-        Utils.Vector4Converters.Default.ToVector4(sourcePixels, destinationVectors, modifiers);
+        Utils.Vector4Converters.Default.ToVector4(source, destinationVectors, modifiers);
     }
 
     /// <summary>
     /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source colors.</param>
     /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
     public void ToVector4(
         Configuration configuration,
-        ReadOnlySpan<TPixel> sourcePixels,
+        ReadOnlySpan<TPixel> source,
         Span<Vector4> destinationVectors)
-        => this.ToVector4(configuration, sourcePixels, destinationVectors, PixelConversionModifiers.None);
+        => this.ToVector4(configuration, source, destinationVectors, PixelConversionModifiers.None);
 
     /// <summary>
-    /// Bulk operation that copies the <paramref name="sourcePixels"/> to <paramref name="destinationPixels"/> in
+    /// Bulk operation that copies the <paramref name="source"/> to <paramref name="destination"/> in
     /// <typeparamref name="TSourcePixel"/> format.
     /// </summary>
     /// <typeparam name="TSourcePixel">The destination pixel type.</typeparam>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
-    /// <param name="sourcePixels">The <see cref="ReadOnlySpan{TSourcePixel}"/> to the source pixels.</param>
-    /// <param name="destinationPixels">The <see cref="Span{TPixel}"/> to the destination pixels.</param>
+    /// <param name="source">The <see cref="ReadOnlySpan{TSourcePixel}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{TPixel}"/> to the destination pixels.</param>
     public virtual void From<TSourcePixel>(
         Configuration configuration,
-        ReadOnlySpan<TSourcePixel> sourcePixels,
-        Span<TPixel> destinationPixels)
+        ReadOnlySpan<TSourcePixel> source,
+        Span<TPixel> destination)
         where TSourcePixel : unmanaged, IPixel<TSourcePixel>
     {
         const int sliceLength = 1024;
-        int numberOfSlices = sourcePixels.Length / sliceLength;
+        int numberOfSlices = source.Length / sliceLength;
 
         using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
         Span<Vector4> vectorSpan = tempVectors.GetSpan();
         for (int i = 0; i < numberOfSlices; i++)
         {
             int start = i * sliceLength;
-            ReadOnlySpan<TSourcePixel> s = sourcePixels.Slice(start, sliceLength);
-            Span<TPixel> d = destinationPixels.Slice(start, sliceLength);
+            ReadOnlySpan<TSourcePixel> s = source.Slice(start, sliceLength);
+            Span<TPixel> d = destination.Slice(start, sliceLength);
             PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
             this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
         }
 
         int endOfCompleteSlices = numberOfSlices * sliceLength;
-        int remainder = sourcePixels.Length - endOfCompleteSlices;
+        int remainder = source.Length - endOfCompleteSlices;
         if (remainder > 0)
         {
-            ReadOnlySpan<TSourcePixel> s = sourcePixels[endOfCompleteSlices..];
-            Span<TPixel> d = destinationPixels[endOfCompleteSlices..];
+            ReadOnlySpan<TSourcePixel> s = source[endOfCompleteSlices..];
+            Span<TPixel> d = destination[endOfCompleteSlices..];
             vectorSpan = vectorSpan[..remainder];
             PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
             this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
@@ -143,23 +143,23 @@ public partial class PixelOperations<TPixel>
     }
 
     /// <summary>
-    /// Bulk operation that copies the <paramref name="sourcePixels"/> to <paramref name="destinationPixels"/> in
+    /// Bulk operation that copies the <paramref name="source"/> to <paramref name="destination"/> in
     /// <typeparamref name="TDestinationPixel"/> format.
     /// </summary>
     /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
-    /// <param name="sourcePixels">The <see cref="ReadOnlySpan{TPixel}"/> to the source pixels.</param>
-    /// <param name="destinationPixels">The <see cref="Span{TDestinationPixel}"/> to the destination pixels.</param>
+    /// <param name="source">The <see cref="ReadOnlySpan{TPixel}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{TDestinationPixel}"/> to the destination pixels.</param>
     public virtual void To<TDestinationPixel>(
         Configuration configuration,
-        ReadOnlySpan<TPixel> sourcePixels,
-        Span<TDestinationPixel> destinationPixels)
+        ReadOnlySpan<TPixel> source,
+        Span<TDestinationPixel> destination)
         where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
     {
         Guard.NotNull(configuration, nameof(configuration));
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        PixelOperations<TDestinationPixel>.Instance.From(configuration, sourcePixels, destinationPixels);
+        PixelOperations<TDestinationPixel>.Instance.From(configuration, source, destination);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public partial class PixelOperations<TPixel>
             rgb24.R = Unsafe.Add(ref r, i);
             rgb24.G = Unsafe.Add(ref g, i);
             rgb24.B = Unsafe.Add(ref b, i);
-            Unsafe.Add(ref d, i).FromRgb24(rgb24);
+            Unsafe.Add(ref d, i) = TPixel.FromRgb24(rgb24);
         }
     }
 
@@ -212,15 +212,13 @@ public partial class PixelOperations<TPixel>
 
         int count = source.Length;
 
-        Rgba32 rgba32 = default;
-
         ref float r = ref MemoryMarshal.GetReference(redChannel);
         ref float g = ref MemoryMarshal.GetReference(greenChannel);
         ref float b = ref MemoryMarshal.GetReference(blueChannel);
         ref TPixel src = ref MemoryMarshal.GetReference(source);
         for (nuint i = 0; i < (uint)count; i++)
         {
-            Unsafe.Add(ref src, i).ToRgba32(ref rgba32);
+            Rgba32 rgba32 = Unsafe.Add(ref src, i).ToRgba32();
             Unsafe.Add(ref r, i) = rgba32.R;
             Unsafe.Add(ref g, i) = rgba32.G;
             Unsafe.Add(ref b, i) = rgba32.B;

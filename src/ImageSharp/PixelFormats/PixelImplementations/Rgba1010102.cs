@@ -13,11 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="Rgba1010102"/> struct.
-/// </remarks>
-/// <param name="vector">The vector containing the component values.</param>
-public partial struct Rgba1010102(Vector4 vector) : IPixel<Rgba1010102>, IPackedVector<uint>
+public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
 {
     private static readonly Vector4 Multiplier = new(1023F, 1023F, 1023F, 3F);
 
@@ -33,8 +29,14 @@ public partial struct Rgba1010102(Vector4 vector) : IPixel<Rgba1010102>, IPacked
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgba1010102"/> struct.
+    /// </summary>
+    /// <param name="vector">The vector containing the component values.</param>
+    public Rgba1010102(Vector4 vector) => this.PackedValue = Pack(vector);
+
     /// <inheritdoc/>
-    public uint PackedValue { get; set; } = Pack(vector);
+    public uint PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="Rgba1010102"/> objects for equality.
@@ -57,6 +59,10 @@ public partial struct Rgba1010102(Vector4 vector) : IPixel<Rgba1010102>, IPacked
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,6 +93,58 @@ public partial struct Rgba1010102(Vector4 vector) : IPixel<Rgba1010102>, IPacked
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba1010102 FromVector4(Vector4 source) => new() { PackedValue = Pack(source) };
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba1010102 FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Rgba1010102 other && this.Equals(other);

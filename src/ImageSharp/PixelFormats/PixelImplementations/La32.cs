@@ -13,13 +13,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="La32"/> struct.
-/// </remarks>
-/// <param name="l">The luminance component.</param>
-/// <param name="a">The alpha component.</param>
 [StructLayout(LayoutKind.Explicit)]
-public partial struct La32(ushort l, ushort a) : IPixel<La32>, IPackedVector<uint>
+public partial struct La32 : IPixel<La32>, IPackedVector<uint>
 {
     private const float Max = ushort.MaxValue;
 
@@ -27,13 +22,24 @@ public partial struct La32(ushort l, ushort a) : IPixel<La32>, IPackedVector<uin
     /// Gets or sets the luminance component.
     /// </summary>
     [FieldOffset(0)]
-    public ushort L = l;
+    public ushort L;
 
     /// <summary>
     /// Gets or sets the alpha component.
     /// </summary>
     [FieldOffset(2)]
-    public ushort A = a;
+    public ushort A;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="La32"/> struct.
+    /// </summary>
+    /// <param name="l">The luminance component.</param>
+    /// <param name="a">The alpha component.</param>
+    public La32(ushort l, ushort a)
+    {
+        this.L = l;
+        this.A = a;
+    }
 
     /// <inheritdoc/>
     public uint PackedValue
@@ -107,12 +113,25 @@ public partial struct La32(ushort l, ushort a) : IPixel<La32>, IPackedVector<uin
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static La32 FromAbgr32(Abgr32 source)
+    {
+        ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
+        ushort a = ColorNumerics.From8BitTo16Bit(source.A);
+        return new(l, a);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La32 FromArgb32(Argb32 source)
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
         return new(l, a);
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static La32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -121,15 +140,6 @@ public partial struct La32(ushort l, ushort a) : IPixel<La32>, IPackedVector<uin
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La32 FromBgra32(Bgra32 source)
-    {
-        ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
-        ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static La32 FromAbgr32(Abgr32 source)
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);

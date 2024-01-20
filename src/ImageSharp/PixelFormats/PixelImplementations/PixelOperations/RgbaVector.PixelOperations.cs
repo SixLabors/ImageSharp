@@ -2,9 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats;
@@ -54,44 +52,6 @@ public partial struct RgbaVector
 
             MemoryMarshal.Cast<RgbaVector, Vector4>(sourcePixels).CopyTo(destinationVectors);
             Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
-        }
-
-        public override void ToL8(
-            Configuration configuration,
-            ReadOnlySpan<RgbaVector> sourcePixels,
-            Span<L8> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
-
-            ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
-            ref L8 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
-
-            for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-                dp.Pack(sp);
-            }
-        }
-
-        public override void ToL16(
-            Configuration configuration,
-            ReadOnlySpan<RgbaVector> sourcePixels,
-            Span<L16> destinationPixels)
-        {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
-
-            ref Vector4 sourceBaseRef = ref Unsafe.As<RgbaVector, Vector4>(ref MemoryMarshal.GetReference(sourcePixels));
-            ref L16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
-
-            for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
-            {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-                dp.Pack(sp);
-            }
         }
     }
 }

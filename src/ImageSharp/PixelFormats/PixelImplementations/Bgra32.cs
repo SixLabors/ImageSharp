@@ -116,7 +116,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B, this.A);
+    public readonly Rgba32 ToRgba32() => Rgba32.FromBgra32(this);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -146,11 +146,15 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Bgra32 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+    public static Bgra32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Bgra32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
+    public static Bgra32 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

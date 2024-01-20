@@ -44,12 +44,11 @@ public class La16Tests
     public void La16_FromScaledVector4()
     {
         // Arrange
-        La16 gray = default;
         const ushort expected = 32896;
         Vector4 scaled = new La16(128, 128).ToScaledVector4();
 
         // Act
-        gray.FromScaledVector4(scaled);
+        La16 gray = La16.FromScaledVector4(scaled);
         ushort actual = gray.PackedValue;
 
         // Assert
@@ -79,11 +78,10 @@ public class La16Tests
     public void La16_FromVector4(byte luminance)
     {
         // Arrange
-        La16 gray = default;
         Vector4 vector = new La16(luminance, luminance).ToVector4();
 
         // Act
-        gray.FromVector4(vector);
+        La16 gray = La16.FromVector4(vector);
         byte actualL = gray.L;
         byte actualA = gray.A;
 
@@ -115,11 +113,10 @@ public class La16Tests
     public void La16_FromRgba32(byte rgb)
     {
         // Arrange
-        La16 gray = default;
         byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
         // Act
-        gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        La16 gray = La16.FromRgba32(new Rgba32(rgb, rgb, rgb));
         byte actual = gray.L;
 
         // Assert
@@ -135,8 +132,7 @@ public class La16Tests
         La16 gray = new(luminance, luminance);
 
         // Act
-        Rgba32 actual = default;
-        gray.ToRgba32(ref actual);
+        Rgba32 actual = gray.ToRgba32();
 
         // Assert
         Assert.Equal(luminance, actual.R);
@@ -149,11 +145,10 @@ public class La16Tests
     public void La16_FromBgra5551()
     {
         // arrange
-        La16 grey = default;
-        byte expected = byte.MaxValue;
+        const byte expected = byte.MaxValue;
 
         // act
-        grey.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        La16 grey = La16.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, grey.L);
@@ -171,11 +166,9 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            La16 mirror = default;
-            mirror.FromRgba32(rgba);
+            La16 mirror = La16.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -186,11 +179,9 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            La16 mirror = default;
-            mirror.FromRgba32(rgba);
+            La16 mirror = La16.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -201,11 +192,10 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
             Vector4 la16Vector = original.ToVector4();
-            Vector4 rgbaVector = original.ToVector4();
+            Vector4 rgbaVector = rgba.ToVector4();
 
             Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -216,13 +206,10 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
+            Vector4 rgbaVector = rgba.ToVector4();
 
-            Vector4 rgbaVector = original.ToVector4();
-
-            La16 mirror = default;
-            mirror.FromVector4(rgbaVector);
+            La16 mirror = La16.FromVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
         }
@@ -233,11 +220,10 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
             Vector4 la16Vector = original.ToScaledVector4();
-            Vector4 rgbaVector = original.ToScaledVector4();
+            Vector4 rgbaVector = rgba.ToScaledVector4();
 
             Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -248,13 +234,10 @@ public class La16Tests
         {
             La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
+            Vector4 rgbaVector = rgba.ToScaledVector4();
 
-            Vector4 rgbaVector = original.ToScaledVector4();
-
-            La16 mirror = default;
-            mirror.FromScaledVector4(rgbaVector);
+            La16 mirror = La16.FromScaledVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
         }

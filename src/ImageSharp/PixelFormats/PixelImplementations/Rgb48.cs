@@ -71,8 +71,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32()
-        => new(ColorNumerics.From16BitTo8Bit(this.R), ColorNumerics.From16BitTo8Bit(this.G), ColorNumerics.From16BitTo8Bit(this.B));
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgb48(this);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,8 +105,17 @@ public partial struct Rgb48 : IPixel<Rgb48>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb48 FromAbgr32(Abgr32 source)
+        => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G), ColorNumerics.From8BitTo16Bit(source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromArgb32(Argb32 source)
         => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G), ColorNumerics.From8BitTo16Bit(source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb48 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,10 +126,6 @@ public partial struct Rgb48 : IPixel<Rgb48>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromBgra32(Bgra32 source)
         => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G), ColorNumerics.From8BitTo16Bit(source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb48 FromRgba64(Rgba64 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -157,14 +161,13 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static Rgb48 FromRgba32(Rgba32 source)
         => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G), ColorNumerics.From8BitTo16Bit(source.B));
 
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb48 FromAbgr32(Abgr32 source)
-        => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G), ColorNumerics.From8BitTo16Bit(source.B));
-
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb48 FromRgb48(Rgb48 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb48 FromRgba64(Rgba64 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Rgb48 rgb48 && this.Equals(rgb48);

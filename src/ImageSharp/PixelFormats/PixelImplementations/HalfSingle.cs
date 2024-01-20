@@ -12,14 +12,16 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [-1, 0, 0, 1] to [1, 0, 0, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="HalfSingle"/> struct.
-/// </remarks>
-/// <param name="value">The single component value.</param>
-public partial struct HalfSingle(float value) : IPixel<HalfSingle>, IPackedVector<ushort>
+public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HalfSingle"/> struct.
+    /// </summary>
+    /// <param name="value">The single component value.</param>
+    public HalfSingle(float value) => this.PackedValue = HalfTypeHelper.Pack(value);
+
     /// <inheritdoc/>
-    public ushort PackedValue { get; set; } = HalfTypeHelper.Pack(value);
+    public ushort PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="HalfSingle"/> objects for equality.
@@ -42,6 +44,10 @@ public partial struct HalfSingle(float value) : IPixel<HalfSingle>, IPackedVecto
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(HalfSingle left, HalfSingle right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,6 +85,58 @@ public partial struct HalfSingle(float value) : IPixel<HalfSingle>, IPackedVecto
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfSingle FromVector4(Vector4 source) => new() { PackedValue = HalfTypeHelper.Pack(source.X) };
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <summary>
     /// Expands the packed representation into a <see cref="float"/>.

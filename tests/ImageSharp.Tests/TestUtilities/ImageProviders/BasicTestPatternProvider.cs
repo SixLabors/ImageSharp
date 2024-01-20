@@ -14,9 +14,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
     }
 
     public virtual TPixel GetExpectedBasicTestPatternPixelAt(int x, int y)
-    {
-        throw new NotSupportedException("GetExpectedBasicTestPatternPixelAt(x,y) only works with BasicTestPattern");
-    }
+        => throw new NotSupportedException("GetExpectedBasicTestPatternPixelAt(x,y) only works with BasicTestPattern");
 
     private class BasicTestPatternProvider : BlankProvider
     {
@@ -41,7 +39,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         public override Image<TPixel> GetImage()
         {
-            var result = new Image<TPixel>(this.Configuration, this.Width, this.Height);
+            Image<TPixel> result = new(this.Configuration, this.Width, this.Height);
             result.ProcessPixelRows(accessor =>
             {
                 int midY = this.Height / 2;
@@ -51,16 +49,16 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 {
                     Span<TPixel> row = accessor.GetRowSpan(y);
 
-                    row.Slice(0, midX).Fill(TopLeftColor);
-                    row.Slice(midX, this.Width - midX).Fill(TopRightColor);
+                    row[..midX].Fill(TopLeftColor);
+                    row[midX..this.Width].Fill(TopRightColor);
                 }
 
                 for (int y = midY; y < this.Height; y++)
                 {
                     Span<TPixel> row = accessor.GetRowSpan(y);
 
-                    row.Slice(0, midX).Fill(BottomLeftColor);
-                    row.Slice(midX, this.Width - midX).Fill(BottomRightColor);
+                    row[..midX].Fill(BottomLeftColor);
+                    row[midX..this.Width].Fill(BottomRightColor);
                 }
             });
 
@@ -76,17 +74,10 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             {
                 return x < midX ? TopLeftColor : TopRightColor;
             }
-            else
-            {
-                return x < midX ? BottomLeftColor : BottomRightColor;
-            }
+
+            return x < midX ? BottomLeftColor : BottomRightColor;
         }
 
-        private static TPixel GetBottomRightColor()
-        {
-            TPixel bottomRightColor = default;
-            bottomRightColor.FromScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
-            return bottomRightColor;
-        }
+        private static TPixel GetBottomRightColor() => TPixel.FromScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
     }
 }

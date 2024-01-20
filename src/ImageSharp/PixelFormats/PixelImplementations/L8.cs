@@ -13,24 +13,19 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="L8"/> struct.
-/// </remarks>
-/// <param name="luminance">The luminance component.</param>
-public partial struct L8(byte luminance) : IPixel<L8>, IPackedVector<byte>
+public partial struct L8 : IPixel<L8>, IPackedVector<byte>
 {
-    /// <summary>
-    /// The maximum byte value.
-    /// </summary>
     private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
-
-    /// <summary>
-    /// The half vector value.
-    /// </summary>
     private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="L8"/> struct.
+    /// </summary>
+    /// <param name="luminance">The luminance component.</param>
+    public L8(byte luminance) => this.PackedValue = luminance;
+
     /// <inheritdoc />
-    public byte PackedValue { get; set; } = luminance;
+    public byte PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="L8"/> objects for equality.
@@ -94,7 +89,15 @@ public partial struct L8(byte luminance) : IPixel<L8>, IPackedVector<byte>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L8 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L8 FromArgb32(Argb32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L8 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,10 +106,6 @@ public partial struct L8(byte luminance) : IPixel<L8>, IPackedVector<byte>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L8 FromBgra32(Bgra32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static L8 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

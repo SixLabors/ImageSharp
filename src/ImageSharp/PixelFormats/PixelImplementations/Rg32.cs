@@ -12,11 +12,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 1] to [1, 1, 0, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="Rg32"/> struct.
-/// </remarks>
-/// <param name="vector">The vector containing the component values.</param>
-public partial struct Rg32(Vector2 vector) : IPixel<Rg32>, IPackedVector<uint>
+public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 {
     private static readonly Vector2 Max = new(ushort.MaxValue);
 
@@ -30,8 +26,14 @@ public partial struct Rg32(Vector2 vector) : IPixel<Rg32>, IPackedVector<uint>
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rg32"/> struct.
+    /// </summary>
+    /// <param name="vector">The vector containing the component values.</param>
+    public Rg32(Vector2 vector) => this.PackedValue = Pack(vector);
+
     /// <inheritdoc/>
-    public uint PackedValue { get; set; } = Pack(vector);
+    public uint PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="Rg32"/> objects for equality.
@@ -92,7 +94,15 @@ public partial struct Rg32(Vector2 vector) : IPixel<Rg32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromAbgr32(Abgr32 source) => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rg32 FromArgb32(Argb32 source) => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -101,10 +111,6 @@ public partial struct Rg32(Vector2 vector) : IPixel<Rg32>, IPackedVector<uint>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rg32 FromBgra32(Bgra32 source) => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G));
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rg32 FromAbgr32(Abgr32 source) => new(ColorNumerics.From8BitTo16Bit(source.R), ColorNumerics.From8BitTo16Bit(source.G));
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

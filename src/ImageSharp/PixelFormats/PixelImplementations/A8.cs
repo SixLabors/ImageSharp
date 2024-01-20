@@ -87,7 +87,15 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromAbgr32(Abgr32 source) => new(source.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static A8 FromArgb32(Argb32 source) => new(source.A);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,10 +104,6 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static A8 FromBgra32(Bgra32 source) => new(source.A);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static A8 FromAbgr32(Abgr32 source) => new(source.A);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

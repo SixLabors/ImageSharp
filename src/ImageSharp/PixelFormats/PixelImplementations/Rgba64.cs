@@ -192,12 +192,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32()
-        => new(
-            ColorNumerics.From16BitTo8Bit(this.R),
-            ColorNumerics.From16BitTo8Bit(this.G),
-            ColorNumerics.From16BitTo8Bit(this.B),
-            ColorNumerics.From16BitTo8Bit(this.A));
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgba64(this);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -227,7 +222,15 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba64 FromAbgr32(Abgr32 source) => new(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba64 FromArgb32(Argb32 source) => new(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba64 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,10 +239,6 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba64 FromBgra32(Bgra32 source) => new(source);
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgba64 FromAbgr32(Abgr32 source) => new(source);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -286,68 +285,35 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     /// </summary>
     /// <returns>The <see cref="Bgra32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Bgra32 ToBgra32()
-    {
-        byte r = ColorNumerics.From16BitTo8Bit(this.R);
-        byte g = ColorNumerics.From16BitTo8Bit(this.G);
-        byte b = ColorNumerics.From16BitTo8Bit(this.B);
-        byte a = ColorNumerics.From16BitTo8Bit(this.A);
-        return new Bgra32(r, g, b, a);
-    }
+    public readonly Bgra32 ToBgra32() => Bgra32.FromRgba64(this);
 
     /// <summary>
     /// Convert to <see cref="Argb32"/>.
     /// </summary>
     /// <returns>The <see cref="Argb32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Argb32 ToArgb32()
-    {
-        byte r = ColorNumerics.From16BitTo8Bit(this.R);
-        byte g = ColorNumerics.From16BitTo8Bit(this.G);
-        byte b = ColorNumerics.From16BitTo8Bit(this.B);
-        byte a = ColorNumerics.From16BitTo8Bit(this.A);
-        return new Argb32(r, g, b, a);
-    }
+    public readonly Argb32 ToArgb32() => Argb32.FromRgba64(this);
 
     /// <summary>
     /// Convert to <see cref="Abgr32"/>.
     /// </summary>
     /// <returns>The <see cref="Abgr32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Abgr32 ToAbgr32()
-    {
-        byte r = ColorNumerics.From16BitTo8Bit(this.R);
-        byte g = ColorNumerics.From16BitTo8Bit(this.G);
-        byte b = ColorNumerics.From16BitTo8Bit(this.B);
-        byte a = ColorNumerics.From16BitTo8Bit(this.A);
-        return new Abgr32(r, g, b, a);
-    }
+    public readonly Abgr32 ToAbgr32() => Abgr32.FromRgba64(this);
 
     /// <summary>
     /// Convert to <see cref="Rgb24"/>.
     /// </summary>
     /// <returns>The <see cref="Rgb24"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgb24 ToRgb24()
-    {
-        byte r = ColorNumerics.From16BitTo8Bit(this.R);
-        byte g = ColorNumerics.From16BitTo8Bit(this.G);
-        byte b = ColorNumerics.From16BitTo8Bit(this.B);
-        return new Rgb24(r, g, b);
-    }
+    public readonly Rgb24 ToRgb24() => Rgb24.FromRgba64(this);
 
     /// <summary>
     /// Convert to <see cref="Bgr24"/>.
     /// </summary>
     /// <returns>The <see cref="Bgr24"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Bgr24 ToBgr24()
-    {
-        byte r = ColorNumerics.From16BitTo8Bit(this.R);
-        byte g = ColorNumerics.From16BitTo8Bit(this.G);
-        byte b = ColorNumerics.From16BitTo8Bit(this.B);
-        return new Bgr24(r, g, b);
-    }
+    public readonly Bgr24 ToBgr24() => Bgr24.FromRgba64(this);
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);

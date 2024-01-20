@@ -277,8 +277,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         [MethodImpl(InliningOptions.ShortMethod)]
         public int GetPaletteIndex(TPixel color)
         {
-            Unsafe.SkipInit(out Rgba32 rgba);
-            color.ToRgba32(ref rgba);
+            Rgba32 rgba = color.ToRgba32();
             return this.root.GetPaletteIndex(ref rgba, 0);
         }
 
@@ -476,9 +475,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                         Vector3.Zero,
                         new Vector3(255));
 
-                    Unsafe.SkipInit(out TPixel pixel);
-                    pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
-                    palette[index] = pixel;
+                    palette[index] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z));
 
                     // Consume the next palette index
                     this.paletteIndex = index++;

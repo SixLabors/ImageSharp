@@ -13,11 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
-/// </remarks>
-/// <param name="vector">The vector containing the component values.</param>
-public partial struct NormalizedByte4(Vector4 vector) : IPixel<NormalizedByte4>, IPackedVector<uint>
+public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
 {
     private const float MaxPos = 127f;
     private static readonly Vector4 Half = Vector128.Create(MaxPos).AsVector4();
@@ -35,8 +31,14 @@ public partial struct NormalizedByte4(Vector4 vector) : IPixel<NormalizedByte4>,
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NormalizedByte4"/> struct.
+    /// </summary>
+    /// <param name="vector">The vector containing the component values.</param>
+    public NormalizedByte4(Vector4 vector) => this.PackedValue = Pack(vector);
+
     /// <inheritdoc/>
-    public uint PackedValue { get; set; } = Pack(vector);
+    public uint PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="NormalizedByte4"/> objects for equality.
@@ -59,6 +61,10 @@ public partial struct NormalizedByte4(Vector4 vector) : IPixel<NormalizedByte4>,
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(NormalizedByte4 left, NormalizedByte4 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,6 +102,58 @@ public partial struct NormalizedByte4(Vector4 vector) : IPixel<NormalizedByte4>,
         source -= Vector4.One;
         return FromVector4(source);
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

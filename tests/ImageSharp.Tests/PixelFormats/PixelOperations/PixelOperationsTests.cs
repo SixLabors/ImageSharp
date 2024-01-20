@@ -39,32 +39,32 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     }
 
     public static TheoryData<int> ArraySizesData =>
-        new TheoryData<int>
-            {
-                0,
-                1,
-                2,
-                7,
-                16,
-                512,
-                513,
-                514,
-                515,
-                516,
-                517,
-                518,
-                519,
-                520,
-                521,
-                522,
-                523,
-                524,
-                525,
-                526,
-                527,
-                528,
-                1111
-            };
+        new()
+        {
+            0,
+            1,
+            2,
+            7,
+            16,
+            512,
+            513,
+            514,
+            515,
+            516,
+            517,
+            518,
+            519,
+            520,
+            521,
+            522,
+            523,
+            524,
+            525,
+            526,
+            527,
+            528,
+            1111
+        };
 
     protected Configuration Configuration => Configuration.Default;
 
@@ -74,14 +74,14 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static TPixel[] CreateExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
     {
-        var expected = new TPixel[source.Length];
+        TPixel[] expected = new TPixel[source.Length];
 
         for (int i = 0; i < expected.Length; i++)
         {
             Vector4 v = source[i];
             vectorModifier?.Invoke(ref v);
 
-            expected[i].FromVector4(v);
+            expected[i] = TPixel.FromVector4(v);
         }
 
         return expected;
@@ -89,14 +89,14 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
     {
-        var expected = new TPixel[source.Length];
+        TPixel[] expected = new TPixel[source.Length];
 
         for (int i = 0; i < expected.Length; i++)
         {
             Vector4 v = source[i];
             vectorModifier?.Invoke(ref v);
 
-            expected[i].FromScaledVector4(v);
+            expected[i] = TPixel.FromScaledVector4(v);
         }
 
         return expected;
@@ -114,18 +114,16 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         // We use 0 - 255 as we have pixel formats that store
         // the alpha component in less than 8 bits.
-        const byte Alpha = byte.MinValue;
-        const byte NoAlpha = byte.MaxValue;
+        const byte alpha = byte.MinValue;
+        const byte noAlpha = byte.MaxValue;
 
-        TPixel pixel = default;
-        pixel.FromRgba32(new Rgba32(0, 0, 0, Alpha));
+        TPixel pixel = TPixel.FromRgba32(new Rgba32(0, 0, 0, alpha));
 
-        Rgba32 dest = default;
-        pixel.ToRgba32(ref dest);
+        Rgba32 dest = pixel.ToRgba32();
 
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
-        byte expectedAlpha = hasAlpha ? Alpha : NoAlpha;
+        byte expectedAlpha = hasAlpha ? alpha : noAlpha;
         Assert.Equal(expectedAlpha, dest.A);
     }
 
@@ -355,7 +353,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         const int count = 2134;
         TPixel[] source = CreatePixelTestData(count);
-        var expected = new TDestPixel[count];
+        TDestPixel[] expected = new TDestPixel[count];
 
         PixelConverterTests.ReferenceImplementations.To<TPixel, TDestPixel>(this.Configuration, source, expected);
 
@@ -476,13 +474,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromArgb32Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 4);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
 
-            expected[i].FromArgb32(new Argb32(source[i4 + 1], source[i4 + 2], source[i4 + 3], source[i4 + 0]));
+            expected[i] = TPixel.FromArgb32(new Argb32(source[i4 + 1], source[i4 + 2], source[i4 + 3], source[i4 + 0]));
         }
 
         TestOperation(
@@ -497,12 +495,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 4];
-        var argb = default(Argb32);
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
-            argb.FromScaledVector4(source[i].ToScaledVector4());
+            Argb32 argb = Argb32.FromScaledVector4(source[i].ToScaledVector4());
 
             expected[i4] = argb.A;
             expected[i4 + 1] = argb.R;
@@ -521,13 +518,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromBgr24Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 3);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i3 = i * 3;
 
-            expected[i].FromBgr24(new Bgr24(source[i3 + 2], source[i3 + 1], source[i3]));
+            expected[i] = TPixel.FromBgr24(new Bgr24(source[i3 + 2], source[i3 + 1], source[i3]));
         }
 
         TestOperation(
@@ -542,12 +539,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 3];
-        var bgr = default(Bgr24);
 
         for (int i = 0; i < count; i++)
         {
             int i3 = i * 3;
-            bgr.FromScaledVector4(source[i].ToScaledVector4());
+            Bgr24 bgr = Bgr24.FromScaledVector4(source[i].ToScaledVector4());
             expected[i3] = bgr.B;
             expected[i3 + 1] = bgr.G;
             expected[i3 + 2] = bgr.R;
@@ -564,13 +560,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromBgra32Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 4);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
 
-            expected[i].FromBgra32(new Bgra32(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
+            expected[i] = TPixel.FromBgra32(new Bgra32(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
         }
 
         TestOperation(
@@ -585,12 +581,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 4];
-        var bgra = default(Bgra32);
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
-            bgra.FromScaledVector4(source[i].ToScaledVector4());
+            Bgra32 bgra = Bgra32.FromScaledVector4(source[i].ToScaledVector4());
             expected[i4] = bgra.B;
             expected[i4 + 1] = bgra.G;
             expected[i4 + 2] = bgra.R;
@@ -608,13 +603,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromAbgr32Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 4);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
 
-            expected[i].FromAbgr32(new Abgr32(source[i4 + 3], source[i4 + 2], source[i4 + 1], source[i4 + 0]));
+            expected[i] = TPixel.FromAbgr32(new Abgr32(source[i4 + 3], source[i4 + 2], source[i4 + 1], source[i4 + 0]));
         }
 
         TestOperation(
@@ -629,12 +624,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 4];
-        var abgr = default(Abgr32);
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
-            abgr.FromScaledVector4(source[i].ToScaledVector4());
+            Abgr32 abgr = Abgr32.FromScaledVector4(source[i].ToScaledVector4());
             expected[i4] = abgr.A;
             expected[i4 + 1] = abgr.B;
             expected[i4 + 2] = abgr.G;
@@ -653,14 +647,14 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         int size = Unsafe.SizeOf<Bgra5551>();
         byte[] source = CreateByteTestData(count * size);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
 
             Bgra5551 bgra = MemoryMarshal.Cast<byte, Bgra5551>(source.AsSpan().Slice(offset, size))[0];
-            expected[i].FromBgra5551(bgra);
+            expected[i] = TPixel.FromBgra5551(bgra);
         }
 
         TestOperation(
@@ -676,12 +670,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         int size = Unsafe.SizeOf<Bgra5551>();
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * size];
-        Bgra5551 bgra = default;
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
-            bgra.FromScaledVector4(source[i].ToScaledVector4());
+            Bgra5551 bgra = Bgra5551.FromScaledVector4(source[i].ToScaledVector4());
             OctetBytes bytes = Unsafe.As<Bgra5551, OctetBytes>(ref bgra);
             expected[offset] = bytes[0];
             expected[offset + 1] = bytes[1];
@@ -699,11 +692,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         byte[] sourceBytes = CreateByteTestData(count);
         L8[] source = sourceBytes.Select(b => new L8(b)).ToArray();
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromL8(source[i]);
+            expected[i] = TPixel.FromL8(source[i]);
         }
 
         TestOperation(
@@ -717,11 +710,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void ToL8(int count)
     {
         TPixel[] source = CreatePixelTestData(count);
-        var expected = new L8[count];
+        L8[] expected = new L8[count];
 
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromScaledVector4(source[i].ToScaledVector4());
+            expected[i] = L8.FromScaledVector4(source[i].ToScaledVector4());
         }
 
         TestOperation(
@@ -734,18 +727,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     [MemberData(nameof(ArraySizesData))]
     public void FromL16(int count)
     {
-        L16[] source = CreateVector4TestData(count).Select(v =>
-        {
-            L16 g = default;
-            g.FromVector4(v);
-            return g;
-        }).ToArray();
+        L16[] source = CreateVector4TestData(count).Select(L16.FromVector4).ToArray();
 
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromL16(source[i]);
+            expected[i] = TPixel.FromL16(source[i]);
         }
 
         TestOperation(
@@ -759,11 +747,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void ToL16(int count)
     {
         TPixel[] source = CreatePixelTestData(count);
-        var expected = new L16[count];
+        L16[] expected = new L16[count];
 
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromScaledVector4(source[i].ToScaledVector4());
+            expected[i] = L16.FromScaledVector4(source[i].ToScaledVector4());
         }
 
         TestOperation(
@@ -778,14 +766,14 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         int size = Unsafe.SizeOf<La16>();
         byte[] source = CreateByteTestData(count * size);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
 
             La16 la = MemoryMarshal.Cast<byte, La16>(source.AsSpan().Slice(offset, size))[0];
-            expected[i].FromLa16(la);
+            expected[i] = TPixel.FromLa16(la);
         }
 
         TestOperation(
@@ -801,12 +789,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         int size = Unsafe.SizeOf<La16>();
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * size];
-        La16 la = default;
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
-            la.FromScaledVector4(source[i].ToScaledVector4());
+            La16 la = La16.FromScaledVector4(source[i].ToScaledVector4());
             OctetBytes bytes = Unsafe.As<La16, OctetBytes>(ref la);
             expected[offset] = bytes[0];
             expected[offset + 1] = bytes[1];
@@ -824,14 +811,14 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         int size = Unsafe.SizeOf<La32>();
         byte[] source = CreateByteTestData(count * size);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
 
             La32 la = MemoryMarshal.Cast<byte, La32>(source.AsSpan().Slice(offset, size))[0];
-            expected[i].FromLa32(la);
+            expected[i] = TPixel.FromLa32(la);
         }
 
         TestOperation(
@@ -847,12 +834,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         int size = Unsafe.SizeOf<La32>();
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * size];
-        La32 la = default;
 
         for (int i = 0; i < count; i++)
         {
             int offset = i * size;
-            la.FromScaledVector4(source[i].ToScaledVector4());
+            La32 la = La32.FromScaledVector4(source[i].ToScaledVector4());
             OctetBytes bytes = Unsafe.As<La32, OctetBytes>(ref la);
             expected[offset] = bytes[0];
             expected[offset + 1] = bytes[1];
@@ -871,13 +857,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromRgb24Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 3);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i3 = i * 3;
 
-            expected[i].FromRgb24(new Rgb24(source[i3 + 0], source[i3 + 1], source[i3 + 2]));
+            expected[i] = TPixel.FromRgb24(new Rgb24(source[i3 + 0], source[i3 + 1], source[i3 + 2]));
         }
 
         TestOperation(
@@ -892,12 +878,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 3];
-        var rgb = default(Rgb24);
 
         for (int i = 0; i < count; i++)
         {
             int i3 = i * 3;
-            rgb.FromScaledVector4(source[i].ToScaledVector4());
+            Rgb24 rgb = Rgb24.FromScaledVector4(source[i].ToScaledVector4());
             expected[i3] = rgb.R;
             expected[i3 + 1] = rgb.G;
             expected[i3 + 2] = rgb.B;
@@ -914,13 +899,13 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromRgba32Bytes(int count)
     {
         byte[] source = CreateByteTestData(count * 4);
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
 
-            expected[i].FromRgba32(new Rgba32(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
+            expected[i] = TPixel.FromRgba32(new Rgba32(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
         }
 
         TestOperation(
@@ -935,12 +920,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 4];
-        var rgba = default(Rgba32);
 
         for (int i = 0; i < count; i++)
         {
             int i4 = i * 4;
-            rgba.FromScaledVector4(source[i].ToScaledVector4());
+            Rgba32 rgba = Rgba32.FromScaledVector4(source[i].ToScaledVector4());
             expected[i4] = rgba.R;
             expected[i4 + 1] = rgba.G;
             expected[i4 + 2] = rgba.B;
@@ -959,12 +943,12 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         byte[] source = CreateByteTestData(count * 6);
         Span<byte> sourceSpan = source.AsSpan();
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i6 = i * 6;
-            expected[i].FromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceSpan.Slice(i6, 6))[0]);
+            expected[i] = TPixel.FromRgb48(MemoryMarshal.Cast<byte, Rgb48>(sourceSpan.Slice(i6, 6))[0]);
         }
 
         TestOperation(
@@ -979,12 +963,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 6];
-        Rgb48 rgb = default;
 
         for (int i = 0; i < count; i++)
         {
             int i6 = i * 6;
-            rgb.FromScaledVector4(source[i].ToScaledVector4());
+            Rgb48 rgb = Rgb48.FromScaledVector4(source[i].ToScaledVector4());
             OctetBytes rgb48Bytes = Unsafe.As<Rgb48, OctetBytes>(ref rgb);
             expected[i6] = rgb48Bytes[0];
             expected[i6 + 1] = rgb48Bytes[1];
@@ -1006,12 +989,12 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         byte[] source = CreateByteTestData(count * 8);
         Span<byte> sourceSpan = source.AsSpan();
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
         {
             int i8 = i * 8;
-            expected[i].FromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceSpan.Slice(i8, 8))[0]);
+            expected[i] = TPixel.FromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceSpan.Slice(i8, 8))[0]);
         }
 
         TestOperation(
@@ -1026,12 +1009,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         TPixel[] source = CreatePixelTestData(count);
         byte[] expected = new byte[count * 8];
-        Rgba64 rgba = default;
 
         for (int i = 0; i < count; i++)
         {
             int i8 = i * 8;
-            rgba.FromScaledVector4(source[i].ToScaledVector4());
+            Rgba64 rgba = Rgba64.FromScaledVector4(source[i].ToScaledVector4());
             OctetBytes rgba64Bytes = Unsafe.As<Rgba64, OctetBytes>(ref rgba);
             expected[i8] = rgba64Bytes[0];
             expected[i8 + 1] = rgba64Bytes[1];
@@ -1060,11 +1042,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
     {
-        var expected = new Vector4[source.Length];
+        Vector4[] expected = new Vector4[source.Length];
 
         for (int i = 0; i < expected.Length; i++)
         {
-            var v = source[i].ToVector4();
+            Vector4 v = source[i].ToVector4();
 
             vectorModifier?.Invoke(ref v);
 
@@ -1076,7 +1058,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
     {
-        var expected = new Vector4[source.Length];
+        Vector4[] expected = new Vector4[source.Length];
 
         for (int i = 0; i < expected.Length; i++)
         {
@@ -1098,7 +1080,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         where TSource : struct
         where TDest : struct
     {
-        using (var buffers = new TestBuffers<TSource, TDest>(source, expected, preferExactComparison))
+        using (TestBuffers<TSource, TDest> buffers = new(source, expected, preferExactComparison))
         {
             action(buffers.SourceBuffer, buffers.ActualDestBuffer);
             buffers.Verify();
@@ -1107,8 +1089,8 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static Vector4[] CreateVector4TestData(int length, RefAction<Vector4> vectorModifier = null)
     {
-        var result = new Vector4[length];
-        var rnd = new Random(42); // Deterministic random values
+        Vector4[] result = new Vector4[length];
+        Random rnd = new(42); // Deterministic random values
 
         for (int i = 0; i < result.Length; i++)
         {
@@ -1123,9 +1105,9 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static TPixel[] CreatePixelTestData(int length, RefAction<Vector4> vectorModifier = null)
     {
-        var result = new TPixel[length];
+        TPixel[] result = new TPixel[length];
 
-        var rnd = new Random(42); // Deterministic random values
+        Random rnd = new(42); // Deterministic random values
 
         for (int i = 0; i < result.Length; i++)
         {
@@ -1133,7 +1115,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
             vectorModifier?.Invoke(ref v);
 
-            result[i].FromVector4(v);
+            result[i] = TPixel.FromVector4(v);
         }
 
         return result;
@@ -1141,9 +1123,9 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     internal static TPixel[] CreateScaledPixelTestData(int length, RefAction<Vector4> vectorModifier = null)
     {
-        var result = new TPixel[length];
+        TPixel[] result = new TPixel[length];
 
-        var rnd = new Random(42); // Deterministic random values
+        Random rnd = new(42); // Deterministic random values
 
         for (int i = 0; i < result.Length; i++)
         {
@@ -1151,7 +1133,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
             vectorModifier?.Invoke(ref v);
 
-            result[i].FromScaledVector4(v);
+            result[i] = TPixel.FromScaledVector4(v);
         }
 
         return result;
@@ -1160,7 +1142,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     internal static byte[] CreateByteTestData(int length, int seed = 42)
     {
         byte[] result = new byte[length];
-        var rnd = new Random(seed); // Deterministic random values
+        Random rnd = new(seed); // Deterministic random values
 
         for (int i = 0; i < result.Length; i++)
         {
@@ -1171,7 +1153,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     }
 
     internal static Vector4 GetScaledVector(Random rnd)
-        => new Vector4((float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble());
+        => new((float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble(), (float)rnd.NextDouble());
 
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct OctetBytes
@@ -1219,7 +1201,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             {
                 Span<Vector4> expected = MemoryMarshal.Cast<TDest, Vector4>(this.ExpectedDestBuffer.AsSpan());
                 Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.GetSpan());
-                var comparer = new ApproximateFloatComparer(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
+                ApproximateFloatComparer comparer = new(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -1230,7 +1212,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             {
                 Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
                 Span<TDest> actual = this.ActualDestBuffer.GetSpan();
-                var comparer = new ApproximateFloatComparer(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
+                ApproximateFloatComparer comparer = new(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
 
                 for (int i = 0; i < count; i++)
                 {

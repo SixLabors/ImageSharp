@@ -85,7 +85,9 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <param name="a">The alpha component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(float r, float g, float b, float a = 1)
-        : this() => Pack(r, g, b, a);
+        : this(new Vector4(r, g, b, a))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -95,7 +97,9 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(Vector3 vector)
-        : this() => Pack(vector);
+        : this(new Vector4(vector, 1f))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -105,7 +109,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Argb32(Vector4 vector)
-        : this() => Pack(vector);
+        : this() => this = Pack(vector);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Argb32"/> struct.
@@ -163,7 +167,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B, this.A);
+    public readonly Rgba32 ToRgba32() => Rgba32.FromArgb32(this);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -193,7 +197,15 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Argb32 FromArgb32(Argb32 source) => new() { PackedValue = source.PackedValue };
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -202,10 +214,6 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Argb32 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B, source.A);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Argb32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -275,23 +283,6 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     public override readonly int GetHashCode() => this.Argb.GetHashCode();
-
-    /// <summary>
-    /// Packs the four floats into a color.
-    /// </summary>
-    /// <param name="x">The x-component</param>
-    /// <param name="y">The y-component</param>
-    /// <param name="z">The z-component</param>
-    /// <param name="w">The w-component</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Argb32 Pack(float x, float y, float z, float w) => Pack(new Vector4(x, y, z, w));
-
-    /// <summary>
-    /// Packs a <see cref="Vector3"/> into a uint.
-    /// </summary>
-    /// <param name="vector">The vector containing the values to pack.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Argb32 Pack(Vector3 vector) => Pack(new Vector4(vector, 1f));
 
     /// <summary>
     /// Packs a <see cref="Vector4"/> into a color.

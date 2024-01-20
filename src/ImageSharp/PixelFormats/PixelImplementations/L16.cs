@@ -12,16 +12,18 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="L16"/> struct.
-/// </remarks>
-/// <param name="luminance">The luminance component</param>
-public partial struct L16(ushort luminance) : IPixel<L16>, IPackedVector<ushort>
+public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
 {
     private const float Max = ushort.MaxValue;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="L16"/> struct.
+    /// </summary>
+    /// <param name="luminance">The luminance component</param>
+    public L16(ushort luminance) => this.PackedValue = luminance;
+
     /// <inheritdoc />
-    public ushort PackedValue { get; set; } = luminance;
+    public ushort PackedValue { get; set; }
 
     /// <summary>
     /// Compares two <see cref="L16"/> objects for equality.
@@ -85,7 +87,15 @@ public partial struct L16(ushort luminance) : IPixel<L16>, IPackedVector<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L16 FromArgb32(Argb32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,10 +104,6 @@ public partial struct L16(ushort luminance) : IPixel<L16>, IPackedVector<ushort>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static L16 FromBgra32(Bgra32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static L16 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

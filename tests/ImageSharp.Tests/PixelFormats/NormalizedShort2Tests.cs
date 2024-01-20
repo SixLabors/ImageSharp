@@ -61,11 +61,10 @@ public class NormalizedShort2Tests
     {
         // arrange
         Vector4 scaled = new NormalizedShort2(-Vector2.One).ToScaledVector4();
-        NormalizedShort2 short2 = default;
-        uint expected = 0x80018001;
+        const uint expected = 0x80018001;
 
         // act
-        short2.FromScaledVector4(scaled);
+        NormalizedShort2 short2 = NormalizedShort2.FromScaledVector4(scaled);
         uint actual = short2.PackedValue;
 
         // assert
@@ -76,11 +75,10 @@ public class NormalizedShort2Tests
     public void NormalizedShort2_FromBgra5551()
     {
         // arrange
-        NormalizedShort2 normalizedShort2 = default;
         Vector4 expected = new(1, 1, 0, 1);
 
         // act
-        normalizedShort2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        NormalizedShort2 normalizedShort2 = NormalizedShort2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, normalizedShort2.ToVector4());

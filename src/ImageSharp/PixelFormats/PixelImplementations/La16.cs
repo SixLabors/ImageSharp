@@ -14,13 +14,8 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="La16"/> struct.
-/// </remarks>
-/// <param name="l">The luminance component.</param>
-/// <param name="a">The alpha component.</param>
 [StructLayout(LayoutKind.Explicit)]
-public partial struct La16(byte l, byte a) : IPixel<La16>, IPackedVector<ushort>
+public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
 {
     /// <summary>
     /// The maximum byte value.
@@ -36,13 +31,24 @@ public partial struct La16(byte l, byte a) : IPixel<La16>, IPackedVector<ushort>
     /// Gets or sets the luminance component.
     /// </summary>
     [FieldOffset(0)]
-    public byte L = l;
+    public byte L;
 
     /// <summary>
     /// Gets or sets the alpha component.
     /// </summary>
     [FieldOffset(1)]
-    public byte A = a;
+    public byte A;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="La16"/> struct.
+    /// </summary>
+    /// <param name="l">The luminance component.</param>
+    /// <param name="a">The alpha component.</param>
+    public La16(byte l, byte a)
+    {
+        this.L = l;
+        this.A = a;
+    }
 
     /// <inheritdoc/>
     public ushort PackedValue
@@ -110,7 +116,15 @@ public partial struct La16(byte l, byte a) : IPixel<La16>, IPackedVector<ushort>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static La16 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), source.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La16 FromArgb32(Argb32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), source.A);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static La16 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,10 +133,6 @@ public partial struct La16(byte l, byte a) : IPixel<La16>, IPackedVector<ushort>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static La16 FromBgra32(Bgra32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), source.A);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static La16 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B), source.A);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

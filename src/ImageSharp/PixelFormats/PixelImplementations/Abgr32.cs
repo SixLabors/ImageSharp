@@ -92,7 +92,9 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     /// <param name="a">The alpha component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Abgr32(float r, float g, float b, float a = 1)
-        : this() => Pack(r, g, b, a);
+        : this(new Vector4(r, g, b, a))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Abgr32"/> struct.
@@ -102,7 +104,9 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Abgr32(Vector3 vector)
-        : this() => Pack(vector);
+        : this(new Vector4(vector, 1f))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Abgr32"/> struct.
@@ -112,7 +116,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Abgr32(Vector4 vector)
-        : this() => Pack(vector);
+        : this() => this = Pack(vector);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Abgr32"/> struct.
@@ -170,7 +174,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B, this.A);
+    public readonly Rgba32 ToRgba32() => Rgba32.FromAbgr32(this);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,11 +208,15 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Abgr32 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
+    public static Abgr32 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Abgr32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Abgr32 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+    public static Abgr32 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

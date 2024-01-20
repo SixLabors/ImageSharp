@@ -19,40 +19,48 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// This struct is fully mutable. This is done (against the guidelines) for the sake of performance,
 /// as it avoids the need to create new values for modification operations.
 /// </remarks>
-/// <remarks>
-/// Initializes a new instance of the <see cref="RgbaVector"/> struct.
-/// </remarks>
-/// <param name="r">The red component.</param>
-/// <param name="g">The green component.</param>
-/// <param name="b">The blue component.</param>
-/// <param name="a">The alpha component.</param>
 [StructLayout(LayoutKind.Sequential)]
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-public partial struct RgbaVector(float r, float g, float b, float a = 1) : IPixel<RgbaVector>
+public partial struct RgbaVector : IPixel<RgbaVector>
 {
     /// <summary>
     /// Gets or sets the red component.
     /// </summary>
-    public float R = r;
+    public float R;
 
     /// <summary>
     /// Gets or sets the green component.
     /// </summary>
-    public float G = g;
+    public float G;
 
     /// <summary>
     /// Gets or sets the blue component.
     /// </summary>
-    public float B = b;
+    public float B;
 
     /// <summary>
     /// Gets or sets the alpha component.
     /// </summary>
-    public float A = a;
+    public float A;
 
     private const float MaxBytes = byte.MaxValue;
     private static readonly Vector4 Max = new(MaxBytes);
     private static readonly Vector4 Half = new(0.5F);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbaVector"/> struct.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    /// <param name="a">The alpha component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RgbaVector(float r, float g, float b, float a = 1)
+    {
+        this.R = r;
+        this.G = g;
+        this.B = b;
+        this.A = a;
+    }
 
     /// <summary>
     /// Compares two <see cref="RgbaVector"/> objects for equality.
@@ -75,6 +83,10 @@ public partial struct RgbaVector(float r, float g, float b, float a = 1) : IPixe
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(RgbaVector left, RgbaVector right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,6 +117,58 @@ public partial struct RgbaVector(float r, float g, float b, float a = 1) : IPixe
         source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
         return new(source.X, source.Y, source.Z, source.W);
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RgbaVector FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <summary>
     /// Creates a new instance of the <see cref="RgbaVector"/> struct.

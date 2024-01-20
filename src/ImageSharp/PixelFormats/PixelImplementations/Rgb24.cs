@@ -15,36 +15,43 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
 /// </para>
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="Rgb24"/> struct.
-/// </remarks>
-/// <param name="r">The red component.</param>
-/// <param name="g">The green component.</param>
-/// <param name="b">The blue component.</param>
 [StructLayout(LayoutKind.Explicit)]
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-public partial struct Rgb24(byte r, byte g, byte b) : IPixel<Rgb24>
+public partial struct Rgb24 : IPixel<Rgb24>
 {
     /// <summary>
     /// The red component.
     /// </summary>
     [FieldOffset(0)]
-    public byte R = r;
+    public byte R;
 
     /// <summary>
     /// The green component.
     /// </summary>
     [FieldOffset(1)]
-    public byte G = g;
+    public byte G;
 
     /// <summary>
     /// The blue component.
     /// </summary>
     [FieldOffset(2)]
-    public byte B = b;
+    public byte B;
 
     private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
     private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgb24"/> struct.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgb24(byte r, byte g, byte b)
+    {
+        this.R = r;
+        this.G = g;
+        this.B = b;
+    }
 
     /// <summary>
     /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
@@ -77,6 +84,10 @@ public partial struct Rgb24(byte r, byte g, byte b) : IPixel<Rgb24>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgb24(this);
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4() => this.ToVector4();
@@ -94,10 +105,6 @@ public partial struct Rgb24(byte r, byte g, byte b) : IPixel<Rgb24>
 
     /// <inheritdoc/>
     public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,7 +124,15 @@ public partial struct Rgb24(byte r, byte g, byte b) : IPixel<Rgb24>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb24 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb24 FromArgb32(Argb32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb24 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,10 +141,6 @@ public partial struct Rgb24(byte r, byte g, byte b) : IPixel<Rgb24>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb24 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb24 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -919,7 +919,9 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
-        int alphaBits = this.fileHeader.ImageDescriptor & 0xf;
+        // TrueColor images with 32 bits per pixel are assumed to always have 8 bit alpha channel,
+        // because some encoders do not set correctly the alpha bits in the image descriptor.
+        int alphaBits = this.IsTrueColor32BitPerPixel(this.tgaMetadata.BitsPerPixel) ? 8 : this.fileHeader.ImageDescriptor & 0xf;
         if (alphaBits is not 0 and not 1 and not 8)
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Invalid alpha channel bits");
@@ -931,4 +933,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         // Bits 4 and 5 describe the image origin.
         return (TgaImageOrigin)((this.fileHeader.ImageDescriptor & 0x30) >> 4);
     }
+
+    private bool IsTrueColor32BitPerPixel(TgaBitsPerPixel bitsPerPixel) => bitsPerPixel == TgaBitsPerPixel.Pixel32 &&
+                                                                           (this.fileHeader.ImageType == TgaImageType.TrueColor ||
+                                                                            this.fileHeader.ImageType == TgaImageType.RleTrueColor);
 }

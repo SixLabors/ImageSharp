@@ -1216,7 +1216,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
                 for (int i = 0; i < count; i++)
                 {
-                    Assert.Equal((IPixel)expected[i], (IPixel)actual[i], comparer);
+                    Assert.Equal(((IPixel)expected[i]).ToScaledVector4(), ((IPixel)actual[i]).ToScaledVector4(), comparer);
                 }
             }
             else
@@ -1231,7 +1231,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             }
         }
 
-        // TODO: We really need a PixelTypeInfo.BitsPerComponent property!!
+        // TODO: Figure out a means to use PixelTypeInfo here.
         private static bool IsComplexPixel() => default(TDest) switch
         {
             HalfSingle or HalfVector2 or L16 or La32 or NormalizedShort2 or Rg32 or Short2 => true,

@@ -8,9 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Issues;
 
 public class Issue594
 {
-    // This test fails for unknown reason in Release mode on linux and is meant to help reproducing the issue
-    // see https://github.com/SixLabors/ImageSharp/issues/594
-    [Fact] // (Skip = "Skipped because of issue #594")]
+    [Fact]
     public void NormalizedByte4Test()
     {
         // Test PackedValue
@@ -50,9 +48,7 @@ public class Issue594
         Assert.Equal(958796544U, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
     }
 
-    // This test fails for unknown reason in Release mode on linux and is meant to help reproducing the issue
-    // see https://github.com/SixLabors/ImageSharp/issues/594
-    [Fact] //(Skip = "Skipped because of issue #594")]
+    [Fact]
     public void NormalizedShort4Test()
     {
         // Test PackedValue
@@ -87,9 +83,7 @@ public class Issue594
         Assert.Equal(4150390751449251866UL, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
     }
 
-    // This test fails for unknown reason in Release mode on linux and is meant to help reproducing the issue
-    // see https://github.com/SixLabors/ImageSharp/issues/594
-    [Fact] // (Skip = "Skipped because of issue #594")]
+    [Fact]
     public void Short4Test()
     {
         // Test the limits.

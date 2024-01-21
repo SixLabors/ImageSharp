@@ -22,13 +22,6 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     PixelOperations<TSelf> CreatePixelOperations();
 
 #pragma warning disable CA1000 // Do not declare static members on generic types
-
-    /// <summary>
-    /// Gets the pixel type information.
-    /// </summary>
-    /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
-    static abstract PixelTypeInfo GetPixelTypeInfo();
-
     /// <summary>
     /// Initializes the pixel instance from a generic scaled <see cref="Vector4"/>.
     /// </summary>
@@ -141,6 +134,12 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
 /// </summary>
 public interface IPixel
 {
+    /// <summary>
+    /// Gets the pixel type information.
+    /// </summary>
+    /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
+    static abstract PixelTypeInfo GetPixelTypeInfo();
+
     /// <summary>
     /// Convert the pixel instance into <see cref="Rgba32"/> representation.
     /// </summary>

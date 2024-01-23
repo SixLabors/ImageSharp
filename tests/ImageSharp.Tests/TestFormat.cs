@@ -275,7 +275,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
                 PixelColorType.Red | PixelColorType.Green,
                 PixelAlphaRepresentation.None);
 
-        public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
+        public static PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
 
         public static TestPixelForAgnosticDecode FromScaledVector4(Vector4 vector) => default;
 

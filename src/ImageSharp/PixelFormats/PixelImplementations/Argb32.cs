@@ -185,7 +185,7 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

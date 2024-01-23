@@ -101,7 +101,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
-    public readonly PixelOperations<La32> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<La32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

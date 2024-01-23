@@ -77,7 +77,7 @@ public partial struct L8 : IPixel<L8>, IPackedVector<byte>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<L8> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<L8> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

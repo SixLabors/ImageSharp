@@ -82,7 +82,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

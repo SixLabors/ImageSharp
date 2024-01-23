@@ -93,7 +93,7 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

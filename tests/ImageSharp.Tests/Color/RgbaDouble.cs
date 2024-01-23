@@ -104,7 +104,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<RgbaDouble> CreatePixelOperations() => new();
+    public static PixelOperations<RgbaDouble> CreatePixelOperations() => new();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

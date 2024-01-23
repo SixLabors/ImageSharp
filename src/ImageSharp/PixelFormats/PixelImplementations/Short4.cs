@@ -97,7 +97,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

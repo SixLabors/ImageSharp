@@ -104,7 +104,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc/>
-    public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

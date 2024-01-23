@@ -86,7 +86,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -192,7 +192,7 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

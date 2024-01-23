@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public partial class PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(() => default(TPixel).CreatePixelOperations(), true);
+    private static readonly Lazy<PixelOperations<TPixel>> LazyInstance = new(TPixel.CreatePixelOperations, true);
 
     /// <summary>
     /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>

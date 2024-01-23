@@ -75,7 +75,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

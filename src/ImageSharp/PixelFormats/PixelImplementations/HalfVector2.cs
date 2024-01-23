@@ -82,7 +82,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<HalfVector2> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<HalfVector2> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

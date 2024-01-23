@@ -90,7 +90,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

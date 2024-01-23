@@ -86,7 +86,7 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

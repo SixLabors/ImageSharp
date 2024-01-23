@@ -14,14 +14,14 @@ namespace SixLabors.ImageSharp.PixelFormats;
 public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     where TSelf : unmanaged, IPixel<TSelf>
 {
+#pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>
     /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.
     /// This method is not intended to be consumed directly. Use <see cref="PixelOperations{TPixel}.Instance"/> instead.
     /// </summary>
     /// <returns>The <see cref="PixelOperations{TPixel}"/> instance.</returns>
-    PixelOperations<TSelf> CreatePixelOperations();
+    static abstract PixelOperations<TSelf> CreatePixelOperations();
 
-#pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>
     /// Initializes the pixel instance from a generic scaled <see cref="Vector4"/>.
     /// </summary>

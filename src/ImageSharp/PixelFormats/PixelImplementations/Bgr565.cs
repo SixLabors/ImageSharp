@@ -73,7 +73,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc />
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());

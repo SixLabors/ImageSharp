@@ -84,7 +84,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

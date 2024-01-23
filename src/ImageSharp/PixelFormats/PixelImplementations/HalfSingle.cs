@@ -70,7 +70,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public readonly PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

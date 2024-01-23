@@ -523,7 +523,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <param name="markerContentByteSize">The remaining bytes in the segment block.</param>
     private void ProcessComMarker(BufferedReadStream stream, int markerContentByteSize)
     {
-        Span<byte> temp = stackalloc byte[markerContentByteSize];
+        Span<byte> temp = new byte[markerContentByteSize];
         char[] chars = new char[markerContentByteSize];
         JpegMetadata metadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
 

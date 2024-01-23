@@ -137,7 +137,7 @@ public partial class JpegEncoderTests
     [MemberData(nameof(QualityFiles))]
     public void Encode_PreservesQuality(string imagePath, int quality)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
             using (var memStream = new MemoryStream())
@@ -160,7 +160,7 @@ public partial class JpegEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        using var input = provider.GetImage(JpegDecoder.Instance);
+        using Image<TPixel> input = provider.GetImage(JpegDecoder.Instance);
         using var memStream = new MemoryStream();
 
         // act
@@ -168,7 +168,7 @@ public partial class JpegEncoderTests
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
         Assert.Equal(1, actual.Comments.Count);
@@ -190,7 +190,7 @@ public partial class JpegEncoderTests
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
         Assert.Equal(2, actual.Comments?.Count);

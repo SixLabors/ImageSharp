@@ -185,7 +185,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // Length (comment strings lengths) + (comments markers with payload sizes)
         int commentsBytes = metadata.Comments.Sum(x => x.Length) + (metadata.Comments.Count * 4);
         int commentStart = 0;
-        Span<byte> commentBuffer = stackalloc byte[commentsBytes];
+        Span<byte> commentBuffer = new byte[commentsBytes];
 
         foreach (Memory<char> comment in metadata.Comments)
         {

@@ -177,39 +177,46 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="metadata">The image metadata.</param>
     private void WriteComment(JpegMetadata metadata)
     {
-        if (metadata.Comments is { Count: 0 })
+        int maxCommentLength = 65533;
+
+        if (metadata.Comments.Count == 0)
         {
             return;
         }
 
-        // Length (comment strings lengths) + (comments markers with payload sizes)
-        int commentsBytes = metadata.Comments.Sum(x => x.Length) + (metadata.Comments.Count * 4);
-        int commentStart = 0;
-        Span<byte> commentBuffer = new byte[commentsBytes];
-
-        foreach (Memory<char> comment in metadata.Comments)
+        for (int i = 0; i < metadata.Comments.Count; i++)
         {
-            int totalComLength = comment.Length + 4;
+            Memory<char> chars = metadata.Comments[i];
 
-            Span<byte> commentData = commentBuffer.Slice(commentStart, totalComLength);
-            Span<byte> markers = commentData.Slice(0, 2);
-            Span<byte> payloadSize = commentData.Slice(2, 2);
-            Span<byte> payload = commentData.Slice(4, comment.Length);
+            if (chars.Length > maxCommentLength)
+            {
+                Memory<char> splitComment = chars.Slice(maxCommentLength, chars.Length - maxCommentLength);
+                metadata.Comments.Insert(i + 1, splitComment);
+
+                // We don't want to keep the extra bytes
+                chars = chars.Slice(0, maxCommentLength);
+            }
+
+            int commentLength = chars.Length + 4;
+
+            Span<byte> comment = new byte[commentLength];
+            Span<byte> markers = comment.Slice(0, 2);
+            Span<byte> payloadSize = comment.Slice(2, 2);
+            Span<byte> payload = comment.Slice(4, chars.Length);
 
             // Beginning of comment ff fe
             markers[0] = JpegConstants.Markers.XFF;
             markers[1] = JpegConstants.Markers.COM;
 
             // Write payload size
-            BinaryPrimitives.WriteInt16BigEndian(payloadSize, (short)(commentData.Length - 2));
+            int comWithoutMarker = commentLength - 2;
+            payloadSize[0] = (byte)((comWithoutMarker >> 8) & 0xFF);
+            payloadSize[1] = (byte)(comWithoutMarker & 0xFF);
 
-            Encoding.ASCII.GetBytes(comment.Span, payload);
+            Encoding.ASCII.GetBytes(chars.Span, payload);
 
-            // Indicate begin of next comment in buffer
-            commentStart += totalComLength;
+            this.outputStream.Write(comment, 0, comment.Length);
         }
-
-        this.outputStream.Write(commentBuffer, 0, commentBuffer.Length);
     }
 
     /// <summary>

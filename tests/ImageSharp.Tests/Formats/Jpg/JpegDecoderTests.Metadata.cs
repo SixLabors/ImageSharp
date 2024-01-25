@@ -434,8 +434,8 @@ public partial class JpegDecoderTests
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         JpegMetadata metadata = image.Metadata.GetJpegMetadata();
 
-        Assert.Equal(1, metadata.Comments?.Count);
-        Assert.Equal(expectedComment, metadata.GetComment(0));
+        Assert.Equal(1, metadata.Comments.Count);
+        Assert.Equal(expectedComment.ToCharArray(), metadata.Comments.ElementAtOrDefault(0));
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }

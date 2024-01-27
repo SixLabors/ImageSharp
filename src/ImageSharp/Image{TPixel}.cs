@@ -77,7 +77,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="metadata">The images metadata.</param>
     internal Image(Configuration configuration, int width, int height, ImageMetadata? metadata)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new(), width, height)
+        : base(configuration, Extensions.GetPixelTypeInfo<TPixel>(), metadata ?? new(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
     /// <summary>
@@ -110,7 +110,7 @@ public sealed class Image<TPixel> : Image
         int width,
         int height,
         ImageMetadata metadata)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata, width, height)
+        : base(configuration, Extensions.GetPixelTypeInfo<TPixel>(), metadata, width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
 
     /// <summary>
@@ -128,7 +128,7 @@ public sealed class Image<TPixel> : Image
         int height,
         TPixel backgroundColor,
         ImageMetadata? metadata)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new(), width, height)
+        : base(configuration, Extensions.GetPixelTypeInfo<TPixel>(), metadata ?? new(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 
     /// <summary>
@@ -139,7 +139,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="metadata">The images metadata.</param>
     /// <param name="frames">The frames that will be owned by this image instance.</param>
     internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata, ValidateFramesAndGetSize(frames))
+        : base(configuration, Extensions.GetPixelTypeInfo<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
         => this.frames = new ImageFrameCollection<TPixel>(this, frames);
 
     /// <inheritdoc />

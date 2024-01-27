@@ -78,6 +78,11 @@ public partial struct Bgr24 : IPixel<Bgr24>
             PixelColorType.BGR,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Bgr24>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc/>
     public readonly PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();
 

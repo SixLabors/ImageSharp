@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class YCbCrAvx : JpegColorConverterAvx
     {
         public YCbCrAvx(int precision)
@@ -44,9 +45,9 @@ internal abstract partial class JpegColorConverterBase
                 // y = yVals[i];
                 // cb = cbVals[i] - 128F;
                 // cr = crVals[i] - 128F;
-                ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                ref Vector256<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
+                ref Vector256<float> c0 = ref Extensions.UnsafeAdd(ref c0Base, i);
+                ref Vector256<float> c1 = ref Extensions.UnsafeAdd(ref c1Base, i);
+                ref Vector256<float> c2 = ref Extensions.UnsafeAdd(ref c2Base, i);
 
                 Vector256<float> y = c0;
                 Vector256<float> cb = Avx.Add(c1, chromaOffset);
@@ -101,9 +102,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector256<float> r = Unsafe.Add(ref srcR, i);
-                Vector256<float> g = Unsafe.Add(ref srcG, i);
-                Vector256<float> b = Unsafe.Add(ref srcB, i);
+                Vector256<float> r = Extensions.UnsafeAdd(ref srcR, i);
+                Vector256<float> g = Extensions.UnsafeAdd(ref srcG, i);
+                Vector256<float> b = Extensions.UnsafeAdd(ref srcB, i);
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
@@ -112,10 +113,11 @@ internal abstract partial class JpegColorConverterBase
                 Vector256<float> cb = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
                 Vector256<float> cr = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
 
-                Unsafe.Add(ref destY, i) = y;
-                Unsafe.Add(ref destCb, i) = cb;
-                Unsafe.Add(ref destCr, i) = cr;
+                Extensions.UnsafeAdd(ref destY, i) = y;
+                Extensions.UnsafeAdd(ref destCb, i) = cb;
+                Extensions.UnsafeAdd(ref destCr, i) = cr;
             }
         }
     }
+#endif
 }

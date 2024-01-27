@@ -212,8 +212,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref L8 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref L8 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -233,8 +233,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref L16 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref L16 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -254,8 +254,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref La16 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref La16 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -275,8 +275,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref La32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref La32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -296,8 +296,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Rgb48 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Rgb48 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -317,8 +317,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Rgba64 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }
@@ -338,8 +338,8 @@ public partial struct Abgr32
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Abgr32 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);
+                ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Bgra5551 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromAbgr32(sp);
             }

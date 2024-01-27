@@ -66,9 +66,9 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
         if (horizontalScale == 2 && verticalScale == 2)
         {
             destRef = value;
-            Unsafe.Add(ref destRef, 1) = value;
-            Unsafe.Add(ref destRef, 0 + (uint)destStrideWidth) = value;
-            Unsafe.Add(ref destRef, 1 + (uint)destStrideWidth) = value;
+            Extensions.UnsafeAdd(ref destRef, 1) = value;
+            Extensions.UnsafeAdd(ref destRef, 0 + (uint)destStrideWidth) = value;
+            Extensions.UnsafeAdd(ref destRef, 1 + (uint)destStrideWidth) = value;
             return;
         }
 
@@ -77,10 +77,10 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
         {
             for (nuint x = 0; x < (uint)horizontalScale; x++)
             {
-                Unsafe.Add(ref destRef, x) = value;
+                Extensions.UnsafeAdd(ref destRef, x) = value;
             }
 
-            destRef = ref Unsafe.Add(ref destRef, (uint)destStrideWidth);
+            destRef = ref Extensions.UnsafeAdd(ref destRef, (uint)destStrideWidth);
         }
     }
 }

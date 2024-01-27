@@ -64,6 +64,11 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
             PixelColorType.Red | PixelColorType.Green,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Rg32>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations();
 

@@ -174,6 +174,11 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
             PixelColorType.Alpha | PixelColorType.RGB,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Argb32>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
 

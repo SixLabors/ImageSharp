@@ -21,11 +21,13 @@ internal static partial class SimdUtils
         DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
         DebugGuard.IsTrue(destination.Length > redChannel.Length + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
         }
         else
+#endif
         {
             PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
         }
@@ -44,11 +46,13 @@ internal static partial class SimdUtils
         DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
         DebugGuard.IsTrue(destination.Length > redChannel.Length, nameof(destination), "'destination' span should not be shorter than the source channels!");
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
         }
         else
+#endif
         {
             PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
         }
@@ -67,10 +71,12 @@ internal static partial class SimdUtils
         DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
         DebugGuard.IsTrue(source.Length <= redChannel.Length, nameof(source), "'source' span should not be bigger than the destination channels!");
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             HwIntrinsics.UnpackToRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref source);
         }
+#endif
 
         UnpackToRgbPlanesScalar(redChannel, greenChannel, blueChannel, source);
     }
@@ -89,14 +95,14 @@ internal static partial class SimdUtils
         nuint count = (uint)redChannel.Length / 4;
         for (nuint i = 0; i < count; i++)
         {
-            ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 4);
-            ref Rgb24 d1 = ref Unsafe.Add(ref d0, 1);
-            ref Rgb24 d2 = ref Unsafe.Add(ref d0, 2);
-            ref Rgb24 d3 = ref Unsafe.Add(ref d0, 3);
+            ref Rgb24 d0 = ref Extensions.UnsafeAdd(ref rgb, i * 4);
+            ref Rgb24 d1 = ref Extensions.UnsafeAdd(ref d0, 1);
+            ref Rgb24 d2 = ref Extensions.UnsafeAdd(ref d0, 2);
+            ref Rgb24 d3 = ref Extensions.UnsafeAdd(ref d0, 3);
 
-            ref ByteTuple4 rr = ref Unsafe.Add(ref r, i);
-            ref ByteTuple4 gg = ref Unsafe.Add(ref g, i);
-            ref ByteTuple4 bb = ref Unsafe.Add(ref b, i);
+            ref ByteTuple4 rr = ref Extensions.UnsafeAdd(ref r, i);
+            ref ByteTuple4 gg = ref Extensions.UnsafeAdd(ref g, i);
+            ref ByteTuple4 bb = ref Extensions.UnsafeAdd(ref b, i);
 
             d0.R = rr.V0;
             d0.G = gg.V0;
@@ -137,14 +143,14 @@ internal static partial class SimdUtils
         destination.Fill(new Rgba32(0, 0, 0, 255));
         for (nuint i = 0; i < count; i++)
         {
-            ref Rgba32 d0 = ref Unsafe.Add(ref rgb, i * 4);
-            ref Rgba32 d1 = ref Unsafe.Add(ref d0, 1);
-            ref Rgba32 d2 = ref Unsafe.Add(ref d0, 2);
-            ref Rgba32 d3 = ref Unsafe.Add(ref d0, 3);
+            ref Rgba32 d0 = ref Extensions.UnsafeAdd(ref rgb, i * 4);
+            ref Rgba32 d1 = ref Extensions.UnsafeAdd(ref d0, 1);
+            ref Rgba32 d2 = ref Extensions.UnsafeAdd(ref d0, 2);
+            ref Rgba32 d3 = ref Extensions.UnsafeAdd(ref d0, 3);
 
-            ref ByteTuple4 rr = ref Unsafe.Add(ref r, i);
-            ref ByteTuple4 gg = ref Unsafe.Add(ref g, i);
-            ref ByteTuple4 bb = ref Unsafe.Add(ref b, i);
+            ref ByteTuple4 rr = ref Extensions.UnsafeAdd(ref r, i);
+            ref ByteTuple4 gg = ref Extensions.UnsafeAdd(ref g, i);
+            ref ByteTuple4 bb = ref Extensions.UnsafeAdd(ref b, i);
 
             d0.R = rr.V0;
             d0.G = gg.V0;
@@ -183,10 +189,10 @@ internal static partial class SimdUtils
 
         for (nuint i = 0; i < (uint)destination.Length; i++)
         {
-            ref Rgb24 d = ref Unsafe.Add(ref rgb, i);
-            d.R = Unsafe.Add(ref r, i);
-            d.G = Unsafe.Add(ref g, i);
-            d.B = Unsafe.Add(ref b, i);
+            ref Rgb24 d = ref Extensions.UnsafeAdd(ref rgb, i);
+            d.R = Extensions.UnsafeAdd(ref r, i);
+            d.G = Extensions.UnsafeAdd(ref g, i);
+            d.B = Extensions.UnsafeAdd(ref b, i);
         }
     }
 
@@ -203,10 +209,10 @@ internal static partial class SimdUtils
 
         for (nuint i = 0; i < (uint)destination.Length; i++)
         {
-            ref Rgba32 d = ref Unsafe.Add(ref rgba, i);
-            d.R = Unsafe.Add(ref r, i);
-            d.G = Unsafe.Add(ref g, i);
-            d.B = Unsafe.Add(ref b, i);
+            ref Rgba32 d = ref Extensions.UnsafeAdd(ref rgba, i);
+            d.R = Extensions.UnsafeAdd(ref r, i);
+            d.G = Extensions.UnsafeAdd(ref g, i);
+            d.B = Extensions.UnsafeAdd(ref b, i);
             d.A = 255;
         }
     }
@@ -228,10 +234,10 @@ internal static partial class SimdUtils
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgb24 src = ref Unsafe.Add(ref rgb, i);
-            Unsafe.Add(ref r, i) = src.R;
-            Unsafe.Add(ref g, i) = src.G;
-            Unsafe.Add(ref b, i) = src.B;
+            ref Rgb24 src = ref Extensions.UnsafeAdd(ref rgb, i);
+            Extensions.UnsafeAdd(ref r, i) = src.R;
+            Extensions.UnsafeAdd(ref g, i) = src.G;
+            Extensions.UnsafeAdd(ref b, i) = src.B;
         }
     }
 }

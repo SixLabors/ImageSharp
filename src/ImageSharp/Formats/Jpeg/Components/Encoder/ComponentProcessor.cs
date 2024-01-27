@@ -117,6 +117,7 @@ internal class ComponentProcessor : IDisposable
 
         static void SumVertical(Span<float> target, Span<float> source)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx.IsSupported)
             {
                 ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
@@ -127,7 +128,7 @@ internal class ComponentProcessor : IDisposable
                 nuint count = source.Vector256Count<float>();
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) = Avx.Add(Extensions.UnsafeAdd(ref targetVectorRef, i), Extensions.UnsafeAdd(ref sourceVectorRef, i));
                 }
             }
             else if (AdvSimd.IsSupported)
@@ -140,10 +141,11 @@ internal class ComponentProcessor : IDisposable
                 nuint count = source.Vector128Count<float>();
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) = AdvSimd.Add(Extensions.UnsafeAdd(ref targetVectorRef, i), Extensions.UnsafeAdd(ref sourceVectorRef, i));
                 }
             }
             else
+#endif
             {
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
                 ref Vector<float> sourceVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
@@ -151,14 +153,14 @@ internal class ComponentProcessor : IDisposable
                 nuint count = source.VectorCount<float>();
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) += Unsafe.Add(ref sourceVectorRef, i);
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) += Extensions.UnsafeAdd(ref sourceVectorRef, i);
                 }
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
                 ref float sourceRef = ref MemoryMarshal.GetReference(source);
                 for (nuint i = count * (uint)Vector<float>.Count; i < (uint)source.Length; i++)
                 {
-                    Unsafe.Add(ref targetRef, i) += Unsafe.Add(ref sourceRef, i);
+                    Extensions.UnsafeAdd(ref targetRef, i) += Extensions.UnsafeAdd(ref sourceRef, i);
                 }
             }
         }
@@ -166,6 +168,7 @@ internal class ComponentProcessor : IDisposable
         static void SumHorizontal(Span<float> target, int factor)
         {
             Span<float> source = target;
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported)
             {
                 ref Vector256<float> targetRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
@@ -191,11 +194,12 @@ internal class ComponentProcessor : IDisposable
                     {
                         nuint indexLeft = j * 2;
                         nuint indexRight = indexLeft + 1;
-                        Vector256<float> sum = Avx.HorizontalAdd(Unsafe.Add(ref targetRef, indexLeft), Unsafe.Add(ref targetRef, indexRight));
-                        Unsafe.Add(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
+                        Vector256<float> sum = Avx.HorizontalAdd(Extensions.UnsafeAdd(ref targetRef, indexLeft), Extensions.UnsafeAdd(ref targetRef, indexRight));
+                        Extensions.UnsafeAdd(ref targetRef, j) = Avx2.Permute4x64(sum.AsDouble(), 0b11_01_10_00).AsSingle();
                     }
                 }
             }
+#endif
 
             // scalar remainder
             for (int i = 0; i < source.Length / factor; i++)
@@ -210,6 +214,7 @@ internal class ComponentProcessor : IDisposable
 
         static void MultiplyToAverage(Span<float> target, float multiplier)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx.IsSupported)
             {
                 ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
@@ -220,7 +225,7 @@ internal class ComponentProcessor : IDisposable
                 Vector256<float> multiplierVector = Vector256.Create(multiplier);
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) = Avx.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) = Avx.Multiply(Extensions.UnsafeAdd(ref targetVectorRef, i), multiplierVector);
                 }
             }
             else if (AdvSimd.IsSupported)
@@ -233,10 +238,11 @@ internal class ComponentProcessor : IDisposable
                 Vector128<float> multiplierVector = Vector128.Create(multiplier);
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) = AdvSimd.Multiply(Extensions.UnsafeAdd(ref targetVectorRef, i), multiplierVector);
                 }
             }
             else
+#endif
             {
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
 
@@ -244,13 +250,13 @@ internal class ComponentProcessor : IDisposable
                 var multiplierVector = new Vector<float>(multiplier);
                 for (nuint i = 0; i < count; i++)
                 {
-                    Unsafe.Add(ref targetVectorRef, i) *= multiplierVector;
+                    Extensions.UnsafeAdd(ref targetVectorRef, i) *= multiplierVector;
                 }
 
                 ref float targetRef = ref MemoryMarshal.GetReference(target);
                 for (nuint i = count * (uint)Vector<float>.Count; i < (uint)target.Length; i++)
                 {
-                    Unsafe.Add(ref targetRef, i) *= multiplier;
+                    Extensions.UnsafeAdd(ref targetRef, i) *= multiplier;
                 }
             }
         }

@@ -252,20 +252,20 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
             {
                 ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
                 ref T e0 = ref Unsafe.As<byte, T>(ref b0);
-                e0 = ref Unsafe.Add(ref e0, (uint)(y * width));
-                return MemoryMarshal.CreateSpan(ref e0, width);
+                e0 = ref Extensions.UnsafeAdd(ref e0, (uint)(y * width));
+                return new Span<T>(Unsafe.AsPointer(ref e0), width * Unsafe.SizeOf<T>());
             }
 
             case SpanCacheMode.SinglePointer:
             {
-                void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.SinglePointer, y * width);
+                void* start = Extensions.UnsafeAdd<T>(this.memoryGroupSpanCache.SinglePointer, y * width);
                 return new Span<T>(start, width);
             }
 
             case SpanCacheMode.MultiPointer:
             {
                 this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
-                void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.MultiPointer[bufferIdx], bufferStart);
+                void* start = Extensions.UnsafeAdd<T>(this.memoryGroupSpanCache.MultiPointer[bufferIdx], bufferStart);
                 return new Span<T>(start, width);
             }
 

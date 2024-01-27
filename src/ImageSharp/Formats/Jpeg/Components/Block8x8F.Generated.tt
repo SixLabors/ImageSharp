@@ -92,7 +92,7 @@ internal partial struct Block8x8F
                 char srcCoord = coordz[j % 4];
                 char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
 
-                var expression = $"this.V{j}{destSide}.{destCoord} =  Unsafe.Add(ref selfRef, {j*8+i});\r\n";
+                var expression = $"this.V{j}{destSide}.{destCoord} =  Extensions.UnsafeAdd(ref selfRef, {j*8+i});\r\n";
 				Write(expression);
 
             }

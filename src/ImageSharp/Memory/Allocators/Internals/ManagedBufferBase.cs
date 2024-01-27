@@ -24,7 +24,7 @@ internal abstract class ManagedBufferBase<T> : MemoryManager<T>
             this.pinHandle = GCHandle.Alloc(this.GetPinnableObject(), GCHandleType.Pinned);
         }
 
-        void* ptr = Unsafe.Add<T>((void*)this.pinHandle.AddrOfPinnedObject(), elementIndex);
+        void* ptr = Extensions.UnsafeAdd<T>((void*)this.pinHandle.AddrOfPinnedObject(), elementIndex);
 
         // We should only pass pinnable:this, when GCHandle lifetime is managed by the MemoryManager<T> instance.
         return new MemoryHandle(ptr, pinnable: this);

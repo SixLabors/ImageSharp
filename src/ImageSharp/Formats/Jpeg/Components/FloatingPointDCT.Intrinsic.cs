@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal static partial class FloatingPointDCT
 {
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Apply floating point FDCT inplace using simd operations.
     /// </summary>
@@ -139,4 +140,5 @@ internal static partial class FloatingPointDCT
             block.V4 = Avx.Subtract(tmp3, tmp4);
         }
     }
+#endif
 }

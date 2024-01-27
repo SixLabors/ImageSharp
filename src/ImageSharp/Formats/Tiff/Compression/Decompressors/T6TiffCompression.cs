@@ -80,7 +80,7 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
         ref byte scanLineRef = ref MemoryMarshal.GetReference(scanLine);
         for (nuint i = 0; i < (uint)scanLine.Length; i++)
         {
-            if (Unsafe.Add(ref scanLineRef, i) != this.white)
+            if (Extensions.UnsafeAdd(ref scanLineRef, i) != this.white)
             {
                 BitWriterUtils.WriteBit(buffer, bufferPos, bitPos);
             }

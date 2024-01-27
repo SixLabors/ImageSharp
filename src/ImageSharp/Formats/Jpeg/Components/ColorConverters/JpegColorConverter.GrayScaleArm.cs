@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class GrayscaleArm : JpegColorConverterArm
     {
         public GrayscaleArm(int precision)
@@ -30,7 +31,7 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector128<float> c0 = ref Unsafe.Add(ref c0Base, i);
+                ref Vector128<float> c0 = ref Extensions.UnsafeAdd(ref c0Base, i);
                 c0 = AdvSimd.Multiply(c0, scale);
             }
         }
@@ -56,13 +57,14 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector128<float> r = ref Unsafe.Add(ref srcRed, i);
-                ref Vector128<float> g = ref Unsafe.Add(ref srcGreen, i);
-                ref Vector128<float> b = ref Unsafe.Add(ref srcBlue, i);
+                ref Vector128<float> r = ref Extensions.UnsafeAdd(ref srcRed, i);
+                ref Vector128<float> g = ref Extensions.UnsafeAdd(ref srcGreen, i);
+                ref Vector128<float> b = ref Extensions.UnsafeAdd(ref srcBlue, i);
 
                 // luminocity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                Unsafe.Add(ref destLuminance, i) = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(AdvSimd.Multiply(f0114, b), f0587, g), f0299, r);
+                Extensions.UnsafeAdd(ref destLuminance, i) = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(AdvSimd.Multiply(f0114, b), f0587, g), f0299, r);
             }
         }
     }
+#endif
 }

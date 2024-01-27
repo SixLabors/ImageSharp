@@ -64,6 +64,11 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
             PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<HalfVector4>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<HalfVector4> CreatePixelOperations() => new PixelOperations();
 

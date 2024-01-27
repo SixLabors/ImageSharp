@@ -277,6 +277,11 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
             PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Rgba32>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 

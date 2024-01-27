@@ -42,7 +42,7 @@ internal static class ScaledFloatingPointDCT
         ref float tableRef = ref Unsafe.As<Block8x8F, float>(ref quantTable);
         for (nuint i = 0; i < Block8x8F.Size; i++)
         {
-            ref float elemRef = ref Unsafe.Add(ref tableRef, i);
+            ref float elemRef = ref Extensions.UnsafeAdd(ref tableRef, i);
             elemRef = 0.125f * elemRef;
         }
 

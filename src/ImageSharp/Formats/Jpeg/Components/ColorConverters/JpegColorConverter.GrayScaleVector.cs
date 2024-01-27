@@ -27,7 +27,7 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector<float> c0 = ref Unsafe.Add(ref cBase, i);
+                ref Vector<float> c0 = ref Extensions.UnsafeAdd(ref cBase, i);
                 c0 *= scale;
             }
         }
@@ -56,12 +56,12 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector<float> r = Unsafe.Add(ref srcR, i);
-                Vector<float> g = Unsafe.Add(ref srcR, i);
-                Vector<float> b = Unsafe.Add(ref srcR, i);
+                Vector<float> r = Extensions.UnsafeAdd(ref srcR, i);
+                Vector<float> g = Extensions.UnsafeAdd(ref srcR, i);
+                Vector<float> b = Extensions.UnsafeAdd(ref srcR, i);
 
                 // luminocity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                Unsafe.Add(ref destLuma, i) = (rMult * r) + (gMult * g) + (bMult * b);
+                Extensions.UnsafeAdd(ref destLuma, i) = (rMult * r) + (gMult * g) + (bMult * b);
             }
         }
 

@@ -24,8 +24,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Argb32 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromArgb32(sp);
         }
@@ -60,8 +60,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Argb32 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -96,8 +96,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Abgr32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Abgr32 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromAbgr32(sp);
         }
@@ -132,8 +132,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Abgr32 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Abgr32 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -168,8 +168,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Bgr24 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromBgr24(sp);
         }
@@ -204,8 +204,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Bgr24 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -240,8 +240,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Bgra32 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromBgra32(sp);
         }
@@ -276,8 +276,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Bgra32 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -312,8 +312,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref L8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref L8 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromL8(sp);
         }
@@ -348,8 +348,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref L8 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -384,8 +384,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref L16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref L16 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromL16(sp);
         }
@@ -420,8 +420,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref L16 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -456,8 +456,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref La16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref La16 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromLa16(sp);
         }
@@ -492,8 +492,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref La16 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref La16 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -528,8 +528,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref La32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref La32 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromLa32(sp);
         }
@@ -564,8 +564,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref La32 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref La32 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -600,8 +600,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Rgb24 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromRgb24(sp);
         }
@@ -636,8 +636,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Rgb24 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -672,8 +672,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Rgba32 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromRgba32(sp);
         }
@@ -708,8 +708,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Rgba32 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -744,8 +744,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromRgb48(sp);
         }
@@ -780,8 +780,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Rgb48 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -816,8 +816,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Rgba64 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromRgba64(sp);
         }
@@ -852,8 +852,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Rgba64 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }
@@ -888,8 +888,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgra5551 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref Bgra5551 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromBgra5551(sp);
         }
@@ -924,8 +924,8 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgra5551 dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref Bgra5551 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }

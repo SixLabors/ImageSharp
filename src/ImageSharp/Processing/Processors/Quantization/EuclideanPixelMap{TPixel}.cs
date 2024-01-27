@@ -55,7 +55,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
 
         this.transparentIndex = transparentIndex;
-        Unsafe.SkipInit(out this.transparentMatch);
+        Extensions.UnsafeSkipInit(out this.transparentMatch);
         this.transparentMatch.FromRgba32(default);
     }
 
@@ -76,7 +76,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     public int GetClosestColor(TPixel color, out TPixel match)
     {
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.Palette.Span);
-        Unsafe.SkipInit(out Rgba32 rgba);
+        Extensions.UnsafeSkipInit(out Rgba32 rgba);
         color.ToRgba32(ref rgba);
 
         // Check if the color is in the lookup table
@@ -85,7 +85,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
             return this.GetClosestColorSlow(rgba, ref paletteRef, out match);
         }
 
-        match = Unsafe.Add(ref paletteRef, (ushort)index);
+        match = Extensions.UnsafeAdd(ref paletteRef, (ushort)index);
         return index;
     }
 
@@ -154,7 +154,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
 
         // Now I have the index, pop it into the cache for next time
         this.cache.Add(rgba, (byte)index);
-        match = Unsafe.Add(ref paletteRef, (uint)index);
+        match = Extensions.UnsafeAdd(ref paletteRef, (uint)index);
         return index;
     }
 

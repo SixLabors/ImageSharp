@@ -51,7 +51,7 @@ internal static unsafe class LosslessUtils
         ref uint array1Ref = ref MemoryMarshal.GetReference(array1);
         ref uint array2Ref = ref MemoryMarshal.GetReference(array2);
 
-        while (matchLen < length && Unsafe.Add(ref array1Ref, (uint)matchLen) == Unsafe.Add(ref array2Ref, (uint)matchLen))
+        while (matchLen < length && Extensions.UnsafeAdd(ref array1Ref, matchLen) == Extensions.UnsafeAdd(ref array2Ref, matchLen))
         {
             matchLen++;
         }
@@ -94,6 +94,7 @@ internal static unsafe class LosslessUtils
     /// <param name="pixelData">The pixel data to apply the transformation.</param>
     public static void AddGreenToBlueAndRed(Span<uint> pixelData)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && pixelData.Length >= 8)
         {
             Vector256<byte> addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
@@ -101,7 +102,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
                 Vector256<byte> in0g0g = Avx2.Shuffle(input, addGreenToBlueAndRedMaskAvx2);
                 Vector256<byte> output = Avx2.Add(input, in0g0g);
@@ -122,7 +123,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                 Vector128<byte> in0g0g = Ssse3.Shuffle(input, addGreenToBlueAndRedMaskSsse3);
                 Vector128<byte> output = Sse2.Add(input, in0g0g);
@@ -142,7 +143,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                 Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                 Vector128<ushort> b = Sse2.ShuffleLow(a, SimdUtils.Shuffle.MMShuffle2200);
@@ -159,6 +160,7 @@ internal static unsafe class LosslessUtils
             }
         }
         else
+#endif
         {
             AddGreenToBlueAndRedScalar(pixelData);
         }
@@ -180,6 +182,7 @@ internal static unsafe class LosslessUtils
 
     public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && pixelData.Length >= 8)
         {
             Vector256<byte> subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
@@ -187,7 +190,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
                 Vector256<byte> in0g0g = Avx2.Shuffle(input, subtractGreenFromBlueAndRedMaskAvx2);
                 Vector256<byte> output = Avx2.Subtract(input, in0g0g);
@@ -208,7 +211,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                 Vector128<byte> in0g0g = Ssse3.Shuffle(input, subtractGreenFromBlueAndRedMaskSsse3);
                 Vector128<byte> output = Sse2.Subtract(input, in0g0g);
@@ -228,7 +231,7 @@ internal static unsafe class LosslessUtils
             nuint i = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
                 Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                 Vector128<ushort> b = Sse2.ShuffleLow(a, SimdUtils.Shuffle.MMShuffle2200);
@@ -245,6 +248,7 @@ internal static unsafe class LosslessUtils
             }
         }
         else
+#endif
         {
             SubtractGreenFromBlueAndRedScalar(pixelData);
         }
@@ -377,6 +381,7 @@ internal static unsafe class LosslessUtils
     /// <param name="numPixels">The number of pixels to process.</param>
     public static void TransformColor(Vp8LMultipliers m, Span<uint> pixelData, int numPixels)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && numPixels >= 8)
         {
             Vector256<byte> transformColorAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
@@ -387,7 +392,7 @@ internal static unsafe class LosslessUtils
             nuint idx = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
                 Vector256<byte> a = Avx2.And(input.AsByte(), transformColorAlphaGreenMask256);
                 Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
@@ -418,7 +423,7 @@ internal static unsafe class LosslessUtils
             nuint idx = 0;
             do
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
                 Vector128<byte> a = Sse2.And(input.AsByte(), transformColorAlphaGreenMask);
                 Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
@@ -441,6 +446,7 @@ internal static unsafe class LosslessUtils
             }
         }
         else
+#endif
         {
             TransformColorScalar(m, pixelData, numPixels);
         }
@@ -471,6 +477,7 @@ internal static unsafe class LosslessUtils
     /// <param name="pixelData">The pixel data to apply the inverse transform on.</param>
     public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && pixelData.Length >= 8)
         {
             Vector256<byte> transformColorInverseAlphaGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
@@ -479,7 +486,7 @@ internal static unsafe class LosslessUtils
             nuint idx;
             for (idx = 0; idx <= (uint)pixelData.Length - 8; idx += 8)
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector256<uint> input = Unsafe.As<uint, Vector256<uint>>(ref pos);
                 Vector256<byte> a = Avx2.And(input.AsByte(), transformColorInverseAlphaGreenMask256);
                 Vector256<short> b = Avx2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
@@ -509,7 +516,7 @@ internal static unsafe class LosslessUtils
             nuint idx;
             for (idx = 0; idx <= (uint)pixelData.Length - 4; idx += 4)
             {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
+                ref uint pos = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
                 Vector128<byte> a = Sse2.And(input.AsByte(), transformColorInverseAlphaGreenMask);
                 Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
@@ -531,6 +538,7 @@ internal static unsafe class LosslessUtils
             }
         }
         else
+#endif
         {
             TransformColorInverseScalar(m, pixelData);
         }
@@ -747,6 +755,7 @@ internal static unsafe class LosslessUtils
     /// <returns>Shanon entropy.</returns>
     public static float CombinedShannonEntropy(Span<int> x, Span<int> y)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             double retVal = 0.0d;
@@ -758,8 +767,8 @@ internal static unsafe class LosslessUtils
             ref int tmpRef = ref Unsafe.As<Vector256<int>, int>(ref tmp);
             for (nuint i = 0; i < 256; i += 8)
             {
-                Vector256<int> xVec = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref xRef, i));
-                Vector256<int> yVec = Unsafe.As<int, Vector256<int>>(ref Unsafe.Add(ref yRef, i));
+                Vector256<int> xVec = Unsafe.As<int, Vector256<int>>(ref Extensions.UnsafeAdd(ref xRef, i));
+                Vector256<int> yVec = Unsafe.As<int, Vector256<int>>(ref Extensions.UnsafeAdd(ref yRef, i));
 
                 // Check if any X is non-zero: this actually provides a speedup as X is usually sparse.
                 int mask = Avx2.MoveMask(Avx2.CompareEqual(xVec, Vector256<int>.Zero).AsByte());
@@ -774,72 +783,72 @@ internal static unsafe class LosslessUtils
                     if (tmpRef != 0)
                     {
                         retVal -= FastSLog2((uint)tmpRef);
-                        if (Unsafe.Add(ref xRef, i) != 0)
+                        if (Extensions.UnsafeAdd(ref xRef, i) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 1) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 1) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 1));
-                        if (Unsafe.Add(ref xRef, i + 1) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 1));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 1) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 1));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 1));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 2) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 2) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 2));
-                        if (Unsafe.Add(ref xRef, i + 2) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 2));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 2) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 2));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 2));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 3) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 3) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 3));
-                        if (Unsafe.Add(ref xRef, i + 3) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 3));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 3) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 3));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 3));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 4) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 4) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 4));
-                        if (Unsafe.Add(ref xRef, i + 4) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 4));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 4) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 4));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 4));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 5) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 5) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 5));
-                        if (Unsafe.Add(ref xRef, i + 5) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 5));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 5) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 5));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 5));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 6) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 6) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 6));
-                        if (Unsafe.Add(ref xRef, i + 6) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 6));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 6) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 6));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 6));
                         }
                     }
 
-                    if (Unsafe.Add(ref tmpRef, 7) != 0)
+                    if (Extensions.UnsafeAdd(ref tmpRef, 7) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref tmpRef, 7));
-                        if (Unsafe.Add(ref xRef, i + 7) != 0)
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref tmpRef, 7));
+                        if (Extensions.UnsafeAdd(ref xRef, i + 7) != 0)
                         {
-                            retVal -= FastSLog2((uint)Unsafe.Add(ref xRef, i + 7));
+                            retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref xRef, i + 7));
                         }
                     }
                 }
@@ -848,44 +857,44 @@ internal static unsafe class LosslessUtils
                     // X is fully 0, so only deal with Y.
                     sumXY256 = Avx2.Add(sumXY256, yVec);
 
-                    if (Unsafe.Add(ref yRef, i) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 1) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 1) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 1));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 1));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 2) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 2) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 2));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 2));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 3) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 3) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 3));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 3));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 4) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 4) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 4));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 4));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 5) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 5) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 5));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 5));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 6) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 6) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 6));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 6));
                     }
 
-                    if (Unsafe.Add(ref yRef, i + 7) != 0)
+                    if (Extensions.UnsafeAdd(ref yRef, i + 7) != 0)
                     {
-                        retVal -= FastSLog2((uint)Unsafe.Add(ref yRef, i + 7));
+                        retVal -= FastSLog2((uint)Extensions.UnsafeAdd(ref yRef, i + 7));
                     }
                 }
             }
@@ -899,6 +908,7 @@ internal static unsafe class LosslessUtils
             return (float)retVal;
         }
         else
+#endif
         {
             double retVal = 0.0d;
             uint sumX = 0, sumXY = 0;
@@ -1398,6 +1408,7 @@ internal static unsafe class LosslessUtils
 
     private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
@@ -1408,6 +1419,7 @@ internal static unsafe class LosslessUtils
             Vector128<byte> b = Sse2.PackUnsignedSaturate(v2, v2);
             return Sse2.ConvertToUInt32(b.AsUInt32());
         }
+#endif
 
         {
             int a = AddSubtractComponentFull(
@@ -1429,6 +1441,7 @@ internal static unsafe class LosslessUtils
 
     private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
@@ -1444,6 +1457,7 @@ internal static unsafe class LosslessUtils
             Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
             return Sse2.ConvertToUInt32(a5.AsUInt32());
         }
+#endif
 
         {
             uint ave = Average2(c0, c1);
@@ -1464,14 +1478,17 @@ internal static unsafe class LosslessUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     private static uint Clip255(uint a) => a < 256 ? a : ~a >> 24;
 
+#if USE_SIMD_INTRINSICS
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector256<int> MkCst32(int hi, int lo) => Vector256.Create((hi << 16) | (lo & 0xffff));
+#endif
 
     private static uint Select(uint a, uint b, uint c, Span<short> scratch)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             fixed (short* ptr = &MemoryMarshal.GetReference(scratch))
@@ -1494,6 +1511,7 @@ internal static unsafe class LosslessUtils
             }
         }
         else
+#endif
         {
             int paMinusPb =
                 Sub3((int)(a >> 24), (int)(b >> 24), (int)(c >> 24)) +

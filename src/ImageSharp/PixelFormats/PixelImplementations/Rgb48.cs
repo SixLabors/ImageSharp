@@ -76,6 +76,11 @@ public partial struct Rgb48 : IPixel<Rgb48>
             PixelColorType.RGB,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Rgb48>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations();
 

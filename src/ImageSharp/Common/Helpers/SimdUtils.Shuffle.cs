@@ -150,10 +150,10 @@ internal static partial class SimdUtils
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 0) = Extensions.UnsafeAdd(ref sBase, p0 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 1) = Extensions.UnsafeAdd(ref sBase, p1 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 2) = Extensions.UnsafeAdd(ref sBase, p2 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 3) = Extensions.UnsafeAdd(ref sBase, p3 + i);
         }
     }
 
@@ -502,10 +502,10 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < (uint)span.Length; i += 4)
             {
-                Unsafe.Add(ref spanBase, i + 0) = (byte)(p0 + i);
-                Unsafe.Add(ref spanBase, i + 1) = (byte)(p1 + i);
-                Unsafe.Add(ref spanBase, i + 2) = (byte)(p2 + i);
-                Unsafe.Add(ref spanBase, i + 3) = (byte)(p3 + i);
+                Extensions.UnsafeAdd(ref spanBase, i + 0) = (byte)(p0 + i);
+                Extensions.UnsafeAdd(ref spanBase, i + 1) = (byte)(p1 + i);
+                Extensions.UnsafeAdd(ref spanBase, i + 2) = (byte)(p2 + i);
+                Extensions.UnsafeAdd(ref spanBase, i + 3) = (byte)(p3 + i);
             }
         }
 

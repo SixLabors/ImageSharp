@@ -31,13 +31,13 @@ internal static class PngEncoderHelpers
 
         for (int i = 0; i < source.Length; i++)
         {
-            int value = ((int)MathF.Round(Unsafe.Add(ref sourceRef, (uint)i) / scale)) & mask;
+            int value = ((int)MathF.Round(Extensions.UnsafeAdd(ref sourceRef, (uint)i) / scale)) & mask;
             v |= value << shift;
 
             if (shift == 0)
             {
                 shift = shift0;
-                Unsafe.Add(ref resultRef, (uint)resultOffset) = (byte)v;
+                Extensions.UnsafeAdd(ref resultRef, (uint)resultOffset) = (byte)v;
                 resultOffset++;
                 v = 0;
             }
@@ -49,7 +49,7 @@ internal static class PngEncoderHelpers
 
         if (shift != shift0)
         {
-            Unsafe.Add(ref resultRef, (uint)resultOffset) = (byte)v;
+            Extensions.UnsafeAdd(ref resultRef, (uint)resultOffset) = (byte)v;
         }
     }
 }

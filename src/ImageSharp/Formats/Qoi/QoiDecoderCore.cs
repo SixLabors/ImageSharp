@@ -154,8 +154,9 @@ internal class QoiDecoderCore : IImageDecoderInternals
         int pixelArrayPosition = GetArrayPosition(previousPixel);
         previouslySeenPixels[pixelArrayPosition] = previousPixel;
         byte operationByte;
-        Rgba32 readPixel = default;
-        Span<byte> pixelBytes = MemoryMarshal.CreateSpan(ref Unsafe.As<Rgba32, byte>(ref readPixel), 4);
+        Span<Rgba32> readPixelData = stackalloc Rgba32[1];
+        Span<byte> pixelBytes = MemoryMarshal.Cast<Rgba32, byte>(readPixelData);
+        ref Rgba32 readPixel = ref readPixelData[0];
         TPixel pixel = default;
 
         for (int i = 0; i < this.header.Height; i++)

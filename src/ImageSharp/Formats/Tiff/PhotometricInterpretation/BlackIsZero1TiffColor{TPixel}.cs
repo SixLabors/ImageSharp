@@ -31,41 +31,41 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             ref TPixel pixelRowRef = ref MemoryMarshal.GetReference(pixelRowSpan);
             for (nuint x = (uint)left; x < (uint)(left + width); x += 8)
             {
-                byte b = Unsafe.Add(ref dataRef, offset++);
-                nuint maxShift = Math.Min((uint)(left + width) - x, 8);
+                byte b = Extensions.UnsafeAdd(ref dataRef, offset++);
+                nuint maxShift = Extensions.Min((uint)(left + width) - x, 8);
 
                 if (maxShift == 8)
                 {
                     int bit = (b >> 7) & 1;
-                    ref TPixel pixel0 = ref Unsafe.Add(ref pixelRowRef, x);
+                    ref TPixel pixel0 = ref Extensions.UnsafeAdd(ref pixelRowRef, x);
                     pixel0 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 6) & 1;
-                    ref TPixel pixel1 = ref Unsafe.Add(ref pixelRowRef, x + 1);
+                    ref TPixel pixel1 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 1);
                     pixel1 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 5) & 1;
-                    ref TPixel pixel2 = ref Unsafe.Add(ref pixelRowRef, x + 2);
+                    ref TPixel pixel2 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 2);
                     pixel2 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 4) & 1;
-                    ref TPixel pixel3 = ref Unsafe.Add(ref pixelRowRef, x + 3);
+                    ref TPixel pixel3 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 3);
                     pixel3 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 3) & 1;
-                    ref TPixel pixel4 = ref Unsafe.Add(ref pixelRowRef, x + 4);
+                    ref TPixel pixel4 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 4);
                     pixel4 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 2) & 1;
-                    ref TPixel pixel5 = ref Unsafe.Add(ref pixelRowRef, x + 5);
+                    ref TPixel pixel5 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 5);
                     pixel5 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = (b >> 1) & 1;
-                    ref TPixel pixel6 = ref Unsafe.Add(ref pixelRowRef, x + 6);
+                    ref TPixel pixel6 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 6);
                     pixel6 = bit == 0 ? colorBlack : colorWhite;
 
                     bit = b & 1;
-                    ref TPixel pixel7 = ref Unsafe.Add(ref pixelRowRef, x + 7);
+                    ref TPixel pixel7 = ref Extensions.UnsafeAdd(ref pixelRowRef, x + 7);
                     pixel7 = bit == 0 ? colorBlack : colorWhite;
                 }
                 else
@@ -74,7 +74,7 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     {
                         int bit = (b >> (7 - (int)shift)) & 1;
 
-                        ref TPixel pixel = ref Unsafe.Add(ref pixelRowRef, x + shift);
+                        ref TPixel pixel = ref Extensions.UnsafeAdd(ref pixelRowRef, x + shift);
                         pixel = bit == 0 ? colorBlack : colorWhite;
                     }
                 }

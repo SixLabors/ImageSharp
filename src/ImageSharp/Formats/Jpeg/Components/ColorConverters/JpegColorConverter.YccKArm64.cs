@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class YccKArm64 : JpegColorConverterArm64
     {
         public YccKArm64(int precision)
@@ -48,13 +49,13 @@ internal abstract partial class JpegColorConverterBase
                 // cb = cbVals[i] - 128F;
                 // cr = crVals[i] - 128F;
                 // k = kVals[i] / 256F;
-                ref Vector128<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                ref Vector128<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                ref Vector128<float> c2 = ref Unsafe.Add(ref c2Base, i);
+                ref Vector128<float> c0 = ref Extensions.UnsafeAdd(ref c0Base, i);
+                ref Vector128<float> c1 = ref Extensions.UnsafeAdd(ref c1Base, i);
+                ref Vector128<float> c2 = ref Extensions.UnsafeAdd(ref c2Base, i);
                 Vector128<float> y = c0;
                 Vector128<float> cb = AdvSimd.Add(c1, chromaOffset);
                 Vector128<float> cr = AdvSimd.Add(c2, chromaOffset);
-                Vector128<float> scaledK = AdvSimd.Multiply(Unsafe.Add(ref kBase, i), scale);
+                Vector128<float> scaledK = AdvSimd.Multiply(Extensions.UnsafeAdd(ref kBase, i), scale);
 
                 // r = y + (1.402F * cr);
                 // g = y - (0.344136F * cb) - (0.714136F * cr);
@@ -113,9 +114,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = (uint)values.Component0.Length / (uint)Vector128<float>.Count;
             for (nuint i = 0; i < n; i++)
             {
-                Vector128<float> r = AdvSimd.Subtract(maxSampleValue, Unsafe.Add(ref srcR, i));
-                Vector128<float> g = AdvSimd.Subtract(maxSampleValue, Unsafe.Add(ref srcG, i));
-                Vector128<float> b = AdvSimd.Subtract(maxSampleValue, Unsafe.Add(ref srcB, i));
+                Vector128<float> r = AdvSimd.Subtract(maxSampleValue, Extensions.UnsafeAdd(ref srcR, i));
+                Vector128<float> g = AdvSimd.Subtract(maxSampleValue, Extensions.UnsafeAdd(ref srcG, i));
+                Vector128<float> b = AdvSimd.Subtract(maxSampleValue, Extensions.UnsafeAdd(ref srcB, i));
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
@@ -124,10 +125,11 @@ internal abstract partial class JpegColorConverterBase
                 Vector128<float> cb = AdvSimd.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(AdvSimd.Multiply(f05, b), fn0331264, g), fn0168736, r));
                 Vector128<float> cr = AdvSimd.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(AdvSimd.Multiply(fn0081312F, b), fn0418688, g), f05, r));
 
-                Unsafe.Add(ref destY, i) = y;
-                Unsafe.Add(ref destCb, i) = cb;
-                Unsafe.Add(ref destCr, i) = cr;
+                Extensions.UnsafeAdd(ref destY, i) = y;
+                Extensions.UnsafeAdd(ref destCb, i) = cb;
+                Extensions.UnsafeAdd(ref destCr, i) = cr;
             }
         }
     }
+#endif
 }

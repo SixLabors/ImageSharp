@@ -211,7 +211,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockBaseline(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
+                                ref Extensions.UnsafeAdd(ref blockRef, (uint)blockCol),
                                 ref dcHuffmanTable,
                                 ref acHuffmanTable);
                         }
@@ -255,7 +255,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 this.DecodeBlockBaseline(
                     component,
-                    ref Unsafe.Add(ref blockRef, (uint)i),
+                    ref Extensions.UnsafeAdd(ref blockRef, (uint)i),
                     ref dcHuffmanTable,
                     ref acHuffmanTable);
 
@@ -297,7 +297,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockRef, (uint)k),
+                        ref Extensions.UnsafeAdd(ref blockRef, (uint)k),
                         ref dcHuffmanTable,
                         ref acHuffmanTable);
 
@@ -417,7 +417,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                             this.DecodeBlockProgressiveDC(
                                 component,
-                                ref Unsafe.Add(ref blockRef, (uint)blockCol),
+                                ref Extensions.UnsafeAdd(ref blockRef, (uint)blockCol),
                                 ref dcHuffmanTable);
                         }
                     }
@@ -459,7 +459,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                     this.DecodeBlockProgressiveDC(
                         component,
-                        ref Unsafe.Add(ref blockRef, (uint)i),
+                        ref Extensions.UnsafeAdd(ref blockRef, (uint)i),
                         ref dcHuffmanTable);
 
                     this.HandleRestart();
@@ -485,7 +485,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     }
 
                     this.DecodeBlockProgressiveAC(
-                        ref Unsafe.Add(ref blockRef, (uint)i),
+                        ref Extensions.UnsafeAdd(ref blockRef, (uint)i),
                         ref acHuffmanTable);
 
                     this.HandleRestart();
@@ -526,7 +526,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             {
                 i += r;
                 s = buffer.Receive(s);
-                Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i++]) = (short)s;
+                Extensions.UnsafeAdd(ref blockDataRef, ZigZag.TransposingOrder[i++]) = (short)s;
             }
             else
             {
@@ -595,7 +595,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 if (s != 0)
                 {
                     s = buffer.Receive(s);
-                    Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[i]) = (short)(s << low);
+                    Extensions.UnsafeAdd(ref blockDataRef, ZigZag.TransposingOrder[i]) = (short)(s << low);
                 }
                 else
                 {
@@ -671,7 +671,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 do
                 {
-                    ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
+                    ref short coef = ref Extensions.UnsafeAdd(ref blockDataRef, ZigZag.TransposingOrder[k]);
                     if (coef != 0)
                     {
                         buffer.CheckBits();
@@ -697,7 +697,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
                 if ((s != 0) && (k < 64))
                 {
-                    Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]) = (short)s;
+                    Extensions.UnsafeAdd(ref blockDataRef, ZigZag.TransposingOrder[k]) = (short)s;
                 }
             }
         }
@@ -706,7 +706,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         {
             for (; k <= end; k++)
             {
-                ref short coef = ref Unsafe.Add(ref blockDataRef, ZigZag.TransposingOrder[k]);
+                ref short coef = ref Extensions.UnsafeAdd(ref blockDataRef, ZigZag.TransposingOrder[k]);
 
                 if (coef != 0)
                 {

@@ -81,6 +81,7 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Expand(Span<Vector4> vectors)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && vectors.Length >= 2)
         {
             CompandAvx2(vectors, ExpandTable);
@@ -92,6 +93,7 @@ public static class SRgbCompanding
             }
         }
         else
+#endif
         {
             CompandScalar(vectors, ExpandTable);
         }
@@ -104,6 +106,7 @@ public static class SRgbCompanding
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void Compress(Span<Vector4> vectors)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && vectors.Length >= 2)
         {
             CompandAvx2(vectors, CompressTable);
@@ -115,6 +118,7 @@ public static class SRgbCompanding
             }
         }
         else
+#endif
         {
             CompandScalar(vectors, CompressTable);
         }
@@ -164,10 +168,11 @@ public static class SRgbCompanding
     public static float Compress(float channel)
         => channel <= 0.0031308F ? 12.92F * channel : (1.055F * MathF.Pow(channel, 0.416666666666667F)) - 0.055F;
 
+#if USE_SIMD_INTRINSICS
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandAvx2(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
+        fixed (float* tablePointer = table)
         {
             var scale = Vector256.Create((float)Scale);
             Vector256<float> zero = Vector256<float>.Zero;
@@ -175,7 +180,7 @@ public static class SRgbCompanding
 
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
+            ref Vector256<float> vectorsLast = ref Extensions.UnsafeAdd(ref vectorsBase, (uint)vectors.Length / 2u);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
@@ -191,20 +196,21 @@ public static class SRgbCompanding
                 // Alpha is already a linear representation of opacity so we do not want to convert it.
                 Vector256<float> companded = Numerics.Lerp(low, high, Avx.Subtract(multiplied, truncatedF));
                 vectorsBase = Avx.Blend(companded, vectorsBase, Numerics.BlendAlphaControl);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                vectorsBase = ref Extensions.UnsafeAdd(ref vectorsBase, 1);
             }
         }
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void CompandScalar(Span<Vector4> vectors, float[] table)
     {
-        fixed (float* tablePointer = &MemoryMarshal.GetArrayDataReference(table))
+        fixed (float* tablePointer = table)
         {
             Vector4 zero = Vector4.Zero;
             var scale = new Vector4(Scale);
             ref Vector4 vectorsBase = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length);
+            ref Vector4 vectorsLast = ref Extensions.UnsafeAdd(ref vectorsBase, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
@@ -223,7 +229,7 @@ public static class SRgbCompanding
                 vectorsBase.Y = Numerics.Lerp(tablePointer[i1], tablePointer[i1 + 1], f1 - (int)i1);
                 vectorsBase.Z = Numerics.Lerp(tablePointer[i2], tablePointer[i2 + 1], f2 - (int)i2);
 
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                vectorsBase = ref Extensions.UnsafeAdd(ref vectorsBase, 1);
             }
         }
     }

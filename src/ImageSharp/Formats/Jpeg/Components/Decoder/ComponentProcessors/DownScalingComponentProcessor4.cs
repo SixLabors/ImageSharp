@@ -90,7 +90,7 @@ internal sealed class DownScalingComponentProcessor4 : ComponentProcessor
                         for (nuint j = 0; j < horizontalScale; j++)
                         {
                             // area[xx + j, yy + i] = value;
-                            Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
+                            Extensions.UnsafeAdd(ref areaOrigin, baseIdx + j) = value;
                         }
                     }
                 }

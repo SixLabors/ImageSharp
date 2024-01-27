@@ -321,8 +321,12 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
 
     private bool IsHighMemoryPressure()
     {
+#if NET6_0_OR_GREATER
         GCMemoryInfo memoryInfo = GC.GetGCMemoryInfo();
         return memoryInfo.MemoryLoadBytes >= memoryInfo.HighMemoryLoadThresholdBytes * this.trimSettings.HighPressureThresholdRate;
+#else
+        return true;
+#endif
     }
 
     public class TrimSettings

@@ -52,6 +52,7 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector<float> FastRound(this Vector<float> v)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
@@ -59,6 +60,7 @@ internal static partial class SimdUtils
             return Unsafe.As<Vector256<float>, Vector<float>>(ref vRound);
         }
         else
+#endif
         {
             var magic0 = new Vector<int>(int.MinValue); // 0x80000000
             var sgn0 = Vector.AsVectorSingle(magic0);
@@ -129,10 +131,10 @@ internal static partial class SimdUtils
         switch (source.Length)
         {
             case 3:
-                Unsafe.Add(ref dBase, 2) = Unsafe.Add(ref sBase, 2) / 255f;
+                Extensions.UnsafeAdd(ref dBase, 2) = Extensions.UnsafeAdd(ref sBase, 2) / 255f;
                 goto case 2;
             case 2:
-                Unsafe.Add(ref dBase, 1) = Unsafe.Add(ref sBase, 1) / 255f;
+                Extensions.UnsafeAdd(ref dBase, 1) = Extensions.UnsafeAdd(ref sBase, 1) / 255f;
                 goto case 1;
             case 1:
                 dBase = sBase / 255f;
@@ -149,10 +151,10 @@ internal static partial class SimdUtils
         switch (source.Length)
         {
             case 3:
-                Unsafe.Add(ref dBase, 2) = ConvertToByte(Unsafe.Add(ref sBase, 2));
+                Extensions.UnsafeAdd(ref dBase, 2) = ConvertToByte(Extensions.UnsafeAdd(ref sBase, 2));
                 goto case 2;
             case 2:
-                Unsafe.Add(ref dBase, 1) = ConvertToByte(Unsafe.Add(ref sBase, 1));
+                Extensions.UnsafeAdd(ref dBase, 1) = ConvertToByte(Extensions.UnsafeAdd(ref sBase, 1));
                 goto case 1;
             case 1:
                 dBase = ConvertToByte(sBase);

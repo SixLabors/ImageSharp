@@ -174,6 +174,11 @@ public partial struct Abgr32 : IPixel<Abgr32>, IPackedVector<uint>
             PixelColorType.Alpha | PixelColorType.BGR,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Abgr32>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Abgr32> CreatePixelOperations() => new PixelOperations();
 

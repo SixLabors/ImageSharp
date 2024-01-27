@@ -37,13 +37,13 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
 
         for (nuint i = 0, j = 0; i < (uint)source.Length; i += 3, j += 4)
         {
-            ref byte s = ref Unsafe.Add(ref sBase, i);
+            ref byte s = ref Extensions.UnsafeAdd(ref sBase, i);
             tu = Unsafe.As<byte, uint>(ref s) | 0xFF000000;
 
-            Unsafe.Add(ref dBase, j + 0) = Unsafe.Add(ref t, p0);
-            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, p1);
-            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, p2);
-            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, p3);
+            Extensions.UnsafeAdd(ref dBase, j + 0) = Extensions.UnsafeAdd(ref t, p0);
+            Extensions.UnsafeAdd(ref dBase, j + 1) = Extensions.UnsafeAdd(ref t, p1);
+            Extensions.UnsafeAdd(ref dBase, j + 2) = Extensions.UnsafeAdd(ref t, p2);
+            Extensions.UnsafeAdd(ref dBase, j + 3) = Extensions.UnsafeAdd(ref t, p3);
         }
     }
 }
@@ -60,26 +60,26 @@ internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
         ref byte sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-        ref byte sEnd = ref Unsafe.Add(ref sBase, (uint)source.Length);
+        ref byte sEnd = ref Extensions.UnsafeAdd(ref sBase, (uint)source.Length);
         ref byte sLoopEnd = ref Unsafe.Subtract(ref sEnd, 4);
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
         {
             Unsafe.As<byte, uint>(ref dBase) = Unsafe.As<byte, uint>(ref sBase) | 0xFF000000;
 
-            sBase = ref Unsafe.Add(ref sBase, 3);
-            dBase = ref Unsafe.Add(ref dBase, 4);
+            sBase = ref Extensions.UnsafeAdd(ref sBase, 3);
+            dBase = ref Extensions.UnsafeAdd(ref dBase, 4);
         }
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.Add(ref sBase, 0);
-            Unsafe.Add(ref dBase, 1) = Unsafe.Add(ref sBase, 1);
-            Unsafe.Add(ref dBase, 2) = Unsafe.Add(ref sBase, 2);
-            Unsafe.Add(ref dBase, 3) = byte.MaxValue;
+            Extensions.UnsafeAdd(ref dBase, 0) = Extensions.UnsafeAdd(ref sBase, 0);
+            Extensions.UnsafeAdd(ref dBase, 1) = Extensions.UnsafeAdd(ref sBase, 1);
+            Extensions.UnsafeAdd(ref dBase, 2) = Extensions.UnsafeAdd(ref sBase, 2);
+            Extensions.UnsafeAdd(ref dBase, 3) = byte.MaxValue;
 
-            sBase = ref Unsafe.Add(ref sBase, 3);
-            dBase = ref Unsafe.Add(ref dBase, 4);
+            sBase = ref Extensions.UnsafeAdd(ref sBase, 3);
+            dBase = ref Extensions.UnsafeAdd(ref dBase, 4);
         }
     }
 }

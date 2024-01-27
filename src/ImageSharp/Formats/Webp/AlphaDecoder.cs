@@ -311,6 +311,7 @@ internal class AlphaDecoder : IDisposable
 
     private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
@@ -325,7 +326,7 @@ internal class AlphaDecoder : IDisposable
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
             for (i = 1; i <= (uint)width - 8; i += 8)
             {
-                Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
+                Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, i)), 0);
                 Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
                 Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
                 Vector128<byte> a3 = Sse2.Add(a1, a2);
@@ -334,7 +335,7 @@ internal class AlphaDecoder : IDisposable
                 Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
                 Vector128<byte> a7 = Sse2.Add(a5, a6);
 
-                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
+                ref byte outputRef = ref Extensions.UnsafeAdd(ref dstRef, i);
                 Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
                 last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
             }
@@ -345,6 +346,7 @@ internal class AlphaDecoder : IDisposable
             }
         }
         else
+#endif
         {
             byte pred = (byte)(prev.IsEmpty ? 0 : prev[0]);
 
@@ -363,6 +365,7 @@ internal class AlphaDecoder : IDisposable
         {
             HorizontalUnfilter(null, input, dst, width);
         }
+#if USE_SIMD_INTRINSICS
         else if (Avx2.IsSupported)
         {
             ref byte inputRef = ref MemoryMarshal.GetReference(input);
@@ -373,18 +376,19 @@ internal class AlphaDecoder : IDisposable
             int maxPos = width & ~31;
             for (i = 0; i < (uint)maxPos; i += 32)
             {
-                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
-                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
+                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Extensions.UnsafeAdd(ref inputRef, i));
+                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Extensions.UnsafeAdd(ref prevRef, i));
                 Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
-                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
+                ref byte outputRef = ref Extensions.UnsafeAdd(ref dstRef, i);
                 Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
             }
 
             for (; i < (uint)width; i++)
             {
-                Unsafe.Add(ref dstRef, i) = (byte)(Unsafe.Add(ref prevRef, i) + Unsafe.Add(ref inputRef, i));
+                Extensions.UnsafeAdd(ref dstRef, i) = (byte)(Extensions.UnsafeAdd(ref prevRef, i) + Extensions.UnsafeAdd(ref inputRef, i));
             }
         }
+#endif
         else
         {
             for (int i = 0; i < width; i++)

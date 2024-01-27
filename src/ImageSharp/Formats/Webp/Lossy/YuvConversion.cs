@@ -29,11 +29,13 @@ internal static class YuvConversion
     //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
     public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse41.IsSupported)
         {
             UpSampleSse41(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len, uvBuffer);
         }
         else
+#endif
         {
             UpSampleScalar(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len);
         }
@@ -93,6 +95,7 @@ internal static class YuvConversion
         }
     }
 
+#if USE_SIMD_INTRINSICS
     // We compute (9*a + 3*b + 3*c + d + 8) / 16 as follows
     // u = (9*a + 3*b + 3*c + d + 8) / 16
     //   = (a + (a + 3*b + 3*c + d) / 8 + 1) / 2
@@ -138,8 +141,8 @@ internal static class YuvConversion
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
+                UpSample32Pixels(ref Extensions.UnsafeAdd(ref topURef, (uint)uvPos), ref Extensions.UnsafeAdd(ref curURef, (uint)uvPos), ru);
+                UpSample32Pixels(ref Extensions.UnsafeAdd(ref topVRef, (uint)uvPos), ref Extensions.UnsafeAdd(ref curVRef, (uint)uvPos), rv);
                 ConvertYuvToBgrWithBottomYSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
             }
         }
@@ -147,8 +150,8 @@ internal static class YuvConversion
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
+                UpSample32Pixels(ref Extensions.UnsafeAdd(ref topURef, (uint)uvPos), ref Extensions.UnsafeAdd(ref curURef, (uint)uvPos), ru);
+                UpSample32Pixels(ref Extensions.UnsafeAdd(ref topVRef, (uint)uvPos), ref Extensions.UnsafeAdd(ref curVRef, (uint)uvPos), rv);
                 ConvertYuvToBgrSse41(topY, topDst, ru, rv, pos, xStep);
             }
         }
@@ -188,9 +191,9 @@ internal static class YuvConversion
     {
         // Load inputs.
         Vector128<byte> a = Unsafe.As<byte, Vector128<byte>>(ref r1);
-        Vector128<byte> b = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref r1, 1));
+        Vector128<byte> b = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref r1, 1));
         Vector128<byte> c = Unsafe.As<byte, Vector128<byte>>(ref r2);
-        Vector128<byte> d = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref r2, 1));
+        Vector128<byte> d = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref r2, 1));
 
         Vector128<byte> s = Sse2.Average(a, d); // s = (a + d + 1) / 2
         Vector128<byte> t = Sse2.Average(b, c); // t = (b + c + 1) / 2
@@ -253,10 +256,11 @@ internal static class YuvConversion
         Vector128<byte> t2 = Sse2.UnpackHigh(ta, tb);
 
         ref byte output0Ref = ref MemoryMarshal.GetReference(output);
-        ref byte output1Ref = ref Unsafe.Add(ref output0Ref, 16);
+        ref byte output1Ref = ref Extensions.UnsafeAdd(ref output0Ref, 16);
         Unsafe.As<byte, Vector128<byte>>(ref output0Ref) = t1;
         Unsafe.As<byte, Vector128<byte>>(ref output1Ref) = t2;
     }
+#endif
 
     /// <summary>
     /// Converts the pixel values of the image to YUV.
@@ -561,6 +565,7 @@ internal static class YuvConversion
         bgr[0] = (byte)YuvToB(y, u);
     }
 
+#if USE_SIMD_INTRINSICS
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step) => YuvToBgrSse41(topY[curX..], ru, rv, topDst[(curX * step)..]);
 
@@ -577,9 +582,9 @@ internal static class YuvConversion
         ref byte uRef = ref MemoryMarshal.GetReference(u);
         ref byte vRef = ref MemoryMarshal.GetReference(v);
         ConvertYuv444ToBgrSse41(ref yRef, ref uRef, ref vRef, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 8), ref Unsafe.Add(ref uRef, 8), ref Unsafe.Add(ref vRef, 8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 16), ref Unsafe.Add(ref uRef, 16), ref Unsafe.Add(ref vRef, 16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 24), ref Unsafe.Add(ref uRef, 24), ref Unsafe.Add(ref vRef, 24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
+        ConvertYuv444ToBgrSse41(ref Extensions.UnsafeAdd(ref yRef, 8), ref Extensions.UnsafeAdd(ref uRef, 8), ref Extensions.UnsafeAdd(ref vRef, 8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
+        ConvertYuv444ToBgrSse41(ref Extensions.UnsafeAdd(ref yRef, 16), ref Extensions.UnsafeAdd(ref uRef, 16), ref Extensions.UnsafeAdd(ref vRef, 16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
+        ConvertYuv444ToBgrSse41(ref Extensions.UnsafeAdd(ref yRef, 24), ref Extensions.UnsafeAdd(ref uRef, 24), ref Extensions.UnsafeAdd(ref vRef, 24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
 
         // Cast to 8b and store as BBBBGGGGRRRR.
         Vector128<byte> bgr0 = Sse2.PackUnsignedSaturate(b0, b1);
@@ -664,11 +669,11 @@ internal static class YuvConversion
 
         ref byte outputRef = ref MemoryMarshal.GetReference(rgb);
         Unsafe.As<byte, Vector128<byte>>(ref outputRef) = Sse2.Or(rg0, b0);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 16)) = Sse2.Or(rg1, b1);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 32)) = Sse2.Or(rg2, b2);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 48)) = Sse2.Or(rg3, b3);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 64)) = Sse2.Or(rg4, b4);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 80)) = Sse2.Or(rg5, b5);
+        Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 16)) = Sse2.Or(rg1, b1);
+        Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 32)) = Sse2.Or(rg2, b2);
+        Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 48)) = Sse2.Or(rg3, b3);
+        Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 64)) = Sse2.Or(rg4, b4);
+        Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 80)) = Sse2.Or(rg5, b5);
     }
 
     // Shuffles the input buffer as A0 0 0 A1 0 0 A2
@@ -733,6 +738,7 @@ internal static class YuvConversion
         g = Sse2.ShiftRightArithmetic(g4.AsInt16(), 6); // range: [-10953, 27710]
         b = Sse2.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
     }
+#endif
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int YuvToB(int y, int u) => Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);

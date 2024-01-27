@@ -38,7 +38,7 @@ internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
                 {
                     data.Slice(offset, 4).CopyTo(buffer);
                     buffer.Reverse();
-                    float intensity = 1.0f - BitConverter.ToSingle(buffer);
+                    float intensity = 1.0f - Extensions.BitsToSingle(buffer);
                     offset += 4;
 
                     var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
@@ -50,7 +50,7 @@ internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    float intensity = 1.0f - BitConverter.ToSingle(data.Slice(offset, 4));
+                    float intensity = 1.0f - Extensions.BitsToSingle(data.Slice(offset, 4));
                     offset += 4;
 
                     var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);

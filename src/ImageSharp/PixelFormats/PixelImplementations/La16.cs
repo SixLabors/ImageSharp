@@ -78,6 +78,11 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
             PixelColorType.Grayscale | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<La16>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc/>
     public readonly PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
 

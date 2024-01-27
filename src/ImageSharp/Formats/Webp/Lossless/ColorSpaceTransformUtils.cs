@@ -12,6 +12,7 @@ internal static class ColorSpaceTransformUtils
 {
     public static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && tileWidth >= 16)
         {
             const int span = 16;
@@ -31,8 +32,8 @@ internal static class ColorSpaceTransformUtils
                 {
                     nuint input0Idx = x;
                     nuint input1Idx = x + (span / 2);
-                    Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
-                    Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                    Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input0Idx)).AsByte();
+                    Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input1Idx)).AsByte();
                     Vector256<byte> r0 = Avx2.Shuffle(input0, collectColorBlueTransformsShuffleLowMask256);
                     Vector256<byte> r1 = Avx2.Shuffle(input1, collectColorBlueTransformsShuffleHighMask256);
                     Vector256<byte> r = Avx2.Or(r0, r1);
@@ -81,8 +82,8 @@ internal static class ColorSpaceTransformUtils
                 {
                     nuint input0Idx = x;
                     nuint input1Idx = x + (span / 2);
-                    Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
-                    Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                    Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input0Idx)).AsByte();
+                    Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input1Idx)).AsByte();
                     Vector128<byte> r0 = Ssse3.Shuffle(input0, collectColorBlueTransformsShuffleLowMask);
                     Vector128<byte> r1 = Ssse3.Shuffle(input1, collectColorBlueTransformsShuffleHighMask);
                     Vector128<byte> r = Sse2.Or(r0, r1);
@@ -113,6 +114,7 @@ internal static class ColorSpaceTransformUtils
             }
         }
         else
+#endif
         {
             CollectColorBlueTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
         }
@@ -135,6 +137,7 @@ internal static class ColorSpaceTransformUtils
 
     public static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && tileWidth >= 16)
         {
             Vector256<byte> collectColorRedTransformsGreenMask256 = Vector256.Create(0x00ff00).AsByte();
@@ -150,8 +153,8 @@ internal static class ColorSpaceTransformUtils
                 {
                     nuint input0Idx = x;
                     nuint input1Idx = x + (span / 2);
-                    Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
-                    Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                    Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input0Idx)).AsByte();
+                    Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input1Idx)).AsByte();
                     Vector256<byte> g0 = Avx2.And(input0, collectColorRedTransformsGreenMask256); // 0 0  | g 0
                     Vector256<byte> g1 = Avx2.And(input1, collectColorRedTransformsGreenMask256);
                     Vector256<ushort> g = Avx2.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
@@ -193,8 +196,8 @@ internal static class ColorSpaceTransformUtils
                 {
                     nuint input0Idx = x;
                     nuint input1Idx = x + (span / 2);
-                    Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
-                    Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
+                    Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input0Idx)).AsByte();
+                    Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Extensions.UnsafeAdd(ref inputRef, input1Idx)).AsByte();
                     Vector128<byte> g0 = Sse2.And(input0, collectColorRedTransformsGreenMask); // 0 0  | g 0
                     Vector128<byte> g1 = Sse2.And(input1, collectColorRedTransformsGreenMask);
                     Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
@@ -222,6 +225,7 @@ internal static class ColorSpaceTransformUtils
             }
         }
         else
+#endif
         {
             CollectColorRedTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToRed, histo);
         }

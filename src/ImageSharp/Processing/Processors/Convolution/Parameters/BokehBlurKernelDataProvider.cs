@@ -134,7 +134,7 @@ internal static class BokehBlurKernelDataProvider
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(kernelParameters.AsSpan());
         for (int i = 0; i < kernelParameters.Length; i++)
         {
-            ref Vector4 paramsRef = ref Unsafe.Add(ref baseRef, (uint)i);
+            ref Vector4 paramsRef = ref Extensions.UnsafeAdd(ref baseRef, (uint)i);
             kernels[i] = CreateComplex1DKernel(radius, kernelSize, kernelsScale, paramsRef.X, paramsRef.Y);
         }
 
@@ -167,7 +167,7 @@ internal static class BokehBlurKernelDataProvider
             value *= value;
 
             // Fill in the complex kernel values
-            Unsafe.Add(ref baseRef, (uint)i) = new Complex64(
+            Extensions.UnsafeAdd(ref baseRef, (uint)i) = new Complex64(
                 MathF.Exp(-a * value) * MathF.Cos(b * value),
                 MathF.Exp(-a * value) * MathF.Sin(b * value));
         }
@@ -190,17 +190,17 @@ internal static class BokehBlurKernelDataProvider
 
         for (int i = 0; i < kernelParameters.Length; i++)
         {
-            ref Complex64[] kernelRef = ref Unsafe.Add(ref baseKernelsRef, (uint)i);
+            ref Complex64[] kernelRef = ref Extensions.UnsafeAdd(ref baseKernelsRef, (uint)i);
             int length = kernelRef.Length;
-            ref Complex64 valueRef = ref MemoryMarshal.GetArrayDataReference(kernelRef);
-            ref Vector4 paramsRef = ref Unsafe.Add(ref baseParamsRef, (uint)i);
+            ref Complex64 valueRef = ref Extensions.GetUnsafeArrayDataReference(kernelRef);
+            ref Vector4 paramsRef = ref Extensions.UnsafeAdd(ref baseParamsRef, (uint)i);
 
             for (int j = 0; j < length; j++)
             {
                 for (int k = 0; k < length; k++)
                 {
-                    ref Complex64 jRef = ref Unsafe.Add(ref valueRef, (uint)j);
-                    ref Complex64 kRef = ref Unsafe.Add(ref valueRef, (uint)k);
+                    ref Complex64 jRef = ref Extensions.UnsafeAdd(ref valueRef, (uint)j);
+                    ref Complex64 kRef = ref Extensions.UnsafeAdd(ref valueRef, (uint)k);
                     total +=
                         (paramsRef.Z * ((jRef.Real * kRef.Real) - (jRef.Imaginary * kRef.Imaginary)))
                         + (paramsRef.W * ((jRef.Real * kRef.Imaginary) + (jRef.Imaginary * kRef.Real)));
@@ -212,13 +212,13 @@ internal static class BokehBlurKernelDataProvider
         float scalar = 1f / MathF.Sqrt(total);
         for (int i = 0; i < kernelsSpan.Length; i++)
         {
-            ref Complex64[] kernelsRef = ref Unsafe.Add(ref baseKernelsRef, (uint)i);
+            ref Complex64[] kernelsRef = ref Extensions.UnsafeAdd(ref baseKernelsRef, (uint)i);
             int length = kernelsRef.Length;
-            ref Complex64 valueRef = ref MemoryMarshal.GetArrayDataReference(kernelsRef);
+            ref Complex64 valueRef = ref Extensions.GetUnsafeArrayDataReference(kernelsRef);
 
             for (int j = 0; j < length; j++)
             {
-                Unsafe.Add(ref valueRef, (uint)j) *= scalar;
+                Extensions.UnsafeAdd(ref valueRef, (uint)j) *= scalar;
             }
         }
     }

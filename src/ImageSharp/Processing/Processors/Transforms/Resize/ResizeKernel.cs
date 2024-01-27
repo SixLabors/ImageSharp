@@ -68,6 +68,7 @@ internal readonly unsafe struct ResizeKernel
     [MethodImpl(InliningOptions.ShortMethod)]
     public Vector4 ConvolveCore(ref Vector4 rowStartRef)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && Fma.IsSupported)
         {
             float* bufferStart = this.bufferPtr;
@@ -103,12 +104,12 @@ internal readonly unsafe struct ResizeKernel
                     result256_0);
 
                 result256_1 = Fma.MultiplyAdd(
-                    Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
+                    Unsafe.As<Vector4, Vector256<float>>(ref Extensions.UnsafeAdd(ref rowStartRef, 2)),
                     Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)(bufferStart + 2)).AsSingle(), mask),
                     result256_1);
 
                 bufferStart += 4;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 4);
+                rowStartRef = ref Extensions.UnsafeAdd(ref rowStartRef, 4);
             }
 
             result256_0 = Avx.Add(result256_0, result256_1);
@@ -121,7 +122,7 @@ internal readonly unsafe struct ResizeKernel
                     result256_0);
 
                 bufferStart += 2;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
+                rowStartRef = ref Extensions.UnsafeAdd(ref rowStartRef, 2);
             }
 
             Vector128<float> result128 = Sse.Add(result256_0.GetLower(), result256_0.GetUpper());
@@ -137,6 +138,7 @@ internal readonly unsafe struct ResizeKernel
             return *(Vector4*)&result128;
         }
         else
+#endif
         {
             // Destination color components
             Vector4 result = Vector4.Zero;
@@ -149,7 +151,7 @@ internal readonly unsafe struct ResizeKernel
                 result += rowStartRef * *bufferStart;
 
                 bufferStart++;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
+                rowStartRef = ref Extensions.UnsafeAdd(ref rowStartRef, 1);
             }
 
             return result;

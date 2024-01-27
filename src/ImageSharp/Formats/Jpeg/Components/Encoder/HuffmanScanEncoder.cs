@@ -184,7 +184,7 @@ internal class HuffmanScanEncoder
             {
                 this.WriteBlock(
                     component,
-                    ref Unsafe.Add(ref blockRef, k),
+                    ref Extensions.UnsafeAdd(ref blockRef, k),
                     ref dcHuffmanTable,
                     ref acHuffmanTable);
 
@@ -223,7 +223,7 @@ internal class HuffmanScanEncoder
             {
                 this.WriteBlock(
                     component,
-                    ref Unsafe.Add(ref blockRef, k),
+                    ref Extensions.UnsafeAdd(ref blockRef, k),
                     ref dcHuffmanTable,
                     ref acHuffmanTable);
 
@@ -287,7 +287,7 @@ internal class HuffmanScanEncoder
 
                             this.WriteBlock(
                                 component,
-                                ref Unsafe.Add(ref blockRef, blockCol),
+                                ref Extensions.UnsafeAdd(ref blockRef, blockCol),
                                 ref dcHuffmanTable,
                                 ref acHuffmanTable);
                         }
@@ -345,19 +345,19 @@ internal class HuffmanScanEncoder
             {
                 this.WriteBlock(
                     c0,
-                    ref Unsafe.Add(ref c0BlockRef, i),
+                    ref Extensions.UnsafeAdd(ref c0BlockRef, i),
                     ref c0dcHuffmanTable,
                     ref c0acHuffmanTable);
 
                 this.WriteBlock(
                     c1,
-                    ref Unsafe.Add(ref c1BlockRef, i),
+                    ref Extensions.UnsafeAdd(ref c1BlockRef, i),
                     ref c1dcHuffmanTable,
                     ref c1acHuffmanTable);
 
                 this.WriteBlock(
                     c2,
-                    ref Unsafe.Add(ref c2BlockRef, i),
+                    ref Extensions.UnsafeAdd(ref c2BlockRef, i),
                     ref c2dcHuffmanTable,
                     ref c2acHuffmanTable);
 
@@ -394,7 +394,7 @@ internal class HuffmanScanEncoder
             const int zeroRun1 = 1 << 4;
             const int zeroRun16 = 16 << 4;
 
-            int ac = Unsafe.Add(ref blockRef, zig);
+            int ac = Extensions.UnsafeAdd(ref blockRef, zig);
             if (ac == 0)
             {
                 runLength += zeroRun1;

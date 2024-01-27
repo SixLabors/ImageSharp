@@ -512,6 +512,7 @@ internal static unsafe class QuantEnc
 
     public static int QuantizeBlock(Span<short> input, Span<short> output, ref Vp8Matrix mtx)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             // Load all inputs.
@@ -643,7 +644,7 @@ internal static unsafe class QuantEnc
             // in = out * Q
             ref short inputRef = ref MemoryMarshal.GetReference(input);
             Unsafe.As<short, Vector128<short>>(ref inputRef) = input0;
-            Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref inputRef, 8)) = input8;
+            Unsafe.As<short, Vector128<short>>(ref Extensions.UnsafeAdd(ref inputRef, 8)) = input8;
 
             // zigzag the output before storing it. The re-ordering is:
             //    0 1 2 3 4 5 6 7 | 8  9 10 11 12 13 14 15
@@ -660,7 +661,7 @@ internal static unsafe class QuantEnc
 
             ref short outputRef = ref MemoryMarshal.GetReference(output);
             Unsafe.As<short, Vector128<short>>(ref outputRef) = outZ0.AsInt16();
-            Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref outputRef, 8)) = outZ8.AsInt16();
+            Unsafe.As<short, Vector128<short>>(ref Extensions.UnsafeAdd(ref outputRef, 8)) = outZ8.AsInt16();
 
             Vector128<sbyte> packedOutput = Sse2.PackSignedSaturate(outZ0.AsInt16(), outZ8.AsInt16());
 
@@ -669,6 +670,7 @@ internal static unsafe class QuantEnc
             return Sse2.MoveMask(cmpeq) != 0xffff ? 1 : 0;
         }
         else
+#endif
         {
             int last = -1;
             int n;
@@ -795,7 +797,7 @@ internal static unsafe class QuantEnc
             for (nuint i = 1; i < 16; i++)
             {
                 // omit DC, we're only interested in AC
-                score += Unsafe.Add(ref levelsRef, offset) != 0 ? 1 : 0;
+                score += Extensions.UnsafeAdd(ref levelsRef, offset) != 0 ? 1 : 0;
                 if (score > thresh)
                 {
                     return false;

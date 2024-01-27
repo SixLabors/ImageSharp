@@ -30,8 +30,8 @@
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref <#=pixelType#> sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref <#=pixelType#> sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref TPixel dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.From<#=pixelType#>(sp);
         }
@@ -72,8 +72,8 @@
 
         for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref <#=pixelType#> dp = ref Unsafe.Add(ref destBaseRef, i);
+            ref TPixel sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+            ref <#=pixelType#> dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
             dp.FromScaledVector4(sp.ToScaledVector4());
         }

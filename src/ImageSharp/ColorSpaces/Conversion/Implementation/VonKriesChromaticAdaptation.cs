@@ -83,8 +83,8 @@ public sealed class VonKriesChromaticAdaptation : IChromaticAdaptation
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieXyz dp = ref Unsafe.Add(ref destRef, i);
+            ref CieXyz sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieXyz dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
             Lms sourceColorLms = this.converter.Convert(sp);
             Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);

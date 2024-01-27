@@ -27,6 +27,7 @@ internal static class UpFilter
     {
         DebugGuard.MustBeSameSized<byte>(scanline, previousScanline, nameof(scanline));
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             DecodeAvx2(scanline, previousScanline);
@@ -40,11 +41,13 @@ internal static class UpFilter
             DecodeArm(scanline, previousScanline);
         }
         else
+#endif
         {
             DecodeScalar(scanline, previousScanline);
         }
     }
 
+#if USE_SIMD_INTRINSICS
     private static void DecodeAvx2(Span<byte> scanline, Span<byte> previousScanline)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
@@ -55,9 +58,9 @@ internal static class UpFilter
         nuint offset = 1;
         while (rb >= Vector256<byte>.Count)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector256<byte> prior = Unsafe.As<byte, Vector256<byte>>(ref scanRef);
-            Vector256<byte> up = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+            Vector256<byte> up = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, offset));
 
             Unsafe.As<byte, Vector256<byte>>(ref scanRef) = Avx2.Add(up, prior);
 
@@ -68,8 +71,8 @@ internal static class UpFilter
         // Handle left over.
         for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
-            byte above = Unsafe.Add(ref prevBaseRef, offset);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, offset);
             scan = (byte)(scan + above);
             offset++;
         }
@@ -85,9 +88,9 @@ internal static class UpFilter
         nuint offset = 1;
         while (rb >= Vector128<byte>.Count)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
-            Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+            Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, offset));
 
             Unsafe.As<byte, Vector128<byte>>(ref scanRef) = Sse2.Add(up, prior);
 
@@ -98,8 +101,8 @@ internal static class UpFilter
         // Handle left over.
         for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
-            byte above = Unsafe.Add(ref prevBaseRef, offset);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, offset);
             scan = (byte)(scan + above);
             offset++;
         }
@@ -116,9 +119,9 @@ internal static class UpFilter
         const int bytesPerBatch = 16;
         while (rb >= bytesPerBatch)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector128<byte> prior = Unsafe.As<byte, Vector128<byte>>(ref scanRef);
-            Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, offset));
+            Vector128<byte> up = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, offset));
 
             Unsafe.As<byte, Vector128<byte>>(ref scanRef) = AdvSimd.Add(prior, up);
 
@@ -129,12 +132,13 @@ internal static class UpFilter
         // Handle left over.
         for (nuint i = offset; i < (uint)scanline.Length; i++)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, offset);
-            byte above = Unsafe.Add(ref prevBaseRef, offset);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, offset);
             scan = (byte)(scan + above);
             offset++;
         }
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline)
@@ -145,8 +149,8 @@ internal static class UpFilter
         // Up(x) + Prior(x)
         for (nuint x = 1; x < (uint)scanline.Length; x++)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             scan = (byte)(scan + above);
         }
     }
@@ -174,6 +178,7 @@ internal static class UpFilter
 
         nuint x = 0;
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             Vector256<byte> zero = Vector256<byte>.Zero;
@@ -181,11 +186,11 @@ internal static class UpFilter
 
             for (; x <= (uint)(scanline.Length - Vector256<byte>.Count);)
             {
-                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, x));
 
                 Vector256<byte> res = Avx2.Subtract(scan, above);
-                Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
@@ -199,11 +204,11 @@ internal static class UpFilter
 
             for (; x <= (uint)(scanline.Length - Vector<byte>.Count);)
             {
-                Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+                Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, x));
 
                 Vector<byte> res = scan - above;
-                Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector<byte>.Count;
 
                 Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
@@ -214,13 +219,14 @@ internal static class UpFilter
                 sum += (int)sumAccumulator[i];
             }
         }
+#endif
 
         for (; x < (uint)scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
         {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            byte scan = Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+            ref byte res = ref Extensions.UnsafeAdd(ref resultBaseRef, x);
             res = (byte)(scan - above);
             sum += Numerics.Abs(unchecked((sbyte)res));
         }

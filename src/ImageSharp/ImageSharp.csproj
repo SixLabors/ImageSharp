@@ -15,11 +15,20 @@
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
-  <!--  This enables the nullable analysis and treats all nullable warnings as error-->
-  <PropertyGroup>
-    <Nullable>enable</Nullable>
-    <WarningsAsErrors>Nullable</WarningsAsErrors>
-  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(TargetFramework)' != 'netstandard2.0'">
+      <!--  This enables the nullable analysis and treats all nullable warnings as error-->
+      <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <WarningsAsErrors>Nullable</WarningsAsErrors>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <Nullable>annotations</Nullable>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
 
   <PropertyGroup>
     <!--Bump to v4.0 prior to tagged release.-->
@@ -35,11 +44,15 @@
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
         <IsTrimmable>true</IsTrimmable>
       </PropertyGroup>
     </Otherwise>
   </Choose>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <DefineConstants>USE_SIMD_INTRINSICS</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
@@ -49,6 +62,14 @@
 
   <ItemGroup>
     <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="IndexRange" Version="1.0.3" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="Ultz.Bcl.Half" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,7 +30,7 @@ internal abstract partial class JpegColorConverterBase
 
             for (nuint i = 0; i < (uint)values.Length; i++)
             {
-                Unsafe.Add(ref valuesRef, i) *= scale;
+                Extensions.UnsafeAdd(ref valuesRef, i) *= scale;
             }
         }
 

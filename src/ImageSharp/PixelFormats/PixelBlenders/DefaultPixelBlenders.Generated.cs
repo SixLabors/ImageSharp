@@ -47,12 +47,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -61,9 +62,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -74,6 +75,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -85,11 +87,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -103,14 +106,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -121,6 +124,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -152,12 +156,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -166,9 +171,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplySrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -179,6 +184,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -190,11 +196,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -208,14 +215,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplySrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -226,6 +233,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -257,12 +265,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -271,9 +280,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -284,6 +293,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -295,11 +305,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -313,14 +324,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -331,6 +342,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -362,12 +374,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -376,9 +389,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -389,6 +402,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -400,11 +414,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -418,14 +433,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -436,6 +451,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -467,12 +483,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -481,9 +498,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -494,6 +511,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -505,11 +523,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -523,14 +542,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -541,6 +560,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -572,12 +592,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -586,9 +607,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -599,6 +620,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -610,11 +632,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -628,14 +651,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -646,6 +669,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -677,12 +701,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -691,9 +716,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -704,6 +729,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -715,11 +741,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -733,14 +760,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -751,6 +778,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -782,12 +810,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -796,9 +825,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlaySrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -809,6 +838,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -820,11 +850,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -838,14 +869,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlaySrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -856,6 +887,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -887,12 +919,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -901,9 +934,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -914,6 +947,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -925,11 +959,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -943,14 +978,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightSrc(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -961,6 +996,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -992,12 +1028,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1006,9 +1043,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1019,6 +1056,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1030,11 +1068,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1048,14 +1087,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1066,6 +1105,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1097,12 +1137,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1111,9 +1152,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplySrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1124,6 +1165,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1135,11 +1177,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1153,14 +1196,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplySrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1171,6 +1214,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1202,12 +1246,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1216,9 +1261,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1229,6 +1274,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1240,11 +1286,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1258,14 +1305,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1276,6 +1323,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1307,12 +1355,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1321,9 +1370,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1334,6 +1383,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1345,11 +1395,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1363,14 +1414,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1381,6 +1432,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1412,12 +1464,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1426,9 +1479,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1439,6 +1492,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1450,11 +1504,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1468,14 +1523,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1486,6 +1541,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1517,12 +1573,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1531,9 +1588,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1544,6 +1601,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1555,11 +1613,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1573,14 +1632,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1591,6 +1650,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1622,12 +1682,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1636,9 +1697,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1649,6 +1710,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1660,11 +1722,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1678,14 +1741,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1696,6 +1759,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1727,12 +1791,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1741,9 +1806,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlaySrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1754,6 +1819,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1765,11 +1831,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1783,14 +1850,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlaySrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1801,6 +1868,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1832,12 +1900,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1846,9 +1915,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1859,6 +1928,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1870,11 +1940,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1888,14 +1959,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightSrcAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1906,6 +1977,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1937,12 +2009,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1951,9 +2024,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -1964,6 +2037,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -1975,11 +2049,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -1993,14 +2068,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2011,6 +2086,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2042,12 +2118,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2056,9 +2133,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplySrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2069,6 +2146,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2080,11 +2158,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2098,14 +2177,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplySrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2116,6 +2195,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2147,12 +2227,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2161,9 +2242,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2174,6 +2255,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2185,11 +2267,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2203,14 +2286,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2221,6 +2304,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2252,12 +2336,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2266,9 +2351,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2279,6 +2364,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2290,11 +2376,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2308,14 +2395,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2326,6 +2413,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2357,12 +2445,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2371,9 +2460,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2384,6 +2473,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2395,11 +2485,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2413,14 +2504,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2431,6 +2522,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2462,12 +2554,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2476,9 +2569,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2489,6 +2582,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2500,11 +2594,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2518,14 +2613,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2536,6 +2631,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2567,12 +2663,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2581,9 +2678,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2594,6 +2691,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2605,11 +2703,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2623,14 +2722,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2641,6 +2740,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2672,12 +2772,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2686,9 +2787,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlaySrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2699,6 +2800,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2710,11 +2812,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2728,14 +2831,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlaySrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2746,6 +2849,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2777,12 +2881,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2791,9 +2896,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2804,6 +2909,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2815,11 +2921,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2833,14 +2940,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightSrcOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2851,6 +2958,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2882,12 +2990,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2896,9 +3005,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2909,6 +3018,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2920,11 +3030,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -2938,14 +3049,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -2956,6 +3067,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -2987,12 +3099,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3001,9 +3114,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplySrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3014,6 +3127,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3025,11 +3139,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3043,14 +3158,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplySrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3061,6 +3176,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3092,12 +3208,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3106,9 +3223,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3119,6 +3236,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3130,11 +3248,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3148,14 +3267,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3166,6 +3285,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3197,12 +3317,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3211,9 +3332,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3224,6 +3345,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3235,11 +3357,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3253,14 +3376,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3271,6 +3394,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3302,12 +3426,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3316,9 +3441,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3329,6 +3454,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3340,11 +3466,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3358,14 +3485,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3376,6 +3503,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3407,12 +3535,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3421,9 +3550,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3434,6 +3563,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3445,11 +3575,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3463,14 +3594,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3481,6 +3612,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3512,12 +3644,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3526,9 +3659,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3539,6 +3672,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3550,11 +3684,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3568,14 +3703,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3586,6 +3721,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3617,12 +3753,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3631,9 +3768,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlaySrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3644,6 +3781,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3655,11 +3793,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3673,14 +3812,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlaySrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3691,6 +3830,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3722,12 +3862,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3736,9 +3877,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3749,6 +3890,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3760,11 +3902,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3778,14 +3921,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightSrcIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3796,6 +3939,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3827,12 +3971,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3841,9 +3986,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3854,6 +3999,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3865,11 +4011,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3883,14 +4030,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3901,6 +4048,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3932,12 +4080,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3946,9 +4095,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplySrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -3959,6 +4108,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -3970,11 +4120,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -3988,14 +4139,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplySrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4006,6 +4157,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4037,12 +4189,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4051,9 +4204,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4064,6 +4217,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4075,11 +4229,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4093,14 +4248,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4111,6 +4266,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4142,12 +4298,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4156,9 +4313,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4169,6 +4326,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4180,11 +4338,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4198,14 +4357,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4216,6 +4375,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4247,12 +4407,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4261,9 +4422,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4274,6 +4435,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4285,11 +4447,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4303,14 +4466,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4321,6 +4484,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4352,12 +4516,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4366,9 +4531,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4379,6 +4544,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4390,11 +4556,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4408,14 +4575,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4426,6 +4593,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4457,12 +4625,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4471,9 +4640,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4484,6 +4653,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4495,11 +4665,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4513,14 +4684,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4531,6 +4702,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4562,12 +4734,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4576,9 +4749,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlaySrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4589,6 +4762,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4600,11 +4774,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4618,14 +4793,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlaySrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4636,6 +4811,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4667,12 +4843,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4681,9 +4858,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4694,6 +4871,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4705,11 +4883,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4723,14 +4902,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightSrcOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4741,6 +4920,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4772,12 +4952,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4786,9 +4967,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4799,6 +4980,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4810,11 +4992,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4828,14 +5011,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4846,6 +5029,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4877,12 +5061,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4891,9 +5076,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4904,6 +5089,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4915,11 +5101,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4933,14 +5120,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -4951,6 +5138,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -4982,12 +5170,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -4996,9 +5185,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5009,6 +5198,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5020,11 +5210,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5038,14 +5229,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5056,6 +5247,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5087,12 +5279,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5101,9 +5294,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5114,6 +5307,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5125,11 +5319,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5143,14 +5338,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5161,6 +5356,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5192,12 +5388,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5206,9 +5403,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5219,6 +5416,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5230,11 +5428,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5248,14 +5447,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5266,6 +5465,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5297,12 +5497,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5311,9 +5512,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5324,6 +5525,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5335,11 +5537,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5353,14 +5556,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5371,6 +5574,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5402,12 +5606,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5416,9 +5621,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5429,6 +5634,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5440,11 +5646,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5458,14 +5665,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5476,6 +5683,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5507,12 +5715,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5521,9 +5730,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5534,6 +5743,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5545,11 +5755,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5563,14 +5774,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5581,6 +5792,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5612,12 +5824,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5626,9 +5839,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5639,6 +5852,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5650,11 +5864,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5668,14 +5883,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightDest(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5686,6 +5901,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5717,12 +5933,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5731,9 +5948,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5744,6 +5961,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5755,11 +5973,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5773,14 +5992,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5791,6 +6010,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5822,12 +6042,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5836,9 +6057,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5849,6 +6070,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5860,11 +6082,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5878,14 +6101,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5896,6 +6119,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5927,12 +6151,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5941,9 +6166,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -5954,6 +6179,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -5965,11 +6191,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -5983,14 +6210,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6001,6 +6228,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6032,12 +6260,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6046,9 +6275,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6059,6 +6288,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6070,11 +6300,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6088,14 +6319,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6106,6 +6337,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6137,12 +6369,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6151,9 +6384,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6164,6 +6397,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6175,11 +6409,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6193,14 +6428,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6211,6 +6446,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6242,12 +6478,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6256,9 +6493,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6269,6 +6506,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6280,11 +6518,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6298,14 +6537,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6316,6 +6555,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6347,12 +6587,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6361,9 +6602,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6374,6 +6615,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6385,11 +6627,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6403,14 +6646,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6421,6 +6664,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6452,12 +6696,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6466,9 +6711,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6479,6 +6724,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6490,11 +6736,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6508,14 +6755,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6526,6 +6773,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6557,12 +6805,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6571,9 +6820,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6584,6 +6833,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6595,11 +6845,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6613,14 +6864,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightDestAtop(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6631,6 +6882,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6662,12 +6914,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6676,9 +6929,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6689,6 +6942,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6700,11 +6954,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6718,14 +6973,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6736,6 +6991,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6767,12 +7023,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6781,9 +7038,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6794,6 +7051,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6805,11 +7063,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6823,14 +7082,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6841,6 +7100,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6872,12 +7132,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6886,9 +7147,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6899,6 +7160,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6910,11 +7172,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6928,14 +7191,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -6946,6 +7209,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -6977,12 +7241,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -6991,9 +7256,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7004,6 +7269,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7015,11 +7281,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7033,14 +7300,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7051,6 +7318,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7082,12 +7350,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7096,9 +7365,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7109,6 +7378,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7120,11 +7390,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7138,14 +7409,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7156,6 +7427,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7187,12 +7459,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7201,9 +7474,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7214,6 +7487,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7225,11 +7499,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7243,14 +7518,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7261,6 +7536,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7292,12 +7568,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7306,9 +7583,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7319,6 +7596,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7330,11 +7608,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7348,14 +7627,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7366,6 +7645,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7397,12 +7677,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7411,9 +7692,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7424,6 +7705,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7435,11 +7717,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7453,14 +7736,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7471,6 +7754,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7502,12 +7786,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7516,9 +7801,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7529,6 +7814,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7540,11 +7826,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7558,14 +7845,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightDestOver(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7576,6 +7863,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7607,12 +7895,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7621,9 +7910,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7634,6 +7923,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7645,11 +7935,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7663,14 +7954,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7681,6 +7972,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7712,12 +8004,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7726,9 +8019,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7739,6 +8032,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7750,11 +8044,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7768,14 +8063,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7786,6 +8081,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7817,12 +8113,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7831,9 +8128,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7844,6 +8141,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7855,11 +8153,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7873,14 +8172,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7891,6 +8190,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7922,12 +8222,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7936,9 +8237,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7949,6 +8250,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -7960,11 +8262,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -7978,14 +8281,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -7996,6 +8299,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8027,12 +8331,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8041,9 +8346,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8054,6 +8359,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8065,11 +8371,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8083,14 +8390,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8101,6 +8408,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8132,12 +8440,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8146,9 +8455,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8159,6 +8468,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8170,11 +8480,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8188,14 +8499,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8206,6 +8517,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8237,12 +8549,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8251,9 +8564,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8264,6 +8577,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8275,11 +8589,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8293,14 +8608,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8311,6 +8626,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8342,12 +8658,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8356,9 +8673,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8369,6 +8686,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8380,11 +8698,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8398,14 +8717,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8416,6 +8735,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8447,12 +8767,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8461,9 +8782,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8474,6 +8795,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8485,11 +8807,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8503,14 +8826,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightDestIn(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8521,6 +8844,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8552,12 +8876,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8566,9 +8891,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8579,6 +8904,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8590,11 +8916,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8608,14 +8935,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8626,6 +8953,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8657,12 +8985,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8671,9 +9000,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8684,6 +9013,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8695,11 +9025,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8713,14 +9044,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8731,6 +9062,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8762,12 +9094,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8776,9 +9109,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8789,6 +9122,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8800,11 +9134,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8818,14 +9153,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8836,6 +9171,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8867,12 +9203,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8881,9 +9218,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8894,6 +9231,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8905,11 +9243,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8923,14 +9262,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8941,6 +9280,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -8972,12 +9312,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -8986,9 +9327,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -8999,6 +9340,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9010,11 +9352,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9028,14 +9371,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9046,6 +9389,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9077,12 +9421,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9091,9 +9436,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9104,6 +9449,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9115,11 +9461,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9133,14 +9480,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9151,6 +9498,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9182,12 +9530,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9196,9 +9545,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9209,6 +9558,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9220,11 +9570,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9238,14 +9589,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9256,6 +9607,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9287,12 +9639,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9301,9 +9654,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9314,6 +9667,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9325,11 +9679,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9343,14 +9698,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9361,6 +9716,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9392,12 +9748,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9406,9 +9763,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9419,6 +9776,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9430,11 +9788,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9448,14 +9807,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightDestOut(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9466,6 +9825,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9497,12 +9857,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9511,9 +9872,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9524,6 +9885,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9535,11 +9897,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9553,14 +9916,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9571,6 +9934,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9602,12 +9966,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9616,9 +9981,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9629,6 +9994,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9640,11 +10006,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9658,14 +10025,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9676,6 +10043,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9707,12 +10075,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9721,9 +10090,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9734,6 +10103,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9745,11 +10115,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9763,14 +10134,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9781,6 +10152,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9812,12 +10184,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9826,9 +10199,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9839,6 +10212,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9850,11 +10224,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9868,14 +10243,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9886,6 +10261,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9917,12 +10293,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9931,9 +10308,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9944,6 +10321,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -9955,11 +10333,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -9973,14 +10352,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -9991,6 +10370,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10022,12 +10402,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10036,9 +10417,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10049,6 +10430,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10060,11 +10442,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10078,14 +10461,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10096,6 +10479,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10127,12 +10511,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10141,9 +10526,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10154,6 +10539,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10165,11 +10551,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10183,14 +10570,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10201,6 +10588,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10232,12 +10620,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10246,9 +10635,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10259,6 +10648,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10270,11 +10660,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10288,14 +10679,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10306,6 +10697,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10337,12 +10729,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10351,9 +10744,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10364,6 +10757,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10375,11 +10769,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10393,14 +10788,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightClear(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10411,6 +10806,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10442,12 +10838,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10456,9 +10853,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.NormalXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10469,6 +10866,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10480,11 +10878,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10498,14 +10897,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.NormalXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10516,6 +10915,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10547,12 +10947,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10561,9 +10962,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.MultiplyXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10574,6 +10975,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10585,11 +10987,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10603,14 +11006,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.MultiplyXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10621,6 +11024,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10652,12 +11056,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10666,9 +11071,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.AddXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10679,6 +11084,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10690,11 +11096,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10708,14 +11115,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.AddXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10726,6 +11133,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10757,12 +11165,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10771,9 +11180,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.SubtractXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10784,6 +11193,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10795,11 +11205,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10813,14 +11224,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.SubtractXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10831,6 +11242,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10862,12 +11274,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10876,9 +11289,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.ScreenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10889,6 +11302,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10900,11 +11314,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10918,14 +11333,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.ScreenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10936,6 +11351,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -10967,12 +11383,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -10981,9 +11398,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.DarkenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -10994,6 +11411,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11005,11 +11423,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11023,14 +11442,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.DarkenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11041,6 +11460,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11072,12 +11492,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11086,9 +11507,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.LightenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11099,6 +11520,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11110,11 +11532,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11128,14 +11551,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.LightenXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11146,6 +11569,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11177,12 +11601,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11191,9 +11616,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.OverlayXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11204,6 +11629,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11215,11 +11641,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11233,14 +11660,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.OverlayXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11251,6 +11678,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11282,12 +11710,13 @@ internal static class DefaultPixelBlenders<TPixel>
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11296,9 +11725,9 @@ internal static class DefaultPixelBlenders<TPixel>
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.HardLightXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11309,6 +11738,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -11320,11 +11750,12 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -11338,14 +11769,14 @@ internal static class DefaultPixelBlenders<TPixel>
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.HardLightXor(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -11356,6 +11787,7 @@ internal static class DefaultPixelBlenders<TPixel>
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {

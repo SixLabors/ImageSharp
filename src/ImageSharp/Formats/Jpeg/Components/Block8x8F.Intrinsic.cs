@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal partial struct Block8x8F
 {
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// A number of rows of 8 scalar coefficients each in <see cref="Block8x8F"/>
     /// </summary>
@@ -45,13 +46,13 @@ internal partial struct Block8x8F
 
         for (nuint i = 0; i < 8; i += 2)
         {
-            Vector256<int> row0 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
-            Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
+            Vector256<int> row0 = Avx.ConvertToVector256Int32(Avx.Multiply(Extensions.UnsafeAdd(ref aBase, i + 0), Extensions.UnsafeAdd(ref bBase, i + 0)));
+            Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Extensions.UnsafeAdd(ref aBase, i + 1), Extensions.UnsafeAdd(ref bBase, i + 1)));
 
             Vector256<short> row = Avx2.PackSignedSaturate(row0, row1);
             row = Avx2.PermuteVar8x32(row.AsInt32(), multiplyIntoInt16ShuffleMask).AsInt16();
 
-            Unsafe.Add(ref destRef, i / 2) = row;
+            Extensions.UnsafeAdd(ref destRef, i / 2) = row;
         }
     }
 
@@ -66,11 +67,11 @@ internal partial struct Block8x8F
 
         for (nuint i = 0; i < 16; i += 2)
         {
-            Vector128<int> left = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
-            Vector128<int> right = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
+            Vector128<int> left = Sse2.ConvertToVector128Int32(Sse.Multiply(Extensions.UnsafeAdd(ref aBase, i + 0), Extensions.UnsafeAdd(ref bBase, i + 0)));
+            Vector128<int> right = Sse2.ConvertToVector128Int32(Sse.Multiply(Extensions.UnsafeAdd(ref aBase, i + 1), Extensions.UnsafeAdd(ref bBase, i + 1)));
 
             Vector128<short> row = Sse2.PackSignedSaturate(left, right);
-            Unsafe.Add(ref destBase, i / 2) = row;
+            Extensions.UnsafeAdd(ref destBase, i / 2) = row;
         }
     }
 
@@ -141,4 +142,5 @@ internal partial struct Block8x8F
         this.V6 = Avx.Blend(t5, v, 0xCC);
         this.V7 = Avx.Blend(t7, v, 0x33);
     }
+#endif
 }

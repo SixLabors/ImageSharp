@@ -27,7 +27,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalSrc compositing equation.
     /// </summary>
@@ -38,6 +39,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalSrcAtop" compositing equation.
@@ -53,7 +55,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Normal(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalSrcAtop" compositing equation.
     /// </summary>
@@ -68,6 +71,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Normal(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalSrcOver" compositing equation.
@@ -83,7 +87,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Normal(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalSrcOver" compositing equation.
     /// </summary>
@@ -98,6 +103,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Normal(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalSrcIn" compositing equation.
@@ -113,7 +119,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalSrcIn" compositing equation.
     /// </summary>
@@ -124,6 +131,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalSrcOut" compositing equation.
@@ -139,7 +147,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalSrcOut" compositing equation.
     /// </summary>
@@ -150,6 +159,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalDest" compositing equation.
@@ -163,7 +173,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalDest" compositing equation.
     /// </summary>
@@ -176,6 +187,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalDestAtop" compositing equation.
@@ -191,7 +203,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Normal(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalDestAtop" compositing equation.
     /// </summary>
@@ -206,6 +219,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Normal(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalDestOver" compositing equation.
@@ -221,7 +235,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Normal(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalDestOver" compositing equation.
     /// </summary>
@@ -236,6 +251,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Normal(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalDestIn" compositing equation.
@@ -251,7 +267,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalDestIn" compositing equation.
     /// </summary>
@@ -262,6 +279,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalDestOut" compositing equation.
@@ -277,7 +295,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalDestOut" compositing equation.
     /// </summary>
@@ -288,6 +307,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalXor" compositing equation.
@@ -303,7 +323,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalXor" compositing equation.
     /// </summary>
@@ -314,6 +335,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "NormalClear" compositing equation.
@@ -329,7 +351,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "NormalClear" compositing equation.
     /// </summary>
@@ -340,6 +363,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -572,7 +596,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplySrc compositing equation.
     /// </summary>
@@ -583,6 +608,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplySrcAtop" compositing equation.
@@ -598,7 +624,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Multiply(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplySrcAtop" compositing equation.
     /// </summary>
@@ -613,6 +640,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Multiply(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplySrcOver" compositing equation.
@@ -628,7 +656,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Multiply(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplySrcOver" compositing equation.
     /// </summary>
@@ -643,6 +672,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Multiply(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplySrcIn" compositing equation.
@@ -658,7 +688,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplySrcIn" compositing equation.
     /// </summary>
@@ -669,6 +700,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplySrcOut" compositing equation.
@@ -684,7 +716,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplySrcOut" compositing equation.
     /// </summary>
@@ -695,6 +728,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyDest" compositing equation.
@@ -708,7 +742,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyDest" compositing equation.
     /// </summary>
@@ -721,6 +756,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyDestAtop" compositing equation.
@@ -736,7 +772,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Multiply(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyDestAtop" compositing equation.
     /// </summary>
@@ -751,6 +788,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Multiply(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyDestOver" compositing equation.
@@ -766,7 +804,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Multiply(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyDestOver" compositing equation.
     /// </summary>
@@ -781,6 +820,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Multiply(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyDestIn" compositing equation.
@@ -796,7 +836,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyDestIn" compositing equation.
     /// </summary>
@@ -807,6 +848,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyDestOut" compositing equation.
@@ -822,7 +864,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyDestOut" compositing equation.
     /// </summary>
@@ -833,6 +876,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyXor" compositing equation.
@@ -848,7 +892,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyXor" compositing equation.
     /// </summary>
@@ -859,6 +904,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "MultiplyClear" compositing equation.
@@ -874,7 +920,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "MultiplyClear" compositing equation.
     /// </summary>
@@ -885,6 +932,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -1117,7 +1165,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddSrc compositing equation.
     /// </summary>
@@ -1128,6 +1177,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "AddSrcAtop" compositing equation.
@@ -1143,7 +1193,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Add(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddSrcAtop" compositing equation.
     /// </summary>
@@ -1158,6 +1209,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Add(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "AddSrcOver" compositing equation.
@@ -1173,7 +1225,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Add(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddSrcOver" compositing equation.
     /// </summary>
@@ -1188,6 +1241,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Add(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "AddSrcIn" compositing equation.
@@ -1203,7 +1257,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddSrcIn" compositing equation.
     /// </summary>
@@ -1214,6 +1269,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "AddSrcOut" compositing equation.
@@ -1229,7 +1285,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddSrcOut" compositing equation.
     /// </summary>
@@ -1240,6 +1297,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "AddDest" compositing equation.
@@ -1253,7 +1311,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddDest" compositing equation.
     /// </summary>
@@ -1266,6 +1325,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "AddDestAtop" compositing equation.
@@ -1281,7 +1341,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Add(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddDestAtop" compositing equation.
     /// </summary>
@@ -1296,6 +1357,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Add(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "AddDestOver" compositing equation.
@@ -1311,7 +1373,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Add(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddDestOver" compositing equation.
     /// </summary>
@@ -1326,6 +1389,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Add(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "AddDestIn" compositing equation.
@@ -1341,7 +1405,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddDestIn" compositing equation.
     /// </summary>
@@ -1352,6 +1417,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "AddDestOut" compositing equation.
@@ -1367,7 +1433,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddDestOut" compositing equation.
     /// </summary>
@@ -1378,6 +1445,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "AddXor" compositing equation.
@@ -1393,7 +1461,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddXor" compositing equation.
     /// </summary>
@@ -1404,6 +1473,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "AddClear" compositing equation.
@@ -1419,7 +1489,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "AddClear" compositing equation.
     /// </summary>
@@ -1430,6 +1501,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -1662,7 +1734,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractSrc compositing equation.
     /// </summary>
@@ -1673,6 +1746,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractSrcAtop" compositing equation.
@@ -1688,7 +1762,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Subtract(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractSrcAtop" compositing equation.
     /// </summary>
@@ -1703,6 +1778,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Subtract(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractSrcOver" compositing equation.
@@ -1718,7 +1794,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Subtract(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractSrcOver" compositing equation.
     /// </summary>
@@ -1733,6 +1810,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Subtract(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractSrcIn" compositing equation.
@@ -1748,7 +1826,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractSrcIn" compositing equation.
     /// </summary>
@@ -1759,6 +1838,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractSrcOut" compositing equation.
@@ -1774,7 +1854,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractSrcOut" compositing equation.
     /// </summary>
@@ -1785,6 +1866,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractDest" compositing equation.
@@ -1798,7 +1880,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractDest" compositing equation.
     /// </summary>
@@ -1811,6 +1894,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractDestAtop" compositing equation.
@@ -1826,7 +1910,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Subtract(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractDestAtop" compositing equation.
     /// </summary>
@@ -1841,6 +1926,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Subtract(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractDestOver" compositing equation.
@@ -1856,7 +1942,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Subtract(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractDestOver" compositing equation.
     /// </summary>
@@ -1871,6 +1958,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Subtract(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractDestIn" compositing equation.
@@ -1886,7 +1974,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractDestIn" compositing equation.
     /// </summary>
@@ -1897,6 +1986,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractDestOut" compositing equation.
@@ -1912,7 +2002,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractDestOut" compositing equation.
     /// </summary>
@@ -1923,6 +2014,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractXor" compositing equation.
@@ -1938,7 +2030,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractXor" compositing equation.
     /// </summary>
@@ -1949,6 +2042,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "SubtractClear" compositing equation.
@@ -1964,7 +2058,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "SubtractClear" compositing equation.
     /// </summary>
@@ -1975,6 +2070,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -2207,7 +2303,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenSrc compositing equation.
     /// </summary>
@@ -2218,6 +2315,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenSrcAtop" compositing equation.
@@ -2233,7 +2331,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Screen(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenSrcAtop" compositing equation.
     /// </summary>
@@ -2248,6 +2347,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Screen(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenSrcOver" compositing equation.
@@ -2263,7 +2363,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Screen(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenSrcOver" compositing equation.
     /// </summary>
@@ -2278,6 +2379,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Screen(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenSrcIn" compositing equation.
@@ -2293,7 +2395,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenSrcIn" compositing equation.
     /// </summary>
@@ -2304,6 +2407,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenSrcOut" compositing equation.
@@ -2319,7 +2423,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenSrcOut" compositing equation.
     /// </summary>
@@ -2330,6 +2435,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenDest" compositing equation.
@@ -2343,7 +2449,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenDest" compositing equation.
     /// </summary>
@@ -2356,6 +2463,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenDestAtop" compositing equation.
@@ -2371,7 +2479,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Screen(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenDestAtop" compositing equation.
     /// </summary>
@@ -2386,6 +2495,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Screen(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenDestOver" compositing equation.
@@ -2401,7 +2511,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Screen(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenDestOver" compositing equation.
     /// </summary>
@@ -2416,6 +2527,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Screen(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenDestIn" compositing equation.
@@ -2431,7 +2543,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenDestIn" compositing equation.
     /// </summary>
@@ -2442,6 +2555,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenDestOut" compositing equation.
@@ -2457,7 +2571,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenDestOut" compositing equation.
     /// </summary>
@@ -2468,6 +2583,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenXor" compositing equation.
@@ -2483,7 +2599,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenXor" compositing equation.
     /// </summary>
@@ -2494,6 +2611,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "ScreenClear" compositing equation.
@@ -2509,7 +2627,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "ScreenClear" compositing equation.
     /// </summary>
@@ -2520,6 +2639,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -2752,7 +2872,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenSrc compositing equation.
     /// </summary>
@@ -2763,6 +2884,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenSrcAtop" compositing equation.
@@ -2778,7 +2900,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Darken(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenSrcAtop" compositing equation.
     /// </summary>
@@ -2793,6 +2916,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Darken(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenSrcOver" compositing equation.
@@ -2808,7 +2932,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Darken(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenSrcOver" compositing equation.
     /// </summary>
@@ -2823,6 +2948,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Darken(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenSrcIn" compositing equation.
@@ -2838,7 +2964,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenSrcIn" compositing equation.
     /// </summary>
@@ -2849,6 +2976,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenSrcOut" compositing equation.
@@ -2864,7 +2992,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenSrcOut" compositing equation.
     /// </summary>
@@ -2875,6 +3004,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenDest" compositing equation.
@@ -2888,7 +3018,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenDest" compositing equation.
     /// </summary>
@@ -2901,6 +3032,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenDestAtop" compositing equation.
@@ -2916,7 +3048,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Darken(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenDestAtop" compositing equation.
     /// </summary>
@@ -2931,6 +3064,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Darken(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenDestOver" compositing equation.
@@ -2946,7 +3080,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Darken(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenDestOver" compositing equation.
     /// </summary>
@@ -2961,6 +3096,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Darken(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenDestIn" compositing equation.
@@ -2976,7 +3112,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenDestIn" compositing equation.
     /// </summary>
@@ -2987,6 +3124,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenDestOut" compositing equation.
@@ -3002,7 +3140,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenDestOut" compositing equation.
     /// </summary>
@@ -3013,6 +3152,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenXor" compositing equation.
@@ -3028,7 +3168,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenXor" compositing equation.
     /// </summary>
@@ -3039,6 +3180,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "DarkenClear" compositing equation.
@@ -3054,7 +3196,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "DarkenClear" compositing equation.
     /// </summary>
@@ -3065,6 +3208,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -3297,7 +3441,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenSrc compositing equation.
     /// </summary>
@@ -3308,6 +3453,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenSrcAtop" compositing equation.
@@ -3323,7 +3469,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Lighten(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenSrcAtop" compositing equation.
     /// </summary>
@@ -3338,6 +3485,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Lighten(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenSrcOver" compositing equation.
@@ -3353,7 +3501,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Lighten(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenSrcOver" compositing equation.
     /// </summary>
@@ -3368,6 +3517,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Lighten(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenSrcIn" compositing equation.
@@ -3383,7 +3533,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenSrcIn" compositing equation.
     /// </summary>
@@ -3394,6 +3545,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenSrcOut" compositing equation.
@@ -3409,7 +3561,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenSrcOut" compositing equation.
     /// </summary>
@@ -3420,6 +3573,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenDest" compositing equation.
@@ -3433,7 +3587,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenDest" compositing equation.
     /// </summary>
@@ -3446,6 +3601,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenDestAtop" compositing equation.
@@ -3461,7 +3617,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Lighten(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenDestAtop" compositing equation.
     /// </summary>
@@ -3476,6 +3633,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Lighten(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenDestOver" compositing equation.
@@ -3491,7 +3649,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Lighten(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenDestOver" compositing equation.
     /// </summary>
@@ -3506,6 +3665,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Lighten(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenDestIn" compositing equation.
@@ -3521,7 +3681,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenDestIn" compositing equation.
     /// </summary>
@@ -3532,6 +3693,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenDestOut" compositing equation.
@@ -3547,7 +3709,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenDestOut" compositing equation.
     /// </summary>
@@ -3558,6 +3721,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenXor" compositing equation.
@@ -3573,7 +3737,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenXor" compositing equation.
     /// </summary>
@@ -3584,6 +3749,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "LightenClear" compositing equation.
@@ -3599,7 +3765,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "LightenClear" compositing equation.
     /// </summary>
@@ -3610,6 +3777,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -3842,7 +4010,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlaySrc compositing equation.
     /// </summary>
@@ -3853,6 +4022,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlaySrcAtop" compositing equation.
@@ -3868,7 +4038,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Overlay(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlaySrcAtop" compositing equation.
     /// </summary>
@@ -3883,6 +4054,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, Overlay(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlaySrcOver" compositing equation.
@@ -3898,7 +4070,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Overlay(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlaySrcOver" compositing equation.
     /// </summary>
@@ -3913,6 +4086,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, Overlay(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlaySrcIn" compositing equation.
@@ -3928,7 +4102,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlaySrcIn" compositing equation.
     /// </summary>
@@ -3939,6 +4114,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlaySrcOut" compositing equation.
@@ -3954,7 +4130,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlaySrcOut" compositing equation.
     /// </summary>
@@ -3965,6 +4142,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayDest" compositing equation.
@@ -3978,7 +4156,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayDest" compositing equation.
     /// </summary>
@@ -3991,6 +4170,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayDestAtop" compositing equation.
@@ -4006,7 +4186,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Overlay(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayDestAtop" compositing equation.
     /// </summary>
@@ -4021,6 +4202,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, Overlay(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayDestOver" compositing equation.
@@ -4036,7 +4218,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Overlay(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayDestOver" compositing equation.
     /// </summary>
@@ -4051,6 +4234,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, Overlay(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayDestIn" compositing equation.
@@ -4066,7 +4250,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayDestIn" compositing equation.
     /// </summary>
@@ -4077,6 +4262,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayDestOut" compositing equation.
@@ -4092,7 +4278,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayDestOut" compositing equation.
     /// </summary>
@@ -4103,6 +4290,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayXor" compositing equation.
@@ -4118,7 +4306,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayXor" compositing equation.
     /// </summary>
@@ -4129,6 +4318,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "OverlayClear" compositing equation.
@@ -4144,7 +4334,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "OverlayClear" compositing equation.
     /// </summary>
@@ -4155,6 +4346,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>
@@ -4387,7 +4579,8 @@ internal static partial class PorterDuffFunctions
 
         return source;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightSrc compositing equation.
     /// </summary>
@@ -4398,6 +4591,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightSrcAtop" compositing equation.
@@ -4413,7 +4607,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, HardLight(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightSrcAtop" compositing equation.
     /// </summary>
@@ -4428,6 +4623,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(backdrop, source, HardLight(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightSrcOver" compositing equation.
@@ -4443,7 +4639,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, HardLight(backdrop, source));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightSrcOver" compositing equation.
     /// </summary>
@@ -4458,6 +4655,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(backdrop, source, HardLight(backdrop, source));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightSrcIn" compositing equation.
@@ -4473,7 +4671,8 @@ internal static partial class PorterDuffFunctions
 
         return In(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightSrcIn" compositing equation.
     /// </summary>
@@ -4484,6 +4683,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightSrcOut" compositing equation.
@@ -4499,7 +4699,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightSrcOut" compositing equation.
     /// </summary>
@@ -4510,6 +4711,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightDest" compositing equation.
@@ -4523,7 +4725,8 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightDest" compositing equation.
     /// </summary>
@@ -4536,6 +4739,7 @@ internal static partial class PorterDuffFunctions
     {
         return backdrop;
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightDestAtop" compositing equation.
@@ -4551,7 +4755,8 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, HardLight(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightDestAtop" compositing equation.
     /// </summary>
@@ -4566,6 +4771,7 @@ internal static partial class PorterDuffFunctions
 
         return Atop(source, backdrop, HardLight(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightDestOver" compositing equation.
@@ -4581,7 +4787,8 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, HardLight(source, backdrop));
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightDestOver" compositing equation.
     /// </summary>
@@ -4596,6 +4803,7 @@ internal static partial class PorterDuffFunctions
 
         return Over(source, backdrop, HardLight(source, backdrop));
     }
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightDestIn" compositing equation.
@@ -4611,7 +4819,8 @@ internal static partial class PorterDuffFunctions
 
         return In(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightDestIn" compositing equation.
     /// </summary>
@@ -4622,6 +4831,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightDestOut" compositing equation.
@@ -4637,7 +4847,8 @@ internal static partial class PorterDuffFunctions
 
         return Out(source, backdrop);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightDestOut" compositing equation.
     /// </summary>
@@ -4648,6 +4859,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightXor" compositing equation.
@@ -4663,7 +4875,8 @@ internal static partial class PorterDuffFunctions
 
         return Xor(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightXor" compositing equation.
     /// </summary>
@@ -4674,6 +4887,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
     /// <summary>
     /// Returns the result of the "HardLightClear" compositing equation.
@@ -4689,7 +4903,8 @@ internal static partial class PorterDuffFunctions
 
         return Clear(backdrop, source);
     }
-
+    
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Returns the result of the "HardLightClear" compositing equation.
     /// </summary>
@@ -4700,6 +4915,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+#endif
 
 
     /// <summary>

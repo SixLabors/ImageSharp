@@ -35,8 +35,8 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        int levels = Math.Clamp(this.definition.Levels, 1, 255);
-        int brushSize = Math.Clamp(this.definition.BrushSize, 1, Math.Min(source.Width, source.Height));
+        int levels = Extensions.Clamp(this.definition.Levels, 1, 255);
+        int brushSize = Extensions.Clamp(this.definition.BrushSize, 1, Math.Min(source.Width, source.Height));
 
         using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size());
 

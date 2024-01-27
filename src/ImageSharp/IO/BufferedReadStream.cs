@@ -173,7 +173,11 @@ internal sealed class BufferedReadStream : Stream
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int Read(Span<byte> buffer)
+    public
+#if NET6_0_OR_GREATER
+        override
+#endif
+        int Read(Span<byte> buffer)
     {
         this.cancellationToken.ThrowIfCancellationRequested();
 

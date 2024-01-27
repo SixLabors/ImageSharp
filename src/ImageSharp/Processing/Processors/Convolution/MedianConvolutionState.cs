@@ -36,9 +36,9 @@ internal readonly ref struct MedianConvolutionState
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref int GetSampleRow(int row)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), (uint)(row * this.kernelHeight));
+        => ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(this.rowOffsetMap), (uint)(row * this.kernelHeight));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref int GetSampleColumn(int column)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), (uint)(column * this.kernelWidth));
+        => ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(this.columnOffsetMap), (uint)(column * this.kernelWidth));
 }

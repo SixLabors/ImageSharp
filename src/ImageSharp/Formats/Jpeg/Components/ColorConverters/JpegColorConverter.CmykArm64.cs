@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class CmykArm64 : JpegColorConverterArm64
     {
         public CmykArm64(int precision)
@@ -35,10 +36,10 @@ internal abstract partial class JpegColorConverterBase
             nint n = (nint)(uint)values.Component0.Length / Vector128<float>.Count;
             for (nint i = 0; i < n; i++)
             {
-                ref Vector128<float> c = ref Unsafe.Add(ref c0Base, i);
-                ref Vector128<float> m = ref Unsafe.Add(ref c1Base, i);
-                ref Vector128<float> y = ref Unsafe.Add(ref c2Base, i);
-                Vector128<float> k = Unsafe.Add(ref c3Base, i);
+                ref Vector128<float> c = ref Extensions.UnsafeAdd(ref c0Base, i);
+                ref Vector128<float> m = ref Extensions.UnsafeAdd(ref c1Base, i);
+                ref Vector128<float> y = ref Extensions.UnsafeAdd(ref c2Base, i);
+                Vector128<float> k = Extensions.UnsafeAdd(ref c3Base, i);
 
                 k = AdvSimd.Multiply(k, scale);
                 c = AdvSimd.Multiply(c, k);
@@ -74,9 +75,9 @@ internal abstract partial class JpegColorConverterBase
             nint n = (nint)(uint)values.Component0.Length / Vector128<float>.Count;
             for (nint i = 0; i < n; i++)
             {
-                Vector128<float> ctmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcR, i));
-                Vector128<float> mtmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcG, i));
-                Vector128<float> ytmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcB, i));
+                Vector128<float> ctmp = AdvSimd.Subtract(scale, Extensions.UnsafeAdd(ref srcR, i));
+                Vector128<float> mtmp = AdvSimd.Subtract(scale, Extensions.UnsafeAdd(ref srcG, i));
+                Vector128<float> ytmp = AdvSimd.Subtract(scale, Extensions.UnsafeAdd(ref srcB, i));
                 Vector128<float> ktmp = AdvSimd.Min(ctmp, AdvSimd.Min(mtmp, ytmp));
 
                 Vector128<float> kMask = AdvSimd.Not(AdvSimd.CompareEqual(ktmp, scale));
@@ -85,11 +86,12 @@ internal abstract partial class JpegColorConverterBase
                 mtmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(mtmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
                 ytmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(ytmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
 
-                Unsafe.Add(ref destC, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ctmp, scale));
-                Unsafe.Add(ref destM, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(mtmp, scale));
-                Unsafe.Add(ref destY, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ytmp, scale));
-                Unsafe.Add(ref destK, i) = AdvSimd.Subtract(scale, ktmp);
+                Extensions.UnsafeAdd(ref destC, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ctmp, scale));
+                Extensions.UnsafeAdd(ref destM, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(mtmp, scale));
+                Extensions.UnsafeAdd(ref destY, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ytmp, scale));
+                Extensions.UnsafeAdd(ref destK, i) = AdvSimd.Subtract(scale, ktmp);
             }
         }
     }
+#endif
 }

@@ -73,7 +73,12 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
     // This delegate allows overriding the method returning the available system memory,
     // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
-    internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+    internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () =>
+#if NET6_0_OR_GREATER
+        GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+#else
+        0;
+#endif
 
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;

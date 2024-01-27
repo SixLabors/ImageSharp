@@ -54,6 +54,11 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
             PixelColorType.Grayscale,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<L16>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 

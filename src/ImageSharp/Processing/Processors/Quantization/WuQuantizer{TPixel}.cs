@@ -190,7 +190,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
         byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
-        match = Unsafe.Add(ref paletteRef, index);
+        match = Extensions.UnsafeAdd(ref paletteRef, index);
         return index;
     }
 
@@ -684,7 +684,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         using IMemoryOwner<double> vvOwner = this.Configuration.MemoryAllocator.Allocate<double>(this.maxColors);
         Span<double> vv = vvOwner.GetSpan();
 
-        ref Box cube = ref MemoryMarshal.GetArrayDataReference(this.colorCube);
+        ref Box cube = ref this.colorCube[0];
         cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;
         cube.RMax = cube.GMax = cube.BMax = IndexCount - 1;
         cube.AMax = IndexAlphaCount - 1;

@@ -61,6 +61,7 @@ internal static class Adler32
             return adler;
         }
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported && buffer.Length >= MinBufferSize)
         {
             return CalculateAvx2(adler, buffer);
@@ -75,10 +76,12 @@ internal static class Adler32
         {
             return CalculateArm(adler, buffer);
         }
+#endif
 
         return CalculateScalar(adler, buffer);
     }
 
+#if USE_SIMD_INTRINSICS
     // Based on https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
     [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
     private static unsafe uint CalculateSse(uint adler, ReadOnlySpan<byte> buffer)
@@ -342,6 +345,7 @@ internal static class Adler32
             return s1 | (s2 << 16);
         }
     }
+#endif
 
     private static unsafe void HandleLeftOver(byte* localBufferPtr, uint length, ref uint s1, ref uint s2)
     {

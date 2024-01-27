@@ -71,6 +71,11 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
             PixelColorType.Red | PixelColorType.Green,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Short2>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
 

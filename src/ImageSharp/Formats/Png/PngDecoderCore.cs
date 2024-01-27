@@ -545,11 +545,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         for (int i = 0; i < bytesPerScanline; i++)
         {
-            byte b = Unsafe.Add(ref sourceRef, (uint)i);
+            byte b = Extensions.UnsafeAdd(ref sourceRef, (uint)i);
             for (int shift = 0; shift < 8; shift += bits)
             {
                 int colorIndex = (b >> (8 - bits - shift)) & mask;
-                Unsafe.Add(ref resultRef, (uint)resultOffset) = (byte)colorIndex;
+                Extensions.UnsafeAdd(ref resultRef, (uint)resultOffset) = (byte)colorIndex;
                 resultOffset++;
             }
         }
@@ -1631,7 +1631,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="span">The <see cref="int"/> to parse.</param>
     /// <returns>The parsed <see cref="int"/>.</returns>
-    private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span, provider: CultureInfo.InvariantCulture);
+    private static int ParseInt32(ReadOnlySpan<char> span) => int.Parse(span
+#if !NET6_0_OR_GREATER
+        .ToString()
+#endif
+        , provider: CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Sets the <see cref="ExifProfile"/> in <paramref name="metadata"/> to <paramref name="newProfile"/>,

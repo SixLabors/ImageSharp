@@ -261,13 +261,13 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadGraphicalControlExtension(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 6);
+        int bytesRead = stream.Read(this.buffer.GetSpan(), 0, 6);
         if (bytesRead != 6)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the graphic control extension");
         }
 
-        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer.Span);
+        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer.GetSpan());
     }
 
     /// <summary>
@@ -276,13 +276,13 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadImageDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 9);
+        int bytesRead = stream.Read(this.buffer.GetSpan(), 0, 9);
         if (bytesRead != 9)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the image descriptor");
         }
 
-        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer.Span);
+        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer.GetSpan());
         if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
@@ -295,13 +295,13 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadLogicalScreenDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 7);
+        int bytesRead = stream.Read(this.buffer.GetSpan(), 0, 7);
         if (bytesRead != 7)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the logical screen descriptor");
         }
 
-        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer.Span);
+        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer.GetSpan());
     }
 
     /// <summary>
@@ -318,8 +318,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         long position = stream.Position;
         if (appLength == GifConstants.ApplicationBlockSize)
         {
-            stream.Read(this.buffer.Span, 0, GifConstants.ApplicationBlockSize);
-            bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
+            stream.Read(this.buffer.GetSpan(), 0, GifConstants.ApplicationBlockSize);
+            bool isXmp = this.buffer.GetSpan().StartsWith(GifConstants.XmpApplicationIdentificationBytes);
             if (isXmp && !this.skipMetadata)
             {
                 GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
@@ -343,8 +343,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
             if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
             {
-                stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
+                stream.Read(this.buffer.GetSpan(), 0, GifConstants.NetscapeLoopingSubBlockSize);
+                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.GetSpan()[1..]).RepeatCount;
                 stream.Skip(1); // Skip the terminator.
                 return;
             }
@@ -594,8 +594,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                 // #403 The left + width value can be larger than the image width
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
+                    int index = Numerics.Clamp(Extensions.UnsafeAdd(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
+                    ref TPixel pixel = ref Extensions.UnsafeAdd(ref rowRef, (uint)x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);
                 }
@@ -604,7 +604,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             {
                 for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                 {
-                    int rawIndex = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
+                    int rawIndex = Extensions.UnsafeAdd(ref indicesRowRef, (uint)(x - descriptorLeft));
 
                     // Treat any out of bounds values as transparent.
                     if (rawIndex > colorTableMaxIdx || rawIndex == transIndex)
@@ -613,7 +613,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
                     }
 
                     int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
+                    ref TPixel pixel = ref Extensions.UnsafeAdd(ref rowRef, (uint)x);
                     Rgb24 rgb = colorTable[index];
                     pixel.FromRgb24(rgb);
                 }
@@ -795,11 +795,36 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         this.gifMetadata.BackgroundColorIndex = this.logicalScreenDescriptor.BackgroundColorIndex;
     }
 
-    private unsafe struct ScratchBuffer
+#if NET6_0_OR_GREATER
+    private
+#else
+    internal
+#endif
+    unsafe struct ScratchBuffer
     {
         private const int Size = 16;
-        private fixed byte scratch[Size];
+#if NET6_0_OR_GREATER
+        private
+#else
+        internal
+#endif
+        fixed byte scratch[Size];
 
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+#if NET6_0_OR_GREATER
+        public Span<byte> GetSpan()
+        {
+            return MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+        }
+#endif
     }
 }
+
+#if !NET6_0_OR_GREATER
+internal static class ScratchBufferExtensions
+{
+    public static unsafe Span<byte> GetSpan(ref this GifDecoderCore.ScratchBuffer buffer)
+    {
+        return MemoryMarshal.Cast<GifDecoderCore.ScratchBuffer, byte>(new Span<GifDecoderCore.ScratchBuffer>(Unsafe.AsPointer(ref buffer), Unsafe.SizeOf<GifDecoderCore.ScratchBuffer>()));
+    }
+}
+#endif

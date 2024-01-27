@@ -33,9 +33,9 @@ internal readonly struct DefaultShuffle3 : IShuffle3
 
         for (nuint i = 0; i < (uint)source.Length; i += 3)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 0) = Extensions.UnsafeAdd(ref sBase, p0 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 1) = Extensions.UnsafeAdd(ref sBase, p1 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 2) = Extensions.UnsafeAdd(ref sBase, p2 + i);
         }
     }
 }

@@ -21,7 +21,7 @@ internal static class InliningOptions
 
     public const MethodImplOptions ShortMethod = MethodImplOptions.NoInlining;
 #else
-    public const MethodImplOptions HotPath = MethodImplOptions.AggressiveOptimization;
+    public const MethodImplOptions HotPath = Extensions.AggressiveOptimization;
 
     public const MethodImplOptions ShortMethod = MethodImplOptions.AggressiveInlining;
 #endif

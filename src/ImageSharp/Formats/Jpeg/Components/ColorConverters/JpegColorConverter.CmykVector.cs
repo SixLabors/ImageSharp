@@ -33,10 +33,10 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector<float> c = ref Unsafe.Add(ref cBase, i);
-                ref Vector<float> m = ref Unsafe.Add(ref mBase, i);
-                ref Vector<float> y = ref Unsafe.Add(ref yBase, i);
-                Vector<float> k = Unsafe.Add(ref kBase, i);
+                ref Vector<float> c = ref Extensions.UnsafeAdd(ref cBase, i);
+                ref Vector<float> m = ref Extensions.UnsafeAdd(ref mBase, i);
+                ref Vector<float> y = ref Extensions.UnsafeAdd(ref yBase, i);
+                Vector<float> k = Extensions.UnsafeAdd(ref kBase, i);
 
                 k *= scale;
                 c *= k;
@@ -81,9 +81,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector<float> ctmp = scale - Unsafe.Add(ref srcR, i);
-                Vector<float> mtmp = scale - Unsafe.Add(ref srcG, i);
-                Vector<float> ytmp = scale - Unsafe.Add(ref srcB, i);
+                Vector<float> ctmp = scale - Extensions.UnsafeAdd(ref srcR, i);
+                Vector<float> mtmp = scale - Extensions.UnsafeAdd(ref srcG, i);
+                Vector<float> ytmp = scale - Extensions.UnsafeAdd(ref srcB, i);
                 Vector<float> ktmp = Vector.Min(ctmp, Vector.Min(mtmp, ytmp));
 
                 var kMask = Vector.Equals(ktmp, scale);
@@ -91,10 +91,10 @@ internal abstract partial class JpegColorConverterBase
                 mtmp = Vector.AndNot((mtmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
                 ytmp = Vector.AndNot((ytmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
 
-                Unsafe.Add(ref destC, i) = scale - (ctmp * scale);
-                Unsafe.Add(ref destM, i) = scale - (mtmp * scale);
-                Unsafe.Add(ref destY, i) = scale - (ytmp * scale);
-                Unsafe.Add(ref destK, i) = scale - ktmp;
+                Extensions.UnsafeAdd(ref destC, i) = scale - (ctmp * scale);
+                Extensions.UnsafeAdd(ref destM, i) = scale - (mtmp * scale);
+                Extensions.UnsafeAdd(ref destY, i) = scale - (ytmp * scale);
+                Extensions.UnsafeAdd(ref destK, i) = scale - ktmp;
             }
         }
 

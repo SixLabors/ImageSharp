@@ -103,6 +103,11 @@ public partial struct RgbaVector : IPixel<RgbaVector>
             PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<RgbaVector>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();
 

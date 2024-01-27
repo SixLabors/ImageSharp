@@ -321,13 +321,13 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref byte remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
+            ref byte remainderEnd = ref Extensions.UnsafeAdd(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
                 remainderStart = Clamp(remainderStart, min, max);
 
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
+                remainderStart = ref Extensions.UnsafeAdd(ref remainderStart, 1);
             }
         }
     }
@@ -346,13 +346,13 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref uint remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
+            ref uint remainderEnd = ref Extensions.UnsafeAdd(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
                 remainderStart = Clamp(remainderStart, min, max);
 
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
+                remainderStart = ref Extensions.UnsafeAdd(ref remainderStart, 1);
             }
         }
     }
@@ -371,13 +371,13 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref int remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
+            ref int remainderEnd = ref Extensions.UnsafeAdd(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
                 remainderStart = Clamp(remainderStart, min, max);
 
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
+                remainderStart = ref Extensions.UnsafeAdd(ref remainderStart, 1);
             }
         }
     }
@@ -396,13 +396,13 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref float remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
+            ref float remainderEnd = ref Extensions.UnsafeAdd(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
                 remainderStart = Clamp(remainderStart, min, max);
 
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
+                remainderStart = ref Extensions.UnsafeAdd(ref remainderStart, 1);
             }
         }
     }
@@ -421,13 +421,13 @@ internal static class Numerics
         if (remainder.Length > 0)
         {
             ref double remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
+            ref double remainderEnd = ref Extensions.UnsafeAdd(ref remainderStart, (uint)remainder.Length);
 
             while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
             {
                 remainderStart = Clamp(remainderStart, min, max);
 
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
+                remainderStart = ref Extensions.UnsafeAdd(ref remainderStart, 1);
             }
         }
     }
@@ -465,10 +465,10 @@ internal static class Numerics
         nint u = n - m;
 
         ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
-        ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
-        ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
-        ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
-        ref Vector<T> vsEnd = ref Unsafe.Add(ref vs0, u);
+        ref Vector<T> vs1 = ref Extensions.UnsafeAdd(ref vs0, 1);
+        ref Vector<T> vs2 = ref Extensions.UnsafeAdd(ref vs0, 2);
+        ref Vector<T> vs3 = ref Extensions.UnsafeAdd(ref vs0, 3);
+        ref Vector<T> vsEnd = ref Extensions.UnsafeAdd(ref vs0, u);
 
         while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
         {
@@ -477,22 +477,22 @@ internal static class Numerics
             vs2 = Vector.Min(Vector.Max(vmin, vs2), vmax);
             vs3 = Vector.Min(Vector.Max(vmin, vs3), vmax);
 
-            vs0 = ref Unsafe.Add(ref vs0, 4);
-            vs1 = ref Unsafe.Add(ref vs1, 4);
-            vs2 = ref Unsafe.Add(ref vs2, 4);
-            vs3 = ref Unsafe.Add(ref vs3, 4);
+            vs0 = ref Extensions.UnsafeAdd(ref vs0, 4);
+            vs1 = ref Extensions.UnsafeAdd(ref vs1, 4);
+            vs2 = ref Extensions.UnsafeAdd(ref vs2, 4);
+            vs3 = ref Extensions.UnsafeAdd(ref vs3, 4);
         }
 
         if (m > 0)
         {
             vs0 = ref vsEnd;
-            vsEnd = ref Unsafe.Add(ref vsEnd, m);
+            vsEnd = ref Extensions.UnsafeAdd(ref vsEnd, m);
 
             while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
             {
                 vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
 
-                vs0 = ref Unsafe.Add(ref vs0, 1);
+                vs0 = ref Extensions.UnsafeAdd(ref vs0, 1);
             }
         }
     }
@@ -517,18 +517,19 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Premultiply(Span<Vector4> vectors)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported && vectors.Length >= 2)
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
+            ref Vector256<float> vectorsLast = ref Extensions.UnsafeAdd(ref vectorsBase, (uint)vectors.Length / 2u);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
             {
                 Vector256<float> source = vectorsBase;
                 Vector256<float> alpha = Avx.Permute(source, ShuffleAlphaControl);
                 vectorsBase = Avx.Blend(Avx.Multiply(source, alpha), source, BlendAlphaControl);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                vectorsBase = ref Extensions.UnsafeAdd(ref vectorsBase, 1);
             }
 
             if (Modulo2(vectors.Length) != 0)
@@ -538,15 +539,16 @@ internal static class Numerics
             }
         }
         else
+#endif
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
+            ref Vector4 vectorsEnd = ref Extensions.UnsafeAdd(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
                 Premultiply(ref vectorsStart);
 
-                vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
+                vectorsStart = ref Extensions.UnsafeAdd(ref vectorsStart, 1);
             }
         }
     }
@@ -582,11 +584,12 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnPremultiply(Span<Vector4> vectors)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported && vectors.Length >= 2)
         {
             // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
             ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (uint)vectors.Length / 2u);
+            ref Vector256<float> vectorsLast = ref Extensions.UnsafeAdd(ref vectorsBase, (uint)vectors.Length / 2u);
             Vector256<float> epsilon = Vector256.Create(Constants.Epsilon);
 
             while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
@@ -594,7 +597,7 @@ internal static class Numerics
                 Vector256<float> source = vectorsBase;
                 Vector256<float> alpha = Avx.Permute(source, ShuffleAlphaControl);
                 vectorsBase = UnPremultiply(source, alpha);
-                vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                vectorsBase = ref Extensions.UnsafeAdd(ref vectorsBase, 1);
             }
 
             if (Modulo2(vectors.Length) != 0)
@@ -604,19 +607,21 @@ internal static class Numerics
             }
         }
         else
+#endif
         {
             ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, (uint)vectors.Length);
+            ref Vector4 vectorsEnd = ref Extensions.UnsafeAdd(ref vectorsStart, (uint)vectors.Length);
 
             while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
                 UnPremultiply(ref vectorsStart);
 
-                vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
+                vectorsStart = ref Extensions.UnsafeAdd(ref vectorsStart, 1);
             }
         }
     }
 
+#if USE_SIMD_INTRINSICS
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> UnPremultiply(Vector256<float> source, Vector256<float> alpha)
     {
@@ -629,6 +634,7 @@ internal static class Numerics
         // Blend the result with the alpha vector to ensure that the alpha component is unchanged
         return Avx.Blend(result, alpha, BlendAlphaControl);
     }
+#endif
 
     /// <summary>
     /// Permutes the given vector return a new instance with all the values set to <see cref="Vector4.W"/>.
@@ -638,10 +644,12 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 PermuteW(Vector4 value)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse.IsSupported)
         {
             return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
         }
+#endif
 
         return new(value.W);
     }
@@ -655,6 +663,7 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4 WithW(Vector4 value, Vector4 w)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse41.IsSupported)
         {
             return Sse41.Insert(value.AsVector128(), w.AsVector128(), 0b11_11_0000).AsVector4();
@@ -667,6 +676,7 @@ internal static class Numerics
             Vector128<float> tmp = Sse.Shuffle(w.AsVector128(), value.AsVector128(), 0b00_10_00_11);
             return Sse.Shuffle(value.AsVector128(), tmp, 0b00_10_01_00).AsVector4();
         }
+#endif
 
         value.W = w.W;
         return value;
@@ -680,7 +690,7 @@ internal static class Numerics
     public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-        ref Vector4 endRef = ref Unsafe.Add(ref baseRef, (uint)vectors.Length);
+        ref Vector4 endRef = ref Extensions.UnsafeAdd(ref baseRef, (uint)vectors.Length);
 
         while (Unsafe.IsAddressLessThan(ref baseRef, ref endRef))
         {
@@ -697,7 +707,7 @@ internal static class Numerics
             v = WithW(v, a);
 
             baseRef = v;
-            baseRef = ref Unsafe.Add(ref baseRef, 1);
+            baseRef = ref Extensions.UnsafeAdd(ref baseRef, 1);
         }
     }
 
@@ -708,10 +718,11 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void CubeRootOnXYZ(Span<Vector4> vectors)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse41.IsSupported)
         {
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
-            ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
+            ref Vector128<float> vectors128End = ref Extensions.UnsafeAdd(ref vectors128Ref, (uint)vectors.Length);
 
             var v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
@@ -754,13 +765,14 @@ internal static class Numerics
                 y4 = Sse41.Insert(y4, vecx, 0xF0);
 
                 vectors128Ref = y4;
-                vectors128Ref = ref Unsafe.Add(ref vectors128Ref, 1);
+                vectors128Ref = ref Extensions.UnsafeAdd(ref vectors128Ref, 1);
             }
         }
         else
+#endif
         {
             ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, (uint)vectors.Length);
+            ref Vector4 vectorsEnd = ref Extensions.UnsafeAdd(ref vectorsRef, (uint)vectors.Length);
 
             // Fallback with scalar preprocessing and vectorized approximation steps
             while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
@@ -801,11 +813,12 @@ internal static class Numerics
                 y4.W = a;
 
                 vectorsRef = y4;
-                vectorsRef = ref Unsafe.Add(ref vectorsRef, 1);
+                vectorsRef = ref Extensions.UnsafeAdd(ref vectorsRef, 1);
             }
         }
     }
 
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Performs a linear interpolation between two values based on the given weighting.
     /// </summary>
@@ -829,6 +842,7 @@ internal static class Numerics
             return Avx.Add(Avx.Multiply(diff, amount), value1);
         }
     }
+#endif
 
     /// <summary>
     /// Performs a linear interpolation between two values based on the given weighting.
@@ -871,6 +885,7 @@ internal static class Numerics
         accumulator += intHigh;
     }
 
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Reduces elements of the vector into one sum.
     /// </summary>
@@ -936,6 +951,7 @@ internal static class Numerics
         // Vector128<int>.ToScalar() isn't optimized pre-net5.0 https://github.com/dotnet/runtime/pull/37882
         return Sse2.ConvertToInt32(vsum);
     }
+#endif
 
     /// <summary>
     /// Fast division with ceiling for <see cref="uint"/> numbers.
@@ -965,6 +981,7 @@ internal static class Numerics
         where TVector : struct
         => (uint)span.Length / (uint)Vector<TVector>.Count;
 
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Gets the count of vectors that safely fit into the given span.
     /// </summary>
@@ -1004,6 +1021,7 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(this ReadOnlySpan<byte> span)
         where TVector : struct
         => (uint)span.Length / (uint)Vector256<TVector>.Count;
+#endif
 
     /// <summary>
     /// Gets the count of vectors that safely fit into the given span.
@@ -1015,6 +1033,7 @@ internal static class Numerics
         where TVector : struct
         => (uint)span.Length / (uint)Vector<TVector>.Count;
 
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// Gets the count of vectors that safely fit into the given span.
     /// </summary>
@@ -1044,4 +1063,5 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
+#endif
 }

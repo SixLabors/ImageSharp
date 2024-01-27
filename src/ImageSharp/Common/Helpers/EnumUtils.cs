@@ -23,7 +23,7 @@ internal static class EnumUtils
         DebugGuard.IsTrue(Unsafe.SizeOf<TEnum>() == sizeof(int), "Only int-sized enums are supported.");
 
         TEnum valueEnum = Unsafe.As<int, TEnum>(ref value);
-        if (Enum.IsDefined(valueEnum))
+        if (Extensions.IsEnumDefined(valueEnum))
         {
             return valueEnum;
         }

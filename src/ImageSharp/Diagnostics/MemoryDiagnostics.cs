@@ -84,8 +84,11 @@ public static class MemoryDiagnostics
 
         // Schedule on the ThreadPool, to avoid user callback messing up the finalizer thread.
         ThreadPool.QueueUserWorkItem(
-            stackTrace => undisposedAllocation?.Invoke(stackTrace),
-            allocationStackTrace,
-            preferLocal: false);
+            stackTrace => undisposedAllocation?.Invoke((string)stackTrace),
+            allocationStackTrace
+#if NET6_0_OR_GREATER
+            , preferLocal: false
+#endif
+            );
     }
 }

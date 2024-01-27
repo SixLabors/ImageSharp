@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class CmykAvx : JpegColorConverterAvx
     {
         public CmykAvx(int precision)
@@ -35,10 +36,10 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector256<float> c = ref Unsafe.Add(ref c0Base, i);
-                ref Vector256<float> m = ref Unsafe.Add(ref c1Base, i);
-                ref Vector256<float> y = ref Unsafe.Add(ref c2Base, i);
-                Vector256<float> k = Unsafe.Add(ref c3Base, i);
+                ref Vector256<float> c = ref Extensions.UnsafeAdd(ref c0Base, i);
+                ref Vector256<float> m = ref Extensions.UnsafeAdd(ref c1Base, i);
+                ref Vector256<float> y = ref Extensions.UnsafeAdd(ref c2Base, i);
+                Vector256<float> k = Extensions.UnsafeAdd(ref c3Base, i);
 
                 k = Avx.Multiply(k, scale);
                 c = Avx.Multiply(c, k);
@@ -74,9 +75,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector256<float> ctmp = Avx.Subtract(scale, Unsafe.Add(ref srcR, i));
-                Vector256<float> mtmp = Avx.Subtract(scale, Unsafe.Add(ref srcG, i));
-                Vector256<float> ytmp = Avx.Subtract(scale, Unsafe.Add(ref srcB, i));
+                Vector256<float> ctmp = Avx.Subtract(scale, Extensions.UnsafeAdd(ref srcR, i));
+                Vector256<float> mtmp = Avx.Subtract(scale, Extensions.UnsafeAdd(ref srcG, i));
+                Vector256<float> ytmp = Avx.Subtract(scale, Extensions.UnsafeAdd(ref srcB, i));
                 Vector256<float> ktmp = Avx.Min(ctmp, Avx.Min(mtmp, ytmp));
 
                 Vector256<float> kMask = Avx.CompareNotEqual(ktmp, scale);
@@ -85,11 +86,12 @@ internal abstract partial class JpegColorConverterBase
                 mtmp = Avx.And(Avx.Divide(Avx.Subtract(mtmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
                 ytmp = Avx.And(Avx.Divide(Avx.Subtract(ytmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
 
-                Unsafe.Add(ref destC, i) = Avx.Subtract(scale, Avx.Multiply(ctmp, scale));
-                Unsafe.Add(ref destM, i) = Avx.Subtract(scale, Avx.Multiply(mtmp, scale));
-                Unsafe.Add(ref destY, i) = Avx.Subtract(scale, Avx.Multiply(ytmp, scale));
-                Unsafe.Add(ref destK, i) = Avx.Subtract(scale, ktmp);
+                Extensions.UnsafeAdd(ref destC, i) = Avx.Subtract(scale, Avx.Multiply(ctmp, scale));
+                Extensions.UnsafeAdd(ref destM, i) = Avx.Subtract(scale, Avx.Multiply(mtmp, scale));
+                Extensions.UnsafeAdd(ref destY, i) = Avx.Subtract(scale, Avx.Multiply(ytmp, scale));
+                Extensions.UnsafeAdd(ref destK, i) = Avx.Subtract(scale, ktmp);
             }
         }
     }
+#endif
 }

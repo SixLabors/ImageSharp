@@ -85,13 +85,13 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < count; i++)
             {
-                ref ByteVector4 s = ref Unsafe.Add(ref sBase, i);
+                ref ByteVector4 s = ref Extensions.UnsafeAdd(ref sBase, i);
                 d.X = s.X;
                 d.Y = s.Y;
                 d.Z = s.Z;
                 d.W = s.W;
                 d *= scale;
-                Unsafe.Add(ref dBase, i) = d;
+                Extensions.UnsafeAdd(ref dBase, i) = d;
             }
         }
 
@@ -119,12 +119,12 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < count; i++)
             {
-                Vector4 s = Unsafe.Add(ref sBase, i);
+                Vector4 s = Extensions.UnsafeAdd(ref sBase, i);
                 s *= maxBytes;
                 s += half;
                 s = Numerics.Clamp(s, Vector4.Zero, maxBytes);
 
-                ref ByteVector4 d = ref Unsafe.Add(ref dBase, i);
+                ref ByteVector4 d = ref Extensions.UnsafeAdd(ref dBase, i);
                 d.X = (byte)s.X;
                 d.Y = (byte)s.Y;
                 d.Z = (byte)s.Z;

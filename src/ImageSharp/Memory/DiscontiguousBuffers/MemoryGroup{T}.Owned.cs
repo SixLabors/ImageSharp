@@ -211,7 +211,7 @@ internal abstract partial class MemoryGroup<T>
 
             public override unsafe MemoryHandle Pin(int elementIndex = 0)
             {
-                void* pbData = Unsafe.Add<T>(this.handle.Pointer, elementIndex);
+                void* pbData = Extensions.UnsafeAdd<T>(this.handle.Pointer, elementIndex);
                 return new MemoryHandle(pbData);
             }
 

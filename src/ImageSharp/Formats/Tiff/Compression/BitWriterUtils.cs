@@ -48,14 +48,14 @@ internal static class BitWriterUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void WriteBit(Span<byte> buffer, nint bufferPos, nint bitPos)
     {
-        ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+        ref byte b = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(buffer), bufferPos);
         b |= (byte)(1 << (int)(7 - bitPos));
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void WriteZeroBit(Span<byte> buffer, nint bufferPos, nint bitPos)
     {
-        ref byte b = ref Unsafe.Add(ref MemoryMarshal.GetReference(buffer), bufferPos);
+        ref byte b = ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(buffer), bufferPos);
         b = (byte)(b & ~(1 << (int)(7 - bitPos)));
     }
 }

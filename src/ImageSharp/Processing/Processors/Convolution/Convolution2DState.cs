@@ -44,9 +44,9 @@ internal readonly ref struct Convolution2DState
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref int GetSampleRow(uint row)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), row * this.kernelHeight);
+        => ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(this.rowOffsetMap), row * this.kernelHeight);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref int GetSampleColumn(uint column)
-        => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), column * this.kernelWidth);
+        => ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(this.columnOffsetMap), column * this.kernelWidth);
 }

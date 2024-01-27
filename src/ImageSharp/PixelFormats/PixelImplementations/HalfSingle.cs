@@ -52,6 +52,11 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
             PixelColorType.Red,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<HalfSingle>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
 

@@ -552,7 +552,7 @@ internal class Vp8LEncoder : IDisposable
             doNotCache = true;
 
             // Go brute force on all transforms.
-            foreach (EntropyIx entropyIx in Enum.GetValues<EntropyIx>())
+            foreach (EntropyIx entropyIx in Extensions.GetEnumValues<EntropyIx>())
             {
                 // We can only apply kPalette or kPaletteAndSpatial if we can indeed use a palette.
                 if ((entropyIx != EntropyIx.Palette && entropyIx != EntropyIx.PaletteAndSpatial) || usePalette)
@@ -809,7 +809,7 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch.Span);
+        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch.GetSpan());
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
         this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
@@ -882,7 +882,7 @@ internal class Vp8LEncoder : IDisposable
     private void StoreHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
     {
         int count = 0;
-        Span<int> symbols = this.scratch.Span[..2];
+        Span<int> symbols = this.scratch.GetSpan()[..2];
         symbols.Clear();
         const int maxBits = 8;
         const int maxSymbol = 1 << maxBits;
@@ -1920,11 +1920,37 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Scratch buffer to reduce allocations.
     /// </summary>
-    private unsafe struct ScratchBuffer
+
+#if NET6_0_OR_GREATER
+    private
+#else
+    internal
+#endif
+    unsafe struct ScratchBuffer
     {
         private const int Size = 256;
-        private fixed int scratch[Size];
+#if NET6_0_OR_GREATER
+        private
+#else
+        internal
+#endif
+        fixed int scratch[Size];
 
-        public Span<int> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+#if NET6_0_OR_GREATER
+        public Span<int> GetSpan()
+        {
+            return MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+        }
+#endif
     }
 }
+
+#if !NET6_0_OR_GREATER
+internal static class ScratchBufferExtensions
+{
+    public static unsafe Span<int> GetSpan(ref this Vp8LEncoder.ScratchBuffer buffer)
+    {
+        return MemoryMarshal.Cast<Vp8LEncoder.ScratchBuffer, int>(new Span<Vp8LEncoder.ScratchBuffer>(Unsafe.AsPointer(ref buffer), Unsafe.SizeOf<Vp8LEncoder.ScratchBuffer>()));
+    }
+}
+#endif

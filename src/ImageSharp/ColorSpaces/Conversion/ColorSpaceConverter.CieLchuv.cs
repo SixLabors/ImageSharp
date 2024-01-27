@@ -38,8 +38,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieLab sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref CieLab sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -71,8 +71,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieLch sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref CieLch sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -104,8 +104,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieLuv sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref CieLuv sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -137,8 +137,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieXyy sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref CieXyy sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -170,8 +170,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref CieXyz sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref CieXyz sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -203,8 +203,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref Cmyk sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref Cmyk sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -236,8 +236,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref Hsl sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref Hsl sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -269,8 +269,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref Hsv sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref Hsv sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -302,8 +302,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref HunterLab sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref HunterLab sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -335,8 +335,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref LinearRgb sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref LinearRgb sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -368,8 +368,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref Lms sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref Lms sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -401,8 +401,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref Rgb sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref Rgb sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }
@@ -433,8 +433,8 @@ public partial class ColorSpaceConverter
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            ref YCbCr sp = ref Unsafe.Add(ref sourceRef, i);
-            ref CieLchuv dp = ref Unsafe.Add(ref destRef, i);
+            ref YCbCr sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+            ref CieLchuv dp = ref Extensions.UnsafeAdd(ref destRef, i);
             dp = this.ToCieLchuv(sp);
         }
     }

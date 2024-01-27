@@ -49,7 +49,7 @@ internal readonly ref struct Kernel<T>
         {
             this.CheckCoordinates(row, column);
             ref T vBase = ref MemoryMarshal.GetReference(this.values);
-            return Unsafe.Add(ref vBase, (uint)((row * this.Columns) + column));
+            return Extensions.UnsafeAdd(ref vBase, (uint)((row * this.Columns) + column));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -57,7 +57,7 @@ internal readonly ref struct Kernel<T>
         {
             this.CheckCoordinates(row, column);
             ref T vBase = ref MemoryMarshal.GetReference(this.values);
-            Unsafe.Add(ref vBase, (uint)((row * this.Columns) + column)) = value;
+            Extensions.UnsafeAdd(ref vBase, (uint)((row * this.Columns) + column)) = value;
         }
     }
 
@@ -66,7 +66,7 @@ internal readonly ref struct Kernel<T>
     {
         this.CheckIndex(index);
         ref T vBase = ref MemoryMarshal.GetReference(this.values);
-        Unsafe.Add(ref vBase, (uint)index) = value;
+        Extensions.UnsafeAdd(ref vBase, (uint)index) = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

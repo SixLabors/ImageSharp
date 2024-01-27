@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class RgbArm : JpegColorConverterArm
     {
         public RgbArm(int precision)
@@ -33,9 +34,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector128<float> r = ref Unsafe.Add(ref rBase, i);
-                ref Vector128<float> g = ref Unsafe.Add(ref gBase, i);
-                ref Vector128<float> b = ref Unsafe.Add(ref bBase, i);
+                ref Vector128<float> r = ref Extensions.UnsafeAdd(ref rBase, i);
+                ref Vector128<float> g = ref Extensions.UnsafeAdd(ref gBase, i);
+                ref Vector128<float> b = ref Extensions.UnsafeAdd(ref bBase, i);
                 r = AdvSimd.Multiply(r, scale);
                 g = AdvSimd.Multiply(g, scale);
                 b = AdvSimd.Multiply(b, scale);
@@ -50,4 +51,5 @@ internal abstract partial class JpegColorConverterBase
             bLane.CopyTo(values.Component2);
         }
     }
+#endif
 }

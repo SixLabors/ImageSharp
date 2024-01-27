@@ -12,23 +12,25 @@ internal sealed class LocalFileSystem : IFileSystem
     public Stream OpenRead(string path) => File.OpenRead(path);
 
     /// <inheritdoc/>
-    public Stream OpenReadAsynchronous(string path) => File.Open(path, new FileStreamOptions
-    {
-        Mode = FileMode.Open,
-        Access = FileAccess.Read,
-        Share = FileShare.Read,
-        Options = FileOptions.Asynchronous,
-    });
+    public Stream OpenReadAsynchronous(string path) => new FileStream(
+        path,
+        FileMode.Open,
+        FileAccess.Read,
+        FileShare.Read,
+        4096,
+        FileOptions.Asynchronous
+    );
 
     /// <inheritdoc/>
     public Stream Create(string path) => File.Create(path);
 
     /// <inheritdoc/>
-    public Stream CreateAsynchronous(string path) => File.Open(path, new FileStreamOptions
-    {
-        Mode = FileMode.Create,
-        Access = FileAccess.ReadWrite,
-        Share = FileShare.None,
-        Options = FileOptions.Asynchronous,
-    });
+    public Stream CreateAsynchronous(string path) => new FileStream(
+        path,
+        FileMode.Create,
+        FileAccess.ReadWrite,
+        FileShare.None,
+        4096,
+        FileOptions.Asynchronous
+    );
 }

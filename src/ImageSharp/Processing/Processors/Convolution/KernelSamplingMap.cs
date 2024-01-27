@@ -92,7 +92,7 @@ internal sealed class KernelSamplingMap : IDisposable
             int chunkBase = chunk * kernelSize;
             for (int i = 0; i < kernelSize; i++)
             {
-                Unsafe.Add(ref spanBase, (uint)(chunkBase + i)) = chunk + i + min - radius;
+                Extensions.UnsafeAdd(ref spanBase, (uint)(chunkBase + i)) = chunk + i + min - radius;
             }
         }
 

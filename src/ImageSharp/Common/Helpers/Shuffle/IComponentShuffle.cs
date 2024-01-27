@@ -65,10 +65,10 @@ internal readonly struct DefaultShuffle4 : IShuffle4
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 0) = Extensions.UnsafeAdd(ref sBase, p0 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 1) = Extensions.UnsafeAdd(ref sBase, p1 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 2) = Extensions.UnsafeAdd(ref sBase, p2 + i);
+            Extensions.UnsafeAdd(ref dBase, i + 3) = Extensions.UnsafeAdd(ref sBase, p3 + i);
         }
     }
 }
@@ -88,11 +88,11 @@ internal readonly struct WXYZShuffle4 : IShuffle4
 
         for (nuint i = 0; i < n; i++)
         {
-            uint packed = Unsafe.Add(ref sBase, i);
+            uint packed = Extensions.UnsafeAdd(ref sBase, i);
 
             // packed          = [W Z Y X]
             // ROTL(8, packed) = [Z Y X W]
-            Unsafe.Add(ref dBase, i) = (packed << 8) | (packed >> 24);
+            Extensions.UnsafeAdd(ref dBase, i) = (packed << 8) | (packed >> 24);
         }
     }
 }
@@ -112,11 +112,11 @@ internal readonly struct WZYXShuffle4 : IShuffle4
 
         for (nuint i = 0; i < n; i++)
         {
-            uint packed = Unsafe.Add(ref sBase, i);
+            uint packed = Extensions.UnsafeAdd(ref sBase, i);
 
             // packed              = [W Z Y X]
             // REVERSE(packedArgb) = [X Y Z W]
-            Unsafe.Add(ref dBase, i) = BinaryPrimitives.ReverseEndianness(packed);
+            Extensions.UnsafeAdd(ref dBase, i) = BinaryPrimitives.ReverseEndianness(packed);
         }
     }
 }
@@ -136,11 +136,11 @@ internal readonly struct YZWXShuffle4 : IShuffle4
 
         for (nuint i = 0; i < n; i++)
         {
-            uint packed = Unsafe.Add(ref sBase, i);
+            uint packed = Extensions.UnsafeAdd(ref sBase, i);
 
             // packed              = [W Z Y X]
             // ROTR(8, packedArgb) = [Y Z W X]
-            Unsafe.Add(ref dBase, i) = BitOperations.RotateRight(packed, 8);
+            Extensions.UnsafeAdd(ref dBase, i) = BitOperations.RotateRight(packed, 8);
         }
     }
 }
@@ -160,7 +160,7 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
 
         for (nuint i = 0; i < n; i++)
         {
-            uint packed = Unsafe.Add(ref sBase, i);
+            uint packed = Extensions.UnsafeAdd(ref sBase, i);
 
             // packed              = [W Z Y X]
             // tmp1                = [W 0 Y 0]
@@ -171,7 +171,7 @@ internal readonly struct ZYXWShuffle4 : IShuffle4
             uint tmp2 = packed & 0x00FF00FF;
             uint tmp3 = BitOperations.RotateLeft(tmp2, 16);
 
-            Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+            Extensions.UnsafeAdd(ref dBase, i) = tmp1 + tmp3;
         }
     }
 }
@@ -191,7 +191,7 @@ internal readonly struct XWZYShuffle4 : IShuffle4
 
         for (nuint i = 0; i < n; i++)
         {
-            uint packed = Unsafe.Add(ref sBase, i);
+            uint packed = Extensions.UnsafeAdd(ref sBase, i);
 
             // packed              = [W Z Y X]
             // tmp1                = [0 Z 0 X]
@@ -202,7 +202,7 @@ internal readonly struct XWZYShuffle4 : IShuffle4
             uint tmp2 = packed & 0xFF00FF00;
             uint tmp3 = BitOperations.RotateLeft(tmp2, 16);
 
-            Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
+            Extensions.UnsafeAdd(ref dBase, i) = tmp1 + tmp3;
         }
     }
 }

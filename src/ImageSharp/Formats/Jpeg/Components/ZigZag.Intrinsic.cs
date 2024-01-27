@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal static partial class ZigZag
 {
+#if USE_SIMD_INTRINSICS
 #pragma warning disable SA1309 // naming rules violation warnings
     /// <summary>
     /// Special byte value to zero out elements during Sse/Avx shuffle intrinsics.
@@ -300,4 +301,5 @@ internal static partial class ZigZag
             block.V67 = row67.AsInt16();
         }
     }
+#endif
 }

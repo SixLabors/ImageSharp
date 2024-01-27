@@ -428,7 +428,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     {
         Unsafe.CopyBlockUnaligned(
             ref MemoryMarshal.GetReference(this.window.Span),
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(this.window.Span), DeflaterConstants.WSIZE),
+            ref Extensions.UnsafeAdd(ref MemoryMarshal.GetReference(this.window.Span), DeflaterConstants.WSIZE),
             DeflaterConstants.WSIZE);
 
         this.matchStart -= DeflaterConstants.WSIZE;

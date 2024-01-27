@@ -142,7 +142,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
         byte index = (byte)this.octree.GetPaletteIndex(color);
-        match = Unsafe.Add(ref paletteRef, index);
+        match = Extensions.UnsafeAdd(ref paletteRef, index);
         return index;
     }
 
@@ -277,7 +277,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         [MethodImpl(InliningOptions.ShortMethod)]
         public int GetPaletteIndex(TPixel color)
         {
-            Unsafe.SkipInit(out Rgba32 rgba);
+            Extensions.UnsafeSkipInit(out Rgba32 rgba);
             color.ToRgba32(ref rgba);
             return this.root.GetPaletteIndex(ref rgba, 0);
         }
@@ -476,7 +476,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                         Vector3.Zero,
                         new Vector3(255));
 
-                    Unsafe.SkipInit(out TPixel pixel);
+                    Extensions.UnsafeSkipInit(out TPixel pixel);
                     pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                     palette[index] = pixel;
 

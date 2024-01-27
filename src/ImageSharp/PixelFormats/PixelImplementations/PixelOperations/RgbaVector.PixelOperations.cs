@@ -68,8 +68,8 @@ public partial struct RgbaVector
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
+                ref Vector4 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+                ref L8 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
                 dp.ConvertFromRgbaScaledVector4(sp);
             }
@@ -87,8 +87,8 @@ public partial struct RgbaVector
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Vector4 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-                ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
+                ref Vector4 sp = ref Extensions.UnsafeAdd(ref sourceBaseRef, i);
+                ref L16 dp = ref Extensions.UnsafeAdd(ref destBaseRef, i);
 
                 dp.ConvertFromRgbaScaledVector4(sp);
             }

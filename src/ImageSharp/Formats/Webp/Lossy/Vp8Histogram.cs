@@ -51,6 +51,7 @@ internal sealed class Vp8Histogram
             Vp8Encoding.FTransform(reference[WebpLookupTables.Vp8DspScan[j]..], pred[WebpLookupTables.Vp8DspScan[j]..], output, scratch);
 
             // Convert coefficients to bin.
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported)
             {
                 // Load.
@@ -74,6 +75,7 @@ internal sealed class Vp8Histogram
                 }
             }
             else
+#endif
             {
                 for (int k = 0; k < 16; ++k)
                 {

@@ -83,7 +83,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         {
             DebugGuard.MustBeBetweenOrEqualTo((int)idx, 0, Size - 1, nameof(idx));
             ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-            return Unsafe.Add(ref selfRef, idx);
+            return Extensions.UnsafeAdd(ref selfRef, idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,7 +91,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         {
             DebugGuard.MustBeBetweenOrEqualTo((int)idx, 0, Size - 1, nameof(idx));
             ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
-            Unsafe.Add(ref selfRef, idx) = value;
+            Extensions.UnsafeAdd(ref selfRef, idx) = value;
         }
     }
 
@@ -139,7 +139,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, Size, "dest is too small");
 
-        ref byte destRef = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetArrayDataReference(dest));
+        ref byte destRef = ref Unsafe.As<float, byte>(ref dest[0]);
         Unsafe.WriteUnaligned(ref destRef, this);
     }
 
@@ -157,6 +157,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void MultiplyInPlace(float value)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported)
         {
             Vector256<float> valueVec = Vector256.Create(value);
@@ -170,6 +171,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             this.V7 = Avx.Multiply(this.V7, valueVec);
         }
         else
+#endif
         {
             Vector4 valueVec = new(value);
             this.V0L *= valueVec;
@@ -198,6 +200,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public unsafe void MultiplyInPlace(ref Block8x8F other)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported)
         {
             this.V0 = Avx.Multiply(this.V0, other.V0);
@@ -210,6 +213,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             this.V7 = Avx.Multiply(this.V7, other.V7);
         }
         else
+#endif
         {
             this.V0L *= other.V0L;
             this.V0R *= other.V0R;
@@ -237,6 +241,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void AddInPlace(float value)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported)
         {
             Vector256<float> valueVec = Vector256.Create(value);
@@ -250,6 +255,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             this.V7 = Avx.Add(this.V7, valueVec);
         }
         else
+#endif
         {
             Vector4 valueVec = new(value);
             this.V0L += valueVec;
@@ -279,6 +285,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="qt">The quantization table.</param>
     public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
@@ -290,6 +297,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             ZigZag.ApplyTransposingZigZagOrderingSsse3(ref dest);
         }
         else
+#endif
         {
             for (int i = 0; i < Size; i++)
             {
@@ -396,19 +404,19 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         // We can process 2 block rows in a single step
         SimdUtils.ExtendedIntrinsics.ConvertToSingle(sRef, out Vector<float> top, out Vector<float> bottom);
         dRef = top;
-        Unsafe.Add(ref dRef, 1) = bottom;
+        Extensions.UnsafeAdd(ref dRef, 1) = bottom;
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 1), out top, out bottom);
-        Unsafe.Add(ref dRef, 2) = top;
-        Unsafe.Add(ref dRef, 3) = bottom;
+        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Extensions.UnsafeAdd(ref sRef, 1), out top, out bottom);
+        Extensions.UnsafeAdd(ref dRef, 2) = top;
+        Extensions.UnsafeAdd(ref dRef, 3) = bottom;
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 2), out top, out bottom);
-        Unsafe.Add(ref dRef, 4) = top;
-        Unsafe.Add(ref dRef, 5) = bottom;
+        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Extensions.UnsafeAdd(ref sRef, 2), out top, out bottom);
+        Extensions.UnsafeAdd(ref dRef, 4) = top;
+        Extensions.UnsafeAdd(ref dRef, 5) = bottom;
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
-        Unsafe.Add(ref dRef, 6) = top;
-        Unsafe.Add(ref dRef, 7) = bottom;
+        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Extensions.UnsafeAdd(ref sRef, 3), out top, out bottom);
+        Extensions.UnsafeAdd(ref dRef, 6) = top;
+        Extensions.UnsafeAdd(ref dRef, 7) = bottom;
     }
 
     /// <summary>
@@ -417,6 +425,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="value">Value to compare to.</param>
     public bool EqualsToScalar(int value)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
@@ -426,7 +435,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
 
             for (nuint i = 0; i < RowCount; i++)
             {
-                Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
+                Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Extensions.UnsafeAdd(ref this.V0, i)), targetVector);
                 if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
                 {
                     return false;
@@ -435,12 +444,13 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
 
             return true;
         }
+#endif
 
         ref float scalars = ref Unsafe.As<Block8x8F, float>(ref this);
 
         for (nuint i = 0; i < Size; i++)
         {
-            if ((int)Unsafe.Add(ref scalars, i) != value)
+            if ((int)Extensions.UnsafeAdd(ref scalars, i) != value)
             {
                 return false;
             }
@@ -517,11 +527,13 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void TransposeInplace()
     {
+#if USE_SIMD_INTRINSICS
         if (Avx.IsSupported)
         {
             this.TransposeInplace_Avx();
         }
         else
+#endif
         {
             this.TransposeInplace_Scalar();
         }
@@ -536,46 +548,46 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref this);
 
         // row #0
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 1), ref Extensions.UnsafeAdd(ref elemRef, 8));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 2), ref Extensions.UnsafeAdd(ref elemRef, 16));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 3), ref Extensions.UnsafeAdd(ref elemRef, 24));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 4), ref Extensions.UnsafeAdd(ref elemRef, 32));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 5), ref Extensions.UnsafeAdd(ref elemRef, 40));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 6), ref Extensions.UnsafeAdd(ref elemRef, 48));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 7), ref Extensions.UnsafeAdd(ref elemRef, 56));
 
         // row #1
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 10), ref Extensions.UnsafeAdd(ref elemRef, 17));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 11), ref Extensions.UnsafeAdd(ref elemRef, 25));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 12), ref Extensions.UnsafeAdd(ref elemRef, 33));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 13), ref Extensions.UnsafeAdd(ref elemRef, 41));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 14), ref Extensions.UnsafeAdd(ref elemRef, 49));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 15), ref Extensions.UnsafeAdd(ref elemRef, 57));
 
         // row #2
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 19), ref Extensions.UnsafeAdd(ref elemRef, 26));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 20), ref Extensions.UnsafeAdd(ref elemRef, 34));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 21), ref Extensions.UnsafeAdd(ref elemRef, 42));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 22), ref Extensions.UnsafeAdd(ref elemRef, 50));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 23), ref Extensions.UnsafeAdd(ref elemRef, 58));
 
         // row #3
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 28), ref Extensions.UnsafeAdd(ref elemRef, 35));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 29), ref Extensions.UnsafeAdd(ref elemRef, 43));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 30), ref Extensions.UnsafeAdd(ref elemRef, 51));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 31), ref Extensions.UnsafeAdd(ref elemRef, 59));
 
         // row #4
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 37), ref Extensions.UnsafeAdd(ref elemRef, 44));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 38), ref Extensions.UnsafeAdd(ref elemRef, 52));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 39), ref Extensions.UnsafeAdd(ref elemRef, 60));
 
         // row #5
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 46), ref Extensions.UnsafeAdd(ref elemRef, 53));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 47), ref Extensions.UnsafeAdd(ref elemRef, 61));
 
         // row #6
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 55), ref Extensions.UnsafeAdd(ref elemRef, 62));
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

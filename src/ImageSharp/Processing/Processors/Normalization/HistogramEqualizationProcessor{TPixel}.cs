@@ -75,7 +75,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
 
         for (nuint i = 0; i <= (uint)maxIdx; i++)
         {
-            histSum += Unsafe.Add(ref histogramBase, i);
+            histSum += Extensions.UnsafeAdd(ref histogramBase, i);
             if (!cdfMinFound && histSum != 0)
             {
                 cdfMin = histSum;
@@ -83,7 +83,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
             }
 
             // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop.
-            Unsafe.Add(ref cdfBase, i) = Math.Max(0, histSum - cdfMin);
+            Extensions.UnsafeAdd(ref cdfBase, i) = Math.Max(0, histSum - cdfMin);
         }
 
         return cdfMin;
@@ -103,7 +103,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
 
         for (nuint i = 0; i < (uint)histogram.Length; i++)
         {
-            ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
+            ref int histogramLevel = ref Extensions.UnsafeAdd(ref histogramBase, i);
             if (histogramLevel > clipLimit)
             {
                 sumOverClip += histogramLevel - clipLimit;
@@ -117,7 +117,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         {
             for (nuint i = 0; i < (uint)histogram.Length; i++)
             {
-                Unsafe.Add(ref histogramBase, i) += addToEachBin;
+                Extensions.UnsafeAdd(ref histogramBase, i) += addToEachBin;
             }
         }
 
@@ -127,7 +127,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
             uint residualStep = (uint)Math.Max(this.LuminanceLevels / residual, 1);
             for (nuint i = 0; i < (uint)this.LuminanceLevels && residual > 0; i += residualStep, residual--)
             {
-                ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
+                ref int histogramLevel = ref Extensions.UnsafeAdd(ref histogramBase, i);
                 histogramLevel++;
             }
         }

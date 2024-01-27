@@ -66,6 +66,11 @@ public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
             PixelColorType.BGR,
             PixelAlphaRepresentation.None);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Bgr565>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();
 

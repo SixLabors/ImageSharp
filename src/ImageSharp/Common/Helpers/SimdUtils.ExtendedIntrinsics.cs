@@ -104,7 +104,7 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < n; i++)
             {
-                Vector<byte> b = Unsafe.Add(ref sourceBase, i);
+                Vector<byte> b = Extensions.UnsafeAdd(ref sourceBase, i);
 
                 Vector.Widen(b, out Vector<ushort> s0, out Vector<ushort> s1);
                 Vector.Widen(s0, out Vector<uint> w0, out Vector<uint> w1);
@@ -115,11 +115,11 @@ internal static partial class SimdUtils
                 Vector<float> f2 = ConvertToSingle(w2);
                 Vector<float> f3 = ConvertToSingle(w3);
 
-                ref Vector<float> d = ref Unsafe.Add(ref destBase, i * 4);
+                ref Vector<float> d = ref Extensions.UnsafeAdd(ref destBase, i * 4);
                 d = f0;
-                Unsafe.Add(ref d, 1) = f1;
-                Unsafe.Add(ref d, 2) = f2;
-                Unsafe.Add(ref d, 3) = f3;
+                Extensions.UnsafeAdd(ref d, 1) = f1;
+                Extensions.UnsafeAdd(ref d, 2) = f2;
+                Extensions.UnsafeAdd(ref d, 3) = f3;
             }
         }
 
@@ -140,12 +140,12 @@ internal static partial class SimdUtils
 
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
+                ref Vector<float> s = ref Extensions.UnsafeAdd(ref sourceBase, i * 4);
 
                 Vector<float> f0 = s;
-                Vector<float> f1 = Unsafe.Add(ref s, 1);
-                Vector<float> f2 = Unsafe.Add(ref s, 2);
-                Vector<float> f3 = Unsafe.Add(ref s, 3);
+                Vector<float> f1 = Extensions.UnsafeAdd(ref s, 1);
+                Vector<float> f2 = Extensions.UnsafeAdd(ref s, 2);
+                Vector<float> f3 = Extensions.UnsafeAdd(ref s, 3);
 
                 Vector<uint> w0 = ConvertToUInt32(f0);
                 Vector<uint> w1 = ConvertToUInt32(f1);
@@ -155,7 +155,7 @@ internal static partial class SimdUtils
                 var u0 = Vector.Narrow(w0, w1);
                 var u1 = Vector.Narrow(w2, w3);
 
-                Unsafe.Add(ref destBase, i) = Vector.Narrow(u0, u1);
+                Extensions.UnsafeAdd(ref destBase, i) = Vector.Narrow(u0, u1);
             }
         }
 

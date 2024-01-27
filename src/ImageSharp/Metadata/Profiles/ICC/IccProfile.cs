@@ -122,7 +122,15 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
 
             // Calculate hash
 #pragma warning disable CA5351 // Do Not Use Broken Cryptographic Algorithms
+#if NET6_0_OR_GREATER
             byte[] hash = MD5.HashData(data);
+#else
+            byte[] hash;
+            using (var md5 = MD5.Create())
+            {
+                hash = md5.ComputeHash(data);
+            }
+#endif
 #pragma warning restore CA5351 // Do Not Use Broken Cryptographic Algorithms
 
             // Read values from hash

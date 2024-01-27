@@ -145,7 +145,7 @@ public partial struct ColorMatrix : IEquatable<ColorMatrix>
         float m41, float m42, float m43, float m44,
         float m51, float m52, float m53, float m54)
     {
-        Unsafe.SkipInit(out this);
+        Extensions.UnsafeSkipInit(out this);
 
         this.AsImpl().Init(m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34, m41, m42, m43, m44, m51, m52, m53,
             m54);

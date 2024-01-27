@@ -39,7 +39,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
 
         // ClusterSize defines the size of cluster to used to check for average.
         // Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
-        byte clusterSize = (byte)Math.Clamp(interest.Width / 16F, 0, 255);
+        byte clusterSize = (byte)Extensions.Clamp(interest.Width / 16F, 0, 255);
 
         using Buffer2D<ulong> intImage = source.CalculateIntegralImage(interest);
         RowOperation operation = new(configuration, interest, source.PixelBuffer, intImage, upper, lower, thresholdLimit, clusterSize);
@@ -101,9 +101,9 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             int maxY = this.bounds.Height - 1;
             for (int x = 0; x < rowSpan.Length; x++)
             {
-                int x1 = Math.Clamp(x - this.clusterSize + 1, 0, maxX);
+                int x1 = Extensions.Clamp(x - this.clusterSize + 1, 0, maxX);
                 int x2 = Math.Min(x + this.clusterSize + 1, maxX);
-                int y1 = Math.Clamp(y - this.startY - this.clusterSize + 1, 0, maxY);
+                int y1 = Extensions.Clamp(y - this.startY - this.clusterSize + 1, 0, maxY);
                 int y2 = Math.Min(y - this.startY + this.clusterSize + 1, maxY);
 
                 uint count = (uint)((x2 - x1) * (y2 - y1));

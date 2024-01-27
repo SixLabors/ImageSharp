@@ -30,7 +30,7 @@ public partial class PixelOperations<TPixel>
     /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
     /// </summary>
     /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
-    public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
+    public PixelTypeInfo GetPixelTypeInfo() => Extensions.GetPixelTypeInfo<TPixel>();
 
     /// <summary>
     /// Bulk version of <see cref="IPixel.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
@@ -187,10 +187,10 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)count; i++)
         {
-            rgb24.R = Unsafe.Add(ref r, i);
-            rgb24.G = Unsafe.Add(ref g, i);
-            rgb24.B = Unsafe.Add(ref b, i);
-            Unsafe.Add(ref d, i).FromRgb24(rgb24);
+            rgb24.R = Extensions.UnsafeAdd(ref r, i);
+            rgb24.G = Extensions.UnsafeAdd(ref g, i);
+            rgb24.B = Extensions.UnsafeAdd(ref b, i);
+            Extensions.UnsafeAdd(ref d, i).FromRgb24(rgb24);
         }
     }
 
@@ -220,10 +220,10 @@ public partial class PixelOperations<TPixel>
         ref TPixel src = ref MemoryMarshal.GetReference(source);
         for (nuint i = 0; i < (uint)count; i++)
         {
-            Unsafe.Add(ref src, i).ToRgba32(ref rgba32);
-            Unsafe.Add(ref r, i) = rgba32.R;
-            Unsafe.Add(ref g, i) = rgba32.G;
-            Unsafe.Add(ref b, i) = rgba32.B;
+            Extensions.UnsafeAdd(ref src, i).ToRgba32(ref rgba32);
+            Extensions.UnsafeAdd(ref r, i) = rgba32.R;
+            Extensions.UnsafeAdd(ref g, i) = rgba32.G;
+            Extensions.UnsafeAdd(ref b, i) = rgba32.B;
         }
     }
 

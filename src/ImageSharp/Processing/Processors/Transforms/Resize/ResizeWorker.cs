@@ -134,10 +134,10 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
             for (nuint x = 0; x < (uint)(right - left); x++)
             {
-                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * (uint)this.workerHeight);
+                ref Vector4 firstPassColumnBase = ref Extensions.UnsafeAdd(ref fpBase, x * (uint)this.workerHeight);
 
                 // Destination color components
-                Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
+                Extensions.UnsafeAdd(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
             }
 
             Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
@@ -192,7 +192,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
                 // optimization for:
                 // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                Unsafe.Add(ref firstPassBaseRef, z * (uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
+                Extensions.UnsafeAdd(ref firstPassBaseRef, z * (uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
             }
         }
     }

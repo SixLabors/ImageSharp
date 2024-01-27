@@ -70,7 +70,10 @@ public static partial class ImageExtensions
         Guard.NotNull(path, nameof(path));
         Guard.NotNull(encoder, nameof(encoder));
 
-        await using Stream fs = source.Configuration.FileSystem.CreateAsynchronous(path);
+#if NET6_0_OR_GREATER
+        await
+#endif
+        using Stream fs = source.Configuration.FileSystem.CreateAsynchronous(path);
         await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
     }
 

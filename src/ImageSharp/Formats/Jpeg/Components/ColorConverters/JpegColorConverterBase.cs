@@ -133,6 +133,7 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetYCbCrConverter(int precision)
     {
+#if USE_SIMD_INTRINSICS
         if (JpegColorConverterAvx.IsSupported)
         {
             return new YCbCrAvx(precision);
@@ -142,6 +143,7 @@ internal abstract partial class JpegColorConverterBase
         {
             return new YCbCrArm(precision);
         }
+#endif
 
         if (JpegColorConverterVector.IsSupported)
         {
@@ -157,6 +159,7 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetYccKConverter(int precision)
     {
+#if USE_SIMD_INTRINSICS
         if (JpegColorConverterAvx.IsSupported)
         {
             return new YccKAvx(precision);
@@ -166,6 +169,7 @@ internal abstract partial class JpegColorConverterBase
         {
             return new YccKArm64(precision);
         }
+#endif
 
         if (JpegColorConverterVector.IsSupported)
         {
@@ -181,6 +185,7 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetCmykConverter(int precision)
     {
+#if USE_SIMD_INTRINSICS
         if (JpegColorConverterAvx.IsSupported)
         {
             return new CmykAvx(precision);
@@ -190,6 +195,7 @@ internal abstract partial class JpegColorConverterBase
         {
             return new CmykArm64(precision);
         }
+#endif
 
         if (JpegColorConverterVector.IsSupported)
         {
@@ -205,6 +211,7 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetGrayScaleConverter(int precision)
     {
+#if USE_SIMD_INTRINSICS
         if (JpegColorConverterAvx.IsSupported)
         {
             return new GrayscaleAvx(precision);
@@ -214,6 +221,7 @@ internal abstract partial class JpegColorConverterBase
         {
             return new GrayscaleArm(precision);
         }
+#endif
 
         if (JpegColorConverterVector.IsSupported)
         {
@@ -229,6 +237,7 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetRgbConverter(int precision)
     {
+#if USE_SIMD_INTRINSICS
         if (JpegColorConverterAvx.IsSupported)
         {
             return new RgbAvx(precision);
@@ -238,6 +247,7 @@ internal abstract partial class JpegColorConverterBase
         {
             return new RgbArm(precision);
         }
+#endif
 
         if (JpegColorConverterVector.IsSupported)
         {

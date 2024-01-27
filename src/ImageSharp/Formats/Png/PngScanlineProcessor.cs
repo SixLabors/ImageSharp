@@ -56,16 +56,16 @@ internal static class PngScanlineProcessor
                 {
                     ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                     pixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
                 }
             }
             else
             {
                 for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
                 {
-                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
+                    byte luminance = (byte)(Extensions.UnsafeAdd(ref scanlineSpanRef, o) * scaleFactor);
                     pixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
                 }
             }
 
@@ -84,7 +84,7 @@ internal static class PngScanlineProcessor
                 source.A = luminance.Equals(transparent.PackedValue) ? ushort.MinValue : ushort.MaxValue;
 
                 pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
         else
@@ -93,12 +93,12 @@ internal static class PngScanlineProcessor
             La16 source = default;
             for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
             {
-                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
+                byte luminance = (byte)(Extensions.UnsafeAdd(ref scanlineSpanRef, o) * scaleFactor);
                 source.L = luminance;
                 source.A = luminance.Equals(transparent) ? byte.MinValue : byte.MaxValue;
 
                 pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
     }
@@ -147,7 +147,7 @@ internal static class PngScanlineProcessor
                 source.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
 
                 pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, (uint)x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, (uint)x) = pixel;
             }
         }
         else
@@ -156,11 +156,11 @@ internal static class PngScanlineProcessor
             nuint offset2 = 0;
             for (nuint x = offset; x < frameControl.XMax; x += increment)
             {
-                source.L = Unsafe.Add(ref scanlineSpanRef, offset2);
-                source.A = Unsafe.Add(ref scanlineSpanRef, offset2 + bytesPerSample);
+                source.L = Extensions.UnsafeAdd(ref scanlineSpanRef, offset2);
+                source.A = Extensions.UnsafeAdd(ref scanlineSpanRef, offset2 + bytesPerSample);
 
                 pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
                 offset2 += bytesPerPixel;
             }
         }
@@ -201,9 +201,9 @@ internal static class PngScanlineProcessor
 
         for (nuint x = pixelOffset, o = 0; x < frameControl.XMax; x += increment, o++)
         {
-            uint index = Unsafe.Add(ref scanlineSpanRef, o);
-            pixel.FromRgba32(Unsafe.Add(ref paletteBase, index).ToPixel<Rgba32>());
-            Unsafe.Add(ref rowSpanRef, x) = pixel;
+            uint index = Extensions.UnsafeAdd(ref scanlineSpanRef, o);
+            pixel.FromRgba32(Extensions.UnsafeAdd(ref paletteBase, index).ToPixel<Rgba32>());
+            Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
         }
     }
 
@@ -261,7 +261,7 @@ internal static class PngScanlineProcessor
                     rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
 
                     pixel.FromRgb48(rgb48);
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
                 }
             }
             else if (pixelOffset == 0 && increment == 1)
@@ -278,12 +278,12 @@ internal static class PngScanlineProcessor
                 int o = 0;
                 for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
                 {
-                    rgb.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                    rgb.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                    rgb.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                    rgb.R = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)o);
+                    rgb.G = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                    rgb.B = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
 
                     pixel.FromRgb24(rgb);
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
                 }
             }
 
@@ -307,7 +307,7 @@ internal static class PngScanlineProcessor
                 rgba64.A = rgb48.Equals(transparent) ? ushort.MinValue : ushort.MaxValue;
 
                 pixel.FromRgba64(rgba64);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
         else
@@ -318,13 +318,13 @@ internal static class PngScanlineProcessor
             int o = 0;
             for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                rgba.R = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)o);
+                rgba.G = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                rgba.B = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
                 rgba.A = transparent.Equals(rgba.Rgb) ? byte.MinValue : byte.MaxValue;
 
                 pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
     }
@@ -377,7 +377,7 @@ internal static class PngScanlineProcessor
                 rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (3 * bytesPerSample), bytesPerSample));
 
                 pixel.FromRgba64(rgba64);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
         else if (pixelOffset == 0 && increment == 1)
@@ -395,13 +395,13 @@ internal static class PngScanlineProcessor
             int o = 0;
             for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-                rgba.A = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
+                rgba.R = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)o);
+                rgba.G = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                rgba.B = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                rgba.A = Extensions.UnsafeAdd(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
 
                 pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                Extensions.UnsafeAdd(ref rowSpanRef, x) = pixel;
             }
         }
     }

@@ -50,12 +50,12 @@ internal partial struct Block8x8F
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void WidenCopyRowImpl2x2(ref Vector4 selfBase, ref Vector2 destBase, nuint row, nuint destStride)
         {
-            ref Vector4 sLeft = ref Unsafe.Add(ref selfBase, 2 * row);
-            ref Vector4 sRight = ref Unsafe.Add(ref sLeft, 1);
+            ref Vector4 sLeft = ref Extensions.UnsafeAdd(ref selfBase, 2 * row);
+            ref Vector4 sRight = ref Extensions.UnsafeAdd(ref sLeft, 1);
 
             nuint offset = 2 * row * destStride;
-            ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
-            ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
+            ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Extensions.UnsafeAdd(ref destBase, offset));
+            ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Extensions.UnsafeAdd(ref destBase, offset + destStride));
 
             var xyLeft = new Vector4(sLeft.X);
             xyLeft.Z = sLeft.Y;
@@ -74,14 +74,14 @@ internal partial struct Block8x8F
             zwRight.W = sRight.W;
 
             dTopLeft = xyLeft;
-            Unsafe.Add(ref dTopLeft, 1) = zwLeft;
-            Unsafe.Add(ref dTopLeft, 2) = xyRight;
-            Unsafe.Add(ref dTopLeft, 3) = zwRight;
+            Extensions.UnsafeAdd(ref dTopLeft, 1) = zwLeft;
+            Extensions.UnsafeAdd(ref dTopLeft, 2) = xyRight;
+            Extensions.UnsafeAdd(ref dTopLeft, 3) = zwRight;
 
             dBottomLeft = xyLeft;
-            Unsafe.Add(ref dBottomLeft, 1) = zwLeft;
-            Unsafe.Add(ref dBottomLeft, 2) = xyRight;
-            Unsafe.Add(ref dBottomLeft, 3) = zwRight;
+            Extensions.UnsafeAdd(ref dBottomLeft, 1) = zwLeft;
+            Extensions.UnsafeAdd(ref dBottomLeft, 2) = xyRight;
+            Extensions.UnsafeAdd(ref dBottomLeft, 3) = zwRight;
         }
     }
 
@@ -105,7 +105,7 @@ internal partial struct Block8x8F
                     for (nuint j = 0; j < horizontalScale; j++)
                     {
                         // area[xx + j, yy + i] = value;
-                        Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
+                        Extensions.UnsafeAdd(ref areaOrigin, baseIdx + j) = value;
                     }
                 }
             }
@@ -128,8 +128,8 @@ internal partial struct Block8x8F
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void CopyRowImpl(ref byte origin, ref byte dest, int destStride, int row)
         {
-            origin = ref Unsafe.Add(ref origin, (uint)row * 8 * sizeof(float));
-            dest = ref Unsafe.Add(ref dest, (uint)(row * destStride));
+            origin = ref Extensions.UnsafeAdd(ref origin, (uint)row * 8 * sizeof(float));
+            dest = ref Extensions.UnsafeAdd(ref dest, (uint)(row * destStride));
             Unsafe.CopyBlock(ref dest, ref origin, 8 * sizeof(float));
         }
     }
@@ -150,8 +150,8 @@ internal partial struct Block8x8F
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void CopyRowImpl(ref byte origin, ref byte dest, int sourceStride, int row)
         {
-            origin = ref Unsafe.Add(ref origin, (uint)(row * sourceStride));
-            dest = ref Unsafe.Add(ref dest, (uint)row * 8 * sizeof(float));
+            origin = ref Extensions.UnsafeAdd(ref origin, (uint)(row * sourceStride));
+            dest = ref Extensions.UnsafeAdd(ref dest, (uint)row * 8 * sizeof(float));
             Unsafe.CopyBlock(ref dest, ref origin, 8 * sizeof(float));
         }
     }

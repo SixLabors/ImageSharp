@@ -216,7 +216,7 @@ internal sealed class LzwEncoder : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AddCharacter(byte c, ref byte accumulatorsRef, Stream stream)
     {
-        Unsafe.Add(ref accumulatorsRef, (uint)this.accumulatorCount++) = c;
+        Extensions.UnsafeAdd(ref accumulatorsRef, (uint)this.accumulatorCount++) = c;
         if (this.accumulatorCount >= 254)
         {
             this.FlushPacket(stream);
@@ -278,18 +278,18 @@ internal sealed class LzwEncoder : IDisposable
 
             for (int x = offsetX; x < indexedPixels.Width; x++)
             {
-                int code = Unsafe.Add(ref rowSpanRef, (uint)x);
+                int code = Extensions.UnsafeAdd(ref rowSpanRef, (uint)x);
                 int freeCode = (code << MaxBits) + entry;
                 int hashIndex = (code << HashShift) ^ entry;
 
-                if (Unsafe.Add(ref hashTableRef, (uint)hashIndex) == freeCode)
+                if (Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) == freeCode)
                 {
-                    entry = Unsafe.Add(ref codeTableRef, (uint)hashIndex);
+                    entry = Extensions.UnsafeAdd(ref codeTableRef, (uint)hashIndex);
                     continue;
                 }
 
                 // Non-empty slot
-                if (Unsafe.Add(ref hashTableRef, (uint)hashIndex) >= 0)
+                if (Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) >= 0)
                 {
                     int disp = 1;
                     if (hashIndex != 0)
@@ -304,15 +304,15 @@ internal sealed class LzwEncoder : IDisposable
                             hashIndex += HashSize;
                         }
 
-                        if (Unsafe.Add(ref hashTableRef, (uint)hashIndex) == freeCode)
+                        if (Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) == freeCode)
                         {
-                            entry = Unsafe.Add(ref codeTableRef, (uint)hashIndex);
+                            entry = Extensions.UnsafeAdd(ref codeTableRef, (uint)hashIndex);
                             break;
                         }
                     }
-                    while (Unsafe.Add(ref hashTableRef, (uint)hashIndex) >= 0);
+                    while (Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) >= 0);
 
-                    if (Unsafe.Add(ref hashTableRef, (uint)hashIndex) == freeCode)
+                    if (Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) == freeCode)
                     {
                         continue;
                     }
@@ -322,8 +322,8 @@ internal sealed class LzwEncoder : IDisposable
                 entry = code;
                 if (this.freeEntry < MaxMaxCode)
                 {
-                    Unsafe.Add(ref codeTableRef, (uint)hashIndex) = this.freeEntry++; // code -> hashtable
-                    Unsafe.Add(ref hashTableRef, (uint)hashIndex) = freeCode;
+                    Extensions.UnsafeAdd(ref codeTableRef, (uint)hashIndex) = this.freeEntry++; // code -> hashtable
+                    Extensions.UnsafeAdd(ref hashTableRef, (uint)hashIndex) = freeCode;
                 }
                 else
                 {

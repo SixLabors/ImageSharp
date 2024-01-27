@@ -53,7 +53,7 @@ public sealed class DecoderOptions
     /// <summary>
     /// Gets the maximum number of image frames to decode, inclusive.
     /// </summary>
-    public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
+    public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Extensions.Clamp(value, 1, int.MaxValue); }
 
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

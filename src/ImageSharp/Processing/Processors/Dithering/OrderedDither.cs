@@ -181,9 +181,9 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         float scale)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Unsafe.SkipInit(out Rgba32 rgba);
+        Extensions.UnsafeSkipInit(out Rgba32 rgba);
         source.ToRgba32(ref rgba);
-        Unsafe.SkipInit(out Rgba32 attempt);
+        Extensions.UnsafeSkipInit(out Rgba32 attempt);
 
         float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
 

@@ -39,22 +39,22 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 {
                     data.Slice(offset, 4).CopyTo(buffer);
                     buffer.Reverse();
-                    float r = BitConverter.ToSingle(buffer);
+                    float r = Extensions.BitsToSingle(buffer);
                     offset += 4;
 
                     data.Slice(offset, 4).CopyTo(buffer);
                     buffer.Reverse();
-                    float g = BitConverter.ToSingle(buffer);
+                    float g = Extensions.BitsToSingle(buffer);
                     offset += 4;
 
                     data.Slice(offset, 4).CopyTo(buffer);
                     buffer.Reverse();
-                    float b = BitConverter.ToSingle(buffer);
+                    float b = Extensions.BitsToSingle(buffer);
                     offset += 4;
 
                     data.Slice(offset, 4).CopyTo(buffer);
                     buffer.Reverse();
-                    float a = BitConverter.ToSingle(buffer);
+                    float a = Extensions.BitsToSingle(buffer);
                     offset += 4;
 
                     var colorVector = new Vector4(r, g, b, a);
@@ -66,16 +66,16 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    float r = BitConverter.ToSingle(data.Slice(offset, 4));
+                    float r = Extensions.BitsToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    float g = BitConverter.ToSingle(data.Slice(offset, 4));
+                    float g = Extensions.BitsToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    float b = BitConverter.ToSingle(data.Slice(offset, 4));
+                    float b = Extensions.BitsToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    float a = BitConverter.ToSingle(data.Slice(offset, 4));
+                    float a = Extensions.BitsToSingle(data.Slice(offset, 4));
                     offset += 4;
 
                     var colorVector = new Vector4(r, g, b, a);

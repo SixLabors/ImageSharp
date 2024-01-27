@@ -78,6 +78,7 @@ internal static unsafe class Vp8Encoding
     // Does two inverse transforms.
     public static void ITransformTwo(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             // This implementation makes use of 16-bit fixed point versions of two
@@ -103,18 +104,18 @@ internal static unsafe class Vp8Encoding
             // use nor store.
             ref short inputRef = ref MemoryMarshal.GetReference(input);
             Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 4)), 0);
+            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 8)), 0);
+            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 12)), 0);
 
             // a00 a10 a20 a30   x x x x
             // a01 a11 a21 a31   x x x x
             // a02 a12 a22 a32   x x x x
             // a03 a13 a23 a33   x x x x
-            Vector128<long> inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 16)), 0);
-            Vector128<long> inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 20)), 0);
-            Vector128<long> inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 24)), 0);
-            Vector128<long> inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 28)), 0);
+            Vector128<long> inb0 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 16)), 0);
+            Vector128<long> inb1 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 20)), 0);
+            Vector128<long> inb2 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 24)), 0);
+            Vector128<long> inb3 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 28)), 0);
 
             in0 = Sse2.UnpackLow(in0, inb0);
             in1 = Sse2.UnpackLow(in1, inb1);
@@ -150,9 +151,9 @@ internal static unsafe class Vp8Encoding
 
             // Load eight bytes/pixels per line.
             ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0).AsByte();
-            ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0).AsByte();
-            ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0).AsByte();
-            ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0).AsByte();
+            ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps)), 0).AsByte();
+            ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 2)), 0).AsByte();
+            ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 3)), 0).AsByte();
 
             // Convert to 16b.
             ref0 = Sse2.UnpackLow(ref0, Vector128<byte>.Zero);
@@ -175,11 +176,12 @@ internal static unsafe class Vp8Encoding
             // Store eight bytes/pixels per line.
             ref byte outputRef = ref MemoryMarshal.GetReference(dst);
             Unsafe.As<byte, Vector64<byte>>(ref outputRef) = ref0.GetLower();
-            Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = ref1.GetLower();
-            Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = ref2.GetLower();
-            Unsafe.As<byte, Vector64<byte>>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = ref3.GetLower();
+            Unsafe.As<byte, Vector64<byte>>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps)) = ref1.GetLower();
+            Unsafe.As<byte, Vector64<byte>>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps * 2)) = ref2.GetLower();
+            Unsafe.As<byte, Vector64<byte>>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps * 3)) = ref3.GetLower();
         }
         else
+#endif
         {
             ITransformOne(reference, input, dst, scratch);
             ITransformOne(reference[4..], input[16..], dst[4..], scratch);
@@ -188,6 +190,7 @@ internal static unsafe class Vp8Encoding
 
     public static void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst, Span<int> scratch)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             // Load and concatenate the transform coefficients (we'll do two inverse
@@ -196,9 +199,9 @@ internal static unsafe class Vp8Encoding
             // use nor store.
             ref short inputRef = ref MemoryMarshal.GetReference(input);
             Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref inputRef), 0);
-            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 4)), 0);
-            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 8)), 0);
-            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref inputRef, 12)), 0);
+            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 4)), 0);
+            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 8)), 0);
+            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Extensions.UnsafeAdd(ref inputRef, 12)), 0);
 
             // a00 a10 a20 a30   x x x x
             // a01 a11 a21 a31   x x x x
@@ -229,9 +232,9 @@ internal static unsafe class Vp8Encoding
 
             // Load four bytes/pixels per line.
             ref0 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref referenceRef)).AsByte();
-            ref1 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps))).AsByte();
-            ref2 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2))).AsByte();
-            ref3 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3))).AsByte();
+            ref1 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps))).AsByte();
+            ref2 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 2))).AsByte();
+            ref3 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 3))).AsByte();
 
             // Convert to 16b.
             ref0 = Sse2.UnpackLow(ref0, Vector128<byte>.Zero);
@@ -261,11 +264,12 @@ internal static unsafe class Vp8Encoding
             int output3 = Sse2.ConvertToInt32(ref3.AsInt32());
 
             Unsafe.As<byte, int>(ref outputRef) = output0;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = output1;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = output2;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = output3;
+            Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps)) = output1;
+            Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps * 2)) = output2;
+            Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref outputRef, WebpConstants.Bps * 3)) = output3;
         }
         else
+#endif
         {
             int i;
             Span<int> tmp = scratch[..16];
@@ -302,6 +306,7 @@ internal static unsafe class Vp8Encoding
         }
     }
 
+#if USE_SIMD_INTRINSICS
     private static void InverseTransformVerticalPass(Vector128<long> in0, Vector128<long> in2, Vector128<long> in1, Vector128<long> in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3)
     {
         Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
@@ -364,9 +369,11 @@ internal static unsafe class Vp8Encoding
         shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
         shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
     }
+#endif
 
     public static void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2, Span<int> scratch)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             ref byte srcRef = ref MemoryMarshal.GetReference(src);
@@ -374,15 +381,15 @@ internal static unsafe class Vp8Encoding
 
             // Load src.
             Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-            Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-            Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-            Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+            Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps)), 0);
+            Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps * 2)), 0);
+            Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps * 3)), 0);
 
             // Load ref.
             Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-            Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-            Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-            Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+            Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps)), 0);
+            Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 2)), 0);
+            Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
             // Convert both to 16 bit.
             Vector128<byte> srcLow0 = Sse2.UnpackLow(src0.AsByte(), Vector128<byte>.Zero);
@@ -419,6 +426,7 @@ internal static unsafe class Vp8Encoding
             FTransformPass2SSE2(v01h, v32h, output2);
         }
         else
+#endif
         {
             FTransform(src, reference, output, scratch);
             FTransform(src[4..], reference[4..], output2, scratch);
@@ -427,6 +435,7 @@ internal static unsafe class Vp8Encoding
 
     public static void FTransform(Span<byte> src, Span<byte> reference, Span<short> output, Span<int> scratch)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             ref byte srcRef = ref MemoryMarshal.GetReference(src);
@@ -434,15 +443,15 @@ internal static unsafe class Vp8Encoding
 
             // Load src.
             Vector128<long> src0 = Vector128.Create(Unsafe.As<byte, long>(ref srcRef), 0);
-            Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps)), 0);
-            Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 2)), 0);
-            Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, WebpConstants.Bps * 3)), 0);
+            Vector128<long> src1 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps)), 0);
+            Vector128<long> src2 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps * 2)), 0);
+            Vector128<long> src3 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref srcRef, WebpConstants.Bps * 3)), 0);
 
             // Load ref.
             Vector128<long> ref0 = Vector128.Create(Unsafe.As<byte, long>(ref referenceRef), 0);
-            Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps)), 0);
-            Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2)), 0);
-            Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3)), 0);
+            Vector128<long> ref1 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps)), 0);
+            Vector128<long> ref2 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 2)), 0);
+            Vector128<long> ref3 = Vector128.Create(Unsafe.As<byte, long>(ref Extensions.UnsafeAdd(ref referenceRef, WebpConstants.Bps * 3)), 0);
 
             // 00 01 02 03 *
             // 10 11 12 13 *
@@ -474,6 +483,7 @@ internal static unsafe class Vp8Encoding
             FTransformPass2SSE2(v01, v32, output);
         }
         else
+#endif
         {
             int i;
             Span<int> tmp = scratch[..16];
@@ -517,6 +527,7 @@ internal static unsafe class Vp8Encoding
         }
     }
 
+#if USE_SIMD_INTRINSICS
     public static void FTransformPass1SSE2(Vector128<short> row01, Vector128<short> row23, out Vector128<int> out01, out Vector128<int> out32)
     {
         // *in01 = 00 01 10 11 02 03 12 13
@@ -602,8 +613,9 @@ internal static unsafe class Vp8Encoding
 
         ref short outputRef = ref MemoryMarshal.GetReference(output);
         Unsafe.As<short, Vector128<short>>(ref outputRef) = d0g1.AsInt16();
-        Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref outputRef, 8)) = d2f3.AsInt16();
+        Unsafe.As<short, Vector128<short>>(ref Extensions.UnsafeAdd(ref outputRef, 8)) = d2f3.AsInt16();
     }
+#endif
 
     public static void FTransformWht(Span<short> input, Span<short> output, Span<int> scratch)
     {

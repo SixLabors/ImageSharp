@@ -52,8 +52,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Argb32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -73,8 +73,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Abgr32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Abgr32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -94,8 +94,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Bgr24 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -115,8 +115,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Bgra32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Bgra32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -136,8 +136,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref L8 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref L8 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -157,8 +157,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref L16 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref L16 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -178,8 +178,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref La16 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref La16 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -199,8 +199,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref La32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref La32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -220,8 +220,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Rgb24 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -241,8 +241,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Rgba32 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -262,8 +262,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Rgba64 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Rgba64 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }
@@ -283,8 +283,8 @@ public partial struct Rgb48
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref Rgb48 sp = ref Unsafe.Add(ref sourceRef, i);
-                ref Bgra5551 dp = ref Unsafe.Add(ref destRef, i);
+                ref Rgb48 sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref Bgra5551 dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.FromRgb48(sp);
             }

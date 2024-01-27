@@ -26,6 +26,7 @@ internal static class SubFilter
     public static void Decode(Span<byte> scanline, int bytesPerPixel)
     {
         // The Sub filter predicts each pixel as the previous pixel.
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported && bytesPerPixel is 4)
         {
             DecodeSse2(scanline);
@@ -35,11 +36,13 @@ internal static class SubFilter
             DecodeArm(scanline);
         }
         else
+#endif
         {
             DecodeScalar(scanline, (uint)bytesPerPixel);
         }
     }
 
+#if USE_SIMD_INTRINSICS
     private static void DecodeSse2(Span<byte> scanline)
     {
         ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
@@ -50,7 +53,7 @@ internal static class SubFilter
         nuint offset = 1;
         while (rb >= 4)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector128<byte> a = d;
             d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
@@ -74,7 +77,7 @@ internal static class SubFilter
         const int bytesPerBatch = 4;
         while (rb >= bytesPerBatch)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector64<byte> a = d;
             d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
@@ -86,6 +89,7 @@ internal static class SubFilter
             offset += bytesPerBatch;
         }
     }
+#endif
 
     private static void DecodeScalar(Span<byte> scanline, nuint bytesPerPixel)
     {
@@ -93,11 +97,11 @@ internal static class SubFilter
 
         // Sub(x) + Raw(x-bpp)
         nuint x = bytesPerPixel + 1;
-        Unsafe.Add(ref scanBaseRef, x);
+        Extensions.UnsafeAdd(ref scanBaseRef, x);
         for (; x < (uint)scanline.Length; ++x)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-            byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte prev = Extensions.UnsafeAdd(ref scanBaseRef, x - bytesPerPixel);
             scan = (byte)(scan + prev);
         }
     }
@@ -124,13 +128,14 @@ internal static class SubFilter
         nuint x = 0;
         for (; x < (uint)bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
+            byte scan = Extensions.UnsafeAdd(ref scanBaseRef, x);
             ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+            ref byte res = ref Extensions.UnsafeAdd(ref resultBaseRef, x);
             res = scan;
             sum += Numerics.Abs(unchecked((sbyte)res));
         }
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             Vector256<byte> zero = Vector256<byte>.Zero;
@@ -138,11 +143,11 @@ internal static class SubFilter
 
             for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
             {
-                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, xLeft));
 
                 Vector256<byte> res = Avx2.Subtract(scan, prev);
-                Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
@@ -156,11 +161,11 @@ internal static class SubFilter
 
             for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector<byte>.Count); xLeft += (uint)Vector<byte>.Count)
             {
-                Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
+                Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, xLeft));
 
                 Vector<byte> res = scan - prev;
-                Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector<byte>.Count;
 
                 Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
@@ -171,13 +176,14 @@ internal static class SubFilter
                 sum += (int)sumAccumulator[i];
             }
         }
+#endif
 
         for (nuint xLeft = x - (uint)bytesPerPixel; x < (uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte prev = Unsafe.Add(ref scanBaseRef, xLeft);
+            byte scan = Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte prev = Extensions.UnsafeAdd(ref scanBaseRef, xLeft);
             ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+            ref byte res = ref Extensions.UnsafeAdd(ref resultBaseRef, x);
             res = (byte)(scan - prev);
             sum += Numerics.Abs(unchecked((sbyte)res));
         }

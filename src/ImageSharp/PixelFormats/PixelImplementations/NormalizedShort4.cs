@@ -70,6 +70,11 @@ public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector
             PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<NormalizedShort4>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations();
 

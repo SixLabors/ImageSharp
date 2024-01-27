@@ -1369,5 +1369,5 @@ internal sealed class WebpLossyDecoder
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Clip(int value, int max) => Math.Clamp(value, 0, max);
+    private static int Clip(int value, int max) => Extensions.Clamp(value, 0, max);
 }

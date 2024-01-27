@@ -70,6 +70,7 @@ internal static class WebpCommonUtils
     /// <returns>Returns true if alpha has non-0xff values.</returns>
     public static unsafe bool CheckNonOpaque(Span<Bgra32> row)
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
@@ -159,6 +160,7 @@ internal static class WebpCommonUtils
             }
         }
         else
+#endif
         {
             for (int x = 0; x < row.Length; x++)
             {
@@ -172,6 +174,7 @@ internal static class WebpCommonUtils
         return false;
     }
 
+#if USE_SIMD_INTRINSICS
     private static unsafe bool IsNoneOpaque64Bytes(byte* src, int i)
     {
         Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
@@ -206,4 +209,5 @@ internal static class WebpCommonUtils
         int mask = Sse2.MoveMask(bits);
         return mask != 0xFFFF;
     }
+#endif
 }

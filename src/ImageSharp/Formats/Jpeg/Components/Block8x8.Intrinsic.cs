@@ -6,6 +6,7 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
+#if USE_SIMD_INTRINSICS
 internal unsafe partial struct Block8x8
 {
     [FieldOffset(0)]
@@ -34,3 +35,4 @@ internal unsafe partial struct Block8x8
     [FieldOffset(96)]
     public Vector256<short> V67;
 }
+#endif

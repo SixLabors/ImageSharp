@@ -7,6 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     /// <summary>
     /// <see cref="JpegColorConverterBase"/> abstract base for implementations
     /// based on <see cref="Avx"/> instructions.
@@ -31,4 +32,5 @@ internal abstract partial class JpegColorConverterBase
 
         public sealed override int ElementsPerBatch => Vector256<float>.Count;
     }
+#endif
 }

@@ -879,7 +879,7 @@ internal class Vp8EncIterator
         this.SetCountDown(this.mbw * this.mbh);
         this.InitTop();
 
-        Array.Clear(this.BitCount);
+        this.BitCount.Clear();
     }
 
     /// <summary>

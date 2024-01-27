@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
+#if USE_SIMD_INTRINSICS
     internal sealed class RgbAvx : JpegColorConverterAvx
     {
         public RgbAvx(int precision)
@@ -32,9 +33,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector256<float> r = ref Unsafe.Add(ref rBase, i);
-                ref Vector256<float> g = ref Unsafe.Add(ref gBase, i);
-                ref Vector256<float> b = ref Unsafe.Add(ref bBase, i);
+                ref Vector256<float> r = ref Extensions.UnsafeAdd(ref rBase, i);
+                ref Vector256<float> g = ref Extensions.UnsafeAdd(ref gBase, i);
+                ref Vector256<float> b = ref Extensions.UnsafeAdd(ref bBase, i);
                 r = Avx.Multiply(r, scale);
                 g = Avx.Multiply(g, scale);
                 b = Avx.Multiply(b, scale);
@@ -49,4 +50,5 @@ internal abstract partial class JpegColorConverterBase
             bLane.CopyTo(values.Component2);
         }
     }
+#endif
 }

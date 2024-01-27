@@ -90,12 +90,13 @@ var blenders = new []{
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
         {
             amount = Numerics.Clamp(amount, 0, 1);
-
+            
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -104,9 +105,9 @@ var blenders = new []{
                 while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
                 {
                     destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -117,6 +118,7 @@ var blenders = new []{
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {
@@ -128,11 +130,12 @@ var blenders = new []{
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
+#if USE_SIMD_INTRINSICS
             if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
-                ref Vector256<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 2u);
+                ref Vector256<float> destinationLast = ref Extensions.UnsafeAdd(ref destinationBase, (uint)destination.Length / 2u);
 
                 ref Vector256<float> backgroundBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(background));
                 ref Vector256<float> sourceBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(source));
@@ -146,14 +149,14 @@ var blenders = new []{
                     // taking up each half of the Vector256<float> and then clamp them.
                     Vector256<float> opacity = Vector256.Create(
                         Vector128.Create(amountBase),
-                        Vector128.Create(Unsafe.Add(ref amountBase, 1)));
+                        Vector128.Create(Extensions.UnsafeAdd(ref amountBase, 1)));
                     opacity = Avx.Min(Avx.Max(Vector256<float>.Zero, opacity), vOne);
 
                     destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
-                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
-                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
-                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                    amountBase = ref Unsafe.Add(ref amountBase, 2);
+                    destinationBase = ref Extensions.UnsafeAdd(ref destinationBase, 1);
+                    backgroundBase = ref Extensions.UnsafeAdd(ref backgroundBase, 1);
+                    sourceBase = ref Extensions.UnsafeAdd(ref sourceBase, 1);
+                    amountBase = ref Extensions.UnsafeAdd(ref amountBase, 2);
                 }
 
                 if (Numerics.Modulo2(destination.Length) != 0)
@@ -164,6 +167,7 @@ var blenders = new []{
                 }
             }
             else
+#endif
             {
                 for (int i = 0; i < destination.Length; i++)
                 {

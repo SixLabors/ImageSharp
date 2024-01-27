@@ -105,8 +105,8 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 
             for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
             {
-                ref <#=fromPixelType#> sp = ref Unsafe.Add(ref sourceRef, i);
-                ref <#=toPixelType#> dp = ref Unsafe.Add(ref destRef, i);
+                ref <#=fromPixelType#> sp = ref Extensions.UnsafeAdd(ref sourceRef, i);
+                ref <#=toPixelType#> dp = ref Extensions.UnsafeAdd(ref destRef, i);
 
                 dp.From<#=fromPixelType#>(sp);
             }

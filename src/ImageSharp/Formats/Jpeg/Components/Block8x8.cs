@@ -36,7 +36,7 @@ internal partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            return Unsafe.Add(ref selfRef, (uint)idx);
+            return Extensions.UnsafeAdd(ref selfRef, (uint)idx);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,7 +45,7 @@ internal partial struct Block8x8
             DebugGuard.MustBeBetweenOrEqualTo(idx, 0, Size - 1, nameof(idx));
 
             ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
-            Unsafe.Add(ref selfRef, (uint)idx) = value;
+            Extensions.UnsafeAdd(ref selfRef, (uint)idx) = value;
         }
     }
 
@@ -113,7 +113,7 @@ internal partial struct Block8x8
 
     public static Block8x8 Load(ReadOnlySpan<byte> data)
     {
-        Unsafe.SkipInit(out Block8x8 result);
+        Extensions.UnsafeSkipInit(out Block8x8 result);
         result.LoadFrom(data);
         return result;
     }
@@ -164,6 +164,7 @@ internal partial struct Block8x8
     [MethodImpl(InliningOptions.ShortMethod)]
     public nint GetLastNonZeroIndex()
     {
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
@@ -174,7 +175,7 @@ internal partial struct Block8x8
 
             for (nint i = 3; i >= 0; i--)
             {
-                int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Unsafe.Add(ref mcuStride, i), zero16).AsByte());
+                int areEqual = Avx2.MoveMask(Avx2.CompareEqual(Extensions.UnsafeAdd(ref mcuStride, i), zero16).AsByte());
 
                 if (areEqual != equalityMask)
                 {
@@ -197,11 +198,12 @@ internal partial struct Block8x8
             return -1;
         }
         else
+#endif
         {
             nint index = Size - 1;
             ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 
-            while (index >= 0 && Unsafe.Add(ref elemRef, index) == 0)
+            while (index >= 0 && Extensions.UnsafeAdd(ref elemRef, index) == 0)
             {
                 index--;
             }
@@ -219,46 +221,46 @@ internal partial struct Block8x8
         ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 
         // row #0
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 1), ref Unsafe.Add(ref elemRef, 8));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 2), ref Unsafe.Add(ref elemRef, 16));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 3), ref Unsafe.Add(ref elemRef, 24));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 4), ref Unsafe.Add(ref elemRef, 32));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 5), ref Unsafe.Add(ref elemRef, 40));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 6), ref Unsafe.Add(ref elemRef, 48));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 7), ref Unsafe.Add(ref elemRef, 56));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 1), ref Extensions.UnsafeAdd(ref elemRef, 8));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 2), ref Extensions.UnsafeAdd(ref elemRef, 16));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 3), ref Extensions.UnsafeAdd(ref elemRef, 24));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 4), ref Extensions.UnsafeAdd(ref elemRef, 32));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 5), ref Extensions.UnsafeAdd(ref elemRef, 40));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 6), ref Extensions.UnsafeAdd(ref elemRef, 48));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 7), ref Extensions.UnsafeAdd(ref elemRef, 56));
 
         // row #1
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 10), ref Unsafe.Add(ref elemRef, 17));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 11), ref Unsafe.Add(ref elemRef, 25));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 12), ref Unsafe.Add(ref elemRef, 33));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 13), ref Unsafe.Add(ref elemRef, 41));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 14), ref Unsafe.Add(ref elemRef, 49));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 15), ref Unsafe.Add(ref elemRef, 57));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 10), ref Extensions.UnsafeAdd(ref elemRef, 17));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 11), ref Extensions.UnsafeAdd(ref elemRef, 25));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 12), ref Extensions.UnsafeAdd(ref elemRef, 33));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 13), ref Extensions.UnsafeAdd(ref elemRef, 41));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 14), ref Extensions.UnsafeAdd(ref elemRef, 49));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 15), ref Extensions.UnsafeAdd(ref elemRef, 57));
 
         // row #2
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 19), ref Unsafe.Add(ref elemRef, 26));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 20), ref Unsafe.Add(ref elemRef, 34));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 21), ref Unsafe.Add(ref elemRef, 42));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 22), ref Unsafe.Add(ref elemRef, 50));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 23), ref Unsafe.Add(ref elemRef, 58));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 19), ref Extensions.UnsafeAdd(ref elemRef, 26));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 20), ref Extensions.UnsafeAdd(ref elemRef, 34));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 21), ref Extensions.UnsafeAdd(ref elemRef, 42));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 22), ref Extensions.UnsafeAdd(ref elemRef, 50));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 23), ref Extensions.UnsafeAdd(ref elemRef, 58));
 
         // row #3
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 28), ref Unsafe.Add(ref elemRef, 35));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 29), ref Unsafe.Add(ref elemRef, 43));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 30), ref Unsafe.Add(ref elemRef, 51));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 31), ref Unsafe.Add(ref elemRef, 59));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 28), ref Extensions.UnsafeAdd(ref elemRef, 35));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 29), ref Extensions.UnsafeAdd(ref elemRef, 43));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 30), ref Extensions.UnsafeAdd(ref elemRef, 51));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 31), ref Extensions.UnsafeAdd(ref elemRef, 59));
 
         // row #4
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 37), ref Unsafe.Add(ref elemRef, 44));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 38), ref Unsafe.Add(ref elemRef, 52));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 39), ref Unsafe.Add(ref elemRef, 60));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 37), ref Extensions.UnsafeAdd(ref elemRef, 44));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 38), ref Extensions.UnsafeAdd(ref elemRef, 52));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 39), ref Extensions.UnsafeAdd(ref elemRef, 60));
 
         // row #5
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 46), ref Unsafe.Add(ref elemRef, 53));
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 47), ref Unsafe.Add(ref elemRef, 61));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 46), ref Extensions.UnsafeAdd(ref elemRef, 53));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 47), ref Extensions.UnsafeAdd(ref elemRef, 61));
 
         // row #6
-        RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
+        RuntimeUtility.Swap(ref Extensions.UnsafeAdd(ref elemRef, 55), ref Extensions.UnsafeAdd(ref elemRef, 62));
     }
 
     /// <summary>

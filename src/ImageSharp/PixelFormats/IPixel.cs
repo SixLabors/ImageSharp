@@ -19,7 +19,11 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     /// </summary>
     /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
 #pragma warning disable CA1000
+#if NET6_0_OR_GREATER
     static abstract PixelTypeInfo GetPixelTypeInfo();
+#else
+    PixelTypeInfo GetPixelTypeInfo();
+#endif
 #pragma warning restore CA1000
 
     /// <summary>

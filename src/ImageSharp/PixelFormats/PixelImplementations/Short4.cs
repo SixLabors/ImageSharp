@@ -73,6 +73,11 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
             PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<Short4>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();
 

@@ -41,12 +41,12 @@ internal abstract partial class JpegColorConverterBase
                 // y = yVals[i];
                 // cb = cbVals[i] - 128F;
                 // cr = crVals[i] - 128F;
-                ref Vector<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                ref Vector<float> c1 = ref Unsafe.Add(ref c1Base, i);
-                ref Vector<float> c2 = ref Unsafe.Add(ref c2Base, i);
-                Vector<float> y = Unsafe.Add(ref c0Base, i);
-                Vector<float> cb = Unsafe.Add(ref c1Base, i) + chromaOffset;
-                Vector<float> cr = Unsafe.Add(ref c2Base, i) + chromaOffset;
+                ref Vector<float> c0 = ref Extensions.UnsafeAdd(ref c0Base, i);
+                ref Vector<float> c1 = ref Extensions.UnsafeAdd(ref c1Base, i);
+                ref Vector<float> c2 = ref Extensions.UnsafeAdd(ref c2Base, i);
+                Vector<float> y = Extensions.UnsafeAdd(ref c0Base, i);
+                Vector<float> cb = Extensions.UnsafeAdd(ref c1Base, i) + chromaOffset;
+                Vector<float> cr = Extensions.UnsafeAdd(ref c2Base, i) + chromaOffset;
 
                 // r = y + (1.402F * cr);
                 // g = y - (0.344136F * cb) - (0.714136F * cr);
@@ -106,16 +106,16 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector<float> r = Unsafe.Add(ref srcR, i);
-                Vector<float> g = Unsafe.Add(ref srcG, i);
-                Vector<float> b = Unsafe.Add(ref srcB, i);
+                Vector<float> r = Extensions.UnsafeAdd(ref srcR, i);
+                Vector<float> g = Extensions.UnsafeAdd(ref srcG, i);
+                Vector<float> b = Extensions.UnsafeAdd(ref srcB, i);
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
                 // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
-                Unsafe.Add(ref destY, i) = (rYMult * r) + (gYMult * g) + (bYMult * b);
-                Unsafe.Add(ref destCb, i) = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
-                Unsafe.Add(ref destCr, i) = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
+                Extensions.UnsafeAdd(ref destY, i) = (rYMult * r) + (gYMult * g) + (bYMult * b);
+                Extensions.UnsafeAdd(ref destCb, i) = chromaOffset - (rCbMult * r) - (gCbMult * g) + (bCbMult * b);
+                Extensions.UnsafeAdd(ref destCr, i) = chromaOffset + (rCrMult * r) - (gCrMult * g) - (bCrMult * b);
             }
         }
 

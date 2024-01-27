@@ -235,7 +235,11 @@ internal sealed class ChunkedMemoryStream : Stream
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int Read(Span<byte> buffer) => this.ReadImpl(buffer);
+    public
+#if NET6_0_OR_GREATER
+        override
+#endif
+        int Read(Span<byte> buffer) => this.ReadImpl(buffer);
 
     private int ReadImpl(Span<byte> buffer)
     {
@@ -349,7 +353,11 @@ internal sealed class ChunkedMemoryStream : Stream
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void Write(ReadOnlySpan<byte> buffer) => this.WriteImpl(buffer);
+    public
+#if NET6_0_OR_GREATER
+        override
+#endif
+        void Write(ReadOnlySpan<byte> buffer) => this.WriteImpl(buffer);
 
     private void WriteImpl(ReadOnlySpan<byte> buffer)
     {

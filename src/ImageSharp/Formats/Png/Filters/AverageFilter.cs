@@ -32,6 +32,7 @@ internal static class AverageFilter
         // With pixels positioned like this:
         //  prev:  c b
         //  row:   a d
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported && bytesPerPixel is 4)
         {
             DecodeSse2(scanline, previousScanline);
@@ -41,11 +42,13 @@ internal static class AverageFilter
             DecodeArm(scanline, previousScanline);
         }
         else
+#endif
         {
             DecodeScalar(scanline, previousScanline, (uint)bytesPerPixel);
         }
     }
 
+#if USE_SIMD_INTRINSICS
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void DecodeSse2(Span<byte> scanline, Span<byte> previousScanline)
     {
@@ -59,9 +62,9 @@ internal static class AverageFilter
         nuint offset = 1;
         while (rb >= 4)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector128<byte> a = d;
-            Vector128<byte> b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+            Vector128<byte> b = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref prevBaseRef, offset))).AsByte();
             d = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
             // PNG requires a truncating average, so we can't just use _mm_avg_epu8,
@@ -92,9 +95,9 @@ internal static class AverageFilter
         const int bytesPerBatch = 4;
         while (rb >= bytesPerBatch)
         {
-            ref byte scanRef = ref Unsafe.Add(ref scanBaseRef, offset);
+            ref byte scanRef = ref Extensions.UnsafeAdd(ref scanBaseRef, offset);
             Vector64<byte> a = d;
-            Vector64<byte> b = Vector64.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref prevBaseRef, offset))).AsByte();
+            Vector64<byte> b = Vector64.CreateScalar(Unsafe.As<byte, int>(ref Extensions.UnsafeAdd(ref prevBaseRef, offset))).AsByte();
             d = Vector64.CreateScalar(Unsafe.As<byte, int>(ref scanRef)).AsByte();
 
             Vector64<byte> avg = AdvSimd.FusedAddHalving(a, b);
@@ -106,6 +109,7 @@ internal static class AverageFilter
             offset += bytesPerBatch;
         }
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void DecodeScalar(Span<byte> scanline, Span<byte> previousScanline, uint bytesPerPixel)
@@ -116,16 +120,16 @@ internal static class AverageFilter
         nuint x = 1;
         for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             scan = (byte)(scan + (above >> 1));
         }
 
         for (; x < (uint)scanline.Length; ++x)
         {
-            ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-            byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            ref byte scan = ref Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte left = Extensions.UnsafeAdd(ref scanBaseRef, x - bytesPerPixel);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             scan = (byte)(scan + Average(left, above));
         }
     }
@@ -155,14 +159,15 @@ internal static class AverageFilter
         nuint x = 0;
         for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
         {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            byte scan = Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+            ref byte res = ref Extensions.UnsafeAdd(ref resultBaseRef, x);
             res = (byte)(scan - (above >> 1));
             sum += Numerics.Abs(unchecked((sbyte)res));
         }
 
+#if USE_SIMD_INTRINSICS
         if (Avx2.IsSupported)
         {
             Vector256<byte> zero = Vector256<byte>.Zero;
@@ -171,14 +176,14 @@ internal static class AverageFilter
 
             for (nuint xLeft = x - bytesPerPixel; x <= (uint)(scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
             {
-                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
-                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, xLeft));
+                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, x));
 
                 Vector256<byte> avg = Avx2.Xor(Avx2.Average(Avx2.Xor(left, allBitsSet), Avx2.Xor(above, allBitsSet)), allBitsSet);
                 Vector256<byte> res = Avx2.Subtract(scan, avg);
 
-                Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector256<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector256<byte>.Count;
 
                 sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
@@ -194,14 +199,14 @@ internal static class AverageFilter
 
             for (nuint xLeft = x - bytesPerPixel; x <= (uint)(scanline.Length - Vector128<byte>.Count); xLeft += (uint)Vector128<byte>.Count)
             {
-                Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
-                Vector128<byte> above = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
+                Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, x));
+                Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref scanBaseRef, xLeft));
+                Vector128<byte> above = Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref prevBaseRef, x));
 
                 Vector128<byte> avg = Sse2.Xor(Sse2.Average(Sse2.Xor(left, allBitsSet), Sse2.Xor(above, allBitsSet)), allBitsSet);
                 Vector128<byte> res = Sse2.Subtract(scan, avg);
 
-                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
+                Unsafe.As<byte, Vector128<byte>>(ref Extensions.UnsafeAdd(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
                 x += (uint)Vector128<byte>.Count;
 
                 Vector128<byte> absRes;
@@ -220,14 +225,15 @@ internal static class AverageFilter
 
             sum += Numerics.EvenReduceSum(sumAccumulator);
         }
+#endif
 
         for (nuint xLeft = x - bytesPerPixel; x < (uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
         {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte left = Unsafe.Add(ref scanBaseRef, xLeft);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
+            byte scan = Extensions.UnsafeAdd(ref scanBaseRef, x);
+            byte left = Extensions.UnsafeAdd(ref scanBaseRef, xLeft);
+            byte above = Extensions.UnsafeAdd(ref prevBaseRef, x);
             ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+            ref byte res = ref Extensions.UnsafeAdd(ref resultBaseRef, x);
             res = (byte)(scan - Average(left, above));
             sum += Numerics.Abs(unchecked((sbyte)res));
         }

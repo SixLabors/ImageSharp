@@ -33,9 +33,9 @@ internal readonly struct DefaultShuffle4Slice3 : IShuffle4Slice3
 
         for (nuint i = 0, j = 0; i < (uint)dest.Length; i += 3, j += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + j);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
+            Extensions.UnsafeAdd(ref dBase, i + 0) = Extensions.UnsafeAdd(ref sBase, p0 + j);
+            Extensions.UnsafeAdd(ref dBase, i + 1) = Extensions.UnsafeAdd(ref sBase, p1 + j);
+            Extensions.UnsafeAdd(ref dBase, i + 2) = Extensions.UnsafeAdd(ref sBase, p2 + j);
         }
     }
 }
@@ -56,26 +56,26 @@ internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
         nint m = Numerics.Modulo4(n);
         nint u = n - m;
 
-        ref uint sLoopEnd = ref Unsafe.Add(ref sBase, u);
-        ref uint sEnd = ref Unsafe.Add(ref sBase, n);
+        ref uint sLoopEnd = ref Extensions.UnsafeAdd(ref sBase, u);
+        ref uint sEnd = ref Extensions.UnsafeAdd(ref sBase, n);
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
-            Unsafe.Add(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 1));
-            Unsafe.Add(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 2));
-            Unsafe.Add(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 3));
+            Extensions.UnsafeAdd(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Extensions.UnsafeAdd(ref sBase, 0));
+            Extensions.UnsafeAdd(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Extensions.UnsafeAdd(ref sBase, 1));
+            Extensions.UnsafeAdd(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Extensions.UnsafeAdd(ref sBase, 2));
+            Extensions.UnsafeAdd(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Extensions.UnsafeAdd(ref sBase, 3));
 
-            sBase = ref Unsafe.Add(ref sBase, 4);
-            dBase = ref Unsafe.Add(ref dBase, 4);
+            sBase = ref Extensions.UnsafeAdd(ref sBase, 4);
+            dBase = ref Extensions.UnsafeAdd(ref dBase, 4);
         }
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
+            Extensions.UnsafeAdd(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Extensions.UnsafeAdd(ref sBase, 0));
 
-            sBase = ref Unsafe.Add(ref sBase, 1);
-            dBase = ref Unsafe.Add(ref dBase, 1);
+            sBase = ref Extensions.UnsafeAdd(ref sBase, 1);
+            dBase = ref Extensions.UnsafeAdd(ref dBase, 1);
         }
     }
 }

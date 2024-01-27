@@ -41,11 +41,12 @@ internal class Vp8Residual
 
     public void SetCoeffs(Span<short> coeffs)
     {
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             ref short coeffsRef = ref MemoryMarshal.GetReference(coeffs);
             Vector128<byte> c0 = Unsafe.As<short, Vector128<byte>>(ref coeffsRef);
-            Vector128<byte> c1 = Unsafe.As<short, Vector128<byte>>(ref Unsafe.Add(ref coeffsRef, 8));
+            Vector128<byte> c1 = Unsafe.As<short, Vector128<byte>>(ref Extensions.UnsafeAdd(ref coeffsRef, 8));
 
             // Use SSE2 to compare 16 values with a single instruction.
             Vector128<sbyte> m0 = Sse2.PackSignedSaturate(c0.AsInt16(), c1.AsInt16());
@@ -62,6 +63,7 @@ internal class Vp8Residual
             this.Last = mask != 0 ? BitOperations.Log2(mask) : -1;
         }
         else
+#endif
         {
             int n;
             this.Last = -1;
@@ -156,6 +158,7 @@ internal class Vp8Residual
             return LossyUtils.Vp8BitCost(0, (byte)p0);
         }
 
+#if USE_SIMD_INTRINSICS
         if (Sse2.IsSupported)
         {
             Span<byte> scratch = stackalloc byte[32];
@@ -166,7 +169,7 @@ internal class Vp8Residual
             // Precompute clamped levels and contexts, packed to 8b.
             ref short outputRef = ref MemoryMarshal.GetReference<short>(this.Coeffs);
             Vector128<short> c0 = Unsafe.As<short, Vector128<byte>>(ref outputRef).AsInt16();
-            Vector128<short> c1 = Unsafe.As<short, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 8)).AsInt16();
+            Vector128<short> c1 = Unsafe.As<short, Vector128<byte>>(ref Extensions.UnsafeAdd(ref outputRef, 8)).AsInt16();
             Vector128<short> d0 = Sse2.Subtract(Vector128<short>.Zero, c0);
             Vector128<short> d1 = Sse2.Subtract(Vector128<short>.Zero, c1);
             Vector128<short> e0 = Sse2.Max(c0, d0); // abs(v), 16b
@@ -181,7 +184,7 @@ internal class Vp8Residual
             Unsafe.As<byte, Vector128<byte>>(ref ctxsRef) = g;
             Unsafe.As<byte, Vector128<byte>>(ref levelsRef) = h;
             Unsafe.As<ushort, Vector128<ushort>>(ref absLevelsRef) = e0.AsUInt16();
-            Unsafe.As<ushort, Vector128<ushort>>(ref Unsafe.Add(ref absLevelsRef, 8)) = e1.AsUInt16();
+            Unsafe.As<ushort, Vector128<ushort>>(ref Extensions.UnsafeAdd(ref absLevelsRef, 8)) = e1.AsUInt16();
 
             int level;
             int flevel;
@@ -208,6 +211,7 @@ internal class Vp8Residual
 
             return cost;
         }
+#endif
 
         {
             int v;

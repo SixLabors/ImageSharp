@@ -62,6 +62,11 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
             PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
+#if !NET6_0_OR_GREATER
+    PixelTypeInfo IPixel<A8>.GetPixelTypeInfo()
+        => GetPixelTypeInfo();
+#endif
+
     /// <inheritdoc />
     public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations();
 

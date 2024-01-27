@@ -95,11 +95,11 @@ internal class Vp8ModeScore
 
     public void Clear()
     {
-        Array.Clear(this.YDcLevels);
-        Array.Clear(this.YAcLevels);
-        Array.Clear(this.UvLevels);
-        Array.Clear(this.ModesI4);
-        Array.Clear(this.Derr);
+        this.YDcLevels.Clear();
+        this.YAcLevels.Clear();
+        this.UvLevels.Clear();
+        this.ModesI4.Clear();
+        this.Derr.Clear();
     }
 
     public void InitScore()

@@ -230,7 +230,7 @@ internal static class LossyUtils
             }
         }
 
-        return (int)Vector128.Sum(sum);
+        return (int)Sum(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -248,7 +248,7 @@ internal static class LossyUtils
             }
         }
 
-        return (int)Vector128.Sum(sum);
+        return (int)Sum(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -268,7 +268,27 @@ internal static class LossyUtils
 
         Vector128<uint> sum = AdvSimd.Add(sum1, sum2);
 
-        return (int)Vector128.Sum(sum);
+        return (int)Sum(sum);
+    }
+
+    /// <summary>Computes the sum of all elements in a vector.</summary>
+    /// <param name="vector">The vector whose elements will be summed.</param>
+    /// <returns>The sum of all elements in <paramref name="vector" />.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Sum(Vector128<uint> vector)
+    {
+#if !NET7_0_OR_GREATER
+        uint sum = 0;
+
+        for (int index = 0; index < Vector128<uint>.Count; index++)
+        {
+            sum += vector.GetElement(index);
+        }
+
+        return sum;
+#else
+        return Vector128.Sum(vector);
+#endif
     }
 
     // Load all 4x4 pixels into a single Vector128<uint>

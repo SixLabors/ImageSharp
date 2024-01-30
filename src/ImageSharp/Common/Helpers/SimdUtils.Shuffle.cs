@@ -12,140 +12,140 @@ internal static partial class SimdUtils
 {
     /// <summary>
     /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <param name="source">The source span of floats.</param>
-    /// <param name="dest">The destination span of floats.</param>
+    /// <param name="destination">The destination span of floats.</param>
     /// <param name="control">The byte control.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void Shuffle4(
         ReadOnlySpan<float> source,
-        Span<float> dest,
+        Span<float> destination,
         [ConstantExpected] byte control)
     {
-        VerifyShuffle4SpanInput(source, dest);
+        VerifyShuffle4SpanInput(source, destination);
 
-        HwIntrinsics.Shuffle4Reduce(ref source, ref dest, control);
+        HwIntrinsics.Shuffle4Reduce(ref source, ref destination, control);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            Shuffle4Remainder(source, dest, control);
+            Shuffle4Remainder(source, destination, control);
         }
     }
 
     /// <summary>
     /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <typeparam name="TShuffle">The type of shuffle struct.</typeparam>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
+    /// <param name="destination">The destination span of bytes.</param>
     /// <param name="shuffle">The type of shuffle to perform.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void Shuffle4<TShuffle>(
         ReadOnlySpan<byte> source,
-        Span<byte> dest,
+        Span<byte> destination,
         TShuffle shuffle)
         where TShuffle : struct, IShuffle4
     {
-        VerifyShuffle4SpanInput(source, dest);
+        VerifyShuffle4SpanInput(source, destination);
 
-        shuffle.ShuffleReduce(ref source, ref dest);
+        shuffle.ShuffleReduce(ref source, ref destination);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            shuffle.RunFallbackShuffle(source, dest);
+            shuffle.Shuffle(source, destination);
         }
     }
 
     /// <summary>
     /// Shuffle 8-bit integer triplets within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <typeparam name="TShuffle">The type of shuffle struct.</typeparam>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
+    /// <param name="destination">The destination span of bytes.</param>
     /// <param name="shuffle">The type of shuffle to perform.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void Shuffle3<TShuffle>(
         ReadOnlySpan<byte> source,
-        Span<byte> dest,
+        Span<byte> destination,
         TShuffle shuffle)
         where TShuffle : struct, IShuffle3
     {
-        // Source length should be smaller than dest length, and divisible by 3.
-        VerifyShuffle3SpanInput(source, dest);
+        // Source length should be smaller than destination length, and divisible by 3.
+        VerifyShuffle3SpanInput(source, destination);
 
-        shuffle.ShuffleReduce(ref source, ref dest);
+        shuffle.ShuffleReduce(ref source, ref destination);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            shuffle.RunFallbackShuffle(source, dest);
+            shuffle.Shuffle(source, destination);
         }
     }
 
     /// <summary>
     /// Pads then shuffles 8-bit integers within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <typeparam name="TShuffle">The type of shuffle struct.</typeparam>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
+    /// <param name="destination">The destination span of bytes.</param>
     /// <param name="shuffle">The type of shuffle to perform.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void Pad3Shuffle4<TShuffle>(
         ReadOnlySpan<byte> source,
-        Span<byte> dest,
+        Span<byte> destination,
         TShuffle shuffle)
         where TShuffle : struct, IPad3Shuffle4
     {
-        VerifyPad3Shuffle4SpanInput(source, dest);
+        VerifyPad3Shuffle4SpanInput(source, destination);
 
-        shuffle.ShuffleReduce(ref source, ref dest);
+        shuffle.ShuffleReduce(ref source, ref destination);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            shuffle.RunFallbackShuffle(source, dest);
+            shuffle.Shuffle(source, destination);
         }
     }
 
     /// <summary>
     /// Shuffles then slices 8-bit integers within 128-bit lanes in <paramref name="source"/>
-    /// using the control and store the results in <paramref name="dest"/>.
+    /// using the control and store the results in <paramref name="destination"/>.
     /// </summary>
     /// <typeparam name="TShuffle">The type of shuffle struct.</typeparam>
     /// <param name="source">The source span of bytes.</param>
-    /// <param name="dest">The destination span of bytes.</param>
+    /// <param name="destination">The destination span of bytes.</param>
     /// <param name="shuffle">The type of shuffle to perform.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void Shuffle4Slice3<TShuffle>(
         ReadOnlySpan<byte> source,
-        Span<byte> dest,
+        Span<byte> destination,
         TShuffle shuffle)
         where TShuffle : struct, IShuffle4Slice3
     {
-        VerifyShuffle4Slice3SpanInput(source, dest);
+        VerifyShuffle4Slice3SpanInput(source, destination);
 
-        shuffle.ShuffleReduce(ref source, ref dest);
+        shuffle.ShuffleReduce(ref source, ref destination);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            shuffle.RunFallbackShuffle(source, dest);
+            shuffle.Shuffle(source, destination);
         }
     }
 
     private static void Shuffle4Remainder(
         ReadOnlySpan<float> source,
-        Span<float> dest,
+        Span<float> destination,
         byte control)
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
-        ref float dBase = ref MemoryMarshal.GetReference(dest);
+        ref float dBase = ref MemoryMarshal.GetReference(destination);
         Shuffle.InverseMMShuffle(control, out uint p3, out uint p2, out uint p1, out uint p0);
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
@@ -158,69 +158,69 @@ internal static partial class SimdUtils
     }
 
     [Conditional("DEBUG")]
-    internal static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, Span<T> dest)
+    internal static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, Span<T> destination)
         where T : struct
     {
         DebugGuard.IsTrue(
-            source.Length == dest.Length,
+            source.Length == destination.Length,
             nameof(source),
             "Input spans must be of same length!");
 
         DebugGuard.IsTrue(
             source.Length % 4 == 0,
             nameof(source),
-            "Input spans must be divisable by 4!");
+            "Input spans must be divisible by 4!");
     }
 
     [Conditional("DEBUG")]
-    private static void VerifyShuffle3SpanInput<T>(ReadOnlySpan<T> source, Span<T> dest)
+    private static void VerifyShuffle3SpanInput<T>(ReadOnlySpan<T> source, Span<T> destination)
         where T : struct
     {
         DebugGuard.IsTrue(
-            source.Length <= dest.Length,
+            source.Length <= destination.Length,
             nameof(source),
-            "Source should fit into dest!");
+            "Source should fit into destination!");
 
         DebugGuard.IsTrue(
             source.Length % 3 == 0,
             nameof(source),
-            "Input spans must be divisable by 3!");
+            "Input spans must be divisible by 3!");
     }
 
     [Conditional("DEBUG")]
-    private static void VerifyPad3Shuffle4SpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
+    private static void VerifyPad3Shuffle4SpanInput(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         DebugGuard.IsTrue(
             source.Length % 3 == 0,
             nameof(source),
-            "Input span must be divisable by 3!");
+            "Input span must be divisible by 3!");
 
         DebugGuard.IsTrue(
-            dest.Length % 4 == 0,
-            nameof(dest),
-            "Output span must be divisable by 4!");
+            destination.Length % 4 == 0,
+            nameof(destination),
+            "Output span must be divisible by 4!");
 
         DebugGuard.IsTrue(
-            source.Length == dest.Length * 3 / 4,
+            source.Length == destination.Length * 3 / 4,
             nameof(source),
             "Input span must be 3/4 the length of the output span!");
     }
 
     [Conditional("DEBUG")]
-    private static void VerifyShuffle4Slice3SpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
+    private static void VerifyShuffle4Slice3SpanInput(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         DebugGuard.IsTrue(
             source.Length % 4 == 0,
             nameof(source),
-            "Input span must be divisable by 4!");
+            "Input span must be divisible by 4!");
 
         DebugGuard.IsTrue(
-            dest.Length % 3 == 0,
-            nameof(dest),
-            "Output span must be divisable by 3!");
+            destination.Length % 3 == 0,
+            nameof(destination),
+            "Output span must be divisible by 3!");
 
         DebugGuard.IsTrue(
-            dest.Length >= source.Length * 3 / 4,
+            destination.Length >= source.Length * 3 / 4,
             nameof(source),
             "Output span must be at least 3/4 the length of the input span!");
     }
@@ -506,6 +506,27 @@ internal static partial class SimdUtils
                 Unsafe.Add(ref spanBase, i + 1) = (byte)(p1 + i);
                 Unsafe.Add(ref spanBase, i + 2) = (byte)(p2 + i);
                 Unsafe.Add(ref spanBase, i + 3) = (byte)(p3 + i);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void MMShuffleSpan(ref Span<int> span, byte control)
+        {
+            InverseMMShuffle(
+                 control,
+                 out uint p3,
+                 out uint p2,
+                 out uint p1,
+                 out uint p0);
+
+            ref int spanBase = ref MemoryMarshal.GetReference(span);
+
+            for (nuint i = 0; i < (uint)span.Length; i += 4)
+            {
+                Unsafe.Add(ref spanBase, i + 0) = (int)(p0 + i);
+                Unsafe.Add(ref spanBase, i + 1) = (int)(p1 + i);
+                Unsafe.Add(ref spanBase, i + 2) = (int)(p2 + i);
+                Unsafe.Add(ref spanBase, i + 3) = (int)(p3 + i);
             }
         }
 

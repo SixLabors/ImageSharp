@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'PaletteTiffColor' photometric interpretation (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -18,8 +18,11 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
     private readonly TPixel[] palette;
 
-    private const float InvMax = 1.0f / 65535F;
+    private const float InvMax = 1f / 65535f;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PaletteTiffColor{TPixel}"/> class.
+    /// </summary>
     /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
     /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
     public PaletteTiffColor(TiffBitsPerSample bitsPerSample, ushort[] colorMap)
@@ -32,7 +35,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var bitReader = new BitReader(data);
+        BitReader bitReader = new(data);
 
         for (int y = top; y < top + height; y++)
         {
@@ -49,7 +52,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
     private static TPixel[] GeneratePalette(ushort[] colorMap, int colorCount)
     {
-        var palette = new TPixel[colorCount];
+        TPixel[] palette = new TPixel[colorCount];
 
         const int rOffset = 0;
         int gOffset = colorCount;
@@ -60,7 +63,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             float r = colorMap[rOffset + i] * InvMax;
             float g = colorMap[gOffset + i] * InvMax;
             float b = colorMap[bOffset + i] * InvMax;
-            palette[i].FromScaledVector4(new Vector4(r, g, b, 1.0f));
+            palette[i] = TPixel.FromScaledVector4(new(r, g, b, 1f));
         }
 
         return palette;

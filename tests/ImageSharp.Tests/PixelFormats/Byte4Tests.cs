@@ -16,10 +16,10 @@ public class Byte4Tests
     [Fact]
     public void AreEqual()
     {
-        Byte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Byte4 color2 = new(new Vector4(0.0f));
-        Byte4 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        Byte4 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
+        Byte4 color1 = new(0f, 0f, 0f, 0f);
+        Byte4 color2 = new(new Vector4(0f));
+        Byte4 color3 = new(new Vector4(1f, 0f, 1f, 1f));
+        Byte4 color4 = new(1f, 0f, 1f, 1f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -31,10 +31,10 @@ public class Byte4Tests
     [Fact]
     public void AreNotEqual()
     {
-        Byte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Byte4 color2 = new(new Vector4(1.0f));
-        Byte4 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        Byte4 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
+        Byte4 color1 = new(0f, 0f, 0f, 0f);
+        Byte4 color2 = new(new Vector4(1f));
+        Byte4 color3 = new(new Vector4(1f, 0f, 0f, 1f));
+        Byte4 color4 = new(1f, 1f, 0f, 1f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -64,10 +64,10 @@ public class Byte4Tests
     public void Byte4_ToScaledVector4()
     {
         // arrange
-        Byte4 byte4 = new(Vector4.One * 255);
+        Byte4 pixel = new(Vector4.One * 255);
 
         // act
-        Vector4 actual = byte4.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(1, actual.X);
@@ -80,12 +80,11 @@ public class Byte4Tests
     public void Byte4_ToRgba32()
     {
         // arrange
-        Byte4 byte4 = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+        Byte4 pixel = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, byte.MaxValue);
         Rgba32 expected = new(Vector4.One);
-        Rgba32 actual = default;
 
         // act
-        byte4.ToRgba32(ref actual);
+        Rgba32 actual = pixel.ToRgba32();
 
         Assert.Equal(expected, actual);
     }
@@ -95,11 +94,10 @@ public class Byte4Tests
     {
         // arrange
         Vector4 scaled = new Byte4(Vector4.One * 255).ToScaledVector4();
-        Byte4 pixel = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        pixel.FromScaledVector4(scaled);
+        Byte4 pixel = Byte4.FromScaledVector4(scaled);
         uint actual = pixel.PackedValue;
 
         // assert
@@ -110,126 +108,117 @@ public class Byte4Tests
     public void Byte4_FromArgb32()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromArgb32(new Argb32(255, 255, 255, 255));
+        Byte4 pixel = Byte4.FromArgb32(new Argb32(255, 255, 255, 255));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromBgr24()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Byte4 pixel = Byte4.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromGrey8()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromL8(new L8(byte.MaxValue));
+        Byte4 pixel = Byte4.FromL8(new L8(byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromGrey16()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromL16(new L16(ushort.MaxValue));
+        Byte4 pixel = Byte4.FromL16(new L16(ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromRgb24()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Byte4 pixel = Byte4.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromBgra5551()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        byte4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Byte4 pixel = Byte4.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
-        Assert.Equal(expected, byte4.PackedValue);
+        Assert.Equal(expected, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromRgba32()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue1 = uint.MaxValue;
+        const uint expectedPackedValue1 = uint.MaxValue;
 
         // act
-        byte4.FromRgba32(new Rgba32(255, 255, 255, 255));
+        Byte4 pixel = Byte4.FromRgba32(new Rgba32(255, 255, 255, 255));
 
         // assert
-        Assert.Equal(expectedPackedValue1, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue1, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromRgb48()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Byte4 pixel = Byte4.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Byte4_FromRgba64()
     {
         // arrange
-        Byte4 byte4 = default;
-        uint expectedPackedValue = uint.MaxValue;
+        const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        byte4.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Byte4 pixel = Byte4.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, byte4.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]

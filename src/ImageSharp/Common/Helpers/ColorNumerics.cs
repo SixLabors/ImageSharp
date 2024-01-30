@@ -42,6 +42,34 @@ internal static class ColorNumerics
         => (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
     /// <summary>
+    /// Gets the luminance from the rgb components using the formula
+    /// as specified by ITU-R Recommendation BT.709.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    /// <returns>The <see cref="byte"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte Get8BitBT709Luminance(ushort r, ushort g, ushort b)
+        => (byte)((From16BitTo8Bit(r) * .2126F) +
+                  (From16BitTo8Bit(g) * .7152F) +
+                  (From16BitTo8Bit(b) * .0722F) + 0.5F);
+
+    /// <summary>
+    /// Gets the luminance from the rgb components using the formula as
+    /// specified by ITU-R Recommendation BT.709.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    /// <returns>The <see cref="ushort"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ushort Get16BitBT709Luminance(byte r, byte g, byte b)
+        => (ushort)((From8BitTo16Bit(r) * .2126F) +
+                    (From8BitTo16Bit(g) * .7152F) +
+                    (From8BitTo16Bit(b) * .0722F) + 0.5F);
+
+    /// <summary>
     /// Gets the luminance from the rgb components using the formula as
     /// specified by ITU-R Recommendation BT.709.
     /// </summary>
@@ -72,8 +100,8 @@ internal static class ColorNumerics
     /// <param name="component">The 8 bit component value.</param>
     /// <returns>The <see cref="byte"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte DownScaleFrom16BitTo8Bit(ushort component)
-    {
+    public static byte From16BitTo8Bit(ushort component) =>
+
         // To scale to 8 bits From a 16-bit value V the required value (from the PNG specification) is:
         //
         //    (V * 255) / 65535
@@ -102,8 +130,7 @@ internal static class ColorNumerics
         // An alternative arithmetic calculation which also gives no errors is:
         //
         //    (V * 255 + 32895) >> 16
-        return (byte)(((component * 255) + 32895) >> 16);
-    }
+        (byte)(((component * 255) + 32895) >> 16);
 
     /// <summary>
     /// Scales a value from an 8 bit <see cref="byte"/> to
@@ -112,7 +139,7 @@ internal static class ColorNumerics
     /// <param name="component">The 8 bit component value.</param>
     /// <returns>The <see cref="ushort"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ushort UpscaleFrom8BitTo16Bit(byte component)
+    public static ushort From8BitTo16Bit(byte component)
         => (ushort)(component * 257);
 
     /// <summary>

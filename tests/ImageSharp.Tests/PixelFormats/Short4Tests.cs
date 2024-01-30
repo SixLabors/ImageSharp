@@ -60,8 +60,7 @@ public class Short4Tests
         const long expected = 0x7FFF7FFF7FFF7FFF;
 
         // act
-        Short4 pixel = default;
-        pixel.FromScaledVector4(scaled);
+        Short4 pixel = Short4.FromScaledVector4(scaled);
 
         // assert
         Assert.Equal((ulong)expected, pixel.PackedValue);
@@ -88,11 +87,10 @@ public class Short4Tests
     {
         // arrange
         Short4 shortValue = new(11547, 12653, 29623, 193);
-        Rgba32 actual = default;
         Rgba32 expected = new(172, 177, 243, 128);
 
         // act
-        shortValue.ToRgba32(ref actual);
+        Rgba32 actual = shortValue.ToRgba32();
 
         // assert
         Assert.Equal(expected, actual);
@@ -102,13 +100,11 @@ public class Short4Tests
     public void Short4_FromRgba32_ToRgba32()
     {
         // arrange
-        Short4 short4 = default;
-        Rgba32 actual = default;
         Rgba32 expected = new(20, 38, 0, 255);
 
         // act
-        short4.FromRgba32(expected);
-        short4.ToRgba32(ref actual);
+        Short4 short4 = Short4.FromRgba32(expected);
+        Rgba32 actual = short4.ToRgba32();
 
         // assert
         Assert.Equal(expected, actual);
@@ -118,15 +114,12 @@ public class Short4Tests
     public void Short4_FromBgra32_ToRgba32()
     {
         // arrange
-        Short4 short4 = default;
-        Bgra32 actual = default;
         Bgra32 expected = new(20, 38, 0, 255);
 
         // act
-        short4.FromBgra32(expected);
-        Rgba32 temp = default;
-        short4.ToRgba32(ref temp);
-        actual.FromRgba32(temp);
+        Short4 short4 = Short4.FromBgra32(expected);
+        Rgba32 temp = short4.ToRgba32();
+        Bgra32 actual = Bgra32.FromRgba32(temp);
 
         // assert
         Assert.Equal(expected, actual);
@@ -136,15 +129,12 @@ public class Short4Tests
     public void Short4_FromArgb32_ToRgba32()
     {
         // arrange
-        Short4 short4 = default;
-        Argb32 actual = default;
         Argb32 expected = new(20, 38, 0, 255);
 
         // act
-        short4.FromArgb32(expected);
-        Rgba32 temp = default;
-        short4.ToRgba32(ref temp);
-        actual.FromRgba32(temp);
+        Short4 short4 = Short4.FromArgb32(expected);
+        Rgba32 temp = short4.ToRgba32();
+        Argb32 actual = Argb32.FromRgba32(temp);
 
         // assert
         Assert.Equal(expected, actual);
@@ -154,15 +144,12 @@ public class Short4Tests
     public void Short4_FromAbgrb32_ToRgba32()
     {
         // arrange
-        Short4 short4 = default;
-        Abgr32 actual = default;
         Abgr32 expected = new(20, 38, 0, 255);
 
         // act
-        short4.FromAbgr32(expected);
-        Rgba32 temp = default;
-        short4.ToRgba32(ref temp);
-        actual.FromRgba32(temp);
+        Short4 short4 = Short4.FromAbgr32(expected);
+        Rgba32 temp = short4.ToRgba32();
+        Abgr32 actual = Abgr32.FromRgba32(temp);
 
         // assert
         Assert.Equal(expected, actual);
@@ -172,13 +159,11 @@ public class Short4Tests
     public void Short4_FromRgb48_ToRgb48()
     {
         // arrange
-        Short4 input = default;
-        Rgb48 actual = default;
         Rgb48 expected = new(65535, 0, 65535);
 
         // act
-        input.FromRgb48(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        Short4 input = Short4.FromRgb48(expected);
+        Rgb48 actual = Rgb48.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -188,13 +173,11 @@ public class Short4Tests
     public void Short4_FromRgba64_ToRgba64()
     {
         // arrange
-        Short4 input = default;
-        Rgba64 actual = default;
         Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
-        input.FromRgba64(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        Short4 input = Short4.FromRgba64(expected);
+        Rgba64 actual = Rgba64.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -204,11 +187,10 @@ public class Short4Tests
     public void Short4_FromBgra5551()
     {
         // arrange
-        Short4 short4 = default;
         Vector4 expected = Vector4.One;
 
         // act
-        short4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Short4 short4 = Short4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, short4.ToScaledVector4());

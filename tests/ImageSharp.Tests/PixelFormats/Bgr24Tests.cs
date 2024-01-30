@@ -80,8 +80,7 @@ public class Bgr24Tests
     [Fact]
     public void FromRgba32()
     {
-        Bgr24 rgb = default;
-        rgb.FromRgba32(new Rgba32(1, 2, 3, 4));
+        Bgr24 rgb = Bgr24.FromRgba32(new Rgba32(1, 2, 3, 4));
 
         Assert.Equal(1, rgb.R);
         Assert.Equal(2, rgb.G);
@@ -97,8 +96,7 @@ public class Bgr24Tests
     [Fact]
     public void FromVector4()
     {
-        Bgr24 rgb = default;
-        rgb.FromVector4(Vec(1, 2, 3, 4));
+        Bgr24 rgb = Bgr24.FromVector4(Vec(1, 2, 3, 4));
 
         Assert.Equal(1, rgb.R);
         Assert.Equal(2, rgb.G);
@@ -116,11 +114,8 @@ public class Bgr24Tests
     [Fact]
     public void Bgr24_FromBgra5551()
     {
-        // arrange
-        Bgr24 bgr = default;
-
         // act
-        bgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgr24 bgr = Bgr24.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(255, bgr.R);

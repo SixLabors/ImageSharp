@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'BlackIsZero' photometric interpretation for 16-bit grayscale images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -32,9 +33,8 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        L16 l16 = TiffUtils.L16Default;
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
+        L16 l16 = TiffUtilities.L16Default;
+        TPixel color = TPixel.FromScaledVector4(Vector4.Zero);
 
         int offset = 0;
         for (int y = top; y < top + height; y++)
@@ -44,10 +44,10 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ushort intensity = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                    ushort intensity = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
 
-                    pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
+                    pixelRow[x] = TPixel.FromL16(new(intensity));
                 }
             }
             else

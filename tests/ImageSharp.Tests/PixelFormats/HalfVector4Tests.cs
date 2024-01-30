@@ -39,10 +39,10 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        HalfVector4 halfVector4 = new(-Vector4.One);
+        HalfVector4 pixel = new(-Vector4.One);
 
         // act
-        Vector4 actual = halfVector4.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(0, actual.X);
@@ -55,13 +55,12 @@ public class HalfVector4Tests
     public void HalfVector4_FromScaledVector4()
     {
         // arrange
-        HalfVector4 halfVector4 = default;
         Vector4 scaled = new HalfVector4(-Vector4.One).ToScaledVector4();
-        ulong expected = 13547034390470638592uL;
+        const ulong expected = 13547034390470638592uL;
 
         // act
-        halfVector4.FromScaledVector4(scaled);
-        ulong actual = halfVector4.PackedValue;
+        HalfVector4 pixel = HalfVector4.FromScaledVector4(scaled);
+        ulong actual = pixel.PackedValue;
 
         // assert
         Assert.Equal(expected, actual);
@@ -71,14 +70,13 @@ public class HalfVector4Tests
     public void HalfVector4_FromBgra5551()
     {
         // arrange
-        HalfVector4 halfVector4 = default;
         Vector4 expected = Vector4.One;
 
         // act
-        halfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        HalfVector4 pixel = HalfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
-        Assert.Equal(expected, halfVector4.ToScaledVector4());
+        Assert.Equal(expected, pixel.ToScaledVector4());
     }
 
     [Fact]

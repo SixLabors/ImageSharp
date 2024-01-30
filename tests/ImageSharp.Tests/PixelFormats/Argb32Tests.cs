@@ -18,8 +18,8 @@ public class Argb32Tests
     {
         Argb32 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
         Argb32 color2 = new(new Vector4(0.0f));
-        Argb32 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        Argb32 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
+        Argb32 color3 = new(new Vector4(1f, 0.0f, 1f, 1f));
+        Argb32 color4 = new(1f, 0.0f, 1f, 1f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -32,9 +32,9 @@ public class Argb32Tests
     public void AreNotEqual()
     {
         Argb32 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Argb32 color2 = new(new Vector4(1.0f));
-        Argb32 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        Argb32 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
+        Argb32 color2 = new(new Vector4(1f));
+        Argb32 color3 = new(new Vector4(1f, 0.0f, 0.0f, 1f));
+        Argb32 color4 = new(1f, 1f, 0.0f, 1f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -111,11 +111,10 @@ public class Argb32Tests
     {
         // arrange
         Vector4 scaled = new Argb32(Vector4.One).ToScaledVector4();
-        Argb32 pixel = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        pixel.FromScaledVector4(scaled);
+        Argb32 pixel = Argb32.FromScaledVector4(scaled);
         uint actual = pixel.PackedValue;
 
         // assert
@@ -126,11 +125,10 @@ public class Argb32Tests
     public void Argb32_FromBgra5551()
     {
         // arrange
-        Argb32 argb = default;
-        uint expected = uint.MaxValue;
+        const uint expected = uint.MaxValue;
 
         // act
-        argb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Argb32 argb = Argb32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, argb.PackedValue);

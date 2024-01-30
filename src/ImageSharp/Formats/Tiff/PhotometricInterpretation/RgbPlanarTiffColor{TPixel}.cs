@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with 'Planar' layout (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -49,11 +49,9 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     /// <param name="height">The height of the image block.</param>
     public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-
-        var rBitReader = new BitReader(data[0].GetSpan());
-        var gBitReader = new BitReader(data[1].GetSpan());
-        var bBitReader = new BitReader(data[2].GetSpan());
+        BitReader rBitReader = new(data[0].GetSpan());
+        BitReader gBitReader = new(data[1].GetSpan());
+        BitReader bBitReader = new(data[2].GetSpan());
 
         for (int y = top; y < top + height; y++)
         {
@@ -64,8 +62,7 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                 float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                color.FromScaledVector4(new Vector4(r, g, b, 1.0f));
-                pixelRow[x] = color;
+                pixelRow[x] = TPixel.FromScaledVector4(new(r, g, b, 1f));
             }
 
             rBitReader.NextRow();

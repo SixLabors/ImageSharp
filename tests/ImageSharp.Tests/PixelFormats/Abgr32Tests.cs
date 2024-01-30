@@ -96,8 +96,7 @@ public class Abgr32Tests
     [Fact]
     public void FromRgba32()
     {
-        Abgr32 abgr = default;
-        abgr.FromRgba32(new Rgba32(1, 2, 3, 4));
+        Abgr32 abgr = Abgr32.FromRgba32(new Rgba32(1, 2, 3, 4));
 
         Assert.Equal(1, abgr.R);
         Assert.Equal(2, abgr.G);
@@ -114,8 +113,7 @@ public class Abgr32Tests
     [Fact]
     public void FromVector4()
     {
-        Abgr32 c = default;
-        c.FromVector4(Vec(1, 2, 3, 4));
+        Abgr32 c = Abgr32.FromVector4(Vec(1, 2, 3, 4));
 
         Assert.Equal(1, c.R);
         Assert.Equal(2, c.G);
@@ -135,11 +133,10 @@ public class Abgr32Tests
     public void Abgr32_FromBgra5551()
     {
         // arrange
-        Abgr32 abgr = default;
-        uint expected = uint.MaxValue;
+        const uint expected = uint.MaxValue;
 
         // act
-        abgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Abgr32 abgr = Abgr32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, abgr.PackedValue);

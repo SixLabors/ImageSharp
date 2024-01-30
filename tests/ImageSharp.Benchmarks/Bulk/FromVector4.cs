@@ -49,21 +49,17 @@ public abstract class FromVector4<TPixel>
         ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
         for (nuint i = 0; i < (uint)this.Count; i++)
         {
-            Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));
+            Unsafe.Add(ref d, i) = TPixel.FromVector4(Unsafe.Add(ref s, i));
         }
     }
 
     [Benchmark(Baseline = true)]
     public void PixelOperations_Base()
-    {
-        new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
-    }
+        => new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
 
     [Benchmark]
     public void PixelOperations_Specialized()
-    {
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
-    }
+        => PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
 }
 
 public class FromVector4Rgba32 : FromVector4<Rgba32>

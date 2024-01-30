@@ -84,10 +84,8 @@ public class UnPackedPixelTests
         Rgba32 color = new(24, 48, 96, 192);
         RgbaVector colorVector = new(24 / 255F, 48 / 255F, 96 / 255F, 192 / 255F);
 
-        Rgba32 rgba = default;
-        Rgba32 rgbaVector = default;
-        color.ToRgba32(ref rgba);
-        colorVector.ToRgba32(ref rgbaVector);
+        Rgba32 rgba = color.ToRgba32();
+        Rgba32 rgbaVector = colorVector.ToRgba32();
 
         Assert.Equal(rgba, rgbaVector);
     }

@@ -164,12 +164,11 @@ public class Rgba32Tests
     {
         // arrange
         Rgba32 rgba = new(Vector4.One);
-        Rgba32 actual = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
         Vector4 scaled = rgba.ToScaledVector4();
-        actual.FromScaledVector4(scaled);
+        Rgba32 actual = Rgba32.FromScaledVector4(scaled);
 
         // assert
         Assert.Equal(expected, actual.PackedValue);
@@ -187,11 +186,10 @@ public class Rgba32Tests
     {
         // arrange
         Rgba32 rgba = new(+0.1f, -0.3f, +0.5f, -0.7f);
-        Rgba32 actual = default;
         Rgba32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
-        actual.FromRgba32(rgba);
+        Rgba32 actual = Rgba32.FromRgba32(rgba);
 
         // assert
         Assert.Equal(expected, actual);
@@ -201,13 +199,11 @@ public class Rgba32Tests
     public void Rgba32_FromRgba32_ToRgba32()
     {
         // arrange
-        Rgba32 rgba = default;
-        Rgba32 actual = default;
         Rgba32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
-        rgba.FromRgba32(expected);
-        actual.FromRgba32(rgba);
+        Rgba32 rgba = Rgba32.FromRgba32(expected);
+        Rgba32 actual = Rgba32.FromRgba32(rgba);
 
         // assert
         Assert.Equal(expected, actual);
@@ -217,13 +213,11 @@ public class Rgba32Tests
     public void Rgba32_FromBgra32_ToRgba32()
     {
         // arrange
-        Rgba32 rgba = default;
-        Bgra32 actual = default;
         Bgra32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
-        rgba.FromBgra32(expected);
-        actual.FromRgba32(rgba);
+        Rgba32 rgba = Rgba32.FromBgra32(expected);
+        Bgra32 actual = Bgra32.FromRgba32(rgba);
 
         // assert
         Assert.Equal(expected, actual);
@@ -233,13 +227,11 @@ public class Rgba32Tests
     public void Rgba32_FromAbgr32_ToRgba32()
     {
         // arrange
-        Rgba32 rgba = default;
-        Abgr32 actual = default;
         Abgr32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
-        rgba.FromAbgr32(expected);
-        actual.FromRgba32(rgba);
+        Rgba32 rgba = Rgba32.FromAbgr32(expected);
+        Abgr32 actual = Abgr32.FromRgba32(rgba);
 
         // assert
         Assert.Equal(expected, actual);
@@ -249,13 +241,11 @@ public class Rgba32Tests
     public void Rgba32_FromArgb32_ToArgb32()
     {
         // arrange
-        Rgba32 rgba = default;
-        Argb32 actual = default;
         Argb32 expected = new(0x1a, 0, 0x80, 0);
 
         // act
-        rgba.FromArgb32(expected);
-        actual.FromRgba32(rgba);
+        Rgba32 rgba = Rgba32.FromArgb32(expected);
+        Argb32 actual = Argb32.FromRgba32(rgba);
 
         // assert
         Assert.Equal(expected, actual);
@@ -265,13 +255,11 @@ public class Rgba32Tests
     public void Rgba32_FromRgb48()
     {
         // arrange
-        Rgba32 input = default;
-        Rgb48 actual = default;
         Rgb48 expected = new(65535, 0, 65535);
 
         // act
-        input.FromRgb48(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        Rgba32 input = Rgba32.FromRgb48(expected);
+        Rgb48 actual = Rgb48.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -281,13 +269,11 @@ public class Rgba32Tests
     public void Rgba32_FromRgba64()
     {
         // arrange
-        Rgba32 input = default;
-        Rgba64 actual = default;
         Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
-        input.FromRgba64(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        Rgba32 input = Rgba32.FromRgba64(expected);
+        Rgba64 actual = Rgba64.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -297,11 +283,10 @@ public class Rgba32Tests
     public void Rgba32_FromBgra5551()
     {
         // arrange
-        Rgba32 rgb = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgba32 rgb = Rgba32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgb.PackedValue);

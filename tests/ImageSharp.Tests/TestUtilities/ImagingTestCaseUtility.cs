@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -62,7 +63,7 @@ public class ImagingTestCaseUtility
             extension = ".bmp";
         }
 
-        extension = extension.ToLower();
+        extension = extension.ToLower(CultureInfo.InvariantCulture);
 
         if (extension[0] != '.')
         {
@@ -86,7 +87,7 @@ public class ImagingTestCaseUtility
             }
         }
 
-        details = details ?? string.Empty;
+        details ??= string.Empty;
         if (details != string.Empty)
         {
             details = '_' + details;
@@ -277,8 +278,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = default;
-        rgbaPixel.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)
@@ -317,7 +317,6 @@ public class ImagingTestCaseUtility
             rgbaPixel.A -= perChannelChange;
         }
 
-        pixel.FromRgba64(rgbaPixel);
-        img[x, y] = pixel;
+        img[x, y] = TPixel.FromRgba64(rgbaPixel);
     }
 }

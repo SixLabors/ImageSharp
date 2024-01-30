@@ -119,13 +119,11 @@ public class RgbaVectorTests
     public void RgbaVector_FromRgb48()
     {
         // arrange
-        RgbaVector input = default;
-        Rgb48 actual = default;
         Rgb48 expected = new(65535, 0, 65535);
 
         // act
-        input.FromRgb48(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        RgbaVector input = RgbaVector.FromRgb48(expected);
+        Rgb48 actual = Rgb48.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -135,13 +133,11 @@ public class RgbaVectorTests
     public void RgbaVector_FromRgba64()
     {
         // arrange
-        RgbaVector input = default;
-        Rgba64 actual = default;
         Rgba64 expected = new(65535, 0, 65535, 0);
 
         // act
-        input.FromRgba64(expected);
-        actual.FromScaledVector4(input.ToScaledVector4());
+        RgbaVector input = RgbaVector.FromRgba64(expected);
+        Rgba64 actual = Rgba64.FromScaledVector4(input.ToScaledVector4());
 
         // assert
         Assert.Equal(expected, actual);
@@ -151,11 +147,10 @@ public class RgbaVectorTests
     public void RgbaVector_FromBgra5551()
     {
         // arrange
-        RgbaVector rgb = default;
         Vector4 expected = Vector4.One;
 
         // act
-        rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        RgbaVector rgb = RgbaVector.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, rgb.ToScaledVector4());
@@ -165,11 +160,10 @@ public class RgbaVectorTests
     public void RgbaVector_FromGrey16()
     {
         // arrange
-        RgbaVector rgba = default;
         Vector4 expected = Vector4.One;
 
         // act
-        rgba.FromL16(new L16(ushort.MaxValue));
+        RgbaVector rgba = RgbaVector.FromL16(new L16(ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, rgba.ToScaledVector4());
@@ -179,11 +173,10 @@ public class RgbaVectorTests
     public void RgbaVector_FromGrey8()
     {
         // arrange
-        RgbaVector rgba = default;
         Vector4 expected = Vector4.One;
 
         // act
-        rgba.FromL8(new L8(byte.MaxValue));
+        RgbaVector rgba = RgbaVector.FromL8(new L8(byte.MaxValue));
 
         // assert
         Assert.Equal(expected, rgba.ToScaledVector4());
@@ -197,10 +190,8 @@ public class RgbaVectorTests
         using Image<RgbaVector> source = new(Configuration.Default, 1, 1, green);
         using Image<HalfVector4> clone = source.CloneAs<HalfVector4>();
 
-        Rgba32 srcColor = default;
-        Rgba32 cloneColor = default;
-        source[0, 0].ToRgba32(ref srcColor);
-        clone[0, 0].ToRgba32(ref cloneColor);
+        Rgba32 srcColor = source[0, 0].ToRgba32();
+        Rgba32 cloneColor = clone[0, 0].ToRgba32();
 
         Assert.Equal(srcColor, cloneColor);
     }

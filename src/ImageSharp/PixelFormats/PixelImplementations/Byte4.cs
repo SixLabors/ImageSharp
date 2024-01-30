@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -14,13 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </summary>
 public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Byte4"/> struct.
-    /// </summary>
-    /// <param name="vector">
-    /// A vector containing the initial values for the components of the Byte4 structure.
-    /// </param>
-    public Byte4(Vector4 vector) => this.PackedValue = Pack(ref vector);
+    private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Byte4"/> struct.
@@ -30,10 +25,17 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <param name="z">The z-component</param>
     /// <param name="w">The w-component</param>
     public Byte4(float x, float y, float z, float w)
+        : this(new Vector4(x, y, z, w))
     {
-        var vector = new Vector4(x, y, z, w);
-        this.PackedValue = Pack(ref vector);
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Byte4"/> struct.
+    /// </summary>
+    /// <param name="vector">
+    /// A vector containing the initial values for the components of the Byte4 structure.
+    /// </param>
+    public Byte4(Vector4 vector) => this.PackedValue = Pack(vector);
 
     /// <inheritdoc/>
     public uint PackedValue { get; set; }
@@ -46,7 +48,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Byte4 left, Byte4 right) => left.Equals(right);
 
     /// <summary>
@@ -57,8 +59,24 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Byte4 left, Byte4 right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgba32 ToRgba32() => new() { PackedValue = this.PackedValue };
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4() => this.ToVector4() / 255f;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new(
+            this.PackedValue & 0xFF,
+            (this.PackedValue >> 8) & 0xFF,
+            (this.PackedValue >> 16) & 0xFF,
+            (this.PackedValue >> 24) & 0xFF);
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -68,99 +86,81 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector * 255F);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4() / 255F;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromScaledVector4(Vector4 source) => FromVector4(source * 255f);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.PackedValue = Pack(ref vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromVector4(Vector4 source) => new() { PackedValue = Pack(source) };
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new(
-            this.PackedValue & 0xFF,
-            (this.PackedValue >> 0x8) & 0xFF,
-            (this.PackedValue >> 0x10) & 0xFF,
-            (this.PackedValue >> 0x18) & 0xFF);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromRgba32(Rgba32 source) => new() { PackedValue = source.PackedValue };
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Byte4 byte4 && this.Equals(byte4);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(Byte4 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
     public override readonly string ToString()
     {
-        var vector = this.ToVector4();
+        Vector4 vector = this.ToVector4();
         return FormattableString.Invariant($"Byte4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
     }
 
@@ -169,13 +169,10 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// </summary>
     /// <param name="vector">The vector containing the values to pack.</param>
     /// <returns>The <see cref="uint"/> containing the packed values.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static uint Pack(ref Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Pack(Vector4 vector)
     {
-        const float Max = 255F;
-
-        // Clamp the value between min and max values
-        vector = Numerics.Clamp(vector, Vector4.Zero, new Vector4(Max));
+        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
         uint byte4 = (uint)Math.Round(vector.X) & 0xFF;
         uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 0x8;

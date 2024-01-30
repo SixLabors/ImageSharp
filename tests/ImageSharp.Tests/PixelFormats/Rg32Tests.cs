@@ -13,8 +13,8 @@ public class Rg32Tests
     [Fact]
     public void Rg32_PackedValues()
     {
-        float x = 0xb6dc;
-        float y = 0xA59f;
+        const float x = 0xb6dc;
+        const float y = 0xA59f;
         Assert.Equal(0xa59fb6dc, new Rg32(x / 0xffff, y / 0xffff).PackedValue);
         Assert.Equal(6554U, new Rg32(0.1f, -0.3f).PackedValue);
 
@@ -51,12 +51,11 @@ public class Rg32Tests
     {
         // arrange
         Rg32 rg32 = new(Vector2.One);
-        Rg32 pixel = default;
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
         Vector4 scaled = rg32.ToScaledVector4();
-        pixel.FromScaledVector4(scaled);
+        Rg32 pixel = Rg32.FromScaledVector4(scaled);
         uint actual = pixel.PackedValue;
 
         // assert
@@ -67,11 +66,10 @@ public class Rg32Tests
     public void Rg32_FromBgra5551()
     {
         // arrange
-        Rg32 rg32 = new(Vector2.One);
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        rg32.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rg32 rg32 = Rg32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rg32.PackedValue);

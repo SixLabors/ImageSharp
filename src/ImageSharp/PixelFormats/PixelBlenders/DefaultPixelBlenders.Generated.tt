@@ -81,9 +81,7 @@ var blenders = new []{
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />

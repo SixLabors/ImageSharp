@@ -80,7 +80,7 @@ public class PredictorEncoderTests
 
         // Convert image pixels to bgra array.
         byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Peak));
-        using var image = Image.Load<Rgba32>(imgBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(imgBytes);
         uint[] bgra = ToBgra(image);
 
         const int colorTransformBits = 3;
@@ -110,7 +110,7 @@ public class PredictorEncoderTests
 
         // Convert image pixels to bgra array.
         byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Lossy.BikeSmall));
-        using var image = Image.Load<Rgba32>(imgBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(imgBytes);
         uint[] bgra = ToBgra(image);
 
         const int colorTransformBits = 4;
@@ -149,10 +149,8 @@ public class PredictorEncoderTests
     private static Bgra32 ToBgra32<TPixel>(TPixel color)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 rgba = default;
-        color.ToRgba32(ref rgba);
-        var bgra = new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
-        return bgra;
+        Rgba32 rgba = color.ToRgba32();
+        return new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
     private static string TestImageFullPath(string path)

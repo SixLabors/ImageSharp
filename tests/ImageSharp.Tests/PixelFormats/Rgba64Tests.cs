@@ -69,8 +69,7 @@ public class Rgba64Tests
         // act
         Vector4 scaled = source.ToScaledVector4();
 
-        Rgba64 actual = default;
-        actual.FromScaledVector4(scaled);
+        Rgba64 actual = Rgba64.FromScaledVector4(scaled);
 
         // assert
         Assert.Equal(source, actual);
@@ -79,10 +78,9 @@ public class Rgba64Tests
     [Fact]
     public void Rgba64_Clamping()
     {
-        Rgba64 zero = default;
-        Rgba64 one = default;
-        zero.FromVector4(Vector4.One * -1234.0f);
-        one.FromVector4(Vector4.One * 1234.0f);
+        Rgba64 zero = Rgba64.FromVector4(Vector4.One * -1234.0f);
+        Rgba64 one = Rgba64.FromVector4(Vector4.One * 1234.0f);
+
         Assert.Equal(Vector4.Zero, zero.ToVector4());
         Assert.Equal(Vector4.One, one.ToVector4());
     }
@@ -92,11 +90,10 @@ public class Rgba64Tests
     {
         // arrange
         Rgba64 rgba64 = new(5140, 9766, 19532, 29555);
-        Rgba32 actual = default;
         Rgba32 expected = new(20, 38, 76, 115);
 
         // act
-        rgba64.ToRgba32(ref actual);
+        Rgba32 actual = rgba64.ToRgba32();
 
         // assert
         Assert.Equal(expected, actual);
@@ -106,11 +103,10 @@ public class Rgba64Tests
     public void Rgba64_FromBgra5551()
     {
         // arrange
-        Rgba64 rgba = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        rgba.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgba64 rgba = Rgba64.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, rgba.R);
@@ -147,8 +143,7 @@ public class Rgba64Tests
         Rgba32 source = new(20, 38, 76, 115);
         Rgba64 expected = new(5140, 9766, 19532, 29555);
 
-        Rgba64 actual = default;
-        actual.FromRgba32(source);
+        Rgba64 actual = Rgba64.FromRgba32(source);
 
         Assert.Equal(expected, actual);
     }
@@ -217,8 +212,7 @@ public class Rgba64Tests
     public void ConstructFrom_Vector4()
     {
         Vector4 source = new(0f, 0.2f, 0.5f, 1f);
-        Rgba64 expected = default;
-        expected.FromScaledVector4(source);
+        Rgba64 expected = Rgba64.FromScaledVector4(source);
 
         Rgba64 actual = new(source);
 

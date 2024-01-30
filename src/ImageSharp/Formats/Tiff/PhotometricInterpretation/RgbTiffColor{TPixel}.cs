@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -40,9 +41,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-
-        var bitReader = new BitReader(data);
+        BitReader bitReader = new(data);
 
         for (int y = top; y < top + height; y++)
         {
@@ -53,8 +52,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                 float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                color.FromScaledVector4(new Vector4(r, g, b, 1.0f));
-                pixelRow[x] = color;
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
             }
 
             bitReader.NextRow();

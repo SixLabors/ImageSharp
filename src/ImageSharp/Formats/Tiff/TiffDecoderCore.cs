@@ -163,8 +163,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        List<ImageFrame<TPixel>> frames = new();
-        List<ImageFrameMetadata> framesMetadata = new();
+        List<ImageFrame<TPixel>> frames = [];
+        List<ImageFrameMetadata> framesMetadata = [];
         try
         {
             this.inputStream = stream;
@@ -221,7 +221,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
         IList<ExifProfile> directories = reader.Read();
 
-        List<ImageFrameMetadata> framesMetadata = new();
+        List<ImageFrameMetadata> framesMetadata = [];
         foreach (ExifProfile dir in directories)
         {
             framesMetadata.Add(this.CreateFrameMetadata(dir));

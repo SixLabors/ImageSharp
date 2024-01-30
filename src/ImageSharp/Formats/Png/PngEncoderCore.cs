@@ -328,18 +328,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         => clone.ProcessPixelRows(accessor =>
         {
             // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 rgba32 = default;
             Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> span = accessor.GetRowSpan(y);
                 for (int x = 0; x < accessor.Width; x++)
                 {
-                    span[x].ToRgba32(ref rgba32);
-
-                    if (rgba32.A is 0)
+                    ref TPixel pixel = ref span[x];
+                    Rgba32 rgba = pixel.ToRgba32();
+                    if (rgba.A is 0)
                     {
-                        span[x].FromRgba32(transparent);
+                        pixel = TPixel.FromRgba32(transparent);
                     }
                 }
             }

@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -302,12 +301,11 @@ public class TestImageProviderTests
         Assert.Equal(20, img.Height);
 
         Buffer2D<TPixel> pixels = img.GetRootFramePixelBuffer();
-        Rgba32 rgba = default;
         for (int y = 0; y < pixels.Height; y++)
         {
             for (int x = 0; x < pixels.Width; x++)
             {
-                pixels[x, y].ToRgba32(ref rgba);
+                Rgba32 rgba = pixels[x, y].ToRgba32();
 
                 Assert.Equal(255, rgba.R);
                 Assert.Equal(100, rgba.G);

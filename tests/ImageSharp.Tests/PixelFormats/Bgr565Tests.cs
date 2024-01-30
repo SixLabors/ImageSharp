@@ -84,11 +84,10 @@ public class Bgr565Tests
     {
         // arrange
         Vector4 scaled = new Bgr565(Vector3.One).ToScaledVector4();
-        int expected = 0xFFFF;
-        Bgr565 pixel = default;
+        const int expected = 0xFFFF;
 
         // act
-        pixel.FromScaledVector4(scaled);
+        Bgr565 pixel = Bgr565.FromScaledVector4(scaled);
         ushort actual = pixel.PackedValue;
 
         // assert
@@ -99,11 +98,10 @@ public class Bgr565Tests
     public void Bgr565_FromBgra5551()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgr.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgr565 bgr = Bgr565.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, bgr.PackedValue);
@@ -113,14 +111,12 @@ public class Bgr565Tests
     public void Bgr565_FromArgb32()
     {
         // arrange
-        Bgr565 bgr1 = default;
-        Bgr565 bgr2 = default;
-        ushort expected1 = ushort.MaxValue;
-        ushort expected2 = ushort.MaxValue;
+        const ushort expected1 = ushort.MaxValue;
+        const ushort expected2 = ushort.MaxValue;
 
         // act
-        bgr1.FromArgb32(new Argb32(1.0f, 1.0f, 1.0f, 1.0f));
-        bgr2.FromArgb32(new Argb32(1.0f, 1.0f, 1.0f, 0.0f));
+        Bgr565 bgr1 = Bgr565.FromArgb32(new Argb32(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgr565 bgr2 = Bgr565.FromArgb32(new Argb32(1.0f, 1.0f, 1.0f, 0.0f));
 
         // assert
         Assert.Equal(expected1, bgr1.PackedValue);
@@ -131,14 +127,12 @@ public class Bgr565Tests
     public void Bgr565_FromRgba32()
     {
         // arrange
-        Bgr565 bgr1 = default;
-        Bgr565 bgr2 = default;
-        ushort expected1 = ushort.MaxValue;
-        ushort expected2 = ushort.MaxValue;
+        const ushort expected1 = ushort.MaxValue;
+        const ushort expected2 = ushort.MaxValue;
 
         // act
-        bgr1.FromRgba32(new Rgba32(1.0f, 1.0f, 1.0f, 1.0f));
-        bgr2.FromRgba32(new Rgba32(1.0f, 1.0f, 1.0f, 0.0f));
+        Bgr565 bgr1 = Bgr565.FromRgba32(new Rgba32(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgr565 bgr2 = Bgr565.FromRgba32(new Rgba32(1.0f, 1.0f, 1.0f, 0.0f));
 
         // assert
         Assert.Equal(expected1, bgr1.PackedValue);
@@ -149,12 +143,11 @@ public class Bgr565Tests
     public void Bgr565_ToRgba32()
     {
         // arrange
-        Bgr565 bgra = new(Vector3.One);
+        Bgr565 pixel = new(Vector3.One);
         Rgba32 expected = new(Vector4.One);
-        Rgba32 actual = default;
 
         // act
-        bgra.ToRgba32(ref actual);
+        Rgba32 actual = pixel.ToRgba32();
 
         Assert.Equal(expected, actual);
     }
@@ -163,11 +156,10 @@ public class Bgr565Tests
     public void Bgra565_FromRgb48()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgr.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgr565 bgr = Bgr565.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, bgr.PackedValue);
@@ -177,11 +169,10 @@ public class Bgr565Tests
     public void Bgra565_FromRgba64()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgr.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgr565 bgr = Bgr565.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, bgr.PackedValue);
@@ -191,11 +182,10 @@ public class Bgr565Tests
     public void Bgr565_FromBgr24()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgr.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgr565 bgr = Bgr565.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expected, bgr.PackedValue);
@@ -205,11 +195,10 @@ public class Bgr565Tests
     public void Bgr565_FromRgb24()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgr.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgr565 bgr = Bgr565.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expected, bgr.PackedValue);
@@ -219,11 +208,10 @@ public class Bgr565Tests
     public void Bgr565_FromGrey8()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgr.FromL8(new L8(byte.MaxValue));
+        Bgr565 bgr = Bgr565.FromL8(new L8(byte.MaxValue));
 
         // assert
         Assert.Equal(expected, bgr.PackedValue);
@@ -233,11 +221,10 @@ public class Bgr565Tests
     public void Bgr565_FromGrey16()
     {
         // arrange
-        Bgr565 bgr = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgr.FromL16(new L16(ushort.MaxValue));
+        Bgr565 bgr = Bgr565.FromL16(new L16(ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, bgr.PackedValue);

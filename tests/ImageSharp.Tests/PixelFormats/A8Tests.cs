@@ -41,12 +41,11 @@ public class A8Tests
     public void A8_FromScaledVector4()
     {
         // Arrange
-        A8 alpha = default;
-        int expected = 128;
+        const int expected = 128;
         Vector4 scaled = new A8(.5F).ToScaledVector4();
 
         // Act
-        alpha.FromScaledVector4(scaled);
+        A8 alpha = A8.FromScaledVector4(scaled);
         byte actual = alpha.PackedValue;
 
         // Assert
@@ -91,8 +90,7 @@ public class A8Tests
         A8 input = new(128);
         Rgba32 expected = new(0, 0, 0, 128);
 
-        Rgba32 actual = default;
-        input.ToRgba32(ref actual);
+        Rgba32 actual = input.ToRgba32();
         Assert.Equal(expected, actual);
     }
 
@@ -100,11 +98,10 @@ public class A8Tests
     public void A8_FromBgra5551()
     {
         // arrange
-        A8 alpha = default;
-        byte expected = byte.MaxValue;
+        const byte expected = byte.MaxValue;
 
         // act
-        alpha.FromBgra5551(new Bgra5551(0.0f, 0.0f, 0.0f, 1.0f));
+        A8 alpha = A8.FromBgra5551(new Bgra5551(0.0f, 0.0f, 0.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, alpha.PackedValue);

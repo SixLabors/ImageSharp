@@ -31,7 +31,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(HalfSingle left, HalfSingle right) => left.Equals(right);
 
     /// <summary>
@@ -42,8 +42,25 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(HalfSingle left, HalfSingle right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4()
+    {
+        float single = this.ToSingle() + 1F;
+        single /= 2F;
+        return new Vector4(single, 0, 0, 1F);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new(this.ToSingle(), 0, 0, 1F);
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -53,109 +70,90 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
             PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromScaledVector4(Vector4 source)
     {
-        float scaled = vector.X;
+        float scaled = source.X;
         scaled *= 2F;
         scaled--;
-        this.PackedValue = HalfTypeHelper.Pack(scaled);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToScaledVector4()
-    {
-        float single = this.ToSingle() + 1F;
-        single /= 2F;
-        return new Vector4(single, 0, 0, 1F);
+        return new() { PackedValue = HalfTypeHelper.Pack(scaled) };
     }
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.PackedValue = HalfTypeHelper.Pack(vector.X);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromVector4(Vector4 source) => new() { PackedValue = HalfTypeHelper.Pack(source.X) };
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new(this.ToSingle(), 0, 0, 1F);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <summary>
     /// Expands the packed representation into a <see cref="float"/>.
     /// </summary>
     /// <returns>The <see cref="float"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly float ToSingle() => HalfTypeHelper.Unpack(this.PackedValue);
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is HalfSingle other && this.Equals(other);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(HalfSingle other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
     public override readonly string ToString() => FormattableString.Invariant($"HalfSingle({this.ToSingle():#0.##})");
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 }

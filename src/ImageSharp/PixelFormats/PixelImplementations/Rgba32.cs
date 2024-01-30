@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -43,8 +44,8 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// </summary>
     public byte A;
 
-    private static readonly Vector4 MaxBytes = new(byte.MaxValue);
-    private static readonly Vector4 Half = new(0.5F);
+    private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
+    private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -52,7 +53,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="r">The red component.</param>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(byte r, byte g, byte b)
     {
         this.R = r;
@@ -68,7 +69,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
     /// <param name="a">The alpha component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(byte r, byte g, byte b, byte a)
     {
         this.R = r;
@@ -84,9 +85,11 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
     /// <param name="a">The alpha component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(float r, float g, float b, float a = 1)
-        : this() => this.Pack(r, g, b, a);
+        : this(new Vector4(r, g, b, a))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -94,9 +97,11 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="vector">
     /// The vector containing the components for the packed vector.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(Vector3 vector)
-        : this() => this.Pack(ref vector);
+        : this(new Vector4(vector, 1f))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -104,9 +109,9 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="vector">
     /// The vector containing the components for the packed vector.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(Vector4 vector)
-        : this() => this = PackNew(ref vector);
+        : this() => this = Pack(vector);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgba32"/> struct.
@@ -114,7 +119,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="packed">
     /// The packed value.
     /// </param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgba32(uint packed)
         : this() => this.Rgba = packed;
 
@@ -123,10 +128,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// </summary>
     public uint Rgba
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => Unsafe.As<Rgba32, uint>(ref Unsafe.AsRef(in this));
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => Unsafe.As<Rgba32, uint>(ref this) = value;
     }
 
@@ -135,10 +140,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// </summary>
     public Rgb24 Rgb
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => new(this.R, this.G, this.B);
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             this.R = value.R;
@@ -152,10 +157,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// </summary>
     public Bgr24 Bgr
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => new(this.R, this.G, this.B);
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             this.R = value.R;
@@ -167,10 +172,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <inheritdoc/>
     public uint PackedValue
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get => this.Rgba;
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => this.Rgba = value;
     }
 
@@ -180,15 +185,8 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// </summary>
     /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgba32"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Rgba32(ColorSpaces.Rgb color)
-    {
-        var vector = new Vector4(color.ToVector3(), 1F);
-
-        Rgba32 rgba = default;
-        rgba.FromScaledVector4(vector);
-        return rgba;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Rgba32(ColorSpaces.Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -198,7 +196,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Rgba32 left, Rgba32 right) => left.Equals(right);
 
     /// <summary>
@@ -209,7 +207,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgba32 left, Rgba32 right) => !left.Equals(right);
 
     /// <summary>
@@ -224,7 +222,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// The <see cref="Rgba32"/>.
     /// </returns>
     /// <exception cref="ArgumentException">Hexadecimal string is not in the correct format.</exception>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba32 ParseHex(string hex)
     {
         Guard.NotNull(hex, nameof(hex));
@@ -249,7 +247,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <returns>
     /// The <see cref="bool"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParseHex(string? hex, out Rgba32 result)
     {
         result = default;
@@ -271,6 +269,18 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     }
 
     /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => this;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+
+    /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
         => PixelTypeInfo.Create<Rgba32>(
             PixelComponentInfo.Create<Rgba32>(4, 8, 8, 8, 8),
@@ -278,143 +288,89 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
+    public static PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromVector4(Vector4 source) => Pack(source);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.Pack(ref vector);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source)
-    {
-        this.Bgr = source;
-        this.A = byte.MaxValue;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-        this.A = source.A;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B, source.A);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source)
-    {
-        this.R = source.PackedValue;
-        this.G = source.PackedValue;
-        this.B = source.PackedValue;
-        this.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromL8(L8 source) => new(source.PackedValue, source.PackedValue, source.PackedValue);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromL16(L16 source)
     {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.PackedValue);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-        this.A = byte.MaxValue;
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
+        return new(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromLa16(La16 source) => new(source.L, source.L, source.L, source.A);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromLa32(La32 source)
     {
-        this.R = source.L;
-        this.G = source.L;
-        this.B = source.L;
-        this.A = source.A;
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
+        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.L);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-        this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source)
-    {
-        this.Rgb = source;
-        this.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgba32(Rgba32 source) => new() { PackedValue = source.PackedValue };
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this = source;
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest) => dest = this;
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source)
-    {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
-        this.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgb48(Rgb48 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B),
+            A = byte.MaxValue
+        };
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source)
-    {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
-        this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgba64(Rgba64 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B),
+            A = ColorNumerics.From16BitTo8Bit(source.A)
+        };
 
     /// <summary>
     /// Converts the value of this instance to a hexadecimal string.
@@ -430,71 +386,27 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     public override readonly bool Equals(object? obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(Rgba32 other) => this.Rgba.Equals(other.Rgba);
 
     /// <inheritdoc/>
     public override readonly string ToString() => $"Rgba32({this.R}, {this.G}, {this.B}, {this.A})";
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.Rgba.GetHashCode();
-
-    /// <summary>
-    /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.
-    /// </summary>
-    /// <param name="vector">The vector containing the values to pack.</param>
-    /// <returns>The <see cref="Rgba32"/></returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static Rgba32 PackNew(ref Vector4 vector)
-    {
-        vector *= MaxBytes;
-        vector += Half;
-        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
-
-        return new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
-    }
-
-    /// <summary>
-    /// Packs the four floats into a color.
-    /// </summary>
-    /// <param name="x">The x-component</param>
-    /// <param name="y">The y-component</param>
-    /// <param name="z">The z-component</param>
-    /// <param name="w">The w-component</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(float x, float y, float z, float w)
-    {
-        var value = new Vector4(x, y, z, w);
-        this.Pack(ref value);
-    }
-
-    /// <summary>
-    /// Packs a <see cref="Vector3"/> into a uint.
-    /// </summary>
-    /// <param name="vector">The vector containing the values to pack.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(ref Vector3 vector)
-    {
-        var value = new Vector4(vector, 1F);
-        this.Pack(ref value);
-    }
 
     /// <summary>
     /// Packs a <see cref="Vector4"/> into a color.
     /// </summary>
     /// <param name="vector">The vector containing the values to pack.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void Pack(ref Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Rgba32 Pack(Vector4 vector)
     {
         vector *= MaxBytes;
         vector += Half;
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
-        this.R = (byte)vector.X;
-        this.G = (byte)vector.Y;
-        this.B = (byte)vector.Z;
-        this.A = (byte)vector.W;
+        Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
+        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 
     /// <summary>
@@ -526,10 +438,10 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
             return null;
         }
 
-        char r = hex[0];
-        char g = hex[1];
-        char b = hex[2];
         char a = hex.Length == 3 ? 'F' : hex[3];
+        char b = hex[2];
+        char g = hex[1];
+        char r = hex[0];
 
         return new string(new[] { r, r, g, g, b, b, a, a });
     }

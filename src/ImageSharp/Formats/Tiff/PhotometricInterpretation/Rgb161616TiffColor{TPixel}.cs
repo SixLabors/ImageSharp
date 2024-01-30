@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,11 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with 16 bits for each channel.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly bool isBigEndian;
-
     private readonly Configuration configuration;
 
     /// <summary>
@@ -32,10 +31,6 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        Rgba64 rgba = TiffUtils.Rgba64Default;
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
-
         int offset = 0;
 
         for (int y = top; y < top + height; y++)
@@ -46,14 +41,14 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ulong r = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                    ushort r = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
-                    ulong g = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                    ushort g = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
-                    ulong b = TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                    ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
 
-                    pixelRow[x] = TiffUtils.ColorFromRgb64(rgba, r, g, b, color);
+                    pixelRow[x] = TPixel.FromRgb48(new(r, g, b));
                 }
             }
             else

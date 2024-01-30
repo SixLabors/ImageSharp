@@ -406,7 +406,7 @@ public partial class PngEncoderTests
 
                 for (int x = 0; x < image.Width; x++)
                 {
-                    rowSpan[x].FromRgba32(rgba32);
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
                 }
             }
         });

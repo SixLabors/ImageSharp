@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion;
@@ -16,23 +17,47 @@ public struct TestArgb : ITestPixel<TestArgb>
     public byte G;
     public byte B;
 
+    private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
+    private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgba32(Rgba32 p)
+    private TestArgb(Rgba32 source)
     {
-        this.R = p.R;
-        this.G = p.G;
-        this.B = p.B;
-        this.A = p.A;
+        this.R = source.R;
+        this.G = source.G;
+        this.B = source.B;
+        this.A = source.A;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgba32(ref Rgba32 p)
+    private TestArgb(byte r, byte g, byte b, byte a)
     {
-        this.R = p.R;
-        this.G = p.G;
-        this.B = p.B;
-        this.A = p.A;
+        this.R = r;
+        this.G = g;
+        this.B = b;
+        this.A = a;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void FromRgba32(Rgba32 source)
+    {
+        this.R = source.R;
+        this.G = source.G;
+        this.B = source.B;
+        this.A = source.A;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void FromRgba32(ref Rgba32 source)
+    {
+        this.R = source.R;
+        this.G = source.G;
+        this.B = source.B;
+        this.A = source.A;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TestArgb StaticFromRgba32(Rgba32 source) => new(source);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void FromBytes(byte r, byte g, byte b, byte a)
@@ -44,50 +69,40 @@ public struct TestArgb : ITestPixel<TestArgb>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromVector4(Vector4 p)
+    public void FromVector4(Vector4 source) => this = Pack(source);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TestArgb StaticFromVector4(Vector4 source) => Pack(source);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void FromVector4(ref Vector4 source) => this = Pack(source);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => new(this.R, this.G, this.B, this.A);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void CopyToRgba32(ref Rgba32 destination)
     {
-        this.R = (byte)p.X;
-        this.G = (byte)p.Y;
-        this.B = (byte)p.Z;
-        this.A = (byte)p.W;
+        destination.R = this.R;
+        destination.G = this.G;
+        destination.B = this.B;
+        destination.A = this.A;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromVector4(ref Vector4 p)
-    {
-        this.R = (byte)p.X;
-        this.G = (byte)p.Y;
-        this.B = (byte)p.Z;
-        this.A = (byte)p.W;
-    }
+    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Rgba32 ToRgba32()
-    {
-        return new Rgba32(this.R, this.G, this.B, this.A);
-    }
+    public readonly void CopyToVector4(ref Vector4 destination) => destination = this.ToVector4();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CopyToRgba32(ref Rgba32 dest)
+    private static TestArgb Pack(Vector4 vector)
     {
-        dest.R = this.R;
-        dest.G = this.G;
-        dest.B = this.B;
-        dest.A = this.A;
-    }
+        vector *= MaxBytes;
+        vector += Half;
+        vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToVector4()
-    {
-        return new Vector4(this.R, this.G, this.B, this.A);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CopyToVector4(ref Vector4 dest)
-    {
-        dest.X = this.R;
-        dest.Y = this.G;
-        dest.Z = this.B;
-        dest.W = this.A;
+        Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
+        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 }

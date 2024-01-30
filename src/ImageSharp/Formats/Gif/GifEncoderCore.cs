@@ -169,7 +169,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         this.EncodeFirstFrame(stream, frameMetadata, quantized);
 
         // Capture the global palette for reuse on subsequent frames and cleanup the quantized frame.
-        TPixel[] globalPalette = image.Frames.Count == 1 ? Array.Empty<TPixel>() : quantized.Palette.ToArray();
+        TPixel[] globalPalette = image.Frames.Count == 1 ? [] : quantized.Palette.ToArray();
 
         this.EncodeAdditionalFrames(stream, image, globalPalette, derivedTransparencyIndex, frameMetadata.DisposalMethod);
 
@@ -488,8 +488,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         int index = -1;
         if (quantized != null)
         {
-            TPixel transparentPixel = default;
-            transparentPixel.FromScaledVector4(Vector4.Zero);
+            TPixel transparentPixel = TPixel.FromScaledVector4(Vector4.Zero);
             ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
 
             // Transparent pixels are much more likely to be found at the end of a palette.
@@ -693,7 +692,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         }
 
         IMemoryOwner<byte>? owner = null;
-        Span<byte> extensionBuffer = stackalloc byte[0]; // workaround compiler limitation
+        scoped Span<byte> extensionBuffer = []; // workaround compiler limitation
         if (extensionSize > 128)
         {
             owner = this.memoryAllocator.Allocate<byte>(extensionSize + 3);

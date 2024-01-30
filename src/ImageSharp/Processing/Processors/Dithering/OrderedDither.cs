@@ -181,8 +181,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         float scale)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Unsafe.SkipInit(out Rgba32 rgba);
-        source.ToRgba32(ref rgba);
+        Rgba32 rgba = source.ToRgba32();
         Unsafe.SkipInit(out Rgba32 attempt);
 
         float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
@@ -192,10 +191,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         attempt.B = (byte)Numerics.Clamp(rgba.B + factor, byte.MinValue, byte.MaxValue);
         attempt.A = (byte)Numerics.Clamp(rgba.A + factor, byte.MinValue, byte.MaxValue);
 
-        TPixel result = default;
-        result.FromRgba32(attempt);
-
-        return result;
+        return TPixel.FromRgba32(attempt);
     }
 
     /// <inheritdoc/>

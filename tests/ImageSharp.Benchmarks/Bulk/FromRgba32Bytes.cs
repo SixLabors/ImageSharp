@@ -49,23 +49,17 @@ public abstract class FromRgba32Bytes<TPixel>
         for (int i = 0; i < this.Count; i++)
         {
             int i4 = i * 4;
-            var c = default(TPixel);
-            c.FromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
-            d[i] = c;
+            d[i] = TPixel.FromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
         }
     }
 
     [Benchmark(Baseline = true)]
     public void CommonBulk()
-    {
-        new PixelOperations<TPixel>().FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-    }
+        => new PixelOperations<TPixel>().FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
 
     [Benchmark]
     public void OptimizedBulk()
-    {
-        PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
-    }
+        => PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
 }
 
 public class FromRgba32Bytes_ToRgba32 : FromRgba32Bytes<Rgba32>

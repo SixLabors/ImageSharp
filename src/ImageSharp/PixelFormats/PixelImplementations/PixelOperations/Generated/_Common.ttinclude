@@ -57,10 +57,10 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         /// <inheritdoc />
         public override void From<TSourcePixel>(
             Configuration configuration,
-            ReadOnlySpan<TSourcePixel> sourcePixels,
-            Span<<#=pixelType#>> destinationPixels)
+            ReadOnlySpan<TSourcePixel> source,
+            Span<<#=pixelType#>> destination)
         {
-            PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, sourcePixels, destinationPixels.Slice(0, sourcePixels.Length));
+            PixelOperations<TSourcePixel>.Instance.To<#=pixelType#>(configuration, source, destination.Slice(0, source.Length));
         }
 <#+
     }
@@ -68,21 +68,21 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
     void GenerateDefaultSelfConversionMethods(string pixelType)
     {
 #>/// <inheritdoc />
-        public override void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destinationPixels)
+        public override void From<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            source.CopyTo(destinationPixels.Slice(0, source.Length));
+            source.CopyTo(destination.Slice(0, source.Length));
         }
 
         /// <inheritdoc />
-        public override void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> sourcePixels, Span<<#=pixelType#>> destinationPixels)
+        public override void To<#=pixelType#>(Configuration configuration, ReadOnlySpan<<#=pixelType#>> source, Span<<#=pixelType#>> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            sourcePixels.CopyTo(destinationPixels.Slice(0, sourcePixels.Length));
+            source.CopyTo(destination.Slice(0, source.Length));
         }
 <#+
     }
@@ -94,21 +94,18 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         /// <inheritdoc />
         public override void To<#=toPixelType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=fromPixelType#>> sourcePixels,
-            Span<<#=toPixelType#>> destinationPixels)
+            ReadOnlySpan<<#=fromPixelType#>> source,
+            Span<<#=toPixelType#>> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ref <#=fromPixelType#> sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-            ref <#=toPixelType#> destRef = ref MemoryMarshal.GetReference(destinationPixels);
+            ref <#=fromPixelType#> sourceBase = ref MemoryMarshal.GetReference(source);
+            ref <#=toPixelType#> destinationBase = ref MemoryMarshal.GetReference(destination);
 
-            for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+            for (nuint i = 0; i < (uint)source.Length; i++)
             {
-                ref <#=fromPixelType#> sp = ref Unsafe.Add(ref sourceRef, i);
-                ref <#=toPixelType#> dp = ref Unsafe.Add(ref destRef, i);
-
-                dp.From<#=fromPixelType#>(sp);
+                Unsafe.Add(ref destinationBase, i) = <#=toPixelType#>.From<#=fromPixelType#>(Unsafe.Add(ref sourceBase, i));
             }
         }
 <#+
@@ -121,29 +118,29 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         /// <inheritdoc />
         public override void To<#=otherPixelType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=thisPixelType#>> sourcePixels,
-            Span<<#=otherPixelType#>> destinationPixels)
+            ReadOnlySpan<<#=thisPixelType#>> source,
+            Span<<#=otherPixelType#>> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> source = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(sourcePixels);
-            Span<byte> dest = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(destinationPixels);
-            PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(source, dest);
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(destination);
+            PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(sourceBytes, destinationBytes);
         }
         
         /// <inheritdoc />
         public override void From<#=otherPixelType#>(
             Configuration configuration,
-            ReadOnlySpan<<#=otherPixelType#>> sourcePixels,
-            Span<<#=thisPixelType#>> destinationPixels)
+            ReadOnlySpan<<#=otherPixelType#>> source,
+            Span<<#=thisPixelType#>> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            ReadOnlySpan<byte> source = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(sourcePixels);
-            Span<byte> dest = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(destinationPixels);
-            PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(source, dest);
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(destination);
+            PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(sourceBytes, destinationBytes);
         }        
 <#+
     }
@@ -161,20 +158,20 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         public override void FromVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
-            Span<<#=pixelType#>> destinationPixels,
+            Span<<#=pixelType#>> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destinationPixels, modifiers.Remove(<#=removeTheseModifiers#>));
+            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(<#=removeTheseModifiers#>));
         }
 
         /// <inheritdoc />
         public override void ToVector4(
             Configuration configuration,
-            ReadOnlySpan<<#=pixelType#>> sourcePixels,
-            Span<Vector4> destVectors,
+            ReadOnlySpan<<#=pixelType#>> source,
+            Span<Vector4> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(<#=removeTheseModifiers#>));
+            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(<#=removeTheseModifiers#>));
         }
 <#+
     }

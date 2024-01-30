@@ -26,7 +26,7 @@ public partial class SimdUtilsTests
     [InlineData(5.3, 536.4, 4.5, 8.1)]
     public void PseudoRound(float x, float y, float z, float w)
     {
-        var v = new Vector4(x, y, z, w);
+        Vector4 v = new(x, y, z, w);
 
         Vector4 actual = v.PseudoRound();
 
@@ -57,7 +57,7 @@ public partial class SimdUtilsTests
     {
         float[] data = new float[Vector<float>.Count];
 
-        var rnd = new Random(seed);
+        Random rnd = new(seed);
 
         for (int i = 0; i < Vector<float>.Count; i++)
         {
@@ -185,10 +185,10 @@ public partial class SimdUtilsTests
         short[] sData = new Random(scale).GenerateRandomInt16Array(2 * n, (short)-scale, scale);
         float[] fData = sData.Select(u => (float)u).ToArray();
 
-        var source = new Vector<short>(sData);
+        Vector<short> source = new(sData);
 
-        var expected1 = new Vector<float>(fData, 0);
-        var expected2 = new Vector<float>(fData, n);
+        Vector<float> expected1 = new(fData, 0);
+        Vector<float> expected2 = new(fData, n);
 
         // Act:
         SimdUtils.ExtendedIntrinsics.ConvertToSingle(source, out Vector<float> actual1, out Vector<float> actual2);
@@ -262,7 +262,7 @@ public partial class SimdUtilsTests
         byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
         byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
         const int padding = 4;
-        var d = new Rgb24[32 + padding];
+        Rgb24[] d = new Rgb24[32 + padding];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
@@ -296,7 +296,7 @@ public partial class SimdUtilsTests
         byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
         byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
 
-        var d = new Rgba32[32];
+        Rgba32[] d = new Rgba32[32];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
@@ -322,18 +322,18 @@ public partial class SimdUtilsTests
     internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var rnd = new Random(42);
+        Random rnd = new(42);
         byte[] r = rnd.GenerateRandomByteArray(count);
         byte[] g = rnd.GenerateRandomByteArray(count);
         byte[] b = rnd.GenerateRandomByteArray(count);
 
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromRgb24(new Rgb24(r[i], g[i], b[i]));
+            expected[i] = TPixel.FromRgb24(new Rgb24(r[i], g[i], b[i]));
         }
 
-        var actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
+        TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
         packMethod(r, g, b, actual);
 
         Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan()[..count]));

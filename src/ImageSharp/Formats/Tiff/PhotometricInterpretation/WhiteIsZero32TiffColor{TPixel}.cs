@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'WhiteIsZero' photometric interpretation for 32-bit grayscale images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class WhiteIsZero32TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -25,8 +25,6 @@ internal class WhiteIsZero32TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         const uint maxValue = 0xFFFFFFFF;
 
         int offset = 0;
@@ -37,20 +35,20 @@ internal class WhiteIsZero32TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ulong intensity = maxValue - TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
+                    uint intensity = maxValue - TiffUtilities.ConvertToUIntBigEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo32Bit(intensity, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo32Bit<TPixel>(intensity);
                 }
             }
             else
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ulong intensity = maxValue - TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
+                    uint intensity = maxValue - TiffUtilities.ConvertToUIntLittleEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo32Bit(intensity, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo32Bit<TPixel>(intensity);
                 }
             }
         }

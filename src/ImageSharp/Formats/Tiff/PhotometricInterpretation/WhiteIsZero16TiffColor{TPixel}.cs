@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'WhiteIsZero' photometric interpretation for 16-bit grayscale images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class WhiteIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -25,10 +25,6 @@ internal class WhiteIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        L16 l16 = TiffUtils.L16Default;
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
-
         int offset = 0;
         for (int y = top; y < top + height; y++)
         {
@@ -37,20 +33,20 @@ internal class WhiteIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortBigEndian(data.Slice(offset, 2)));
+                    ushort intensity = (ushort)(ushort.MaxValue - TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2)));
                     offset += 2;
 
-                    pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
+                    pixelRow[x] = TPixel.FromL16(new(intensity));
                 }
             }
             else
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ushort intensity = (ushort)(ushort.MaxValue - TiffUtils.ConvertToUShortLittleEndian(data.Slice(offset, 2)));
+                    ushort intensity = (ushort)(ushort.MaxValue - TiffUtilities.ConvertToUShortLittleEndian(data.Slice(offset, 2)));
                     offset += 2;
 
-                    pixelRow[x] = TiffUtils.ColorFromL16(l16, intensity, color);
+                    pixelRow[x] = TPixel.FromL16(new(intensity));
                 }
             }
         }

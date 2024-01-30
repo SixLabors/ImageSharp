@@ -40,10 +40,10 @@ public class NormalizedByte2Tests
     public void NormalizedByte2_ToScaledVector4()
     {
         // arrange
-        NormalizedByte2 byte2 = new(-Vector2.One);
+        NormalizedByte2 pixel = new(-Vector2.One);
 
         // act
-        Vector4 actual = byte2.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(0, actual.X);
@@ -57,12 +57,11 @@ public class NormalizedByte2Tests
     {
         // arrange
         Vector4 scaled = new NormalizedByte2(-Vector2.One).ToScaledVector4();
-        NormalizedByte2 byte2 = default;
-        uint expected = 0x8181;
+        const uint expected = 0x8181;
 
         // act
-        byte2.FromScaledVector4(scaled);
-        uint actual = byte2.PackedValue;
+        NormalizedByte2 pixel = NormalizedByte2.FromScaledVector4(scaled);
+        uint actual = pixel.PackedValue;
 
         // assert
         Assert.Equal(expected, actual);
@@ -72,14 +71,13 @@ public class NormalizedByte2Tests
     public void NormalizedByte2_FromBgra5551()
     {
         // arrange
-        NormalizedByte2 normalizedByte2 = default;
         Vector4 expected = new(1, 1, 0, 1);
 
         // act
-        normalizedByte2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        NormalizedByte2 pixel = NormalizedByte2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
-        Assert.Equal(expected, normalizedByte2.ToVector4());
+        Assert.Equal(expected, pixel.ToVector4());
     }
 
     [Fact]

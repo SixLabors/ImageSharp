@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with an alpha channel and with 'Planar' layout (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -59,13 +60,12 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     /// <param name="height">The height of the image block.</param>
     public override void Decode(IMemoryOwner<byte>[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
         bool hasAssociatedAlpha = this.extraSampleType.HasValue && this.extraSampleType == TiffExtraSampleType.AssociatedAlphaData;
 
-        var rBitReader = new BitReader(data[0].GetSpan());
-        var gBitReader = new BitReader(data[1].GetSpan());
-        var bBitReader = new BitReader(data[2].GetSpan());
-        var aBitReader = new BitReader(data[3].GetSpan());
+        BitReader rBitReader = new(data[0].GetSpan());
+        BitReader gBitReader = new(data[1].GetSpan());
+        BitReader bBitReader = new(data[2].GetSpan());
+        BitReader aBitReader = new(data[3].GetSpan());
 
         for (int y = top; y < top + height; y++)
         {
@@ -77,17 +77,15 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
                 float a = aBitReader.ReadBits(this.bitsPerSampleA) / this.aFactor;
 
-                var vec = new Vector4(r, g, b, a);
+                Vector4 vector = new(r, g, b, a);
                 if (hasAssociatedAlpha)
                 {
-                    color = TiffUtils.UnPremultiply(ref vec, color);
+                    pixelRow[x] = TiffUtilities.UnPremultiply<TPixel>(ref vector);
                 }
                 else
                 {
-                    color.FromScaledVector4(vec);
+                    pixelRow[x] = TPixel.FromScaledVector4(vector);
                 }
-
-                pixelRow[x] = color;
             }
 
             rBitReader.NextRow();

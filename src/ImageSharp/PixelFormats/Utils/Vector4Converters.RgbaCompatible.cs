@@ -28,7 +28,7 @@ internal static partial class Vector4Converters
         private static readonly int Vector4ConversionThreshold = CalculateVector4ConversionThreshold();
 
         /// <summary>
-        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToVector4(SixLabors.ImageSharp.Configuration,System.ReadOnlySpan{TPixel},System.Span{System.Numerics.Vector4},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.ToVector4(Configuration,ReadOnlySpan{TPixel},Span{Vector4},PixelConversionModifiers)"/>
         /// The method works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -72,7 +72,7 @@ internal static partial class Vector4Converters
         }
 
         /// <summary>
-        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+        /// Provides an efficient default implementation for <see cref="PixelOperations{TPixel}.FromVector4Destructive(Configuration,Span{Vector4},Span{TPixel},PixelConversionModifiers)"/>
         /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -102,16 +102,14 @@ internal static partial class Vector4Converters
 
             // For the opposite direction it's not easy to implement the trick used in RunRgba32CompatibleToVector4Conversion,
             // so let's allocate a temporary buffer as usually:
-            using (IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count))
-            {
-                Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
+            using IMemoryOwner<Rgba32> tempBuffer = configuration.MemoryAllocator.Allocate<Rgba32>(count);
+            Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
 
-                SimdUtils.NormalizedFloatToByteSaturate(
-                    MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                    MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
+            SimdUtils.NormalizedFloatToByteSaturate(
+                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
+                MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
 
-                pixelOperations.FromRgba32(configuration, tempSpan, destPixels);
-            }
+            pixelOperations.FromRgba32(configuration, tempSpan, destPixels);
         }
 
         private static int CalculateVector4ConversionThreshold()

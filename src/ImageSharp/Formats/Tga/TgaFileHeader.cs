@@ -131,10 +131,7 @@ internal readonly struct TgaFileHeader
     /// </summary>
     public byte ImageDescriptor { get; }
 
-    public static TgaFileHeader Parse(Span<byte> data)
-    {
-        return MemoryMarshal.Cast<byte, TgaFileHeader>(data)[0];
-    }
+    public static TgaFileHeader Parse(Span<byte> data) => MemoryMarshal.Cast<byte, TgaFileHeader>(data)[0];
 
     public void WriteTo(Span<byte> buffer)
     {

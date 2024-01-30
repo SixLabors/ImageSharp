@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'WhiteIsZero' photometric interpretation for 32-bit float grayscale images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -24,8 +25,6 @@ internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         Span<byte> buffer = stackalloc byte[4];
 
         int offset = 0;
@@ -41,9 +40,7 @@ internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
                     float intensity = 1.0f - BitConverter.ToSingle(buffer);
                     offset += 4;
 
-                    var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
-                    color.FromScaledVector4(colorVector);
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromScaledVector4(new(intensity, intensity, intensity, 1f));
                 }
             }
             else
@@ -53,9 +50,7 @@ internal class WhiteIsZero32FloatTiffColor<TPixel> : TiffBaseColorDecoder<TPixel
                     float intensity = 1.0f - BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    var colorVector = new Vector4(intensity, intensity, intensity, 1.0f);
-                    color.FromScaledVector4(colorVector);
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1.0f));
                 }
             }
         }

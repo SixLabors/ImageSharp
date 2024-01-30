@@ -98,10 +98,8 @@ public readonly partial struct Color : IEquatable<Color>
         {
             return new(pixel.ToScaledVector4());
         }
-        else
-        {
-            return new(pixel);
-        }
+
+        return new(pixel);
     }
 
     /// <summary>
@@ -250,15 +248,12 @@ public readonly partial struct Color : IEquatable<Color>
     [MethodImpl(InliningOptions.ShortMethod)]
     public string ToHex()
     {
-        Rgba32 rgba = default;
         if (this.boxedHighPrecisionPixel is not null)
         {
-            this.boxedHighPrecisionPixel.ToRgba32(ref rgba);
-            return rgba.ToHex();
+            return this.boxedHighPrecisionPixel.ToRgba32().ToHex();
         }
 
-        rgba.FromScaledVector4(this.data);
-        return rgba.ToHex();
+        return Rgba32.FromScaledVector4(this.data).ToHex();
     }
 
     /// <inheritdoc />
@@ -280,14 +275,10 @@ public readonly partial struct Color : IEquatable<Color>
 
         if (this.boxedHighPrecisionPixel is null)
         {
-            pixel = default;
-            pixel.FromScaledVector4(this.data);
-            return pixel;
+            return TPixel.FromScaledVector4(this.data);
         }
 
-        pixel = default;
-        pixel.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
-        return pixel;
+        return TPixel.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
     }
 
     /// <summary>

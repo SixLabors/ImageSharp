@@ -9,17 +9,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation for 4 bits per color channel images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class Rgb444TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-
         int offset = 0;
 
-        var bgra = default(Bgra4444);
         for (int y = top; y < top + height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
@@ -31,9 +29,8 @@ internal class Rgb444TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 offset++;
                 byte b = (byte)((data[offset] & 0xF0) >> 4);
 
-                bgra.PackedValue = ToBgraPackedValue(b, g, r);
-                color.FromScaledVector4(bgra.ToScaledVector4());
-                pixelRow[x] = color;
+                Bgra4444 bgra = new() { PackedValue = ToBgraPackedValue(b, g, r) };
+                pixelRow[x] = TPixel.FromScaledVector4(bgra.ToScaledVector4());
                 if (x + 1 >= pixelRow.Length)
                 {
                     offset++;
@@ -47,8 +44,7 @@ internal class Rgb444TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 offset++;
 
                 bgra.PackedValue = ToBgraPackedValue(b, g, r);
-                color.FromScaledVector4(bgra.ToScaledVector4());
-                pixelRow[x + 1] = color;
+                pixelRow[x + 1] = TPixel.FromScaledVector4(bgra.ToScaledVector4());
             }
         }
     }

@@ -26,11 +26,11 @@ public class HalfSingleTests
     public void HalfSingle_ToVector4()
     {
         // arrange
-        HalfSingle halfSingle = new(0.5f);
+        HalfSingle pixel = new(0.5f);
         Vector4 expected = new(0.5f, 0, 0, 1);
 
         // act
-        Vector4 actual = halfSingle.ToVector4();
+        Vector4 actual = pixel.ToVector4();
 
         // assert
         Assert.Equal(expected, actual);
@@ -40,10 +40,10 @@ public class HalfSingleTests
     public void HalfSingle_ToScaledVector4()
     {
         // arrange
-        HalfSingle halfSingle = new(-1F);
+        HalfSingle pixel = new(-1F);
 
         // act
-        Vector4 actual = halfSingle.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(0, actual.X);
@@ -57,12 +57,11 @@ public class HalfSingleTests
     {
         // arrange
         Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
-        int expected = 48128;
-        HalfSingle halfSingle = default;
+        const int expected = 48128;
 
         // act
-        halfSingle.FromScaledVector4(scaled);
-        ushort actual = halfSingle.PackedValue;
+        HalfSingle pixel = HalfSingle.FromScaledVector4(scaled);
+        ushort actual = pixel.PackedValue;
 
         // assert
         Assert.Equal(expected, actual);

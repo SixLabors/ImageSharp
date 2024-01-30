@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -160,7 +159,6 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 color = default;
         Buffer2D<TPixel> pixels = image.PixelBuffer;
         for (int y = 0; y < image.Height; y++)
         {
@@ -168,14 +166,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
             for (int x = 0; x < image.Width;)
             {
                 TPixel currentPixel = pixelRow[x];
-                currentPixel.ToRgba32(ref color);
                 byte equalPixelCount = FindEqualPixels(pixelRow, x);
 
                 if (equalPixelCount > 0)
                 {
                     // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
                     stream.WriteByte((byte)(equalPixelCount | 128));
-                    this.WritePixel(stream, currentPixel, color);
+                    this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
                     x += equalPixelCount + 1;
                 }
                 else
@@ -183,13 +180,12 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
                     // Write Raw Packet (i.e., Non-Run-Length Encoded):
                     byte unEqualPixelCount = FindUnEqualPixels(pixelRow, x);
                     stream.WriteByte(unEqualPixelCount);
-                    this.WritePixel(stream, currentPixel, color);
+                    this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
                     x++;
                     for (int i = 0; i < unEqualPixelCount; i++)
                     {
                         currentPixel = pixelRow[x];
-                        currentPixel.ToRgba32(ref color);
-                        this.WritePixel(stream, currentPixel, color);
+                        this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
                         x++;
                     }
                 }

@@ -19,11 +19,11 @@ namespace SixLabors.ImageSharp.Tests;
 /// </summary>
 public static class TestUtils
 {
-    private static readonly Dictionary<Type, PixelTypes> ClrTypes2PixelTypes = new Dictionary<Type, PixelTypes>();
+    private static readonly Dictionary<Type, PixelTypes> ClrTypes2PixelTypes = new();
 
     private static readonly Assembly ImageSharpAssembly = typeof(Rgba32).GetTypeInfo().Assembly;
 
-    private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new Dictionary<PixelTypes, Type>();
+    private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new();
 
     private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
         .Except(new[] { PixelTypes.Undefined, PixelTypes.All })
@@ -52,7 +52,7 @@ public static class TestUtils
 
     public static byte[] GetRandomBytes(int length, int seed = 42)
     {
-        var rnd = new Random(42);
+        Random rnd = new(seed);
         byte[] bytes = new byte[length];
         rnd.NextBytes(bytes);
         return bytes;
@@ -60,7 +60,7 @@ public static class TestUtils
 
     internal static byte[] FillImageWithRandomBytes(Image<La16> image)
     {
-        byte[] expected = TestUtils.GetRandomBytes(image.Width * image.Height * 2);
+        byte[] expected = GetRandomBytes(image.Width * image.Height * 2);
         image.ProcessPixelRows(accessor =>
         {
             int cnt = 0;
@@ -84,9 +84,6 @@ public static class TestUtils
             return false;
         }
 
-        var rgb1 = default(Rgb24);
-        var rgb2 = default(Rgb24);
-
         Buffer2D<TPixel> pixA = a.GetRootFramePixelBuffer();
         Buffer2D<TPixel> pixB = b.GetRootFramePixelBuffer();
         for (int y = 0; y < a.Height; y++)
@@ -105,11 +102,11 @@ public static class TestUtils
                 }
                 else
                 {
-                    Rgba32 rgba = default;
-                    ca.ToRgba32(ref rgba);
-                    rgb1 = rgba.Rgb;
-                    cb.ToRgba32(ref rgba);
-                    rgb2 = rgba.Rgb;
+                    Rgba32 rgba = ca.ToRgba32();
+                    Rgb24 rgb1 = rgba.Rgb;
+
+                    rgba = cb.ToRgba32();
+                    Rgb24 rgb2 = rgba.Rgb;
 
                     if (!rgb1.Equals(rgb2))
                     {
@@ -144,7 +141,7 @@ public static class TestUtils
             return PixelTypes2ClrTypes;
         }
 
-        var result = new Dictionary<PixelTypes, Type>();
+        Dictionary<PixelTypes, Type> result = new();
         foreach (PixelTypes pt in AllConcretePixelTypes)
         {
             if (pixelTypes.HasAll(pt))
@@ -167,7 +164,7 @@ public static class TestUtils
 
     internal static Color GetColorByName(string colorName)
     {
-        var f = (FieldInfo)typeof(Color).GetMember(colorName)[0];
+        FieldInfo f = (FieldInfo)typeof(Color).GetMember(colorName)[0];
         return (Color)f.GetValue(null);
     }
 
@@ -188,7 +185,7 @@ public static class TestUtils
         int width = expected.Width;
         expected.Mutate(process);
 
-        var allocator = new TestMemoryAllocator();
+        TestMemoryAllocator allocator = new();
         provider.Configuration.MemoryAllocator = allocator;
         allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
 
@@ -301,9 +298,9 @@ public static class TestUtils
         using (Image<TPixel> image0 = provider.GetImage())
         {
             Assert.True(image0.DangerousTryGetSinglePixelMemory(out Memory<TPixel> imageMem));
-            var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
+            TestMemoryManager<TPixel> mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageMem.Span);
 
-            using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
+            using (Image<TPixel> image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
             {
                 image1.Mutate(process);
                 image1.DebugSave(
@@ -353,7 +350,7 @@ public static class TestUtils
 
         using (Image<TPixel> image = provider.GetImage())
         {
-            var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
             image.Mutate(x => process(x, bounds));
             image.DebugSave(provider, testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
             image.CompareToReferenceOutput(comparer, provider, testOutputDetails: testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
@@ -384,7 +381,7 @@ public static class TestUtils
 
         if (property is null)
         {
-            throw new Exception($"No resampler named '{name}");
+            throw new InvalidOperationException($"No resampler named '{name}");
         }
 
         return (IResampler)property.GetValue(null);

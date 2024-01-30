@@ -64,11 +64,11 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int luminanceLevels = this.LuminanceLevels;
 
         // The image is split up into tiles. For each tile the cumulative distribution function will be calculated.
-        using (var cdfData = new CdfTileData(this.Configuration, sourceWidth, sourceHeight, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
+        using (CdfTileData cdfData = new(this.Configuration, sourceWidth, sourceHeight, this.Tiles, this.Tiles, tileWidth, tileHeight, luminanceLevels))
         {
             cdfData.CalculateLookupTables(source, this);
 
-            var tileYStartPositions = new List<(int Y, int CdfY)>();
+            List<(int Y, int CdfY)> tileYStartPositions = [];
             int cdfY = 0;
             int yStart = halfTileHeight;
             for (int tile = 0; tile < tileCount - 1; tile++)
@@ -78,7 +78,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 yStart += tileHeight;
             }
 
-            var operation = new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source.PixelBuffer);
+            RowIntervalOperation operation = new(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source.PixelBuffer);
             ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
@@ -145,7 +145,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             {
                 ref TPixel pixel = ref rowSpan[dx];
                 float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
-                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
             }
         }
     }
@@ -191,7 +191,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 {
                     ref TPixel pixel = ref rowSpan[dx];
                     float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
-                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                 }
 
                 tileY++;
@@ -243,7 +243,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 {
                     ref TPixel pixel = ref rowSpan[dx];
                     float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
-                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                     tileX++;
                 }
             }
@@ -404,10 +404,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         {
             for (int index = rows.Min; index < rows.Max; index++)
             {
-                (int Y, int CdfY) tileYStartPosition = this.tileYStartPositions[index];
-                int y = tileYStartPosition.Y;
-                int cdfYY = tileYStartPosition.CdfY;
-
+                (int y, int cdfY) = this.tileYStartPositions[index];
                 int cdfX = 0;
                 int x = this.halfTileWidth;
                 for (int tile = 0; tile < this.tileCount - 1; tile++)
@@ -430,12 +427,12 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                                 tileX,
                                 tileY,
                                 cdfX,
-                                cdfYY,
+                                cdfY,
                                 this.tileWidth,
                                 this.tileHeight,
                                 this.luminanceLevels);
 
-                            pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                            pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                             tileX++;
                         }
 
@@ -494,7 +491,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             this.pixelsInTile = tileWidth * tileHeight;
 
             // Calculate the start positions and rent buffers.
-            this.tileYStartPositions = new List<(int Y, int CdfY)>();
+            this.tileYStartPositions = [];
             int cdfY = 0;
             for (int y = 0; y < sourceHeight; y += tileHeight)
             {
@@ -505,7 +502,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
 
         public void CalculateLookupTables(ImageFrame<TPixel> source, HistogramEqualizationProcessor<TPixel> processor)
         {
-            var operation = new RowIntervalOperation(
+            RowIntervalOperation operation = new(
                 processor,
                 this.memoryAllocator,
                 this.cdfMinBuffer2D,

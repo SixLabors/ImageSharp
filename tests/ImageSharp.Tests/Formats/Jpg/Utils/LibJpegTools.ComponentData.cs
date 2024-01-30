@@ -42,7 +42,7 @@ internal static partial class LibJpegTools
 
         public int QuantizationTableIndex => throw new NotSupportedException();
 
-        public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
+        public Buffer2D<Block8x8> SpectralBlocks { get; }
 
         public short MinVal { get; private set; } = short.MaxValue;
 
@@ -102,7 +102,7 @@ internal static partial class LibJpegTools
 
         public static ComponentData Load(JpegComponent c, int index)
         {
-            var result = new ComponentData(
+            ComponentData result = new(
                 c.WidthInBlocks,
                 c.HeightInBlocks,
                 index);
@@ -113,7 +113,7 @@ internal static partial class LibJpegTools
 
         public Image<Rgba32> CreateGrayScaleImage()
         {
-            var result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
+            Image<Rgba32> result = new(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
 
             for (int by = 0; by < this.HeightInBlocks; by++)
             {
@@ -136,9 +136,8 @@ internal static partial class LibJpegTools
                 {
                     float val = this.GetBlockValue(block, x, y);
 
-                    var v = new Vector4(val, val, val, 1);
-                    Rgba32 color = default;
-                    color.FromVector4(v);
+                    Vector4 v = new(val, val, val, 1);
+                    Rgba32 color = Rgba32.FromVector4(v);
 
                     int yy = (by * 8) + y;
                     int xx = (bx * 8) + x;
@@ -198,7 +197,7 @@ internal static partial class LibJpegTools
                 return false;
             }
 
-            if (object.ReferenceEquals(this, obj))
+            if (ReferenceEquals(this, obj))
             {
                 return true;
             }

@@ -33,13 +33,12 @@ public class Rgb48Tests
     public void Rgb48_FromScaledVector4()
     {
         // arrange
-        Rgb48 pixel = default;
         Rgb48 short3 = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
         Rgb48 expected = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
         // act
         Vector4 scaled = short3.ToScaledVector4();
-        pixel.FromScaledVector4(scaled);
+        Rgb48 pixel = Rgb48.FromScaledVector4(scaled);
 
         // assert
         Assert.Equal(expected, pixel);
@@ -53,8 +52,7 @@ public class Rgb48Tests
         Rgba32 expected = new(20, 38, 76, 255);
 
         // act
-        Rgba32 actual = default;
-        rgba48.ToRgba32(ref actual);
+        Rgba32 actual = rgba48.ToRgba32();
 
         // assert
         Assert.Equal(expected, actual);
@@ -64,11 +62,10 @@ public class Rgb48Tests
     public void Rgb48_FromBgra5551()
     {
         // arrange
-        Rgb48 rgb = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgb48 rgb = Rgb48.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgb.R);

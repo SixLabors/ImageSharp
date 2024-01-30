@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'WhiteIsZero' photometric interpretation (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class WhiteIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly ushort bitsPerSample0;
-
     private readonly float factor;
 
     public WhiteIsZeroTiffColor(TiffBitsPerSample bitsPerSample)
@@ -27,9 +27,7 @@ internal class WhiteIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-
-        var bitReader = new BitReader(data);
+        BitReader bitReader = new(data);
 
         for (int y = top; y < top + height; y++)
         {
@@ -37,10 +35,8 @@ internal class WhiteIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             for (int x = 0; x < pixelRow.Length; x++)
             {
                 int value = bitReader.ReadBits(this.bitsPerSample0);
-                float intensity = 1.0f - (value / this.factor);
-
-                color.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1.0f));
-                pixelRow[x] = color;
+                float intensity = 1f - (value / this.factor);
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1f));
             }
 
             bitReader.NextRow();

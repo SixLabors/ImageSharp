@@ -112,6 +112,7 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new() { 0, 4, 8, 28, 1020 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy3 = new() { 0, 3, 9, 36, 957 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new() { 0, 32, 512 };
+    public static readonly TheoryData<int> ArraySizesDivisibleBy64 = new() { 0, 64, 512 };
 
     public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
 
@@ -199,7 +200,7 @@ public partial class SimdUtilsTests
     }
 
     [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
+    [MemberData(nameof(ArraySizesDivisibleBy64))]
     public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
     {
         if (!Sse2.IsSupported)
@@ -214,7 +215,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512BW | HwIntrinsics.DisableAVX2);
     }
 
     [Theory]

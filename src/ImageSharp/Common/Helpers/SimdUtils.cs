@@ -94,35 +94,31 @@ internal static partial class SimdUtils
     }
 
     /// <summary>
-    /// Convert all <see cref="float"/> values normalized into [0..1] from 'source' into 'dest' buffer of <see cref="byte"/>.
+    /// Convert all <see cref="float"/> values normalized into [0..1] from 'source' into 'destination' buffer of <see cref="byte"/>.
     /// The values are scaled up into [0-255] and rounded, overflows are clamped.
-    /// <paramref name="source"/> should be the of the same size as <paramref name="dest"/>,
+    /// <paramref name="source"/> should be the of the same size as <paramref name="destination"/>,
     /// but there are no restrictions on the span's length.
     /// </summary>
     /// <param name="source">The source span of floats</param>
-    /// <param name="dest">The destination span of bytes</param>
+    /// <param name="destination">The destination span of bytes</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> dest)
+    internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
     {
-        DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
-
-        HwIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
-
-        // Also deals with the remainder from previous conversions:
-        FallbackIntrinsics128.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
+        DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
+        HwIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref destination);
 
         // Deal with the remainder:
         if (source.Length > 0)
         {
-            ConvertNormalizedFloatToByteRemainder(source, dest);
+            ConvertNormalizedFloatToByteRemainder(source, destination);
         }
     }
 
     [MethodImpl(InliningOptions.ColdPath)]
-    private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
+    private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref float dBase = ref MemoryMarshal.GetReference(dest);
+        ref float dBase = ref MemoryMarshal.GetReference(destination);
 
         // There are at most 3 elements at this point, having a for loop is overkill.
         // Let's minimize the no. of instructions!
@@ -140,23 +136,14 @@ internal static partial class SimdUtils
         }
     }
 
-    [MethodImpl(InliningOptions.ColdPath)]
-    private static void ConvertNormalizedFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> dest)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ConvertNormalizedFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> destination)
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
-
-        switch (source.Length)
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
+        for (int i = 0; i < source.Length; i++)
         {
-            case 3:
-                Unsafe.Add(ref dBase, 2) = ConvertToByte(Unsafe.Add(ref sBase, 2));
-                goto case 2;
-            case 2:
-                Unsafe.Add(ref dBase, 1) = ConvertToByte(Unsafe.Add(ref sBase, 1));
-                goto case 1;
-            case 1:
-                dBase = ConvertToByte(sBase);
-                break;
+            Unsafe.Add(ref dBase, i) = ConvertToByte(Unsafe.Add(ref sBase, i));
         }
     }
 
@@ -173,7 +160,7 @@ internal static partial class SimdUtils
     }
 
     [Conditional("DEBUG")]
-    private static void VerifySpanInput(ReadOnlySpan<byte> source, Span<float> dest, int shouldBeDivisibleBy)
+    private static void DebugVerifySpanInput(ReadOnlySpan<byte> source, Span<float> dest, int shouldBeDivisibleBy)
     {
         DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
         DebugGuard.IsTrue(
@@ -183,11 +170,11 @@ internal static partial class SimdUtils
     }
 
     [Conditional("DEBUG")]
-    private static void VerifySpanInput(ReadOnlySpan<float> source, Span<byte> dest, int shouldBeDivisibleBy)
+    private static void DebugVerifySpanInput(ReadOnlySpan<float> source, Span<byte> destination, int shouldBeDivisibleBy)
     {
-        DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+        DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
         DebugGuard.IsTrue(
-            Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+            Numerics.ModuloP2(destination.Length, shouldBeDivisibleBy) == 0,
             nameof(source),
             $"length should be divisible by {shouldBeDivisibleBy}!");
     }

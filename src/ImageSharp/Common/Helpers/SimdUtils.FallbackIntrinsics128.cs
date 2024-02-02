@@ -69,7 +69,7 @@ internal static partial class SimdUtils
         [MethodImpl(InliningOptions.ColdPath)]
         internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
-            VerifySpanInput(source, dest, 4);
+            DebugVerifySpanInput(source, dest, 4);
 
             uint count = (uint)dest.Length / 4;
             if (count == 0)
@@ -103,7 +103,7 @@ internal static partial class SimdUtils
             ReadOnlySpan<float> source,
             Span<byte> dest)
         {
-            VerifySpanInput(source, dest, 4);
+            DebugVerifySpanInput(source, dest, 4);
 
             uint count = (uint)source.Length / 4;
             if (count == 0)

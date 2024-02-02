@@ -95,7 +95,7 @@ internal static partial class SimdUtils
         /// </summary>
         internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
-            VerifySpanInput(source, dest, Vector<byte>.Count);
+            DebugVerifySpanInput(source, dest, Vector<byte>.Count);
 
             nuint n = dest.VectorCount<byte>();
 
@@ -130,7 +130,7 @@ internal static partial class SimdUtils
             ReadOnlySpan<float> source,
             Span<byte> dest)
         {
-            VerifySpanInput(source, dest, Vector<byte>.Count);
+            DebugVerifySpanInput(source, dest, Vector<byte>.Count);
 
             nuint n = dest.VectorCount<byte>();
 

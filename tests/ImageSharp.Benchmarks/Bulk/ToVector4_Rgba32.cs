@@ -31,15 +31,6 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
             this.destination.GetSpan());
 
     [Benchmark]
-    public void ExtendedIntrinsics()
-    {
-        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
-
-        SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
-    }
-
-    [Benchmark]
     public void HwIntrinsics()
     {
         Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());

@@ -65,24 +65,6 @@ public abstract class FromVector4<TPixel>
 public class FromVector4Rgba32 : FromVector4<Rgba32>
 {
     [Benchmark]
-    public void FallbackIntrinsics128()
-    {
-        Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.Source.GetSpan());
-        Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.Destination.GetSpan());
-
-        SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(sBytes, dFloats);
-    }
-
-    [Benchmark]
-    public void ExtendedIntrinsic()
-    {
-        Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.Source.GetSpan());
-        Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.Destination.GetSpan());
-
-        SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
-    }
-
-    [Benchmark]
     public void UseHwIntrinsics()
     {
         Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.Source.GetSpan());

@@ -40,30 +40,6 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
-        /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void NormalizedFloatToByteSaturateReduce(
-            ref ReadOnlySpan<float> source,
-            ref Span<byte> dest)
-        {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
-
-            int remainder = Numerics.Modulo4(source.Length);
-            int adjustedCount = source.Length - remainder;
-
-            if (adjustedCount > 0)
-            {
-                NormalizedFloatToByteSaturate(
-                    source[..adjustedCount],
-                    dest[..adjustedCount]);
-
-                source = source[adjustedCount..];
-                dest = dest[adjustedCount..];
-            }
-        }
-
-        /// <summary>
         /// Implementation of <see cref="SimdUtils.ByteToNormalizedFloat"/> using <see cref="Vector4"/>.
         /// </summary>
         [MethodImpl(InliningOptions.ColdPath)]
@@ -92,43 +68,6 @@ internal static partial class SimdUtils
                 d.W = s.W;
                 d *= scale;
                 Unsafe.Add(ref dBase, i) = d;
-            }
-        }
-
-        /// <summary>
-        /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/> using <see cref="Vector4"/>.
-        /// </summary>
-        [MethodImpl(InliningOptions.ColdPath)]
-        internal static void NormalizedFloatToByteSaturate(
-            ReadOnlySpan<float> source,
-            Span<byte> dest)
-        {
-            DebugVerifySpanInput(source, dest, 4);
-
-            uint count = (uint)source.Length / 4;
-            if (count == 0)
-            {
-                return;
-            }
-
-            ref Vector4 sBase = ref Unsafe.As<float, Vector4>(ref MemoryMarshal.GetReference(source));
-            ref ByteVector4 dBase = ref Unsafe.As<byte, ByteVector4>(ref MemoryMarshal.GetReference(dest));
-
-            var half = new Vector4(0.5f);
-            var maxBytes = new Vector4(255f);
-
-            for (nuint i = 0; i < count; i++)
-            {
-                Vector4 s = Unsafe.Add(ref sBase, i);
-                s *= maxBytes;
-                s += half;
-                s = Numerics.Clamp(s, Vector4.Zero, maxBytes);
-
-                ref ByteVector4 d = ref Unsafe.Add(ref dBase, i);
-                d.X = (byte)s.X;
-                d.Y = (byte)s.Y;
-                d.Z = (byte)s.Z;
-                d.W = (byte)s.W;
             }
         }
 

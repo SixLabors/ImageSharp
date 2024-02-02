@@ -124,12 +124,6 @@ public partial class SimdUtilsTests
 
     [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy32))]
-    public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count) => TestImpl_BulkConvertByteToNormalizedFloat(
-            count,
-            (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
     public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
     {
         if (!Sse2.IsSupported)
@@ -165,18 +159,6 @@ public partial class SimdUtilsTests
 
         Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
     }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy4))]
-    public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count) => TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-            count,
-            (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
-    public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count) => TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-            count,
-            (s, d) => SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
 
     [Theory]
     [InlineData(1234)]

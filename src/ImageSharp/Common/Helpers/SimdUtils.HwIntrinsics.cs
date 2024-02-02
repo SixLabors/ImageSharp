@@ -896,7 +896,9 @@ internal static partial class SimdUtils
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if (Avx512BW.IsSupported || Avx2.IsSupported || Sse2.IsSupported || AdvSimd.IsSupported)
+            if ((Vector512.IsHardwareAccelerated && Avx512BW.IsSupported) ||
+                (Vector256.IsHardwareAccelerated && Avx2.IsSupported) ||
+                (Vector128.IsHardwareAccelerated && (Sse2.IsSupported || AdvSimd.IsSupported)))
             {
                 int remainder;
 

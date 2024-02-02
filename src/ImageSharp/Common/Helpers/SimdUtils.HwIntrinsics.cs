@@ -49,10 +49,7 @@ internal static partial class SimdUtils
                   0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> PermuteMaskShiftAlpha8x32()
-            => Vector256.Create(
-                0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0,
-                5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
+        public static Vector256<uint> PermuteMaskShiftAlpha8x32() => Vector256.Create(0u, 1, 2, 4, 5, 6, 3, 7);
 #pragma warning restore SA1137 // Elements should have the same indentation
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 

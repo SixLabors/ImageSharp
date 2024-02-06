@@ -529,7 +529,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         stream.Read(temp);
         string comment = Encoding.ASCII.GetString(temp);
 
-        metadata.Comments.Add(comment);
+        metadata.Comments.Add(JpegComData.FromString(comment));
     }
 
     /// <summary>

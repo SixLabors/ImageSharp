@@ -64,7 +64,7 @@ public class JpegMetadataTests
     {
         var meta = new JpegMetadata();
 
-        Assert.True(Array.Empty<string>().SequenceEqual(meta.Comments));
+        Assert.True(Array.Empty<JpegComData>().SequenceEqual(meta.Comments));
     }
 
     [Fact]
@@ -74,9 +74,9 @@ public class JpegMetadataTests
         var expectedCollection = new Collection<string> { comment };
 
         var meta = new JpegMetadata();
-        meta.Comments.Add(comment);
+        meta.Comments.Add(JpegComData.FromString(comment));
 
         Assert.Equal(1, meta.Comments.Count);
-        Assert.True(expectedCollection.FirstOrDefault() == meta.Comments.FirstOrDefault());
+        Assert.True(expectedCollection.FirstOrDefault() == meta.Comments.FirstOrDefault().ToString());
     }
 }

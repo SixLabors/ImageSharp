@@ -186,12 +186,12 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         for (int i = 0; i < metadata.Comments.Count; i++)
         {
-            string comment = metadata.Comments[i];
+            string comment = metadata.Comments[i].ToString();
 
             if (comment.Length > maxCommentLength)
             {
                 string splitComment = comment.Substring(maxCommentLength, comment.Length - maxCommentLength);
-                metadata.Comments.Insert(i + 1, splitComment);
+                metadata.Comments.Insert(i + 1, JpegComData.FromString(splitComment));
 
                 // We don't want to keep the extra bytes
                 comment = comment.Substring(0, maxCommentLength);

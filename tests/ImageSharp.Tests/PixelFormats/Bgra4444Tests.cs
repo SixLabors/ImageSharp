@@ -67,10 +67,10 @@ public class Bgra4444Tests
     public void Bgra4444_ToScaledVector4()
     {
         // arrange
-        Bgra4444 bgra = new(Vector4.One);
+        Bgra4444 pixel = new(Vector4.One);
 
         // act
-        Vector4 actual = bgra.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(1, actual.X);
@@ -83,12 +83,11 @@ public class Bgra4444Tests
     public void Bgra4444_ToRgba32()
     {
         // arrange
-        Bgra4444 bgra = new(Vector4.One);
+        Bgra4444 pixel = new(Vector4.One);
         Rgba32 expected = new(Vector4.One);
-        Rgba32 actual = default;
 
         // act
-        bgra.ToRgba32(ref actual);
+        Rgba32 actual = pixel.ToRgba32();
 
         Assert.Equal(expected, actual);
     }
@@ -98,12 +97,11 @@ public class Bgra4444Tests
     {
         // arrange
         Vector4 scaled = new Bgra4444(Vector4.One).ToScaledVector4();
-        int expected = 0xFFFF;
-        Bgra4444 bgra = default;
+        const int expected = 0xFFFF;
 
         // act
-        bgra.FromScaledVector4(scaled);
-        ushort actual = bgra.PackedValue;
+        Bgra4444 pixel = Bgra4444.FromScaledVector4(scaled);
+        ushort actual = pixel.PackedValue;
 
         // assert
         Assert.Equal(expected, actual);
@@ -113,42 +111,38 @@ public class Bgra4444Tests
     public void Bgra4444_FromBgra5551()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        bgra.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgra4444 pixel = Bgra4444.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
-        Assert.Equal(expected, bgra.PackedValue);
+        Assert.Equal(expected, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromArgb32()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromArgb32(new Argb32(255, 255, 255, 255));
+        Bgra4444 pixel = Bgra4444.FromArgb32(new Argb32(255, 255, 255, 255));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromRgba32()
     {
         // arrange
-        Bgra4444 bgra1 = default;
-        Bgra4444 bgra2 = default;
-        ushort expectedPackedValue1 = ushort.MaxValue;
-        ushort expectedPackedValue2 = 0xFF0F;
+        const ushort expectedPackedValue1 = ushort.MaxValue;
+        const ushort expectedPackedValue2 = 0xFF0F;
 
         // act
-        bgra1.FromRgba32(new Rgba32(255, 255, 255, 255));
-        bgra2.FromRgba32(new Rgba32(255, 0, 255, 255));
+        Bgra4444 bgra1 = Bgra4444.FromRgba32(new Rgba32(255, 255, 255, 255));
+        Bgra4444 bgra2 = Bgra4444.FromRgba32(new Rgba32(255, 0, 255, 255));
 
         // assert
         Assert.Equal(expectedPackedValue1, bgra1.PackedValue);
@@ -159,84 +153,78 @@ public class Bgra4444Tests
     public void Bgra4444_FromRgb48()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromRgba64()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromGrey16()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromL16(new L16(ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromL16(new L16(ushort.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromGrey8()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromL8(new L8(byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromL8(new L8(byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromBgr24()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]
     public void Bgra4444_FromRgb24()
     {
         // arrange
-        Bgra4444 bgra = default;
-        ushort expectedPackedValue = ushort.MaxValue;
+        const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        bgra.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
-        Assert.Equal(expectedPackedValue, bgra.PackedValue);
+        Assert.Equal(expectedPackedValue, pixel.PackedValue);
     }
 
     [Fact]

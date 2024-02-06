@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
@@ -15,19 +16,19 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
     /// </summary>
     private class TestPatternProvider : BlankProvider
     {
-        private static readonly Dictionary<string, Image<TPixel>> TestImages = new Dictionary<string, Image<TPixel>>();
+        private static readonly Dictionary<string, Image<TPixel>> TestImages = [];
 
         private static readonly TPixel[] BlackWhitePixels =
-        {
-                                                                 Color.Black.ToPixel<TPixel>(),
-                                                                 Color.White.ToPixel<TPixel>()
-        };
+        [
+            Color.Black.ToPixel<TPixel>(),
+            Color.White.ToPixel<TPixel>()
+        ];
 
         private static readonly TPixel[] PinkBluePixels =
-        {
-                                                               Color.HotPink.ToPixel<TPixel>(),
-                                                               Color.Blue.ToPixel<TPixel>()
-        };
+        [
+            Color.HotPink.ToPixel<TPixel>(),
+            Color.Blue.ToPixel<TPixel>()
+        ];
 
         public TestPatternProvider(int width, int height)
             : base(width, height)
@@ -47,14 +48,15 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         {
             lock (TestImages)
             {
-                if (!TestImages.ContainsKey(this.SourceFileOrDescription))
+                if (!TestImages.TryGetValue(this.SourceFileOrDescription, out Image<TPixel> value))
                 {
-                    var image = new Image<TPixel>(this.Width, this.Height);
+                    Image<TPixel> image = new(this.Width, this.Height);
                     DrawTestPattern(image);
-                    TestImages.Add(this.SourceFileOrDescription, image);
+                    value = image;
+                    TestImages.Add(this.SourceFileOrDescription, value);
                 }
 
-                return TestImages[this.SourceFileOrDescription].Clone(this.Configuration);
+                return value.Clone(this.Configuration);
             }
         }
 
@@ -75,12 +77,13 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         /// <summary>
         /// Fills the top right quadrant with alternating solid vertical bars.
         /// </summary>
+        /// <param name="pixels">The pixel buffer.</param>
         private static void VerticalBars(Buffer2D<TPixel> pixels)
         {
             // topLeft
             int left = pixels.Width / 2;
             int right = pixels.Width;
-            int top = 0;
+            const int top = 0;
             int bottom = pixels.Height / 2;
             int stride = pixels.Width / 12;
             if (stride < 1)
@@ -96,7 +99,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                     if (x % stride == 0)
                     {
                         p++;
-                        p = p % PinkBluePixels.Length;
+                        p %= PinkBluePixels.Length;
                     }
 
                     pixels[x, y] = PinkBluePixels[p];
@@ -107,12 +110,13 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         /// <summary>
         /// fills the top left quadrant with a black and white checker board.
         /// </summary>
+        /// <param name="pixels">The pixel buffer.</param>
         private static void BlackWhiteChecker(Buffer2D<TPixel> pixels)
         {
             // topLeft
-            int left = 0;
+            const int left = 0;
             int right = pixels.Width / 2;
-            int top = 0;
+            const int top = 0;
             int bottom = pixels.Height / 2;
             int stride = pixels.Width / 6;
 
@@ -122,63 +126,62 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 if (y % stride is 0)
                 {
                     p++;
-                    p = p % BlackWhitePixels.Length;
+                    p %= BlackWhitePixels.Length;
                 }
 
-                int pstart = p;
+                int pStart = p;
                 for (int x = left; x < right; x++)
                 {
                     if (x % stride is 0)
                     {
                         p++;
-                        p = p % BlackWhitePixels.Length;
+                        p %= BlackWhitePixels.Length;
                     }
 
                     pixels[x, y] = BlackWhitePixels[p];
                 }
 
-                p = pstart;
+                p = pStart;
             }
         }
 
         /// <summary>
         /// Fills the bottom left quadrant with 3 horizontal bars in Red, Green and Blue with a alpha gradient from left (transparent) to right (solid).
         /// </summary>
+        /// <param name="pixels">The pixel buffer</param>
         private static void TransparentGradients(Buffer2D<TPixel> pixels)
         {
             // topLeft
-            int left = 0;
+            const int left = 0;
             int right = pixels.Width / 2;
             int top = pixels.Height / 2;
             int bottom = pixels.Height;
             int height = (int)Math.Ceiling(pixels.Height / 6f);
 
-            var red = Color.Red.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
-            var green = Color.Green.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
-            var blue = Color.Blue.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
-
-            var c = default(TPixel);
+            Vector4 red = Color.Red.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
+            Vector4 green = Color.Green.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
+            Vector4 blue = Color.Blue.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
 
             for (int x = left; x < right; x++)
             {
-                blue.W = red.W = green.W = (float)x / (float)right;
+                blue.W = red.W = green.W = x / (float)right;
 
-                c.FromVector4(red);
+                TPixel c = TPixel.FromVector4(red);
                 int topBand = top;
                 for (int y = topBand; y < top + height; y++)
                 {
                     pixels[x, y] = c;
                 }
 
-                topBand = topBand + height;
-                c.FromVector4(green);
+                topBand += height;
+                c = TPixel.FromVector4(green);
                 for (int y = topBand; y < topBand + height; y++)
                 {
                     pixels[x, y] = c;
                 }
 
-                topBand = topBand + height;
-                c.FromVector4(blue);
+                topBand += height;
+                c = TPixel.FromVector4(blue);
                 for (int y = topBand; y < bottom; y++)
                 {
                     pixels[x, y] = c;
@@ -190,6 +193,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         /// Fills the bottom right quadrant with all the colors producible by converting iterating over a uint and unpacking it.
         /// A better algorithm could be used but it works
         /// </summary>
+        /// <param name="pixels">The pixel buffer.</param>
         private static void Rainbow(Buffer2D<TPixel> pixels)
         {
             int left = pixels.Width / 2;
@@ -199,19 +203,14 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
             int pixelCount = left * top;
             uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
-            TPixel c = default;
-            var t = new Rgba32(0);
+            Rgba32 t = default;
 
             for (int x = left; x < right; x++)
             {
                 for (int y = top; y < bottom; y++)
                 {
                     t.PackedValue += stepsPerPixel;
-                    var v = t.ToVector4();
-
-                    // v.W = (x - left) / (float)left;
-                    c.FromVector4(v);
-                    pixels[x, y] = c;
+                    pixels[x, y] = TPixel.FromRgba32(t);
                 }
             }
         }

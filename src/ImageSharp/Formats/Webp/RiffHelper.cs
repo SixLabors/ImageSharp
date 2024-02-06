@@ -4,7 +4,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace SixLabors.ImageSharp.Common.Helpers;
+namespace SixLabors.ImageSharp.Formats.Webp;
 
 internal static class RiffHelper
 {

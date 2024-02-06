@@ -48,11 +48,10 @@ public class HalfVector2Tests
     {
         // arrange
         Vector4 scaled = new HalfVector2(Vector2.One).ToScaledVector4();
-        uint expected = 1006648320u;
-        HalfVector2 halfVector = default;
+        const uint expected = 1006648320u;
 
         // act
-        halfVector.FromScaledVector4(scaled);
+        HalfVector2 halfVector = HalfVector2.FromScaledVector4(scaled);
         uint actual = halfVector.PackedValue;
 
         // assert
@@ -76,14 +75,11 @@ public class HalfVector2Tests
     [Fact]
     public void HalfVector2_FromBgra5551()
     {
-        // arrange
-        HalfVector2 halfVector2 = default;
-
         // act
-        halfVector2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        HalfVector2 pixel = HalfVector2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
-        Vector4 actual = halfVector2.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
         Assert.Equal(1F, actual.X);
         Assert.Equal(1F, actual.Y);
         Assert.Equal(0, actual.Z);

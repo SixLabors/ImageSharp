@@ -64,19 +64,19 @@ public class JpegMetadataTests
     {
         var meta = new JpegMetadata();
 
-        Assert.True(Array.Empty<Memory<char>>().SequenceEqual(meta.Comments));
+        Assert.True(Array.Empty<string>().SequenceEqual(meta.Comments));
     }
 
     [Fact]
     public void Comment_OnlyComment()
     {
         string comment = "test comment";
-        var expectedCollection = new Collection<Memory<char>> { new(comment.ToCharArray()) };
+        var expectedCollection = new Collection<string> { comment };
 
         var meta = new JpegMetadata();
-        meta.Comments?.Add(comment.ToCharArray());
+        meta.Comments.Add(comment);
 
-        Assert.Equal(1, meta.Comments?.Count);
-        Assert.True(expectedCollection.FirstOrDefault().ToString() == meta.Comments?.FirstOrDefault().ToString());
+        Assert.Equal(1, meta.Comments.Count);
+        Assert.True(expectedCollection.FirstOrDefault() == meta.Comments.FirstOrDefault());
     }
 }

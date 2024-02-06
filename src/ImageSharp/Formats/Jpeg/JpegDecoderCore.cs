@@ -524,13 +524,12 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     private void ProcessComMarker(BufferedReadStream stream, int markerContentByteSize)
     {
         Span<byte> temp = new byte[markerContentByteSize];
-        char[] chars = new char[markerContentByteSize];
         JpegMetadata metadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
 
         stream.Read(temp);
-        Encoding.ASCII.GetChars(temp, chars);
+        string comment = Encoding.ASCII.GetString(temp);
 
-        metadata.Comments.Add(chars);
+        metadata.Comments.Add(comment);
     }
 
     /// <summary>

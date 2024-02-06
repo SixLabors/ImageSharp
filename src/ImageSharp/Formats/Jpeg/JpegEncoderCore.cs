@@ -186,23 +186,23 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         for (int i = 0; i < metadata.Comments.Count; i++)
         {
-            Memory<char> chars = metadata.Comments[i];
+            string comment = metadata.Comments[i];
 
-            if (chars.Length > maxCommentLength)
+            if (comment.Length > maxCommentLength)
             {
-                Memory<char> splitComment = chars.Slice(maxCommentLength, chars.Length - maxCommentLength);
+                string splitComment = comment.Substring(maxCommentLength, comment.Length - maxCommentLength);
                 metadata.Comments.Insert(i + 1, splitComment);
 
                 // We don't want to keep the extra bytes
-                chars = chars.Slice(0, maxCommentLength);
+                comment = comment.Substring(0, maxCommentLength);
             }
 
-            int commentLength = chars.Length + 4;
+            int commentLength = comment.Length + 4;
 
-            Span<byte> comment = new byte[commentLength];
-            Span<byte> markers = comment.Slice(0, 2);
-            Span<byte> payloadSize = comment.Slice(2, 2);
-            Span<byte> payload = comment.Slice(4, chars.Length);
+            Span<byte> commentSpan = new byte[commentLength];
+            Span<byte> markers = commentSpan.Slice(0, 2);
+            Span<byte> payloadSize = commentSpan.Slice(2, 2);
+            Span<byte> payload = commentSpan.Slice(4, comment.Length);
 
             // Beginning of comment ff fe
             markers[0] = JpegConstants.Markers.XFF;
@@ -213,9 +213,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             payloadSize[0] = (byte)((comWithoutMarker >> 8) & 0xFF);
             payloadSize[1] = (byte)(comWithoutMarker & 0xFF);
 
-            Encoding.ASCII.GetBytes(chars.Span, payload);
+            Encoding.ASCII.GetBytes(comment, payload);
 
-            this.outputStream.Write(comment, 0, comment.Length);
+            this.outputStream.Write(commentSpan, 0, commentSpan.Length);
         }
     }
 

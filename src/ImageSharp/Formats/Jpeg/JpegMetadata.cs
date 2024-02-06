@@ -15,7 +15,7 @@ public class JpegMetadata : IDeepCloneable
     /// </summary>
     public JpegMetadata()
     {
-        this.Comments = new List<Memory<char>>();
+        this.Comments = new List<string>();
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public class JpegMetadata : IDeepCloneable
     /// <summary>
     /// Gets the comments.
     /// </summary>
-    public IList<Memory<char>> Comments { get; }
+    public IList<string> Comments { get; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new JpegMetadata(this);

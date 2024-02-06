@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -117,16 +118,10 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
 
     [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy4))]
-    public void FallbackIntrinsics128_BulkConvertByteToNormalizedFloat(int count) => TestImpl_BulkConvertByteToNormalizedFloat(
-            count,
-            (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
+    [MemberData(nameof(ArraySizesDivisibleBy64))]
     public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
     {
-        if (!Sse2.IsSupported)
+        if (!Sse2.IsSupported && !AdvSimd.IsSupported)
         {
             return;
         }
@@ -138,7 +133,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
     }
 
     [Theory]
@@ -161,31 +156,10 @@ public partial class SimdUtilsTests
     }
 
     [Theory]
-    [InlineData(1234)]
-    public void ExtendedIntrinsics_ConvertToSingle(short scale)
-    {
-        int n = Vector<float>.Count;
-        short[] sData = new Random(scale).GenerateRandomInt16Array(2 * n, (short)-scale, scale);
-        float[] fData = sData.Select(u => (float)u).ToArray();
-
-        Vector<short> source = new(sData);
-
-        Vector<float> expected1 = new(fData, 0);
-        Vector<float> expected2 = new(fData, n);
-
-        // Act:
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(source, out Vector<float> actual1, out Vector<float> actual2);
-
-        // Assert:
-        Assert.Equal(expected1, actual1);
-        Assert.Equal(expected2, actual2);
-    }
-
-    [Theory]
     [MemberData(nameof(ArraySizesDivisibleBy64))]
     public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
     {
-        if (!Sse2.IsSupported)
+        if (!Sse2.IsSupported && !AdvSimd.IsSupported)
         {
             return;
         }

@@ -26,7 +26,7 @@ internal static class Vector128Utilities
     public static bool SupportsShuffleFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Sse.IsSupported || AdvSimd.IsSupported;
+        get => Sse.IsSupported;
     }
 
     /// <summary>
@@ -68,17 +68,6 @@ internal static class Vector128Utilities
         if (Sse.IsSupported)
         {
             return Sse.Shuffle(vector, vector, control);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-#pragma warning disable CA1857 // A constant is expected for the parameter
-            Vector128<float> result = Vector128.Create(AdvSimd.Extract(vector, (byte)(control & 0x3)));
-            result = AdvSimd.Insert(result, 1, AdvSimd.Extract(vector, (byte)((control >> 2) & 0x3)));
-            result = AdvSimd.Insert(result, 2, AdvSimd.Extract(vector, (byte)((control >> 4) & 0x3)));
-            result = AdvSimd.Insert(result, 3, AdvSimd.Extract(vector, (byte)((control >> 6) & 0x3)));
-#pragma warning restore CA1857 // A constant is expected for the parameter
-            return result;
         }
 
         ThrowUnreachableException();

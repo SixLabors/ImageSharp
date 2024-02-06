@@ -15,26 +15,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 public class ToVector4_Rgba32 : ToVector4<Rgba32>
 {
     [Benchmark]
-    public void FallbackIntrinsics128()
-    {
-        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
-
-        SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(sBytes, dFloats);
-    }
-
-    [Benchmark]
     public void PixelOperations_Base()
         => new PixelOperations<Rgba32>().ToVector4(
             this.Configuration,
-            this.source.GetSpan(),
-            this.destination.GetSpan());
+            this.Source.GetSpan(),
+            this.Destination.GetSpan());
 
     [Benchmark]
     public void HwIntrinsics()
     {
-        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.Source.GetSpan());
+        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.Destination.GetSpan());
 
         SimdUtils.HwIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
     }
@@ -42,8 +33,8 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
     // [Benchmark]
     public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()
     {
-        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.Source.GetSpan());
+        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.Destination.GetSpan());
 
         nuint n = (uint)dFloats.Length / (uint)Vector<byte>.Count;
 
@@ -67,14 +58,14 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
         }
 
         n = (uint)(dFloats.Length / Vector<float>.Count);
-        var scale = new Vector<float>(1f / 255f);
+        Vector<float> scale = new(1f / 255f);
 
         for (nuint i = 0; i < n; i++)
         {
             ref Vector<float> dRef = ref Unsafe.Add(ref destBase, i);
 
-            var du = Vector.AsVectorInt32(dRef);
-            var v = Vector.ConvertToSingle(du);
+            Vector<int> du = Vector.AsVectorInt32(dRef);
+            Vector<float> v = Vector.ConvertToSingle(du);
             v *= scale;
 
             dRef = v;
@@ -84,14 +75,14 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
     // [Benchmark]
     public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_ConvertInSameLoop()
     {
-        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
-        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+        Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.Source.GetSpan());
+        Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.Destination.GetSpan());
 
         nuint n = (uint)dFloats.Length / (uint)Vector<byte>.Count;
 
         ref Vector<byte> sourceBase = ref Unsafe.As<byte, Vector<byte>>(ref MemoryMarshal.GetReference((ReadOnlySpan<byte>)sBytes));
         ref Vector<float> destBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(dFloats));
-        var scale = new Vector<float>(1f / 255f);
+        Vector<float> scale = new(1f / 255f);
 
         for (nuint i = 0; i < n; i++)
         {
@@ -117,8 +108,8 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector<float> ConvertToNormalizedSingle(Vector<uint> u, Vector<float> scale)
     {
-        var vi = Vector.AsVectorInt32(u);
-        var v = Vector.ConvertToSingle(vi);
+        Vector<int> vi = Vector.AsVectorInt32(u);
+        Vector<float> v = Vector.ConvertToSingle(vi);
         v *= scale;
         return v;
     }
@@ -151,4 +142,30 @@ public class ToVector4_Rgba32 : ToVector4<Rgba32>
             PixelOperations_Base |    Core |  2048 | 6,752.68 ns |   272.820 ns |  15.4148 ns |   1.67 |     0.02 |      - |      24 B |
      PixelOperations_Specialized |    Core |  2048 | 1,126.13 ns |    79.192 ns |   4.4745 ns |!! 0.28 |     0.00 |      - |       0 B | <--- ExtendedIntrinsics rock!
      */
+
+    /*
+    BenchmarkDotNet v0.13.10, Windows 11 (10.0.22631.3085/23H2/2023Update/SunValley3)
+    11th Gen Intel Core i7-11370H 3.30GHz, 1 CPU, 8 logical and 4 physical cores
+    .NET SDK 8.0.200-preview.23624.5
+      [Host]     : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+      Job-DFEQJT : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+
+    Runtime=.NET 8.0  Arguments=/p:DebugType=portable  IterationCount=3
+    LaunchCount=1  WarmupCount=3
+
+    | Method                      | Count | Mean        | Error      | StdDev    | Allocated |
+    |---------------------------- |------ |------------:|-----------:|----------:|----------:|
+    | FallbackIntrinsics128       | 64    |   139.66 ns |  27.429 ns |  1.503 ns |         - |
+    | PixelOperations_Base        | 64    |   124.65 ns |  29.653 ns |  1.625 ns |         - |
+    | HwIntrinsics                | 64    |    18.16 ns |   4.731 ns |  0.259 ns |         - |
+    | PixelOperations_Specialized | 64    |    27.94 ns |  15.220 ns |  0.834 ns |         - |
+    | FallbackIntrinsics128       | 256   |   525.07 ns |  34.397 ns |  1.885 ns |         - |
+    | PixelOperations_Base        | 256   |   464.17 ns |  46.897 ns |  2.571 ns |         - |
+    | HwIntrinsics                | 256   |    43.88 ns |   4.525 ns |  0.248 ns |         - |
+    | PixelOperations_Specialized | 256   |    55.57 ns |  14.587 ns |  0.800 ns |         - |
+    | FallbackIntrinsics128       | 2048  | 4,148.44 ns | 476.583 ns | 26.123 ns |         - |
+    | PixelOperations_Base        | 2048  | 3,608.42 ns |  66.293 ns |  3.634 ns |         - |
+    | HwIntrinsics                | 2048  |   361.42 ns |  35.576 ns |  1.950 ns |         - |
+    | PixelOperations_Specialized | 2048  |   374.82 ns |  33.371 ns |  1.829 ns |         - |
+    */
 }

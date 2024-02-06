@@ -752,17 +752,23 @@ internal static partial class SimdUtils
         /// <summary>
         /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void ByteToNormalizedFloatReduce(
             ref ReadOnlySpan<byte> source,
-            ref Span<float> dest)
+            ref Span<float> destination)
         {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
             if (Avx2.IsSupported || Sse2.IsSupported)
             {
                 int remainder;
-                if (Avx2.IsSupported)
+                if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
+                }
+                else if (Avx2.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
                 }
@@ -775,10 +781,10 @@ internal static partial class SimdUtils
 
                 if (adjustedCount > 0)
                 {
-                    ByteToNormalizedFloat(source[..adjustedCount], dest[..adjustedCount]);
+                    ByteToNormalizedFloat(source[..adjustedCount], destination[..adjustedCount]);
 
                     source = source[adjustedCount..];
-                    dest = dest[adjustedCount..];
+                    destination = destination[adjustedCount..];
                 }
             }
         }
@@ -786,97 +792,127 @@ internal static partial class SimdUtils
         /// <summary>
         /// Implementation <see cref="SimdUtils.ByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         /// <remarks>
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L80-L182
         /// </remarks>
         internal static unsafe void ByteToNormalizedFloat(
             ReadOnlySpan<byte> source,
-            Span<float> dest)
+            Span<float> destination)
         {
-            fixed (byte* sourceBase = source)
+            if (Avx512F.IsSupported)
             {
-                if (Avx2.IsSupported)
+                DebugVerifySpanInput(source, destination, Vector512<byte>.Count);
+
+                nuint n = destination.Vector512Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector512<float> destinationBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+
+                for (nuint i = 0; i < n; i++)
                 {
-                    DebugVerifySpanInput(source, dest, Vector256<byte>.Count);
+                    nuint si = (uint)Vector512<byte>.Count * i;
+                    Vector512<int> i0 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si));
+                    Vector512<int> i1 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)Vector512<int>.Count));
+                    Vector512<int> i2 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector512<int>.Count * 2)));
+                    Vector512<int> i3 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector512<int>.Count * 3)));
 
-                    nuint n = dest.Vector256Count<byte>();
+                    // Declare multiplier on each line. Codegen is better.
+                    Vector512<float> f0 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i0);
+                    Vector512<float> f1 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i1);
+                    Vector512<float> f2 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i2);
+                    Vector512<float> f3 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i3);
 
-                    ref Vector256<float> destBase =
-                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
+                    ref Vector512<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    Vector256<float> scale = Vector256.Create(1 / (float)byte.MaxValue);
-
-                    for (nuint i = 0; i < n; i++)
-                    {
-                        nuint si = (uint)Vector256<byte>.Count * i;
-                        Vector256<int> i0 = Avx2.ConvertToVector256Int32(sourceBase + si);
-                        Vector256<int> i1 = Avx2.ConvertToVector256Int32(sourceBase + si + Vector256<int>.Count);
-                        Vector256<int> i2 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 2));
-                        Vector256<int> i3 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 3));
-
-                        Vector256<float> f0 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i0));
-                        Vector256<float> f1 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i1));
-                        Vector256<float> f2 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i2));
-                        Vector256<float> f3 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i3));
-
-                        ref Vector256<float> d = ref Unsafe.Add(ref destBase, i * 4);
-
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
-                    }
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
                 }
-                else
+            }
+            else if (Avx2.IsSupported)
+            {
+                DebugVerifySpanInput(source, destination, Vector256<byte>.Count);
+
+                nuint n = destination.Vector256Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector256<float> destinationBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
+
+                for (nuint i = 0; i < n; i++)
                 {
-                    // Sse
-                    DebugVerifySpanInput(source, dest, Vector128<byte>.Count);
+                    nuint si = (uint)Vector256<byte>.Count * i;
+                    Vector256<int> i0 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si));
+                    Vector256<int> i1 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)Vector256<int>.Count));
+                    Vector256<int> i2 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector256<int>.Count * 2)));
 
-                    nuint n = dest.Vector128Count<byte>();
+                    // Ensure overreads past 16 byte boundary do not happen in debug due to lack of containment.
+                    ref ulong refULong = ref Unsafe.As<byte, ulong>(ref Unsafe.Add(ref sourceBase, si));
+                    Vector256<int> i3 = Avx2.ConvertToVector256Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refULong, 3)).AsByte());
 
-                    ref Vector128<float> destBase =
-                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+                    // Declare multiplier on each line. Codegen is better.
+                    Vector256<float> f0 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i0);
+                    Vector256<float> f1 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i1);
+                    Vector256<float> f2 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i2);
+                    Vector256<float> f3 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i3);
 
-                    Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
-                    Vector128<byte> zero = Vector128<byte>.Zero;
+                    ref Vector256<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    for (nuint i = 0; i < n; i++)
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
+                }
+            }
+            else if (Sse2.IsSupported || AdvSimd.IsSupported)
+            {
+                DebugVerifySpanInput(source, destination, Vector128<byte>.Count);
+
+                nuint n = destination.Vector128Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));
+
+                Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
+                Vector128<byte> zero = Vector128<byte>.Zero;
+
+                for (nuint i = 0; i < n; i++)
+                {
+                    nuint si = (uint)Vector128<byte>.Count * i;
+
+                    Vector128<int> i0, i1, i2, i3;
+                    if (Sse41.IsSupported)
                     {
-                        nuint si = (uint)Vector128<byte>.Count * i;
+                        ref int refInt = ref Unsafe.As<byte, int>(ref Unsafe.Add(ref sourceBase, si));
 
-                        Vector128<int> i0, i1, i2, i3;
-                        if (Sse41.IsSupported)
-                        {
-                            i0 = Sse41.ConvertToVector128Int32(sourceBase + si);
-                            i1 = Sse41.ConvertToVector128Int32(sourceBase + si + Vector128<int>.Count);
-                            i2 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 2));
-                            i3 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 3));
-                        }
-                        else
-                        {
-                            Vector128<byte> b = Sse2.LoadVector128(sourceBase + si);
-                            Vector128<short> s0 = Sse2.UnpackLow(b, zero).AsInt16();
-                            Vector128<short> s1 = Sse2.UnpackHigh(b, zero).AsInt16();
-
-                            i0 = Sse2.UnpackLow(s0, zero.AsInt16()).AsInt32();
-                            i1 = Sse2.UnpackHigh(s0, zero.AsInt16()).AsInt32();
-                            i2 = Sse2.UnpackLow(s1, zero.AsInt16()).AsInt32();
-                            i3 = Sse2.UnpackHigh(s1, zero.AsInt16()).AsInt32();
-                        }
-
-                        Vector128<float> f0 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i0));
-                        Vector128<float> f1 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i1));
-                        Vector128<float> f2 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i2));
-                        Vector128<float> f3 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i3));
-
-                        ref Vector128<float> d = ref Unsafe.Add(ref destBase, i * 4);
-
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
+                        i0 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(refInt).AsByte());
+                        i1 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 1)).AsByte());
+                        i2 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 2)).AsByte());
+                        i3 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 3)).AsByte());
                     }
+                    else
+                    {
+                        // Sse2, AdvSimd
+                        Vector128<byte> b = Vector128.LoadUnsafe(ref sourceBase, si);
+                        (Vector128<ushort> s0, Vector128<ushort> s1) = Vector128.Widen(b);
+                        (i0, i1) = Vector128.Widen(s0.AsInt16());
+                        (i2, i3) = Vector128.Widen(s1.AsInt16());
+                    }
+
+                    Vector128<float> f0 = scale * Vector128.ConvertToSingle(i0);
+                    Vector128<float> f1 = scale * Vector128.ConvertToSingle(i1);
+                    Vector128<float> f2 = scale * Vector128.ConvertToSingle(i2);
+                    Vector128<float> f3 = scale * Vector128.ConvertToSingle(i3);
+
+                    ref Vector128<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
+
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
                 }
             }
         }

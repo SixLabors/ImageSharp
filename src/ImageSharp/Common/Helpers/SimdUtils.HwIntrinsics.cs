@@ -761,10 +761,13 @@ internal static partial class SimdUtils
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if (Avx2.IsSupported || Sse2.IsSupported)
+            if ((Vector512.IsHardwareAccelerated && Avx512F.IsSupported) ||
+                Avx2.IsSupported ||
+                Sse2.IsSupported ||
+                AdvSimd.IsSupported)
             {
                 int remainder;
-                if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
+                if (Avx512F.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
                 }
@@ -877,7 +880,6 @@ internal static partial class SimdUtils
                 ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
-                Vector128<byte> zero = Vector128<byte>.Zero;
 
                 for (nuint i = 0; i < n; i++)
                 {

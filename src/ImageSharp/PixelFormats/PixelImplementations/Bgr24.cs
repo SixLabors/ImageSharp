@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -35,35 +36,22 @@ public partial struct Bgr24 : IPixel<Bgr24>
     [FieldOffset(2)]
     public byte R;
 
+    private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
+    private static readonly Vector4 Half = Vector128.Create(.5f).AsVector4();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Bgr24"/> struct.
     /// </summary>
     /// <param name="r">The red component.</param>
     /// <param name="g">The green component.</param>
     /// <param name="b">The blue component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Bgr24(byte r, byte g, byte b)
     {
         this.R = r;
         this.G = g;
         this.B = b;
     }
-
-    /// <summary>
-    /// Converts an <see cref="Bgr24"/> to <see cref="Color"/>.
-    /// </summary>
-    /// <param name="source">The <see cref="Bgr24"/>.</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Color(Bgr24 source) => new(source);
-
-    /// <summary>
-    /// Converts a <see cref="Color"/> to <see cref="Bgr24"/>.
-    /// </summary>
-    /// <param name="color">The <see cref="Color"/>.</param>
-    /// <returns>The <see cref="Bgr24"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static implicit operator Bgr24(Color color) => color.ToBgr24();
 
     /// <summary>
     /// Compares two <see cref="Bgr24"/> objects for equality.
@@ -73,7 +61,7 @@ public partial struct Bgr24 : IPixel<Bgr24>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Bgr24 left, Bgr24 right) => left.Equals(right);
 
     /// <summary>
@@ -84,150 +72,120 @@ public partial struct Bgr24 : IPixel<Bgr24>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Bgr24 left, Bgr24 right) => !left.Equals(right);
 
-    /// <inheritdoc/>
-    public readonly PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromBgr24(this);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector) => this.FromVector4(vector);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector)
-    {
-        Rgba32 rgba = default;
-        rgba.FromVector4(vector);
-        this.FromRgba32(rgba);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this = source;
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source)
-    {
-        this.R = source.PackedValue;
-        this.G = source.PackedValue;
-        this.B = source.PackedValue;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.PackedValue);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source)
-    {
-        this.R = source.L;
-        this.G = source.L;
-        this.B = source.L;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.L);
-        this.R = rgb;
-        this.G = rgb;
-        this.B = rgb;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source)
-    {
-        this.R = source.R;
-        this.G = source.G;
-        this.B = source.B;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source)
-    {
-        // We can assign this instances value directly to last three bytes of the Abgr32.
-        ref byte sourceRef = ref Unsafe.As<Abgr32, byte>(ref source);
-        ref byte sourceRefFromB = ref Unsafe.AddByteOffset(ref sourceRef, 1);
-        this = Unsafe.As<byte, Bgr24>(ref sourceRefFromB);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this = source.Bgr;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, byte.MaxValue) / MaxBytes;
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest)
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Bgr24>(
+            PixelComponentInfo.Create<Bgr24>(3, 8, 8, 8),
+            PixelColorType.BGR,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc/>
+    public static PixelOperations<Bgr24> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromScaledVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromVector4(Vector4 source)
     {
-        dest.R = this.R;
-        dest.G = this.G;
-        dest.B = this.B;
-        dest.A = byte.MaxValue;
+        source *= MaxBytes;
+        source += Half;
+        source = Numerics.Clamp(source, Vector4.Zero, MaxBytes);
+
+        Vector128<byte> result = Vector128.ConvertToInt32(source.AsVector128()).AsByte();
+        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8));
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromArgb32(Argb32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromL8(L8 source) => new(source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromL16(L16 source)
     {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
+        return new(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromLa16(La16 source) => new(source.L, source.L, source.L);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromLa32(La32 source)
     {
-        this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
-        this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
-        this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
+        byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
+        return new(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromRgba32(Rgba32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromRgb48(Rgb48 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B)
+        };
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr24 FromRgba64(Rgba64 source)
+        => new()
+        {
+            R = ColorNumerics.From16BitTo8Bit(source.R),
+            G = ColorNumerics.From16BitTo8Bit(source.G),
+            B = ColorNumerics.From16BitTo8Bit(source.B)
+        };
+
+    /// <inheritdoc/>
     public readonly bool Equals(Bgr24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
     /// <inheritdoc/>
@@ -237,6 +195,5 @@ public partial struct Bgr24 : IPixel<Bgr24>
     public override readonly string ToString() => $"Bgr24({this.B}, {this.G}, {this.R})";
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
 }

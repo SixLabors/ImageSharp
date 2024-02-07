@@ -256,21 +256,21 @@ public partial class PngEncoderTests
     [Theory]
     [WithBlankImages(1, 1, PixelTypes.A8, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.Argb32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgr565, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+    [WithBlankImages(1, 1, PixelTypes.Bgr565, PngColorType.Rgb, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.Bgra4444, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.Byte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfSingle, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+    [WithBlankImages(1, 1, PixelTypes.HalfSingle, PngColorType.Rgb, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.HalfVector2, PngColorType.Rgb, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.HalfVector4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, PngColorType.Rgb, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.NormalizedByte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rg32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba1010102, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+    [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.Rg32, PngColorType.Rgb, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.Rgba1010102, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
     [WithBlankImages(1, 1, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.RgbaVector, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Short2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Short4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+    [WithBlankImages(1, 1, PixelTypes.Short2, PngColorType.Rgb, PngBitDepth.Bit16)]
+    [WithBlankImages(1, 1, PixelTypes.Short4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
     [WithBlankImages(1, 1, PixelTypes.Rgb24, PngColorType.Rgb, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.Bgr24, PngColorType.Rgb, PngBitDepth.Bit8)]
     [WithBlankImages(1, 1, PixelTypes.Bgra32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
@@ -391,7 +391,7 @@ public partial class PngEncoderTests
             TransparentColorMode = PngTransparentColorMode.Clear,
             ColorType = colorType
         };
-        Rgba32 rgba32 = Color.Blue;
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
         image.ProcessPixelRows(accessor =>
         {
             for (int y = 0; y < image.Height; y++)
@@ -406,7 +406,7 @@ public partial class PngEncoderTests
 
                 for (int x = 0; x < image.Width; x++)
                 {
-                    rowSpan[x].FromRgba32(rgba32);
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
                 }
             }
         });
@@ -418,7 +418,7 @@ public partial class PngEncoderTests
         // assert
         memStream.Position = 0;
         using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
-        Rgba32 expectedColor = Color.Blue;
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
         if (colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha)
         {
             byte luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
@@ -427,13 +427,14 @@ public partial class PngEncoderTests
 
         actual.ProcessPixelRows(accessor =>
         {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
                 if (y > 25)
                 {
-                    expectedColor = Color.Transparent;
+                    expectedColor = transparent;
                 }
 
                 for (int x = 0; x < accessor.Width; x++)

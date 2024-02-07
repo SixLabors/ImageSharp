@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
@@ -60,6 +59,12 @@ internal static class Numerics
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static nint Modulo4(nint x) => x & 3;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nuint Modulo4(nuint x) => x & 3;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 8

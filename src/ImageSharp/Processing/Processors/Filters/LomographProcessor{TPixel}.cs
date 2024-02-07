@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters;
 internal class LomographProcessor<TPixel> : FilterProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private static readonly Color VeryDarkGreen = Color.FromRgba(0, 10, 0, 255);
+    private static readonly Color VeryDarkGreen = Color.FromPixel(new Rgba32(0, 10, 0, 255));
     private readonly LomographProcessor definition;
 
     /// <summary>

@@ -12,8 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion;
 public class PixelConversion_Rgba32_To_Argb32
 {
     private Rgba32[] source;
-
-    private Argb32[] dest;
+    private Argb32[] destination;
 
     [Params(64)]
     public int Count { get; set; }
@@ -22,19 +21,19 @@ public class PixelConversion_Rgba32_To_Argb32
     public void Setup()
     {
         this.source = new Rgba32[this.Count];
-        this.dest = new Argb32[this.Count];
+        this.destination = new Argb32[this.Count];
     }
 
     [Benchmark(Baseline = true)]
     public void Default()
     {
         ref Rgba32 sBase = ref this.source[0];
-        ref Argb32 dBase = ref this.dest[0];
+        ref Argb32 dBase = ref this.destination[0];
 
         for (nuint i = 0; i < (uint)this.Count; i++)
         {
             Rgba32 s = Unsafe.Add(ref sBase, i);
-            Unsafe.Add(ref dBase, i).FromRgba32(s);
+            Unsafe.Add(ref dBase, i) = Argb32.FromRgba32(s);
         }
     }
 
@@ -48,21 +47,18 @@ public class PixelConversion_Rgba32_To_Argb32
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
             Rgba32 s = Unsafe.Add(ref sBase, i);
-            Unsafe.Add(ref dBase, i).FromRgba32(s);
+            Unsafe.Add(ref dBase, i) = TPixel.FromRgba32(s);
         }
     }
 
     [Benchmark]
-    public void Default_Generic()
-    {
-        Default_GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
-    }
+    public void Default_Generic() => Default_GenericImpl(this.source.AsSpan(), this.destination.AsSpan());
 
     [Benchmark]
     public void Default_Group2()
     {
         ref Rgba32 sBase = ref this.source[0];
-        ref Argb32 dBase = ref this.dest[0];
+        ref Argb32 dBase = ref this.destination[0];
 
         for (nuint i = 0; i < (uint)this.Count; i += 2)
         {
@@ -70,8 +66,8 @@ public class PixelConversion_Rgba32_To_Argb32
             Rgba32 s1 = Unsafe.Add(ref s0, 1);
 
             ref Argb32 d0 = ref Unsafe.Add(ref dBase, i);
-            d0.FromRgba32(s0);
-            Unsafe.Add(ref d0, 1).FromRgba32(s1);
+            d0 = Argb32.FromRgba32(s0);
+            Unsafe.Add(ref d0, 1) = Argb32.FromRgba32(s1);
         }
     }
 
@@ -79,7 +75,7 @@ public class PixelConversion_Rgba32_To_Argb32
     public void Default_Group4()
     {
         ref Rgba32 sBase = ref this.source[0];
-        ref Argb32 dBase = ref this.dest[0];
+        ref Argb32 dBase = ref this.destination[0];
 
         for (nuint i = 0; i < (uint)this.Count; i += 4)
         {
@@ -92,10 +88,10 @@ public class PixelConversion_Rgba32_To_Argb32
             ref Argb32 d1 = ref Unsafe.Add(ref d0, 1);
             ref Argb32 d2 = ref Unsafe.Add(ref d1, 1);
 
-            d0.FromRgba32(s0);
-            d1.FromRgba32(s1);
-            d2.FromRgba32(s2);
-            Unsafe.Add(ref d2, 1).FromRgba32(s3);
+            d0 = Argb32.FromRgba32(s0);
+            d1 = Argb32.FromRgba32(s1);
+            d2 = Argb32.FromRgba32(s2);
+            Unsafe.Add(ref d2, 1) = Argb32.FromRgba32(s3);
         }
     }
 
@@ -103,7 +99,7 @@ public class PixelConversion_Rgba32_To_Argb32
     public void BitOps()
     {
         ref uint sBase = ref Unsafe.As<Rgba32, uint>(ref this.source[0]);
-        ref uint dBase = ref Unsafe.As<Argb32, uint>(ref this.dest[0]);
+        ref uint dBase = ref Unsafe.As<Argb32, uint>(ref this.destination[0]);
 
         for (nuint i = 0; i < (uint)this.Count; i++)
         {
@@ -116,7 +112,7 @@ public class PixelConversion_Rgba32_To_Argb32
     public void BitOps_GroupAsULong()
     {
         ref ulong sBase = ref Unsafe.As<Rgba32, ulong>(ref this.source[0]);
-        ref ulong dBase = ref Unsafe.As<Argb32, ulong>(ref this.dest[0]);
+        ref ulong dBase = ref Unsafe.As<Argb32, ulong>(ref this.destination[0]);
 
         for (nuint i = 0; i < (uint)this.Count / 2; i++)
         {
@@ -134,10 +130,6 @@ public class PixelConversion_Rgba32_To_Argb32
 
     public static class FromRgba32
     {
-        /// <summary>
-        /// Converts a packed <see cref="Rgba32"/> to <see cref="Argb32"/>.
-        /// </summary>
-        /// <returns>The argb value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint ToArgb32(uint packedRgba)
         {
@@ -146,10 +138,6 @@ public class PixelConversion_Rgba32_To_Argb32
             return (packedRgba << 8) | (packedRgba >> 24);
         }
 
-        /// <summary>
-        /// Converts a packed <see cref="Rgba32"/> to <see cref="Bgra32"/>.
-        /// </summary>
-        /// <returns>The bgra value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint ToBgra32(uint packedRgba)
         {

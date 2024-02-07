@@ -70,9 +70,9 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
         using Image<TPixel> image = provider.GetImage();
         Assert.Equal(1, image.Frames.Count);
 
-        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToRgba32());
+        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
 
-        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToRgba32());
+        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
 
         image.Frames.AddFrame(image1.Frames.RootFrame);
         image.Frames.AddFrame(image2.Frames.RootFrame);
@@ -97,8 +97,8 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
             ImageFrame<Rgba32> frame1 = output.Frames[1];
             ImageFrame<Rgba32> frame2 = output.Frames[2];
 
-            Assert.Equal(Color.Green.ToRgba32(), frame1[10, 10]);
-            Assert.Equal(Color.Yellow.ToRgba32(), frame2[10, 10]);
+            Assert.Equal(Color.Green.ToPixel<Rgba32>(), frame1[10, 10]);
+            Assert.Equal(Color.Yellow.ToPixel<Rgba32>(), frame2[10, 10]);
 
             Assert.Equal(TiffCompression.Deflate, frame1.Metadata.GetTiffMetadata().Compression);
             Assert.Equal(TiffCompression.Deflate, frame1.Metadata.GetTiffMetadata().Compression);
@@ -122,11 +122,11 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage();
 
-        using var image0 = new Image<Rgba32>(image.Width, image.Height, Color.Red.ToRgba32());
+        using var image0 = new Image<Rgba32>(image.Width, image.Height, Color.Red.ToPixel<Rgba32>());
 
-        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToRgba32());
+        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
 
-        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToRgba32());
+        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
 
         image.Frames.AddFrame(image0.Frames.RootFrame);
         image.Frames.AddFrame(image1.Frames.RootFrame);
@@ -154,9 +154,9 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
             ImageFrame<Rgba32> frame1 = output.Frames[1];
             ImageFrame<Rgba32> frame2 = output.Frames[2];
 
-            Assert.Equal(Color.Red.ToRgba32(), frame0[10, 10]);
-            Assert.Equal(Color.Green.ToRgba32(), frame1[10, 10]);
-            Assert.Equal(Color.Yellow.ToRgba32(), frame2[10, 10]);
+            Assert.Equal(Color.Red.ToPixel<Rgba32>(), frame0[10, 10]);
+            Assert.Equal(Color.Green.ToPixel<Rgba32>(), frame1[10, 10]);
+            Assert.Equal(Color.Yellow.ToPixel<Rgba32>(), frame2[10, 10]);
 
             Assert.Equal(TiffCompression.Lzw, frame0.Metadata.GetTiffMetadata().Compression);
             Assert.Equal(TiffCompression.Lzw, frame1.Metadata.GetTiffMetadata().Compression);

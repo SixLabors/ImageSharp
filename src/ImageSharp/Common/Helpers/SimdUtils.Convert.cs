@@ -57,7 +57,7 @@ internal static partial class SimdUtils
 
         for (int i = 0; i < source.Length; i++)
         {
-            Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, i) / 255f;
+            Unsafe.Add(ref dBase, (uint)i) = Unsafe.Add(ref sBase, (uint)i) / 255f;
         }
     }
 
@@ -66,12 +66,13 @@ internal static partial class SimdUtils
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(destination);
+
         for (int i = 0; i < source.Length; i++)
         {
-            Unsafe.Add(ref dBase, i) = ConvertToByte(Unsafe.Add(ref sBase, i));
+            Unsafe.Add(ref dBase, (uint)i) = ConvertToByte(Unsafe.Add(ref sBase, (uint)i));
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ConvertToByte(float f) => (byte)Numerics.Clamp((f * 255F) + 0.5F, 0, 255F);
+    private static byte ConvertToByte(float f) => (byte)Numerics.Clamp((f * 255f) + 0.5f, 0, 255f);
 }

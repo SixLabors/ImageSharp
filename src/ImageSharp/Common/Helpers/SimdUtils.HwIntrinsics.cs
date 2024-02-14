@@ -761,13 +761,10 @@ internal static partial class SimdUtils
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if ((Vector512.IsHardwareAccelerated && Avx512F.IsSupported) ||
-                Avx2.IsSupported ||
-                Sse2.IsSupported ||
-                AdvSimd.IsSupported)
+            if (Vector128.IsHardwareAccelerated)
             {
                 int remainder;
-                if (Avx512F.IsSupported)
+                if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
                 }
@@ -805,7 +802,7 @@ internal static partial class SimdUtils
             ReadOnlySpan<byte> source,
             Span<float> destination)
         {
-            if (Avx512F.IsSupported)
+            if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
             {
                 DebugVerifySpanInput(source, destination, Vector512<byte>.Count);
 
@@ -870,7 +867,7 @@ internal static partial class SimdUtils
                     Unsafe.Add(ref d, 3) = f3;
                 }
             }
-            else if (Sse2.IsSupported || AdvSimd.IsSupported)
+            else if (Vector128.IsHardwareAccelerated)
             {
                 DebugVerifySpanInput(source, destination, Vector128<byte>.Count);
 
@@ -897,7 +894,7 @@ internal static partial class SimdUtils
                     }
                     else
                     {
-                        // Sse2, AdvSimd
+                        // Sse2, AdvSimd, etc
                         Vector128<byte> b = Vector128.LoadUnsafe(ref sourceBase, si);
                         (Vector128<ushort> s0, Vector128<ushort> s1) = Vector128.Widen(b);
                         (i0, i1) = Vector128.Widen(s0.AsInt16());
@@ -931,13 +928,11 @@ internal static partial class SimdUtils
         {
             DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if ((Vector512.IsHardwareAccelerated && Avx512BW.IsSupported) ||
-                (Vector256.IsHardwareAccelerated && Avx2.IsSupported) ||
-                (Vector128.IsHardwareAccelerated && (Sse2.IsSupported || AdvSimd.IsSupported)))
+            if (Sse2.IsSupported || AdvSimd.IsSupported)
             {
                 int remainder;
 
-                if (Avx512BW.IsSupported)
+                if (Vector512.IsHardwareAccelerated && Avx512BW.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
                 }
@@ -977,7 +972,7 @@ internal static partial class SimdUtils
             ReadOnlySpan<float> source,
             Span<byte> destination)
         {
-            if (Avx512BW.IsSupported)
+            if (Vector512.IsHardwareAccelerated && Avx512BW.IsSupported)
             {
                 DebugVerifySpanInput(source, destination, Vector512<byte>.Count);
 
@@ -1011,8 +1006,7 @@ internal static partial class SimdUtils
                     Unsafe.Add(ref destinationBase, i) = b;
                 }
             }
-            else
-            if (Avx2.IsSupported)
+            else if (Avx2.IsSupported)
             {
                 DebugVerifySpanInput(source, destination, Vector256<byte>.Count);
 
@@ -1046,7 +1040,7 @@ internal static partial class SimdUtils
                     Unsafe.Add(ref destinationBase, i) = b;
                 }
             }
-            else
+            else if (Sse2.IsSupported || AdvSimd.IsSupported)
             {
                 // Sse, AdvSimd
                 DebugVerifySpanInput(source, destination, Vector128<byte>.Count);

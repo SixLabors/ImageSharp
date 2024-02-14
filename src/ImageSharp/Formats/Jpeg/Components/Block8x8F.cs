@@ -386,29 +386,33 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
     {
         DebugGuard.IsTrue(
-            SimdUtils.HasVector8,
+            Avx2.IsSupported,
             "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
 
-        ref Vector<short> sRef = ref Unsafe.As<Block8x8, Vector<short>>(ref source);
-        ref Vector<float> dRef = ref Unsafe.As<Block8x8F, Vector<float>>(ref this);
+        ref short sRef = ref Unsafe.As<Block8x8, short>(ref source);
+        ref Vector256<float> dRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this);
 
-        // Vector<ushort>.Count == 16 on AVX2
+        // Vector256<ushort>.Count == 16 on AVX2
         // We can process 2 block rows in a single step
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(sRef, out Vector<float> top, out Vector<float> bottom);
-        dRef = top;
-        Unsafe.Add(ref dRef, 1) = bottom;
+        Vector256<int> top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef));
+        Vector256<int> bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)Vector256<int>.Count));
+        dRef = Avx.ConvertToVector256Single(top);
+        Unsafe.Add(ref dRef, 1) = Avx.ConvertToVector256Single(bottom);
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 1), out top, out bottom);
-        Unsafe.Add(ref dRef, 2) = top;
-        Unsafe.Add(ref dRef, 3) = bottom;
+        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 2)));
+        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 3)));
+        Unsafe.Add(ref dRef, 2) = Avx.ConvertToVector256Single(top);
+        Unsafe.Add(ref dRef, 3) = Avx.ConvertToVector256Single(bottom);
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 2), out top, out bottom);
-        Unsafe.Add(ref dRef, 4) = top;
-        Unsafe.Add(ref dRef, 5) = bottom;
+        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 4)));
+        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 5)));
+        Unsafe.Add(ref dRef, 4) = Avx.ConvertToVector256Single(top);
+        Unsafe.Add(ref dRef, 5) = Avx.ConvertToVector256Single(bottom);
 
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(Unsafe.Add(ref sRef, 3), out top, out bottom);
-        Unsafe.Add(ref dRef, 6) = top;
-        Unsafe.Add(ref dRef, 7) = bottom;
+        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 6)));
+        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 7)));
+        Unsafe.Add(ref dRef, 6) = Avx.ConvertToVector256Single(top);
+        Unsafe.Add(ref dRef, 7) = Avx.ConvertToVector256Single(bottom);
     }
 
     /// <summary>

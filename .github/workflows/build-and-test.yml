@@ -77,7 +77,7 @@ jobs:
         run: git lfs pull
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v1
+        uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
         uses: actions/cache@v4
@@ -159,7 +159,7 @@ jobs:
           submodules: recursive
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v1
+        uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
         uses: actions/cache@v4

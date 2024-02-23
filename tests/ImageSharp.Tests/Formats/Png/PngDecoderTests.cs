@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
@@ -664,5 +665,12 @@ public partial class PngDecoderTests
         // TODO: Try to reduce this to 1.
         Assert.True(eofHitCounter.EofHitCount <= 3);
         Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+    }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
     }
 }

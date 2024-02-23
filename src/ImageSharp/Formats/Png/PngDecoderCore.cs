@@ -1871,8 +1871,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngChunkType type = this.ReadChunkType(buffer);
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
-        // We can skip all other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency && type != PngChunkType.Palette)
+        // We can skip most other chunk data in the stream for better performance.
+        if (this.colorMetadataOnly &&
+            type != PngChunkType.Header &&
+            type != PngChunkType.Transparency &&
+            type != PngChunkType.Palette &&
+            type != PngChunkType.AnimationControl &&
+            type != PngChunkType.FrameControl)
         {
             chunk = new PngChunk(length, type);
             return true;

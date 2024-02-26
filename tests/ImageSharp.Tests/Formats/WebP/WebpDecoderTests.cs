@@ -441,7 +441,7 @@ public class WebpDecoderTests
 
     // https://github.com/SixLabors/ImageSharp/issues/2670
     [Theory]
-    [WithFile(Lossy.Issue2676, PixelTypes.Rgba32)]
+    [WithFile(Lossy.Issue2670, PixelTypes.Rgba32)]
     public void WebpDecoder_CanDecode_Issue2670<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

@@ -311,7 +311,7 @@ internal class AlphaDecoder : IDisposable
 
     private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
-        // TODO: Investigate AdvSim support for this method.
+        // TODO: Investigate AdvSimd support for this method.
         if (Sse2.IsSupported && width >= 9)
         {
             dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));

@@ -311,18 +311,15 @@ internal class AlphaDecoder : IDisposable
 
     private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
-        if (Sse2.IsSupported)
+        // TODO: Investigate AdvSimd support for this method.
+        if (Sse2.IsSupported && width >= 9)
         {
             dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
-            if (width <= 1)
-            {
-                return;
-            }
-
             nuint i;
             Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
             ref byte srcRef = ref MemoryMarshal.GetReference(input);
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+
             for (i = 1; i <= (uint)width - 8; i += 8)
             {
                 Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);

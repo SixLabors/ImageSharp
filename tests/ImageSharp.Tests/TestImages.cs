@@ -152,7 +152,7 @@ public static class TestImages
         public const string Issue2447 = "Png/issues/issue_2447.png";
 
         // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
-        public const string Issue2668 = "Png/issues/issue_2668.png";
+        public const string Issue2668 = "Png/issues/Issue_2668.png";
 
         public static class Bad
         {

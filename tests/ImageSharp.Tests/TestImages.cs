@@ -804,6 +804,7 @@ public static class TestImages
             public const string Issue1594 = "Webp/issues/Issue1594.webp";
             public const string Issue2243 = "Webp/issues/Issue2243.webp";
             public const string Issue2257 = "Webp/issues/Issue2257.webp";
+            public const string Issue2670 = "Webp/issues/Issue2670.webp";
         }
     }
 

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.IO;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;

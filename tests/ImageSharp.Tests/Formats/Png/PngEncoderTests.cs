@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -671,6 +672,22 @@ public partial class PngEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Palette };
+
+        string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(actualOutputFile);
+        encoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2469
+    [Theory]
+    [WithFile(TestImages.Png.Issue2668, PixelTypes.Rgba32)]
+    public void Issue2668_Quantized_Encode_Alpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.Mutate(x => x.Resize(100, 100));
+
         PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Palette };
 
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);

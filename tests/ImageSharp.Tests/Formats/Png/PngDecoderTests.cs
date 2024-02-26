@@ -665,4 +665,11 @@ public partial class PngDecoderTests
         Assert.True(eofHitCounter.EofHitCount <= 3);
         Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
     }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
+    }
 }

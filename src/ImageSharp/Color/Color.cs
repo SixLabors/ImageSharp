@@ -92,6 +92,7 @@ public readonly partial struct Color : IEquatable<Color>
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <see cref="Color"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Color FromScaledVector(Vector4 source) => new(source);
 
     /// <summary>

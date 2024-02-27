@@ -82,13 +82,13 @@ public class GifFrameMetadata : IDeepCloneable
     {
         // TODO: v4 How do I link the parent metadata to the frame metadata to get the global color table?
         int index = -1;
-        float background = 1f;
+        const float background = 1f;
         if (metadata.ColorTable.HasValue)
         {
             ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
             for (int i = 0; i < colorTable.Length; i++)
             {
-                Vector4 vector = (Vector4)colorTable[i];
+                Vector4 vector = colorTable[i].ToScaledVector4();
                 if (vector.W < background)
                 {
                     index = i;

@@ -105,7 +105,7 @@ public partial class ColorTests
         public void Vector4Constructor()
         {
             // Act:
-            Color color = (Color)Vector4.One;
+            Color color = Color.FromScaledVector(Vector4.One);
 
             // Assert:
             Assert.Equal(new RgbaVector(1, 1, 1, 1), color.ToPixel<RgbaVector>());

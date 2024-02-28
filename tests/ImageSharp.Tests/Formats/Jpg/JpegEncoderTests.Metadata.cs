@@ -198,6 +198,29 @@ public partial class JpegEncoderTests
         Assert.Equal(meta.Comments.ElementAtOrDefault(1).ToString(), actual.Comments.ElementAtOrDefault(1).ToString());
     }
 
+    [Fact]
+    public void Encode_SaveTooLongComment()
+    {
+        // arrange
+        string longString = new('c', 65534);
+        using var input = new Image<Rgba32>(1, 1);
+        JpegMetadata meta = input.Metadata.GetJpegMetadata();
+        using var memStream = new MemoryStream();
+
+        // act
+        meta.Comments.Add(JpegComData.FromString(longString));
+        input.Save(memStream, JpegEncoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        JpegMetadata actual = output.Metadata.GetJpegMetadata();
+        Assert.NotEmpty(actual.Comments);
+        Assert.Equal(2, actual.Comments.Count);
+        Assert.Equal(longString[..65533], actual.Comments.ElementAtOrDefault(0).ToString());
+        Assert.Equal("c", actual.Comments.ElementAtOrDefault(1).ToString());
+    }
+
     [Theory]
     [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegEncodingColor.Luminance)]
     [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]

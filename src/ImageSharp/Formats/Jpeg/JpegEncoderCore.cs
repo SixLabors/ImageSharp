@@ -3,6 +3,7 @@
 #nullable disable
 
 using System.Buffers.Binary;
+using System.Collections;
 using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -184,39 +185,55 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             return;
         }
 
-        for (int i = 0; i < metadata.Comments.Count; i++)
-        {
-            string comment = metadata.Comments[i].ToString();
+        // We don't want to modify original metadata
+        List<JpegComData> comments = new(metadata.Comments);
 
-            if (comment.Length > maxCommentLength)
+        int totalPayloadLength = 0;
+        for (int i = 0; i < comments.Count; i++)
+        {
+            JpegComData comment = comments[i];
+            ReadOnlyMemory<char> currentComment = comment.Value;
+
+            if (comment.Value.Length > maxCommentLength)
             {
-                string splitComment = comment.Substring(maxCommentLength, comment.Length - maxCommentLength);
-                metadata.Comments.Insert(i + 1, JpegComData.FromString(splitComment));
+                ReadOnlyMemory<char> splitComment =
+                    currentComment.Slice(maxCommentLength, currentComment.Length - maxCommentLength);
+                comments.Insert(i + 1, new JpegComData(splitComment));
 
                 // We don't want to keep the extra bytes
-                comment = comment.Substring(0, maxCommentLength);
+                comments[i] = new JpegComData(currentComment.Slice(0, maxCommentLength));
             }
 
-            int commentLength = comment.Length + 4;
+            totalPayloadLength += comment.Value.Length + 4;
+        }
 
-            Span<byte> commentSpan = new byte[commentLength];
-            Span<byte> markers = commentSpan.Slice(0, 2);
-            Span<byte> payloadSize = commentSpan.Slice(2, 2);
-            Span<byte> payload = commentSpan.Slice(4, comment.Length);
+        Span<byte> payload = new byte[totalPayloadLength];
+        int currentCommentStartingIndex = 0;
+
+        for (int i = 0; i < comments.Count; i++)
+        {
+            ReadOnlyMemory<char> comment = comments[i].Value;
 
             // Beginning of comment ff fe
-            markers[0] = JpegConstants.Markers.XFF;
-            markers[1] = JpegConstants.Markers.COM;
+            payload[currentCommentStartingIndex] = JpegConstants.Markers.XFF;
+            payload[currentCommentStartingIndex + 1] = JpegConstants.Markers.COM;
 
             // Write payload size
-            int comWithoutMarker = commentLength - 2;
-            payloadSize[0] = (byte)((comWithoutMarker >> 8) & 0xFF);
-            payloadSize[1] = (byte)(comWithoutMarker & 0xFF);
+            int comWithoutMarker = comment.Length + 2;
+            payload[currentCommentStartingIndex + 2] = (byte)((comWithoutMarker >> 8) & 0xFF);
+            payload[currentCommentStartingIndex + 3] = (byte)(comWithoutMarker & 0xFF);
 
-            Encoding.ASCII.GetBytes(comment, payload);
+            char[] commentChars = comment.ToArray();
+            for (int j = 0; j < commentChars.Length; j++)
+            {
+                // Initial 4 bytes are always reserved
+                payload[4 + currentCommentStartingIndex + j] = (byte)commentChars[j];
+            }
 
-            this.outputStream.Write(commentSpan, 0, commentSpan.Length);
+            currentCommentStartingIndex += comment.Length + 4;
         }
+
+        this.outputStream.Write(payload, 0, payload.Length);
     }
 
     /// <summary>

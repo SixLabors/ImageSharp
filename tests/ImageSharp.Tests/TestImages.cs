@@ -73,6 +73,7 @@ public static class TestImages
         public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+        public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -149,6 +150,9 @@ public static class TestImages
 
         // Issue 2447: https://github.com/SixLabors/ImageSharp/issues/2447
         public const string Issue2447 = "Png/issues/issue_2447.png";
+
+        // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
+        public const string Issue2668 = "Png/issues/Issue_2668.png";
 
         public static class Bad
         {
@@ -806,6 +810,7 @@ public static class TestImages
             public const string Issue1594 = "Webp/issues/Issue1594.webp";
             public const string Issue2243 = "Webp/issues/Issue2243.webp";
             public const string Issue2257 = "Webp/issues/Issue2257.webp";
+            public const string Issue2670 = "Webp/issues/Issue2670.webp";
         }
     }
 

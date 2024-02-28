@@ -34,7 +34,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -44,10 +44,10 @@ jobs:
         run: git lfs pull
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v1
+        uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -81,7 +81,7 @@ jobs:
           path: tests/Images/ActualOutput/
 
       - name: Codecov Update
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
         with:
           flags: unittests

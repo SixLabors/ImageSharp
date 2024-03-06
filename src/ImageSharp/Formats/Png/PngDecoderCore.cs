@@ -464,7 +464,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            image = Image.CreateUninitialized<TPixel>(
+            image = new Image<TPixel>(
                 this.Configuration,
                 this.header.Width,
                 this.header.Height,

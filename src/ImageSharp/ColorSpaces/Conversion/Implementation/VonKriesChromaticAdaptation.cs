@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 /// <summary>
-/// Implementation of the von Kries chromatic adaptation model.
+/// Implementation of the Von Kries chromatic adaptation model.
 /// </summary>
 /// <remarks>
 /// Transformation described here:

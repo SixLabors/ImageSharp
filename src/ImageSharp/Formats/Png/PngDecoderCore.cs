@@ -125,7 +125,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// A reusable Crc32 hashing instance.
     /// </summary>
     private readonly Crc32 crc32 = new();
-    
+
+    /// <summary>
     /// The maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
     /// </summary>
     private readonly int maxUncompressedLength;

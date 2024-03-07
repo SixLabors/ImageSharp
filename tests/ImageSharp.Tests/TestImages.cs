@@ -186,8 +186,10 @@ public static class TestImages
             // Invalid color type.
             public const string ColorTypeOne = "Png/xc1n0g08.png";
             public const string ColorTypeNine = "Png/xc9n2c08.png";
-
             public const string FlagOfGermany0000016446 = "Png/issues/flag_of_germany-0000016446.png";
+
+            public const string BadZTXT = "Png/issues/bad-ztxt.png";
+            public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
         }
     }
 

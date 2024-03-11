@@ -155,9 +155,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
         CieXyz whitePoint = options.WhitePoint;
         Vector3 wxyz = new(whitePoint.X, whitePoint.Y, whitePoint.Z);
-
-        // Avoids XYZ coordinates out range (restricted by 0 and XYZ reference white)
-        Vector3 xyzr = Vector3.Clamp(new Vector3(xr, yr, zr), Vector3.Zero, Vector3.One);
+        Vector3 xyzr = new(xr, yr, zr);
 
         return new(xyzr * wxyz);
     }

@@ -12,7 +12,8 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 internal readonly struct ApproximateColorProfileComparer :
     IEqualityComparer<CieLab>,
     IEqualityComparer<CieXyz>,
-    IEqualityComparer<Lms>
+    IEqualityComparer<Lms>,
+    IEqualityComparer<CieLch>
 {
     private readonly float epsilon;
 
@@ -28,11 +29,15 @@ internal readonly struct ApproximateColorProfileComparer :
 
     public bool Equals(Lms x, Lms y) => this.Equals(x.L, y.L) && this.Equals(x.M, y.M) && this.Equals(x.S, y.S);
 
+    public bool Equals(CieLch x, CieLch y) => this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
+
     public int GetHashCode([DisallowNull] CieLab obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] CieXyz obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] Lms obj) => obj.GetHashCode();
+
+    public int GetHashCode([DisallowNull] CieLch obj) => obj.GetHashCode();
 
     private bool Equals(float x, float y)
     {

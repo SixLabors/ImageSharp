@@ -628,6 +628,12 @@ internal static class TiffDecoderOptionsParser
                     options.ColorType = TiffColorType.Rgb;
                 }
 
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+                {
+                    options.YcbcrSubSampling[0] = 1;
+                    options.YcbcrSubSampling[1] = 1;
+                }
+
                 break;
             }
 
@@ -640,6 +646,12 @@ internal static class TiffDecoderOptionsParser
                     // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
                     options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
                     options.ColorType = TiffColorType.Rgb;
+                }
+
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+                {
+                    options.YcbcrSubSampling[0] = 1;
+                    options.YcbcrSubSampling[1] = 1;
                 }
 
                 break;

@@ -620,19 +620,7 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    options.YcbcrSubSampling[0] = 1;
-                    options.YcbcrSubSampling[1] = 1;
-                }
+                AdjustOptionsYCbCrJpegCompression(options);
 
                 break;
             }
@@ -640,19 +628,7 @@ internal static class TiffDecoderOptionsParser
             case TiffCompression.Jpeg:
             {
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
-                {
-                    // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
-                    options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-                    options.ColorType = TiffColorType.Rgb;
-                }
-
-                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
-                {
-                    options.YcbcrSubSampling[0] = 1;
-                    options.YcbcrSubSampling[1] = 1;
-                }
+                AdjustOptionsYCbCrJpegCompression(options);
 
                 break;
             }
@@ -668,6 +644,24 @@ internal static class TiffDecoderOptionsParser
                 TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format '{compression}' is not supported");
                 break;
             }
+        }
+    }
+
+    private static void AdjustOptionsYCbCrJpegCompression(TiffDecoderCore options)
+    {
+        if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+        {
+            // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
+            options.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+            options.ColorType = TiffColorType.Rgb;
+        }
+
+        if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
+        {
+            // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
+            // so we set this always to [1, 1], see: https://github.com/SixLabors/ImageSharp/issues/2679
+            options.YcbcrSubSampling[0] = 1;
+            options.YcbcrSubSampling[1] = 1;
         }
     }
 

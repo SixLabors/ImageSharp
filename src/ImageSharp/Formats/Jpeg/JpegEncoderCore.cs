@@ -2,9 +2,8 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections;
-using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -27,6 +26,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// </summary>
     private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
+    /// <summary>
+    /// The current calling encoder.
+    /// </summary>
     private readonly JpegEncoder encoder;
 
     /// <summary>
@@ -92,7 +94,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         this.WriteProfiles(metadata, buffer);
 
         // Write comments
-        this.WriteComment(jpegMetadata);
+        this.WriteComments(image.Configuration, jpegMetadata);
 
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
@@ -173,67 +175,48 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
-    /// Writes comment
+    /// Writes the COM tags.
     /// </summary>
+    /// <param name="configuration">The configuration.</param>
     /// <param name="metadata">The image metadata.</param>
-    private void WriteComment(JpegMetadata metadata)
+    private void WriteComments(Configuration configuration, JpegMetadata metadata)
     {
-        int maxCommentLength = 65533;
-
         if (metadata.Comments.Count == 0)
         {
             return;
         }
 
-        // We don't want to modify original metadata
-        List<JpegComData> comments = new(metadata.Comments);
-
-        int totalPayloadLength = 0;
-        for (int i = 0; i < comments.Count; i++)
+        const int maxCommentLength = 65533;
+        using IMemoryOwner<byte> bufferOwner = configuration.MemoryAllocator.Allocate<byte>(maxCommentLength);
+        Span<byte> buffer = bufferOwner.Memory.Span;
+        foreach (JpegComData comment in metadata.Comments)
         {
-            JpegComData comment = comments[i];
-            ReadOnlyMemory<char> currentComment = comment.Value;
-
-            if (comment.Value.Length > maxCommentLength)
+            int totalLength = comment.Value.Length;
+            if (totalLength == 0)
             {
-                ReadOnlyMemory<char> splitComment =
-                    currentComment.Slice(maxCommentLength, currentComment.Length - maxCommentLength);
-                comments.Insert(i + 1, new JpegComData(splitComment));
-
-                // We don't want to keep the extra bytes
-                comments[i] = new JpegComData(currentComment.Slice(0, maxCommentLength));
+                continue;
             }
 
-            totalPayloadLength += comment.Value.Length + 4;
-        }
-
-        Span<byte> payload = new byte[totalPayloadLength];
-        int currentCommentStartingIndex = 0;
-
-        for (int i = 0; i < comments.Count; i++)
-        {
-            ReadOnlyMemory<char> comment = comments[i].Value;
-
-            // Beginning of comment ff fe
-            payload[currentCommentStartingIndex] = JpegConstants.Markers.XFF;
-            payload[currentCommentStartingIndex + 1] = JpegConstants.Markers.COM;
-
-            // Write payload size
-            int comWithoutMarker = comment.Length + 2;
-            payload[currentCommentStartingIndex + 2] = (byte)((comWithoutMarker >> 8) & 0xFF);
-            payload[currentCommentStartingIndex + 3] = (byte)(comWithoutMarker & 0xFF);
-
-            char[] commentChars = comment.ToArray();
-            for (int j = 0; j < commentChars.Length; j++)
+            // Loop through and split the comment into multiple comments if the comment length
+            // is greater than the maximum allowed length.
+            while (totalLength > 0)
             {
-                // Initial 4 bytes are always reserved
-                payload[4 + currentCommentStartingIndex + j] = (byte)commentChars[j];
+                int currentLength = Math.Min(totalLength, maxCommentLength);
+
+                // Write the marker header.
+                this.WriteMarkerHeader(JpegConstants.Markers.COM, currentLength + 2, buffer);
+
+                ReadOnlySpan<char> commentValue = comment.Value.Span.Slice(comment.Value.Length - totalLength, currentLength);
+                for (int i = 0; i < commentValue.Length; i++)
+                {
+                    buffer[i] = (byte)commentValue[i];
+                }
+
+                // Write the comment.
+                this.outputStream.Write(buffer, 0, currentLength);
+                totalLength -= currentLength;
             }
-
-            currentCommentStartingIndex += comment.Length + 4;
         }
-
-        this.outputStream.Write(payload, 0, payload.Length);
     }
 
     /// <summary>

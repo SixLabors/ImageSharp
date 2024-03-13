@@ -32,19 +32,19 @@ public partial class JpegEncoderTests
     public void Encode_PreservesIptcProfile()
     {
         // arrange
-        using var input = new Image<Rgba32>(1, 1);
-        var expectedProfile = new IptcProfile();
+        using Image<Rgba32> input = new(1, 1);
+        IptcProfile expectedProfile = new();
         expectedProfile.SetValue(IptcTag.Country, "ESPAÑA");
         expectedProfile.SetValue(IptcTag.City, "unit-test-city");
         input.Metadata.IptcProfile = expectedProfile;
 
         // act
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, JpegEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         IptcProfile actual = output.Metadata.IptcProfile;
         Assert.NotNull(actual);
         IEnumerable<IptcValue> values = expectedProfile.Values;
@@ -55,17 +55,17 @@ public partial class JpegEncoderTests
     public void Encode_PreservesExifProfile()
     {
         // arrange
-        using var input = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> input = new(1, 1);
         input.Metadata.ExifProfile = new ExifProfile();
         input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
 
         // act
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, JpegEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ExifProfile actual = output.Metadata.ExifProfile;
         Assert.NotNull(actual);
         IReadOnlyList<IExifValue> values = input.Metadata.ExifProfile.Values;
@@ -76,16 +76,16 @@ public partial class JpegEncoderTests
     public void Encode_PreservesIccProfile()
     {
         // arrange
-        using var input = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> input = new(1, 1);
         input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
 
         // act
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, JpegEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         IccProfile actual = output.Metadata.IccProfile;
         Assert.NotNull(actual);
         IccProfile values = input.Metadata.IccProfile;
@@ -99,12 +99,10 @@ public partial class JpegEncoderTests
     {
         Exception ex = Record.Exception(() =>
         {
-            var encoder = new JpegEncoder();
-            using (var stream = new MemoryStream())
-            {
-                using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-                image.Save(stream, encoder);
-            }
+            JpegEncoder encoder = new();
+            using MemoryStream stream = new();
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+            image.Save(stream, encoder);
         });
 
         Assert.Null(ex);
@@ -114,23 +112,17 @@ public partial class JpegEncoderTests
     [MemberData(nameof(RatioFiles))]
     public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
-        using (Image<Rgba32> input = testFile.CreateRgba32Image())
-        {
-            using (var memStream = new MemoryStream())
-            {
-                input.Save(memStream, JpegEncoder);
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using MemoryStream memStream = new();
+        input.Save(memStream, JpegEncoder);
 
-                memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
-                {
-                    ImageMetadata meta = output.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
-        }
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ImageMetadata meta = output.Metadata;
+        Assert.Equal(xResolution, meta.HorizontalResolution);
+        Assert.Equal(yResolution, meta.VerticalResolution);
+        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
     }
 
     [Theory]
@@ -138,20 +130,14 @@ public partial class JpegEncoderTests
     public void Encode_PreservesQuality(string imagePath, int quality)
     {
         TestFile testFile = TestFile.Create(imagePath);
-        using (Image<Rgba32> input = testFile.CreateRgba32Image())
-        {
-            using (var memStream = new MemoryStream())
-            {
-                input.Save(memStream, JpegEncoder);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using MemoryStream memStream = new();
+        input.Save(memStream, JpegEncoder);
 
-                memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
-                {
-                    JpegMetadata meta = output.Metadata.GetJpegMetadata();
-                    Assert.Equal(quality, meta.Quality);
-                }
-            }
-        }
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        JpegMetadata meta = output.Metadata.GetJpegMetadata();
+        Assert.Equal(quality, meta.Quality);
     }
 
     [Theory]
@@ -161,7 +147,7 @@ public partial class JpegEncoderTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(JpegDecoder.Instance);
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         input.Save(memStream, JpegEncoder);
@@ -172,16 +158,16 @@ public partial class JpegEncoderTests
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
         Assert.Equal(1, actual.Comments.Count);
-        Assert.Equal("TEST COMMENT", actual.Comments.ElementAtOrDefault(0).ToString());
+        Assert.Equal("TEST COMMENT", actual.Comments[0].ToString());
     }
 
     [Fact]
     public void Encode_SavesMultipleComments()
     {
         // arrange
-        using var input = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> input = new(1, 1);
         JpegMetadata meta = input.Metadata.GetJpegMetadata();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         meta.Comments.Add(JpegComData.FromString("First comment"));
@@ -194,8 +180,8 @@ public partial class JpegEncoderTests
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
         Assert.Equal(2, actual.Comments.Count);
-        Assert.Equal(meta.Comments.ElementAtOrDefault(0).ToString(), actual.Comments.ElementAtOrDefault(0).ToString());
-        Assert.Equal(meta.Comments.ElementAtOrDefault(1).ToString(), actual.Comments.ElementAtOrDefault(1).ToString());
+        Assert.Equal(meta.Comments[0].ToString(), actual.Comments[0].ToString());
+        Assert.Equal(meta.Comments[1].ToString(), actual.Comments[1].ToString());
     }
 
     [Fact]
@@ -203,9 +189,9 @@ public partial class JpegEncoderTests
     {
         // arrange
         string longString = new('c', 65534);
-        using var input = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> input = new(1, 1);
         JpegMetadata meta = input.Metadata.GetJpegMetadata();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
 
         // act
         meta.Comments.Add(JpegComData.FromString(longString));
@@ -217,8 +203,8 @@ public partial class JpegEncoderTests
         JpegMetadata actual = output.Metadata.GetJpegMetadata();
         Assert.NotEmpty(actual.Comments);
         Assert.Equal(2, actual.Comments.Count);
-        Assert.Equal(longString[..65533], actual.Comments.ElementAtOrDefault(0).ToString());
-        Assert.Equal("c", actual.Comments.ElementAtOrDefault(1).ToString());
+        Assert.Equal(longString[..65533], actual.Comments[0].ToString());
+        Assert.Equal("c", actual.Comments[1].ToString());
     }
 
     [Theory]
@@ -231,14 +217,14 @@ public partial class JpegEncoderTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(JpegDecoder.Instance);
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
         // act
         input.Save(memoryStream, JpegEncoder);
 
         // assert
         memoryStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memoryStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memoryStream);
         JpegMetadata meta = output.Metadata.GetJpegMetadata();
         Assert.Equal(expectedColorType, meta.ColorType);
     }

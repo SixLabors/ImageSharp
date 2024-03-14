@@ -10,38 +10,38 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Supported 4 character codes for use in HEIF images.
 /// </summary>
-[GeneratedCode("T4", "")]
+[GeneratedCode("TextTemplateFileGenerator", "")]
 public enum Heif4CharCode : uint
 {
     /// <summary>
     /// File Type.
     /// </summary>
-    ftyp = 0x66747970U,
+    Ftyp = 0x66747970U,
 
     /// <summary>
     /// Metadata.
     /// </summary>
-    meta = 0x6D657461U,
+    Meta = 0x6D657461U,
 
     /// <summary>
     /// Media Data.
     /// </summary>
-    mdat = 0x6D646174U,
+    Mdat = 0x6D646174U,
 
     /// <summary>
     /// Item Information Entry.
     /// </summary>
-    infe = 0x696E6665U,
+    Infe = 0x696E6665U,
 
     /// <summary>
     /// Item Data.
     /// </summary>
-    idat = 0x69646174U,
+    Idat = 0x69646174U,
 
     /// <summary>
     /// Item Location.
     /// </summary>
-    iloc = 0x696C6F63U,
+    Iloc = 0x696C6F63U,
 
     /// <summary>
     /// EXIF metadata.
@@ -51,211 +51,211 @@ public enum Heif4CharCode : uint
     /// <summary>
     /// Data Reference.
     /// </summary>
-    dref = 0x64726566U,
+    Dref = 0x64726566U,
 
     /// <summary>
     /// Primary Item.
     /// </summary>
-    pitm = 0x7069746DU,
+    Pitm = 0x7069746DU,
 
     /// <summary>
     /// Item Spatial Extent.
     /// </summary>
-    ispe = 0x69737065U,
+    Ispe = 0x69737065U,
 
     /// <summary>
     /// Alternative text.
     /// </summary>
-    altt = 0x616C7474U,
+    Altt = 0x616C7474U,
 
     /// <summary>
     /// Colour information.
     /// </summary>
-    colr = 0x636F6C72U,
+    Colr = 0x636F6C72U,
 
     /// <summary>
     /// HVC configuration.
     /// </summary>
-    hvcC = 0x68766343U,
+    HvcC = 0x68766343U,
 
     /// <summary>
     /// AV1 configuration.
     /// </summary>
-    av1C = 0x61763143U,
+    Av1C = 0x61763143U,
 
     /// <summary>
     /// Image Mirror.
     /// </summary>
-    imir = 0x696D6972U,
+    Imir = 0x696D6972U,
 
     /// <summary>
     /// Image Rotation.
     /// </summary>
-    irot = 0x69726F74U,
+    Irot = 0x69726F74U,
 
     /// <summary>
     /// Image Scaling.
     /// </summary>
-    iscl = 0x6973636CU,
+    Iscl = 0x6973636CU,
 
     /// <summary>
     /// Pixel Aspect Ratio.
     /// </summary>
-    pasp = 0x70617370U,
+    Pasp = 0x70617370U,
 
     /// <summary>
     /// Pixel Information.
     /// </summary>
-    pixi = 0x70697869U,
+    Pixi = 0x70697869U,
 
     /// <summary>
     /// Reference Location.
     /// </summary>
-    rloc = 0x726C6F63U,
+    Rloc = 0x726C6F63U,
 
     /// <summary>
     /// User Description.
     /// </summary>
-    udes = 0x75646573U,
+    Udes = 0x75646573U,
 
     /// <summary>
     /// IPMP Control Box.
     /// </summary>
-    ipmc = 0x69706D63U,
+    Ipmc = 0x69706D63U,
 
     /// <summary>
     /// Item Property Container.
     /// </summary>
-    ipco = 0x6970636FU,
+    Ipco = 0x6970636FU,
 
     /// <summary>
     /// Item Property Association.
     /// </summary>
-    ipma = 0x69706D61U,
+    Ipma = 0x69706D61U,
 
     /// <summary>
     /// High Efficient Image Coding brand.
     /// </summary>
-    heic = 0x68656963U,
+    Heic = 0x68656963U,
 
     /// <summary>
     /// High Efficient Image Coding brand (legacy name).
     /// </summary>
-    heix = 0x68656978U,
+    Heix = 0x68656978U,
 
     /// <summary>
     /// High Efficient File brand.
     /// </summary>
-    mif1 = 0x6D696631U,
+    Mif1 = 0x6D696631U,
 
     /// <summary>
     /// AVIF brand.
     /// </summary>
-    avif = 0x61766966U,
+    Avif = 0x61766966U,
 
     /// <summary>
     /// High Efficiency Coding tile.
     /// </summary>
-    hvc1 = 0x68766331U,
+    Hvc1 = 0x68766331U,
 
     /// <summary>
     /// Legacy JPEG coded tile.
     /// </summary>
-    jpeg = 0x6A706567U,
+    Jpeg = 0x6A706567U,
 
     /// <summary>
     /// AOMedia Video Coding tile.
     /// </summary>
-    av01 = 0x61763031U,
+    Av01 = 0x61763031U,
 
     /// <summary>
     /// Data Information.
     /// </summary>
-    dinf = 0x64696E66U,
+    Dinf = 0x64696E66U,
 
     /// <summary>
     /// Group list.
     /// </summary>
-    grpl = 0x6772706CU,
+    Grpl = 0x6772706CU,
 
     /// <summary>
     /// Handler.
     /// </summary>
-    hdlr = 0x68646C72U,
+    Hdlr = 0x68646C72U,
 
     /// <summary>
     /// Item Information.
     /// </summary>
-    iinf = 0x69696E66U,
+    Iinf = 0x69696E66U,
 
     /// <summary>
     /// Item Property.
     /// </summary>
-    iprp = 0x69707270U,
+    Iprp = 0x69707270U,
 
     /// <summary>
     /// Item Protection.
     /// </summary>
-    ipro = 0x6970726FU,
+    Ipro = 0x6970726FU,
 
     /// <summary>
     /// Item Reference.
     /// </summary>
-    iref = 0x69726566U,
+    Iref = 0x69726566U,
 
     /// <summary>
     /// Grid.
     /// </summary>
-    grid = 0x67726964U,
+    Grid = 0x67726964U,
 
     /// <summary>
     /// Derived Image.
     /// </summary>
-    dimg = 0x64696D67U,
+    Dimg = 0x64696D67U,
 
     /// <summary>
     /// Thumbnail.
     /// </summary>
-    thmb = 0x74686D62U,
+    Thmb = 0x74686D62U,
 
     /// <summary>
     /// Content Description.
     /// </summary>
-    cdsc = 0x63647363U,
+    Cdsc = 0x63647363U,
 
     /// <summary>
     /// MIME type.
     /// </summary>
-    mime = 0x6D696D65U,
+    Mime = 0x6D696D65U,
 
     /// <summary>
     /// URI.
     /// </summary>
-    uri  = 0x75726920U,
+    Uri  = 0x75726920U,
 
     /// <summary>
     /// Picture handler type.
     /// </summary>
-    pict = 0x70696374U,
+    Pict = 0x70696374U,
 
     /// <summary>
     /// Unique Identifier.
     /// </summary>
-    uuid = 0x75756964U,
+    Uuid = 0x75756964U,
 
     /// <summary>
     /// Free space.
     /// </summary>
-    free = 0x66726565U,
+    Free = 0x66726565U,
 
     /// <summary>
     /// ICC Color Profile.
     /// </summary>
-    rICC = 0x72494343U,
+    RICC = 0x72494343U,
 
     /// <summary>
     /// ICC Color Profile.
     /// </summary>
-    prof = 0x70726F66U,
+    Prof = 0x70726F66U,
 
 }

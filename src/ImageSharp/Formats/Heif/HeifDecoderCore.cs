@@ -71,13 +71,13 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             EnsureBoxBoundary(boxLength, stream);
             switch (boxType)
             {
-                case Heif4CharCode.meta:
+                case Heif4CharCode.Meta:
                     this.ParseMetadata(stream, boxLength);
                     break;
-                case Heif4CharCode.mdat:
+                case Heif4CharCode.Mdat:
                     image = this.ParseMediaData<TPixel>(stream, boxLength);
                     break;
-                case Heif4CharCode.free:
+                case Heif4CharCode.Free:
                     SkipBox(stream, boxLength);
                     break;
                 case 0U:
@@ -115,7 +115,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             EnsureBoxBoundary(boxLength, stream);
             switch (boxType)
             {
-                case Heif4CharCode.meta:
+                case Heif4CharCode.Meta:
                     this.ParseMetadata(stream, boxLength);
                     break;
                 default:
@@ -141,21 +141,21 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         long boxLength = this.ReadBoxHeader(stream, out Heif4CharCode boxType);
         Span<byte> buffer = this.ReadIntoBuffer(stream, boxLength);
         uint majorBrand = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-        bool correctBrand = majorBrand is (uint)Heif4CharCode.heic or (uint)Heif4CharCode.heix or (uint)Heif4CharCode.avif;
+        bool correctBrand = majorBrand is (uint)Heif4CharCode.Heic or (uint)Heif4CharCode.Heix or (uint)Heif4CharCode.Avif;
 
         // TODO: Interpret minorVersion and compatible brands.
-        return boxType == Heif4CharCode.ftyp && correctBrand;
+        return boxType == Heif4CharCode.Ftyp && correctBrand;
     }
 
     private void UpdateMetadata(ImageMetadata metadata, HeifItem item)
     {
         HeifMetadata meta = metadata.GetHeifMetadata();
         HeifCompressionMethod compressionMethod = HeifCompressionMethod.Hevc;
-        if (item.Type == Heif4CharCode.av01)
+        if (item.Type == Heif4CharCode.Av01)
         {
             compressionMethod = HeifCompressionMethod.Av1;
         }
-        else if (item.Type == Heif4CharCode.jpeg || this.itemLinks.Any(link => link.Type == Heif4CharCode.thmb))
+        else if (item.Type == Heif4CharCode.Jpeg || this.itemLinks.Any(link => link.Type == Heif4CharCode.Thmb))
         {
             compressionMethod = HeifCompressionMethod.LegacyJpeg;
         }
@@ -209,30 +209,30 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             EnsureBoxBoundary(length, boxLength);
             switch (boxType)
             {
-                case Heif4CharCode.iprp:
+                case Heif4CharCode.Iprp:
                     this.ParseItemProperties(stream, length);
                     break;
-                case Heif4CharCode.iinf:
+                case Heif4CharCode.Iinf:
                     this.ParseItemInfo(stream, length);
                     break;
-                case Heif4CharCode.iref:
+                case Heif4CharCode.Iref:
                     this.ParseItemReference(stream, length);
                     break;
-                case Heif4CharCode.pitm:
+                case Heif4CharCode.Pitm:
                     this.ParsePrimaryItem(stream, length);
                     break;
-                case Heif4CharCode.hdlr:
+                case Heif4CharCode.Hdlr:
                     this.ParseHandler(stream, length);
                     break;
-                case Heif4CharCode.iloc:
+                case Heif4CharCode.Iloc:
                     this.ParseItemLocation(stream, length);
                     break;
-                case Heif4CharCode.dinf:
-                case Heif4CharCode.idat:
-                case Heif4CharCode.grpl:
-                case Heif4CharCode.ipro:
-                case Heif4CharCode.uuid:
-                case Heif4CharCode.ipmc:
+                case Heif4CharCode.Dinf:
+                case Heif4CharCode.Idat:
+                case Heif4CharCode.Grpl:
+                case Heif4CharCode.Ipro:
+                case Heif4CharCode.Uuid:
+                case Heif4CharCode.Ipmc:
                     // Silently skip these boxes.
                     SkipBox(stream, length);
                     break;
@@ -249,7 +249,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         // Only read the handler type, to check if this is not a movie file.
         int bytesRead = 8;
         Heif4CharCode handlerType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
-        if (handlerType != Heif4CharCode.pict)
+        if (handlerType != Heif4CharCode.Pict)
         {
             throw new ImageFormatException("Not a picture file.");
         }
@@ -323,7 +323,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             item = new HeifItem(itemType, itemId);
             item.Name = ReadNullTerminatedString(buffer[bytesRead..]);
             bytesRead += item.Name.Length + 1;
-            if (item.Type == Heif4CharCode.mime)
+            if (item.Type == Heif4CharCode.Mime)
             {
                 item.ContentType = ReadNullTerminatedString(buffer[bytesRead..]);
                 bytesRead += item.ContentType.Length + 1;
@@ -335,7 +335,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                     bytesRead += item.ContentEncoding.Length + 1;
                 }
             }
-            else if (item.Type == Heif4CharCode.uri)
+            else if (item.Type == Heif4CharCode.Uri)
             {
                 item.UriType = ReadNullTerminatedString(buffer[bytesRead..]);
                 bytesRead += item.UriType.Length + 1;
@@ -392,12 +392,12 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         {
             long containerLength = this.ReadBoxHeader(stream, out Heif4CharCode containerType);
             EnsureBoxBoundary(containerLength, boxLength);
-            if (containerType == Heif4CharCode.ipco)
+            if (containerType == Heif4CharCode.Ipco)
             {
                 // Parse Item Property Container, which is just an array of property boxes.
                 this.ParsePropertyContainer(stream, containerLength, properties);
             }
-            else if (containerType == Heif4CharCode.ipma)
+            else if (containerType == Heif4CharCode.Ipma)
             {
                 // Parse Item Property Association
                 this.ParsePropertyAssociation(stream, containerLength, properties);
@@ -419,18 +419,18 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             Span<byte> buffer = this.ReadIntoBuffer(stream, itemLength);
             switch (itemType)
             {
-                case Heif4CharCode.ispe:
+                case Heif4CharCode.Ispe:
                     // Skip over version (8 bits) and flags (24 bits).
                     int width = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
                     int height = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[8..]);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.ispe, new Size(width, height)));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size(width, height)));
                     break;
-                case Heif4CharCode.pasp:
+                case Heif4CharCode.Pasp:
                     int horizontalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer);
                     int verticalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.pasp, new Size(horizontalSpacing, verticalSpacing)));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pasp, new Size(horizontalSpacing, verticalSpacing)));
                     break;
-                case Heif4CharCode.pixi:
+                case Heif4CharCode.Pixi:
                     // Skip over version (8 bits) and flags (24 bits).
                     int channelCount = buffer[4];
                     int offset = 5;
@@ -440,12 +440,12 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                         bitsPerPixel += buffer[offset + i];
                     }
 
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.pixi, new int[] { channelCount, bitsPerPixel }));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, new int[] { channelCount, bitsPerPixel }));
 
                     break;
-                case Heif4CharCode.colr:
+                case Heif4CharCode.Colr:
                     Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer);
-                    if (profileType is Heif4CharCode.rICC or Heif4CharCode.prof)
+                    if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
                     {
                         byte[] iccData = new byte[itemLength - 4];
                         buffer[4..].CopyTo(iccData);
@@ -453,14 +453,14 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                     }
 
                     break;
-                case Heif4CharCode.altt:
-                case Heif4CharCode.imir:
-                case Heif4CharCode.irot:
-                case Heif4CharCode.iscl:
-                case Heif4CharCode.hvcC:
-                case Heif4CharCode.av1C:
-                case Heif4CharCode.rloc:
-                case Heif4CharCode.udes:
+                case Heif4CharCode.Altt:
+                case Heif4CharCode.Imir:
+                case Heif4CharCode.Irot:
+                case Heif4CharCode.Iscl:
+                case Heif4CharCode.HvcC:
+                case Heif4CharCode.Av1C:
+                case Heif4CharCode.Rloc:
+                case Heif4CharCode.Udes:
                     // TODO: Implement
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, new object()));
                     break;
@@ -495,13 +495,13 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             KeyValuePair<Heif4CharCode, object> prop = properties[(int)propId];
             switch (prop.Key)
             {
-                case Heif4CharCode.ispe:
+                case Heif4CharCode.Ispe:
                     this.items[itemId].SetExtent((Size)prop.Value);
                     break;
-                case Heif4CharCode.pasp:
+                case Heif4CharCode.Pasp:
                     this.items[itemId].PixelAspectRatio = (Size)prop.Value;
                     break;
-                case Heif4CharCode.pixi:
+                case Heif4CharCode.Pixi:
                     int[] values = (int[])prop.Value;
                     this.items[itemId].ChannelCount = values[0];
                     this.items[itemId].BitsPerPixel = values[1];
@@ -606,14 +606,14 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // FIXME: No HVC decoding yet, so parse only a JPEG thumbnail.
-        HeifItemLink? thumbLink = this.itemLinks.FirstOrDefault(link => link.Type == Heif4CharCode.thmb);
+        HeifItemLink? thumbLink = this.itemLinks.FirstOrDefault(link => link.Type == Heif4CharCode.Thmb);
         if (thumbLink == null)
         {
             throw new NotImplementedException("No thumbnail found");
         }
 
         HeifItem? thumbItem = this.FindItemById(thumbLink.SourceId);
-        if (thumbItem == null || thumbItem.Type != Heif4CharCode.jpeg)
+        if (thumbItem == null || thumbItem.Type != Heif4CharCode.Jpeg)
         {
             throw new NotImplementedException("No HVC decoding implemented yet");
         }

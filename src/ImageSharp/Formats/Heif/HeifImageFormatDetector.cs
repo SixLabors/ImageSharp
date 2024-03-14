@@ -23,8 +23,8 @@ public sealed class HeifImageFormatDetector : IImageFormatDetector
 
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {
-        bool hasFtyp = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heif4CharCode.ftyp;
+        bool hasFtyp = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4)) == (uint)Heif4CharCode.Ftyp;
         uint brand = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(8));
-        return hasFtyp && (brand == (uint)Heif4CharCode.heic || brand == (uint)Heif4CharCode.heix || brand == (uint)Heif4CharCode.avif);
+        return hasFtyp && (brand == (uint)Heif4CharCode.Heic || brand == (uint)Heif4CharCode.Heix || brand == (uint)Heif4CharCode.Avif);
     }
 }

@@ -1,6 +1,6 @@
 <#@ template language="C#" #>
-<#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Text" #>
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Supported 4 character codes for use in HEIF images.
 /// </summary>
-[GeneratedCode("T4", "")]
+[GeneratedCode("TextTemplateFileGenerator", "")]
 public enum Heif4CharCode : uint
 {
 <#
@@ -74,18 +74,25 @@ public enum Heif4CharCode : uint
     {
         string shortName = codes[i];
         string longName = codes[i + 1];
+        string pascal = PascalCasing(shortName);
         string hex = Code2Hex(shortName);
 #>
     /// <summary>
     /// <#= longName #>.
     /// </summary>
-    <#= shortName #> = <#= hex #>,
+    <#= pascal #> = <#= hex #>,
 
 <#
     }
 #>
 }
 <#+
+
+private string PascalCasing(string code)
+{
+    char firstChar = char.ToUpper(code[0], System.Globalization.CultureInfo.InvariantCulture);
+    return string.Concat(firstChar, code.Substring(1));
+}
 
 private string Code2Hex(string code)
 {

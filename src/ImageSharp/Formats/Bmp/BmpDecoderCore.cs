@@ -898,7 +898,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                     {
                         int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
 
-                        image[newY, newX].FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
+                        image[newY, newX] = Bgra32.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
                     }
 
                     offset++;
@@ -942,7 +942,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
 
             for (int x = 0; x < width; x++)
             {
-                pixelRow[x].FromBgra32(image[newY, x]);
+                pixelRow[x] = TPixel.FromBgra32(image[newY, x]);
             }
         }
     }

@@ -20,15 +20,15 @@ public partial struct Rgba32
         /// <inheritdoc />
         public override void ToVector4(
             Configuration configuration,
-            ReadOnlySpan<Rgba32> sourcePixels,
+            ReadOnlySpan<Rgba32> source,
             Span<Vector4> destinationVectors,
             PixelConversionModifiers modifiers)
         {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
+            Guard.DestinationShouldNotBeTooShort(source, destinationVectors, nameof(destinationVectors));
 
-            destinationVectors = destinationVectors[..sourcePixels.Length];
+            destinationVectors = destinationVectors[..source.Length];
             SimdUtils.ByteToNormalizedFloat(
-                MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
+                MemoryMarshal.Cast<Rgba32, byte>(source),
                 MemoryMarshal.Cast<Vector4, float>(destinationVectors));
             Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
         }
@@ -37,16 +37,16 @@ public partial struct Rgba32
         public override void FromVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
-            Span<Rgba32> destinationPixels,
+            Span<Rgba32> destination,
             PixelConversionModifiers modifiers)
         {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
 
-            destinationPixels = destinationPixels[..sourceVectors.Length];
+            destination = destination[..sourceVectors.Length];
             Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
             SimdUtils.NormalizedFloatToByteSaturate(
                 MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                MemoryMarshal.Cast<Rgba32, byte>(destinationPixels));
+                MemoryMarshal.Cast<Rgba32, byte>(destination));
         }
 
         /// <inheritdoc />

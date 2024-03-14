@@ -16,8 +16,8 @@ public class ToVector4_Bgra32 : ToVector4<Bgra32>
     {
         new PixelOperations<Bgra32>().ToVector4(
             this.Configuration,
-            this.source.GetSpan(),
-            this.destination.GetSpan());
+            this.Source.GetSpan(),
+            this.Destination.GetSpan());
     }
 
     // RESULTS:

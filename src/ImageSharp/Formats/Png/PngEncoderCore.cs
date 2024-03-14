@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Hashing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -1559,7 +1560,24 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             {
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
-                this.derivedTransparencyIndex = metadata.ColorTable.Value.Span.IndexOf(Color.Transparent);
+                ReadOnlySpan<Color> palette = metadata.ColorTable.Value.Span;
+
+                // Certain operations perform alpha premultiplication, which can cause the color to change so we
+                // must search for the transparency index in the palette.
+                // Transparent pixels are much more likely to be found at the end of a palette.
+                int index = -1;
+                for (int i = palette.Length - 1; i >= 0; i--)
+                {
+                    Vector4 instance = palette[i].ToScaledVector4();
+                    if (instance.W == 0f)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                this.derivedTransparencyIndex = index;
+
                 this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null }, this.derivedTransparencyIndex);
             }
             else

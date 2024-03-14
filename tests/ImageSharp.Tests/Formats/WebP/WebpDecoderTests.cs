@@ -439,6 +439,17 @@ public class WebpDecoderTests
         image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2670
+    [Theory]
+    [WithFile(Lossy.Issue2670, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2670<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
     [Theory]
     [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
     public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)

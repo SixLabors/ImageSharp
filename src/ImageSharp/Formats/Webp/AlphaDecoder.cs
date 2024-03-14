@@ -6,7 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
@@ -311,32 +313,28 @@ internal class AlphaDecoder : IDisposable
 
     private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
-        if (Sse2.IsSupported)
+        if ((Sse2.IsSupported || AdvSimd.IsSupported) && width >= 9)
         {
             dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
-            if (width <= 1)
-            {
-                return;
-            }
-
             nuint i;
             Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
             ref byte srcRef = ref MemoryMarshal.GetReference(input);
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+
             for (i = 1; i <= (uint)width - 8; i += 8)
             {
                 Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
-                Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
-                Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
-                Vector128<byte> a3 = Sse2.Add(a1, a2);
-                Vector128<byte> a4 = Sse2.ShiftLeftLogical128BitLane(a3, 2);
-                Vector128<byte> a5 = Sse2.Add(a3, a4);
-                Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
-                Vector128<byte> a7 = Sse2.Add(a5, a6);
+                Vector128<byte> a1 = a0.AsByte() + last.AsByte();
+                Vector128<byte> a2 = Vector128Utilities.ShiftLeftBytesInVector(a1, 1);
+                Vector128<byte> a3 = a1 + a2;
+                Vector128<byte> a4 = Vector128Utilities.ShiftLeftBytesInVector(a3, 2);
+                Vector128<byte> a5 = a3 + a4;
+                Vector128<byte> a6 = Vector128Utilities.ShiftLeftBytesInVector(a5, 4);
+                Vector128<byte> a7 = a5 + a6;
 
                 ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
                 Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
-                last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
+                last = Vector128.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
             }
 
             for (; i < (uint)width; ++i)

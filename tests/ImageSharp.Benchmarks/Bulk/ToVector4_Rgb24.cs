@@ -16,8 +16,8 @@ public class ToVector4_Rgb24 : ToVector4<Rgb24>
     {
         new PixelOperations<Rgb24>().ToVector4(
             this.Configuration,
-            this.source.GetSpan(),
-            this.destination.GetSpan());
+            this.Source.GetSpan(),
+            this.Destination.GetSpan());
     }
 }
 

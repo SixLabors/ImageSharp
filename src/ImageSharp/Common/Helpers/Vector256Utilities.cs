@@ -25,7 +25,7 @@ internal static class Vector256Utilities
     public static bool SupportsShuffleFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx.IsSupported;
+        get => Avx.IsSupported || Sse.IsSupported;
     }
 
     /// <summary>
@@ -43,11 +43,19 @@ internal static class Vector256Utilities
     /// <param name="vector">The input vector from which values are selected.</param>
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Shuffle(Vector256<float> vector, [ConstantExpected] byte control)
     {
         if (Avx.IsSupported)
         {
             return Avx.Shuffle(vector, vector, control);
+        }
+
+        if (Sse.IsSupported)
+        {
+            Vector128<float> lower = vector.GetLower();
+            Vector128<float> upper = vector.GetUpper();
+            return Vector256.Create(Sse.Shuffle(lower, lower, control), Sse.Shuffle(upper, upper, control));
         }
 
         ThrowUnreachableException();
@@ -62,6 +70,7 @@ internal static class Vector256Utilities
     /// The per-element indices used to select a value from <paramref name="vector" />.
     /// </param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> Shuffle(Vector256<byte> vector, Vector256<byte> indices)
     {
         if (Avx2.IsSupported)
@@ -71,6 +80,34 @@ internal static class Vector256Utilities
 
         ThrowUnreachableException();
         return default;
+    }
+
+    /// <summary>
+    /// Performs a conversion from a 256-bit vector of 8 single-precision floating-point values to a 256-bit vector of 8 signed 32-bit integer values.
+    /// Rounding is equivalent to <see cref="MidpointRounding.ToEven"/>.
+    /// </summary>
+    /// <param name="vector">The value to convert.</param>
+    /// <returns>The <see cref="Vector256{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> ConvertToInt32RoundToEven(Vector256<float> vector)
+    {
+        if (Avx.IsSupported)
+        {
+            return Avx.ConvertToVector256Int32(vector);
+        }
+
+        if (Sse2.IsSupported)
+        {
+            Vector128<int> lower = Sse2.ConvertToVector128Int32(vector.GetLower());
+            Vector128<int> upper = Sse2.ConvertToVector128Int32(vector.GetUpper());
+            return Vector256.Create(lower, upper);
+        }
+
+        Vector256<float> sign = vector & Vector256.Create(-0.0f);
+        Vector256<float> val_2p23_f32 = sign | Vector256.Create(8388608.0f);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return Vector256.ConvertToInt32(val_2p23_f32 | sign);
     }
 
     [DoesNotReturn]

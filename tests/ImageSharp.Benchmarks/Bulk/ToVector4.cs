@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 public abstract class ToVector4<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    protected IMemoryOwner<TPixel> source;
+    protected IMemoryOwner<TPixel> Source { get; set; }
 
-    protected IMemoryOwner<Vector4> destination;
+    protected IMemoryOwner<Vector4> Destination { get; set; }
 
     protected Configuration Configuration => Configuration.Default;
 
@@ -26,22 +26,22 @@ public abstract class ToVector4<TPixel>
     [GlobalSetup]
     public void Setup()
     {
-        this.source = this.Configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
-        this.destination = this.Configuration.MemoryAllocator.Allocate<Vector4>(this.Count);
+        this.Source = this.Configuration.MemoryAllocator.Allocate<TPixel>(this.Count);
+        this.Destination = this.Configuration.MemoryAllocator.Allocate<Vector4>(this.Count);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
-        this.source.Dispose();
-        this.destination.Dispose();
+        this.Source.Dispose();
+        this.Destination.Dispose();
     }
 
     // [Benchmark]
     public void Naive()
     {
-        Span<TPixel> s = this.source.GetSpan();
-        Span<Vector4> d = this.destination.GetSpan();
+        Span<TPixel> s = this.Source.GetSpan();
+        Span<Vector4> d = this.Destination.GetSpan();
 
         for (int i = 0; i < this.Count; i++)
         {
@@ -50,11 +50,8 @@ public abstract class ToVector4<TPixel>
     }
 
     [Benchmark]
-    public void PixelOperations_Specialized()
-    {
-        PixelOperations<TPixel>.Instance.ToVector4(
+    public void PixelOperations_Specialized() => PixelOperations<TPixel>.Instance.ToVector4(
             this.Configuration,
-            this.source.GetSpan(),
-            this.destination.GetSpan());
-    }
+            this.Source.GetSpan(),
+            this.Destination.GetSpan());
 }

@@ -62,6 +62,7 @@ internal static class Vector128Utilities
     /// <param name="vector">The input vector from which values are selected.</param>
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector128{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<float> Shuffle(Vector128<float> vector, [ConstantExpected] byte control)
     {
         if (Sse.IsSupported)
@@ -84,6 +85,7 @@ internal static class Vector128Utilities
     /// <returns>
     /// A new vector containing the values from <paramref name="vector" /> selected by the given <paramref name="indices" />.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> Shuffle(Vector128<byte> vector, Vector128<byte> indices)
     {
         if (Ssse3.IsSupported)
@@ -155,6 +157,7 @@ internal static class Vector128Utilities
     /// <param name="right">The right hand source vector.</param>
     /// <param name="mask">An 8-bit mask used for the operation.</param>
     /// <returns>The <see cref="Vector128{Byte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> AlignRight(Vector128<byte> left, Vector128<byte> right, [ConstantExpected(Max = (byte)15)] byte mask)
     {
         if (Ssse3.IsSupported)
@@ -165,6 +168,77 @@ internal static class Vector128Utilities
         if (AdvSimd.IsSupported)
         {
             return AdvSimd.ExtractVector128(right, left, mask);
+        }
+
+        ThrowUnreachableException();
+        return default;
+    }
+
+    /// <summary>
+    /// Performs a conversion from a 128-bit vector of 4 single-precision floating-point values to a 128-bit vector of 4 signed 32-bit integer values.
+    /// Rounding is equivalent to <see cref="MidpointRounding.ToEven"/>.
+    /// </summary>
+    /// <param name="vector">The value to convert.</param>
+    /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> ConvertToInt32RoundToEven(Vector128<float> vector)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.ConvertToVector128Int32(vector);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ConvertToInt32RoundToEven(vector);
+        }
+
+        Vector128<float> sign = vector & Vector128.Create(-0.0f);
+        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608.0f);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return Vector128.ConvertToInt32(val_2p23_f32 | sign);
+    }
+
+    /// <summary>
+    /// Packs signed 16-bit integers to unsigned 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    public static Vector128<byte> PackUnsignedSaturate(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackUnsignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ExtractNarrowingSaturateUnsignedUpper(AdvSimd.ExtractNarrowingSaturateUnsignedLower(left), right);
+        }
+
+        ThrowUnreachableException();
+        return default;
+    }
+
+    /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> PackSignedSaturate(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ExtractNarrowingSaturateUpper(AdvSimd.ExtractNarrowingSaturateLower(left), right);
         }
 
         ThrowUnreachableException();

@@ -73,6 +73,7 @@ public static class TestImages
         public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+        public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -150,6 +151,9 @@ public static class TestImages
         // Issue 2447: https://github.com/SixLabors/ImageSharp/issues/2447
         public const string Issue2447 = "Png/issues/issue_2447.png";
 
+        // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
+        public const string Issue2668 = "Png/issues/Issue_2668.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -182,8 +186,10 @@ public static class TestImages
             // Invalid color type.
             public const string ColorTypeOne = "Png/xc1n0g08.png";
             public const string ColorTypeNine = "Png/xc9n2c08.png";
-
             public const string FlagOfGermany0000016446 = "Png/issues/flag_of_germany-0000016446.png";
+
+            public const string BadZTXT = "Png/issues/bad-ztxt.png";
+            public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
         }
     }
 
@@ -309,6 +315,7 @@ public static class TestImages
             public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
             public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
+            public const string Issue2067_CommentMarker = "Jpg/issues/issue-2067-comment.jpg";
 
             public static class Fuzz
             {
@@ -805,6 +812,7 @@ public static class TestImages
             public const string Issue1594 = "Webp/issues/Issue1594.webp";
             public const string Issue2243 = "Webp/issues/Issue2243.webp";
             public const string Issue2257 = "Webp/issues/Issue2257.webp";
+            public const string Issue2670 = "Webp/issues/Issue2670.webp";
         }
     }
 

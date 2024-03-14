@@ -127,6 +127,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private readonly Crc32 crc32 = new();
 
     /// <summary>
+    /// The maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
+    /// </summary>
+    private readonly int maxUncompressedLength;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -138,6 +143,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
@@ -149,6 +155,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     /// <inheritdoc/>
@@ -602,23 +609,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // When ignoring data CRCs, we can't use the image constructor that leaves the buffer uncleared.
-        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
-        {
-            image = new Image<TPixel>(
-                this.configuration,
-                this.header.Width,
-                this.header.Height,
-                metadata);
-        }
-        else
-        {
-            image = Image.CreateUninitialized<TPixel>(
-                this.configuration,
-                this.header.Width,
-                this.header.Height,
-                metadata);
-        }
+        image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
 
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
@@ -1575,7 +1566,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryDecompressZlibData(compressedData, out byte[] iccpProfileBytes))
+        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
         {
             metadata.IccProfile = new IccProfile(iccpProfileBytes);
         }
@@ -1585,9 +1576,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Tries to decompress zlib compressed data.
     /// </summary>
     /// <param name="compressedData">The compressed data.</param>
+    /// <param name="maxLength">The maximum uncompressed length.</param>
     /// <param name="uncompressedBytesArray">The uncompressed bytes array.</param>
     /// <returns>True, if de-compressing was successful.</returns>
-    private unsafe bool TryDecompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
+    private unsafe bool TryDecompressZlibData(ReadOnlySpan<byte> compressedData, int maxLength, out byte[] uncompressedBytesArray)
     {
         fixed (byte* compressedDataBase = compressedData)
         {
@@ -1607,6 +1599,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
             while (bytesRead != 0)
             {
+                if (memoryStreamOutput.Length > maxLength)
+                {
+                    uncompressedBytesArray = Array.Empty<byte>();
+                    return false;
+                }
+
                 memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
                 bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
             }
@@ -1749,7 +1747,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <returns>The <see cref="bool"/>.</returns>
     private bool TryDecompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)] out string? value)
     {
-        if (this.TryDecompressZlibData(compressedData, out byte[] uncompressedData))
+        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] uncompressedData))
         {
             value = encoding.GetString(uncompressedData);
             return true;
@@ -1874,8 +1872,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngChunkType type = this.ReadChunkType(buffer);
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
-        // We can skip all other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency && type != PngChunkType.Palette)
+        // We can skip most other chunk data in the stream for better performance.
+        if (this.colorMetadataOnly &&
+            type != PngChunkType.Header &&
+            type != PngChunkType.Transparency &&
+            type != PngChunkType.Palette &&
+            type != PngChunkType.AnimationControl &&
+            type != PngChunkType.FrameControl)
         {
             chunk = new PngChunk(length, type);
             return true;

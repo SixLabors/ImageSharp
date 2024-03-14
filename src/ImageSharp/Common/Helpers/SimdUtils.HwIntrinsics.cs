@@ -17,8 +17,13 @@ internal static partial class SimdUtils
 {
     public static class HwIntrinsics
     {
+#pragma warning disable SA1117 // Parameters should be on same line or separate lines
+#pragma warning disable SA1137 // Elements should have the same indentation
         [MethodImpl(MethodImplOptions.AggressiveInlining)] // too much IL for JIT to inline, so give a hint
-        public static Vector256<int> PermuteMaskDeinterleave8x32() => Vector256.Create(0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0).AsInt32();
+        public static Vector256<int> PermuteMaskDeinterleave8x32() => Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<int> PermuteMaskDeinterleave16x32() => Vector512.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<uint> PermuteMaskEvenOdd8x32() => Vector256.Create(0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
@@ -38,17 +43,15 @@ internal static partial class SimdUtils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<byte> ShuffleMaskSlice4Nx16() => Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
 
-#pragma warning disable SA1003, SA1116, SA1117 // Parameters should be on same line or separate lines
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<byte> ShuffleMaskShiftAlpha() => Vector256.Create((byte)
-            0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
-            0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
+        private static Vector256<byte> ShuffleMaskShiftAlpha() => Vector256.Create(
+            (byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
+                  0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<uint> PermuteMaskShiftAlpha8x32() => Vector256.Create(
-            0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0,
-            5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0).AsUInt32();
-#pragma warning restore SA1003, SA1116, SA1117 // Parameters should be on same line or separate lines
+        public static Vector256<uint> PermuteMaskShiftAlpha8x32() => Vector256.Create(0u, 1, 2, 4, 5, 6, 3, 7);
+#pragma warning restore SA1137 // Elements should have the same indentation
+#pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
         /// <summary>
         /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
@@ -749,17 +752,23 @@ internal static partial class SimdUtils
         /// <summary>
         /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void ByteToNormalizedFloatReduce(
             ref ReadOnlySpan<byte> source,
-            ref Span<float> dest)
+            ref Span<float> destination)
         {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if (Avx2.IsSupported || Sse2.IsSupported)
+            if (Vector128.IsHardwareAccelerated)
             {
                 int remainder;
-                if (Avx2.IsSupported)
+                if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
+                }
+                else if (Avx2.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
                 }
@@ -772,10 +781,10 @@ internal static partial class SimdUtils
 
                 if (adjustedCount > 0)
                 {
-                    ByteToNormalizedFloat(source[..adjustedCount], dest[..adjustedCount]);
+                    ByteToNormalizedFloat(source[..adjustedCount], destination[..adjustedCount]);
 
                     source = source[adjustedCount..];
-                    dest = dest[adjustedCount..];
+                    destination = destination[adjustedCount..];
                 }
             }
         }
@@ -783,97 +792,126 @@ internal static partial class SimdUtils
         /// <summary>
         /// Implementation <see cref="SimdUtils.ByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         /// <remarks>
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L80-L182
         /// </remarks>
         internal static unsafe void ByteToNormalizedFloat(
             ReadOnlySpan<byte> source,
-            Span<float> dest)
+            Span<float> destination)
         {
-            fixed (byte* sourceBase = source)
+            if (Vector512.IsHardwareAccelerated && Avx512F.IsSupported)
             {
-                if (Avx2.IsSupported)
+                DebugVerifySpanInput(source, destination, Vector512<byte>.Count);
+
+                nuint n = destination.Vector512Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector512<float> destinationBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+
+                for (nuint i = 0; i < n; i++)
                 {
-                    VerifySpanInput(source, dest, Vector256<byte>.Count);
+                    nuint si = (uint)Vector512<byte>.Count * i;
+                    Vector512<int> i0 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si));
+                    Vector512<int> i1 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)Vector512<int>.Count));
+                    Vector512<int> i2 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector512<int>.Count * 2)));
+                    Vector512<int> i3 = Avx512F.ConvertToVector512Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector512<int>.Count * 3)));
 
-                    nuint n = dest.Vector256Count<byte>();
+                    // Declare multiplier on each line. Codegen is better.
+                    Vector512<float> f0 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i0);
+                    Vector512<float> f1 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i1);
+                    Vector512<float> f2 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i2);
+                    Vector512<float> f3 = Vector512.Create(1 / (float)byte.MaxValue) * Avx512F.ConvertToVector512Single(i3);
 
-                    ref Vector256<float> destBase =
-                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
+                    ref Vector512<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    Vector256<float> scale = Vector256.Create(1 / (float)byte.MaxValue);
-
-                    for (nuint i = 0; i < n; i++)
-                    {
-                        nuint si = (uint)Vector256<byte>.Count * i;
-                        Vector256<int> i0 = Avx2.ConvertToVector256Int32(sourceBase + si);
-                        Vector256<int> i1 = Avx2.ConvertToVector256Int32(sourceBase + si + Vector256<int>.Count);
-                        Vector256<int> i2 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 2));
-                        Vector256<int> i3 = Avx2.ConvertToVector256Int32(sourceBase + si + (Vector256<int>.Count * 3));
-
-                        Vector256<float> f0 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i0));
-                        Vector256<float> f1 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i1));
-                        Vector256<float> f2 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i2));
-                        Vector256<float> f3 = Avx.Multiply(scale, Avx.ConvertToVector256Single(i3));
-
-                        ref Vector256<float> d = ref Unsafe.Add(ref destBase, i * 4);
-
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
-                    }
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
                 }
-                else
+            }
+            else if (Avx2.IsSupported)
+            {
+                DebugVerifySpanInput(source, destination, Vector256<byte>.Count);
+
+                nuint n = destination.Vector256Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector256<float> destinationBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
+
+                for (nuint i = 0; i < n; i++)
                 {
-                    // Sse
-                    VerifySpanInput(source, dest, Vector128<byte>.Count);
+                    nuint si = (uint)Vector256<byte>.Count * i;
+                    Vector256<int> i0 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si));
+                    Vector256<int> i1 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)Vector256<int>.Count));
+                    Vector256<int> i2 = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sourceBase, si + (nuint)(Vector256<int>.Count * 2)));
 
-                    nuint n = dest.Vector128Count<byte>();
+                    // Ensure overreads past 16 byte boundary do not happen in debug due to lack of containment.
+                    ref ulong refULong = ref Unsafe.As<byte, ulong>(ref Unsafe.Add(ref sourceBase, si));
+                    Vector256<int> i3 = Avx2.ConvertToVector256Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refULong, 3)).AsByte());
 
-                    ref Vector128<float> destBase =
-                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+                    // Declare multiplier on each line. Codegen is better.
+                    Vector256<float> f0 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i0);
+                    Vector256<float> f1 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i1);
+                    Vector256<float> f2 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i2);
+                    Vector256<float> f3 = Vector256.Create(1 / (float)byte.MaxValue) * Avx.ConvertToVector256Single(i3);
 
-                    Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
-                    Vector128<byte> zero = Vector128<byte>.Zero;
+                    ref Vector256<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
 
-                    for (nuint i = 0; i < n; i++)
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
+                }
+            }
+            else if (Vector128.IsHardwareAccelerated)
+            {
+                DebugVerifySpanInput(source, destination, Vector128<byte>.Count);
+
+                nuint n = destination.Vector128Count<byte>();
+
+                ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+                ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));
+
+                Vector128<float> scale = Vector128.Create(1 / (float)byte.MaxValue);
+
+                for (nuint i = 0; i < n; i++)
+                {
+                    nuint si = (uint)Vector128<byte>.Count * i;
+
+                    Vector128<int> i0, i1, i2, i3;
+                    if (Sse41.IsSupported)
                     {
-                        nuint si = (uint)Vector128<byte>.Count * i;
+                        ref int refInt = ref Unsafe.As<byte, int>(ref Unsafe.Add(ref sourceBase, si));
 
-                        Vector128<int> i0, i1, i2, i3;
-                        if (Sse41.IsSupported)
-                        {
-                            i0 = Sse41.ConvertToVector128Int32(sourceBase + si);
-                            i1 = Sse41.ConvertToVector128Int32(sourceBase + si + Vector128<int>.Count);
-                            i2 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 2));
-                            i3 = Sse41.ConvertToVector128Int32(sourceBase + si + (Vector128<int>.Count * 3));
-                        }
-                        else
-                        {
-                            Vector128<byte> b = Sse2.LoadVector128(sourceBase + si);
-                            Vector128<short> s0 = Sse2.UnpackLow(b, zero).AsInt16();
-                            Vector128<short> s1 = Sse2.UnpackHigh(b, zero).AsInt16();
-
-                            i0 = Sse2.UnpackLow(s0, zero.AsInt16()).AsInt32();
-                            i1 = Sse2.UnpackHigh(s0, zero.AsInt16()).AsInt32();
-                            i2 = Sse2.UnpackLow(s1, zero.AsInt16()).AsInt32();
-                            i3 = Sse2.UnpackHigh(s1, zero.AsInt16()).AsInt32();
-                        }
-
-                        Vector128<float> f0 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i0));
-                        Vector128<float> f1 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i1));
-                        Vector128<float> f2 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i2));
-                        Vector128<float> f3 = Sse.Multiply(scale, Sse2.ConvertToVector128Single(i3));
-
-                        ref Vector128<float> d = ref Unsafe.Add(ref destBase, i * 4);
-
-                        d = f0;
-                        Unsafe.Add(ref d, 1) = f1;
-                        Unsafe.Add(ref d, 2) = f2;
-                        Unsafe.Add(ref d, 3) = f3;
+                        i0 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(refInt).AsByte());
+                        i1 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 1)).AsByte());
+                        i2 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 2)).AsByte());
+                        i3 = Sse41.ConvertToVector128Int32(Vector128.CreateScalarUnsafe(Unsafe.Add(ref refInt, 3)).AsByte());
                     }
+                    else
+                    {
+                        // Sse2, AdvSimd, etc
+                        Vector128<byte> b = Vector128.LoadUnsafe(ref sourceBase, si);
+                        (Vector128<ushort> s0, Vector128<ushort> s1) = Vector128.Widen(b);
+                        (i0, i1) = Vector128.Widen(s0.AsInt16());
+                        (i2, i3) = Vector128.Widen(s1.AsInt16());
+                    }
+
+                    Vector128<float> f0 = scale * Vector128.ConvertToSingle(i0);
+                    Vector128<float> f1 = scale * Vector128.ConvertToSingle(i1);
+                    Vector128<float> f2 = scale * Vector128.ConvertToSingle(i2);
+                    Vector128<float> f3 = scale * Vector128.ConvertToSingle(i3);
+
+                    ref Vector128<float> d = ref Unsafe.Add(ref destinationBase, i * 4);
+
+                    d = f0;
+                    Unsafe.Add(ref d, 1) = f1;
+                    Unsafe.Add(ref d, 2) = f2;
+                    Unsafe.Add(ref d, 3) = f3;
                 }
             }
         }
@@ -881,17 +919,24 @@ internal static partial class SimdUtils
         /// <summary>
         /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static void NormalizedFloatToByteSaturateReduce(
             ref ReadOnlySpan<float> source,
-            ref Span<byte> dest)
+            ref Span<byte> destination)
         {
-            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-            if (Avx2.IsSupported || Sse2.IsSupported)
+            if (Sse2.IsSupported || AdvSimd.IsSupported)
             {
                 int remainder;
-                if (Avx2.IsSupported)
+
+                if (Vector512.IsHardwareAccelerated && Avx512BW.IsSupported)
+                {
+                    remainder = Numerics.ModuloP2(source.Length, Vector512<byte>.Count);
+                }
+                else if (Avx2.IsSupported)
                 {
                     remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
                 }
@@ -906,10 +951,10 @@ internal static partial class SimdUtils
                 {
                     NormalizedFloatToByteSaturate(
                         source[..adjustedCount],
-                        dest[..adjustedCount]);
+                        destination[..adjustedCount]);
 
                     source = source[adjustedCount..];
-                    dest = dest[adjustedCount..];
+                    destination = destination[adjustedCount..];
                 }
             }
         }
@@ -917,25 +962,58 @@ internal static partial class SimdUtils
         /// <summary>
         /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/>, which is faster on new .NET runtime.
         /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="destination">The destination buffer.</param>
         /// <remarks>
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L541-L622
         /// </remarks>
         internal static void NormalizedFloatToByteSaturate(
             ReadOnlySpan<float> source,
-            Span<byte> dest)
+            Span<byte> destination)
         {
-            if (Avx2.IsSupported)
+            if (Vector512.IsHardwareAccelerated && Avx512BW.IsSupported)
             {
-                VerifySpanInput(source, dest, Vector256<byte>.Count);
+                DebugVerifySpanInput(source, destination, Vector512<byte>.Count);
 
-                nuint n = dest.Vector256Count<byte>();
+                nuint n = destination.Vector512Count<byte>();
 
-                ref Vector256<float> sourceBase =
-                    ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector512<float> sourceBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector512<byte> destinationBase = ref Unsafe.As<byte, Vector512<byte>>(ref MemoryMarshal.GetReference(destination));
 
-                ref Vector256<byte> destBase =
-                    ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
+                Vector512<float> scale = Vector512.Create((float)byte.MaxValue);
+                Vector512<int> mask = PermuteMaskDeinterleave16x32();
+
+                for (nuint i = 0; i < n; i++)
+                {
+                    ref Vector512<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
+
+                    Vector512<float> f0 = scale * s;
+                    Vector512<float> f1 = scale * Unsafe.Add(ref s, 1);
+                    Vector512<float> f2 = scale * Unsafe.Add(ref s, 2);
+                    Vector512<float> f3 = scale * Unsafe.Add(ref s, 3);
+
+                    Vector512<int> w0 = Vector512Utilities.ConvertToInt32RoundToEven(f0);
+                    Vector512<int> w1 = Vector512Utilities.ConvertToInt32RoundToEven(f1);
+                    Vector512<int> w2 = Vector512Utilities.ConvertToInt32RoundToEven(f2);
+                    Vector512<int> w3 = Vector512Utilities.ConvertToInt32RoundToEven(f3);
+
+                    Vector512<short> u0 = Avx512BW.PackSignedSaturate(w0, w1);
+                    Vector512<short> u1 = Avx512BW.PackSignedSaturate(w2, w3);
+                    Vector512<byte> b = Avx512BW.PackUnsignedSaturate(u0, u1);
+                    b = Avx512F.PermuteVar16x32(b.AsInt32(), mask).AsByte();
+
+                    Unsafe.Add(ref destinationBase, i) = b;
+                }
+            }
+            else if (Avx2.IsSupported)
+            {
+                DebugVerifySpanInput(source, destination, Vector256<byte>.Count);
+
+                nuint n = destination.Vector256Count<byte>();
+
+                ref Vector256<float> sourceBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector256<byte> destinationBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector256<float> scale = Vector256.Create((float)byte.MaxValue);
                 Vector256<int> mask = PermuteMaskDeinterleave8x32();
@@ -944,36 +1022,33 @@ internal static partial class SimdUtils
                 {
                     ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector256<float> f0 = Avx.Multiply(scale, s);
-                    Vector256<float> f1 = Avx.Multiply(scale, Unsafe.Add(ref s, 1));
-                    Vector256<float> f2 = Avx.Multiply(scale, Unsafe.Add(ref s, 2));
-                    Vector256<float> f3 = Avx.Multiply(scale, Unsafe.Add(ref s, 3));
+                    Vector256<float> f0 = scale * s;
+                    Vector256<float> f1 = scale * Unsafe.Add(ref s, 1);
+                    Vector256<float> f2 = scale * Unsafe.Add(ref s, 2);
+                    Vector256<float> f3 = scale * Unsafe.Add(ref s, 3);
 
-                    Vector256<int> w0 = Avx.ConvertToVector256Int32(f0);
-                    Vector256<int> w1 = Avx.ConvertToVector256Int32(f1);
-                    Vector256<int> w2 = Avx.ConvertToVector256Int32(f2);
-                    Vector256<int> w3 = Avx.ConvertToVector256Int32(f3);
+                    Vector256<int> w0 = Vector256Utilities.ConvertToInt32RoundToEven(f0);
+                    Vector256<int> w1 = Vector256Utilities.ConvertToInt32RoundToEven(f1);
+                    Vector256<int> w2 = Vector256Utilities.ConvertToInt32RoundToEven(f2);
+                    Vector256<int> w3 = Vector256Utilities.ConvertToInt32RoundToEven(f3);
 
                     Vector256<short> u0 = Avx2.PackSignedSaturate(w0, w1);
                     Vector256<short> u1 = Avx2.PackSignedSaturate(w2, w3);
                     Vector256<byte> b = Avx2.PackUnsignedSaturate(u0, u1);
                     b = Avx2.PermuteVar8x32(b.AsInt32(), mask).AsByte();
 
-                    Unsafe.Add(ref destBase, i) = b;
+                    Unsafe.Add(ref destinationBase, i) = b;
                 }
             }
-            else
+            else if (Sse2.IsSupported || AdvSimd.IsSupported)
             {
-                // Sse
-                VerifySpanInput(source, dest, Vector128<byte>.Count);
+                // Sse, AdvSimd
+                DebugVerifySpanInput(source, destination, Vector128<byte>.Count);
 
-                nuint n = dest.Vector128Count<byte>();
+                nuint n = destination.Vector128Count<byte>();
 
-                ref Vector128<float> sourceBase =
-                    ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
-
-                ref Vector128<byte> destBase =
-                    ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
+                ref Vector128<float> sourceBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+                ref Vector128<byte> destinationBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector128<float> scale = Vector128.Create((float)byte.MaxValue);
 
@@ -981,20 +1056,20 @@ internal static partial class SimdUtils
                 {
                     ref Vector128<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
 
-                    Vector128<float> f0 = Sse.Multiply(scale, s);
-                    Vector128<float> f1 = Sse.Multiply(scale, Unsafe.Add(ref s, 1));
-                    Vector128<float> f2 = Sse.Multiply(scale, Unsafe.Add(ref s, 2));
-                    Vector128<float> f3 = Sse.Multiply(scale, Unsafe.Add(ref s, 3));
+                    Vector128<float> f0 = scale * s;
+                    Vector128<float> f1 = scale * Unsafe.Add(ref s, 1);
+                    Vector128<float> f2 = scale * Unsafe.Add(ref s, 2);
+                    Vector128<float> f3 = scale * Unsafe.Add(ref s, 3);
 
-                    Vector128<int> w0 = Sse2.ConvertToVector128Int32(f0);
-                    Vector128<int> w1 = Sse2.ConvertToVector128Int32(f1);
-                    Vector128<int> w2 = Sse2.ConvertToVector128Int32(f2);
-                    Vector128<int> w3 = Sse2.ConvertToVector128Int32(f3);
+                    Vector128<int> w0 = Vector128Utilities.ConvertToInt32RoundToEven(f0);
+                    Vector128<int> w1 = Vector128Utilities.ConvertToInt32RoundToEven(f1);
+                    Vector128<int> w2 = Vector128Utilities.ConvertToInt32RoundToEven(f2);
+                    Vector128<int> w3 = Vector128Utilities.ConvertToInt32RoundToEven(f3);
 
-                    Vector128<short> u0 = Sse2.PackSignedSaturate(w0, w1);
-                    Vector128<short> u1 = Sse2.PackSignedSaturate(w2, w3);
+                    Vector128<short> u0 = Vector128Utilities.PackSignedSaturate(w0, w1);
+                    Vector128<short> u1 = Vector128Utilities.PackSignedSaturate(w2, w3);
 
-                    Unsafe.Add(ref destBase, i) = Sse2.PackUnsignedSaturate(u0, u1);
+                    Unsafe.Add(ref destinationBase, i) = Vector128Utilities.PackUnsignedSaturate(u0, u1);
                 }
             }
         }

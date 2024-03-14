@@ -792,8 +792,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
          where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 rgba = default;
-        pixel.ToRgba32(ref rgba);
+        Rgba32 rgba = pixel.ToRgba32();
         if (rgba.A is 0)
         {
             mask |= unchecked((byte)(0b10000000 >> index));

@@ -25,7 +25,7 @@ internal static class Vector512Utilities
     public static bool SupportsShuffleFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx512F.IsSupported;
+        get => Avx512F.IsSupported || Avx.IsSupported;
     }
 
     /// <summary>
@@ -51,6 +51,13 @@ internal static class Vector512Utilities
             return Avx512F.Shuffle(vector, vector, control);
         }
 
+        if (Avx.IsSupported)
+        {
+            Vector256<float> lower = vector.GetLower();
+            Vector256<float> upper = vector.GetUpper();
+            return Vector512.Create(Avx.Shuffle(lower, lower, control), Avx.Shuffle(upper, upper, control));
+        }
+
         ThrowUnreachableException();
         return default;
     }
@@ -73,6 +80,34 @@ internal static class Vector512Utilities
 
         ThrowUnreachableException();
         return default;
+    }
+
+    /// <summary>
+    /// Performs a conversion from a 512-bit vector of 16 single-precision floating-point values to a 512-bit vector of 16 signed 32-bit integer values.
+    /// Rounding is equivalent to <see cref="MidpointRounding.ToEven"/>.
+    /// </summary>
+    /// <param name="vector">The value to convert.</param>
+    /// <returns>The <see cref="Vector128{Int32}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> ConvertToInt32RoundToEven(Vector512<float> vector)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.ConvertToVector512Int32(vector);
+        }
+
+        if (Avx.IsSupported)
+        {
+            Vector256<int> lower = Avx.ConvertToVector256Int32(vector.GetLower());
+            Vector256<int> upper = Avx.ConvertToVector256Int32(vector.GetUpper());
+            return Vector512.Create(lower, upper);
+        }
+
+        Vector512<float> sign = vector & Vector512.Create(-0.0f);
+        Vector512<float> val_2p23_f32 = sign | Vector512.Create(8388608.0f);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return Vector512.ConvertToInt32(val_2p23_f32 | sign);
     }
 
     [DoesNotReturn]

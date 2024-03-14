@@ -665,4 +665,30 @@ public partial class PngDecoderTests
         Assert.True(eofHitCounter.EofHitCount <= 3);
         Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
     }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Decode_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Info_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        _ = Image.Identify(path);
+    }
 }

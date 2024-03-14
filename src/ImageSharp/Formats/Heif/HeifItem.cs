@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Provides definition for a HEIF Item.
 /// </summary>
-public class HeifItem(Heif4CharCode type, uint id)
+internal class HeifItem(Heif4CharCode type, uint id)
 {
     /// <summary>
     /// Gets the ID of this Item.

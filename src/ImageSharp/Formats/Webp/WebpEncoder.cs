@@ -77,6 +77,11 @@ public sealed class WebpEncoder : ImageEncoder
     /// </summary>
     public int NearLosslessQuality { get; init; } = 100;
 
+    /// <summary>
+    /// Gets a value indicating whether to ignore the animation and save as a static image when encoding.
+    /// </summary>
+    public bool IgnoreAnimation { get; init; }
+
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {

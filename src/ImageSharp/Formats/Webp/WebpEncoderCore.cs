@@ -71,6 +71,11 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     private readonly int nearLosslessQuality;
 
     /// <summary>
+    /// Whether to ignore the animation and save as a static image when encoding.
+    /// </summary>
+    private readonly bool ignoreAnimation;
+
+    /// <summary>
     /// Indicating what file format compression should be used.
     /// Defaults to lossy.
     /// </summary>
@@ -101,6 +106,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         this.skipMetadata = encoder.SkipMetadata;
         this.nearLossless = encoder.NearLossless;
         this.nearLosslessQuality = encoder.NearLosslessQuality;
+        this.ignoreAnimation = encoder.IgnoreAnimation;
     }
 
     /// <summary>
@@ -129,7 +135,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            bool hasAnimation = image.Frames.Count > 1;
+            bool hasAnimation = !this.ignoreAnimation && (image.Frames.Count > 1);
 
             using Vp8LEncoder encoder = new(
                 this.memoryAllocator,

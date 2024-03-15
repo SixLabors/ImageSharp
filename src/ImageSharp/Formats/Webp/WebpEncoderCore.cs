@@ -220,7 +220,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.spatialNoiseShaping,
                 this.alphaCompression);
 
-            if (image.Frames.Count > 1)
+            if (!this.ignoreAnimation && image.Frames.Count > 1)
             {
                 // TODO: What about alpha here?
                 encoder.EncodeHeader(image, stream, false, true);

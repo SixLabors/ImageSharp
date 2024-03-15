@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -166,7 +167,13 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     private long ReadBoxHeader(BufferedReadStream stream, out Heif4CharCode boxType)
     {
         // Read 4 bytes of length of box
-        Span<byte> buf = this.ReadIntoBuffer(stream, 8);
+        Span<byte> buf = stackalloc byte[8];
+        int bytesRead = stream.Read(buf);
+        if (bytesRead != 8)
+        {
+            throw new InvalidImageContentException("Not enough data to read the Box header");
+        }
+
         long boxSize = BinaryPrimitives.ReadUInt32BigEndian(buf);
         long headerSize = 8;
 
@@ -175,7 +182,12 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
 
         if (boxSize == 1)
         {
-            buf = this.ReadIntoBuffer(stream, 8);
+            bytesRead = stream.Read(buf);
+            if (bytesRead != 8)
+            {
+                throw new InvalidImageContentException("Not enough data to read the Large Box header");
+            }
+
             boxSize = (long)BinaryPrimitives.ReadUInt64BigEndian(buf);
             headerSize += 8;
         }
@@ -638,13 +650,13 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     {
         if (length <= this.buffer.Length)
         {
-            stream.Read(this.buffer, 0, (int)length);
-            return this.buffer;
+            int bytesRead = stream.Read(this.buffer, 0, (int)length);
+            return this.buffer.AsSpan(0, bytesRead);
         }
         else
         {
             Span<byte> temp = new byte[length];
-            stream.Read(temp);
+            int bytesRead = stream.Read(temp);
             return temp;
         }
     }

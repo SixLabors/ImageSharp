@@ -66,7 +66,7 @@ internal readonly struct WebpVp8X : IEquatable<WebpVp8X>
         && this.Width == other.Width
         && this.Height == other.Height;
 
-    public override int GetHashCode() 
+    public override int GetHashCode()
         => HashCode.Combine(this.HasAnimation, this.HasXmp, this.HasExif, this.HasAlpha, this.HasIcc, this.Width, this.Height);
 
     public void Validate(uint maxDimension, ulong maxCanvasPixels)

@@ -623,6 +623,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         EnsureBoxBoundary(boxLength, stream);
+
         // FIXME: No specific decoding yet, so parse only a JPEG thumbnail.
         HeifItemLink? thumbLink = this.itemLinks.FirstOrDefault(link => link.Type == Heif4CharCode.Thmb);
         if (thumbLink == null)

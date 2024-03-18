@@ -22,6 +22,9 @@ internal struct JpegBitReader
     // Whether there is no more good data to pull from the stream for the current mcu.
     private bool badData;
 
+    // How many times have we hit the eof.
+    private int eofHitCount;
+
     public JpegBitReader(BufferedReadStream stream)
     {
         this.stream = stream;
@@ -31,6 +34,7 @@ internal struct JpegBitReader
         this.MarkerPosition = 0;
         this.badData = false;
         this.NoData = false;
+        this.eofHitCount = 0;
     }
 
     /// <summary>
@@ -79,6 +83,9 @@ internal struct JpegBitReader
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public bool HasEndMarker() => this.Marker == JpegConstants.Markers.EOI;
 
     [MethodImpl(InliningOptions.AlwaysInline)]
     public void FillBuffer()
@@ -219,11 +226,16 @@ internal struct JpegBitReader
         // we know we have hit the EOI and completed decoding the scan buffer.
         if (value == -1 || (this.badData && this.data == 0 && this.stream.Position >= this.stream.Length))
         {
-            // We've encountered the end of the file stream which means there's no EOI marker
+            // We've passed the end of the file stream which means there's no EOI marker
             // in the image or the SOS marker has the wrong dimensions set.
-            this.badData = true;
-            this.NoData = true;
-            value = 0;
+            if (this.eofHitCount > JpegConstants.Huffman.FetchLoop)
+            {
+                this.badData = true;
+                this.NoData = true;
+                value = 0;
+            }
+
+            this.eofHitCount++;
         }
 
         return value;

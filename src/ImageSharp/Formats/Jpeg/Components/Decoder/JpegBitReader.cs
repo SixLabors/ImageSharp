@@ -223,7 +223,7 @@ internal struct JpegBitReader
         // we know we have hit the EOI and completed decoding the scan buffer.
         if (value == -1 || (this.badData && this.data == 0 && this.stream.Position >= this.stream.Length))
         {
-            // We've passed the end of the file stream which means there's no EOI marker
+            // We've hit the end of the file stream more times than allowed which means there's no EOI marker
             // in the image or the SOS marker has the wrong dimensions set.
             if (this.eofHitCount > JpegConstants.Huffman.FetchLoop)
             {

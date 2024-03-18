@@ -84,9 +84,6 @@ internal struct JpegBitReader
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public bool HasEndMarker() => this.Marker == JpegConstants.Markers.EOI;
-
     [MethodImpl(InliningOptions.AlwaysInline)]
     public void FillBuffer()
     {

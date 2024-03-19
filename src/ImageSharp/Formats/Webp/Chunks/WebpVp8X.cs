@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Chunks;
 
-internal readonly struct WebpVp8X
+internal readonly struct WebpVp8X : IEquatable<WebpVp8X>
 {
     public WebpVp8X(bool hasAnimation, bool hasXmp, bool hasExif, bool hasAlpha, bool hasIcc, uint width, uint height)
     {
@@ -53,6 +53,24 @@ internal readonly struct WebpVp8X
     /// </summary>
     public uint Height { get; }
 
+    public static bool operator ==(WebpVp8X left, WebpVp8X right) => left.Equals(right);
+
+    public static bool operator !=(WebpVp8X left, WebpVp8X right) => !(left == right);
+
+    public override bool Equals(object? obj) => obj is WebpVp8X x && this.Equals(x);
+
+    public bool Equals(WebpVp8X other)
+        => this.HasAnimation == other.HasAnimation
+        && this.HasXmp == other.HasXmp
+        && this.HasExif == other.HasExif
+        && this.HasAlpha == other.HasAlpha
+        && this.HasIcc == other.HasIcc
+        && this.Width == other.Width
+        && this.Height == other.Height;
+
+    public override int GetHashCode()
+        => HashCode.Combine(this.HasAnimation, this.HasXmp, this.HasExif, this.HasAlpha, this.HasIcc, this.Width, this.Height);
+
     public void Validate(uint maxDimension, ulong maxCanvasPixels)
     {
         if (this.Width > maxDimension || this.Height > maxDimension)
@@ -66,6 +84,9 @@ internal readonly struct WebpVp8X
             WebpThrowHelper.ThrowInvalidImageDimensions("The product of image width and height MUST be at most 2^32 - 1");
         }
     }
+
+    public WebpVp8X WithAlpha(bool hasAlpha)
+        => new(this.HasAnimation, this.HasXmp, this.HasExif, hasAlpha, this.HasIcc, this.Width, this.Height);
 
     public void WriteTo(Stream stream)
     {

@@ -88,7 +88,8 @@ internal abstract class BitWriterBase
     /// <param name="iccProfile">The color profile.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    public static void WriteTrunksBeforeData(
+    /// <returns>A <see cref="WebpVp8X"/> or a default instance.</returns>
+    public static WebpVp8X WriteTrunksBeforeData(
         Stream stream,
         uint width,
         uint height,
@@ -102,16 +103,19 @@ internal abstract class BitWriterBase
         RiffHelper.BeginWriteRiffFile(stream, WebpConstants.WebpFourCc);
 
         // Write VP8X, header if necessary.
+        WebpVp8X vp8x = default;
         bool isVp8X = exifProfile != null || xmpProfile != null || iccProfile != null || hasAlpha || hasAnimation;
         if (isVp8X)
         {
-            WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha, hasAnimation);
+            vp8x = WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha, hasAnimation);
 
             if (iccProfile != null)
             {
                 RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.ToByteArray());
             }
         }
+
+        return vp8x;
     }
 
     /// <summary>
@@ -124,10 +128,16 @@ internal abstract class BitWriterBase
     /// Write the trunks after data trunk.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="vp8x">The VP8X chunk.</param>
+    /// <param name="updateVp8x">Whether to update the chunk.</param>
+    /// <param name="initialPosition">The initial position of the stream before encoding.</param>
+    /// <param name="exifProfile">The EXIF profile.</param>
     /// <param name="xmpProfile">The XMP profile.</param>
     public static void WriteTrunksAfterData(
         Stream stream,
+        in WebpVp8X vp8x,
+        bool updateVp8x,
+        long initialPosition,
         ExifProfile? exifProfile,
         XmpProfile? xmpProfile)
     {
@@ -141,7 +151,7 @@ internal abstract class BitWriterBase
             RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Xmp, xmpProfile.Data);
         }
 
-        RiffHelper.EndWriteRiffFile(stream, 4);
+        RiffHelper.EndWriteRiffFile(stream, in vp8x, updateVp8x, initialPosition);
     }
 
     /// <summary>
@@ -186,19 +196,21 @@ internal abstract class BitWriterBase
     /// Writes a VP8X header to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
-    /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
+    /// <param name="exifProfile">An EXIF profile or null, if it does not exist.</param>
+    /// <param name="xmpProfile">An XMP profile or null, if it does not exist.</param>
     /// <param name="iccProfile">The color profile.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    protected static void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha, bool hasAnimation)
+    protected static WebpVp8X WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha, bool hasAnimation)
     {
         WebpVp8X chunk = new(hasAnimation, xmpProfile != null, exifProfile != null, hasAlpha, iccProfile != null, width, height);
 
         chunk.Validate(MaxDimension, MaxCanvasPixels);
 
         chunk.WriteTo(stream);
+
+        return chunk;
     }
 }

@@ -1,0 +1,246 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
+
+namespace SixLabors.ImageSharp.ColorProfiles;
+
+internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
+{
+    private static readonly Vector3 Min = Vector3.Zero;
+    private static readonly Vector3 Max = Vector3.One;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgb"/> struct.
+    /// </summary>
+    /// <param name="r">The red component ranging between 0 and 1.</param>
+    /// <param name="g">The green component ranging between 0 and 1.</param>
+    /// <param name="b">The blue component ranging between 0 and 1.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgb(float r, float g, float b)
+        : this(new Vector3(r, g, b))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgb"/> struct.
+    /// </summary>
+    /// <param name="source">The vector representing the r, g, b components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Rgb(Vector3 source)
+    {
+        source = Vector3.Clamp(source, Min, Max);
+        this.R = source.X;
+        this.G = source.Y;
+        this.B = source.Z;
+    }
+
+    /// <summary>
+    /// Gets the red component.
+    /// <remarks>A value usually ranging between 0 and 1.</remarks>
+    /// </summary>
+    public readonly float R { get; }
+
+    /// <summary>
+    /// Gets the green component.
+    /// <remarks>A value usually ranging between 0 and 1.</remarks>
+    /// </summary>
+    public readonly float G { get; }
+
+    /// <summary>
+    /// Gets the blue component.
+    /// <remarks>A value usually ranging between 0 and 1.</remarks>
+    /// </summary>
+    public readonly float B { get; }
+
+    /// <summary>
+    /// Compares two <see cref="Rgb"/> objects for equality.
+    /// </summary>
+    /// <param name="left">The <see cref="Rgb"/> on the left side of the operand.</param>
+    /// <param name="right">The <see cref="Rgb"/> on the right side of the operand.</param>
+    /// <returns>
+    /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator ==(Rgb left, Rgb right) => left.Equals(right);
+
+    /// <summary>
+    /// Compares two <see cref="Rgb"/> objects for inequality.
+    /// </summary>
+    /// <param name="left">The <see cref="Rgb"/> on the left side of the operand.</param>
+    /// <param name="right">The <see cref="Rgb"/> on the right side of the operand.</param>
+    /// <returns>
+    /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator !=(Rgb left, Rgb right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is Rgb other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(Rgb other)
+        => this.R.Equals(other.R)
+        && this.G.Equals(other.G)
+        && this.B.Equals(other.B);
+
+    /// <inheritdoc/>
+    public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
+    {
+        // Convert to linear rgb then compress.
+        Rgb linear = new(Vector3.Transform(source.ToVector3(), GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace)));
+        return FromScaledVector4(options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4()));
+    }
+
+    /// <inheritdoc/>
+    public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<CieXyz> source, Span<Rgb> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        Matrix4x4 matrix = GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace);
+        for (int i = 0; i < source.Length; i++)
+        {
+            // Convert to linear rgb then compress.
+            Rgb linear = new(Vector3.Transform(source[i].ToVector3(), matrix));
+            Vector4 nonlinear = options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4());
+            destination[i] = FromScaledVector4(nonlinear);
+        }
+    }
+
+    /// <inheritdoc/>
+    public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
+    {
+        // First expand to linear rgb
+        Rgb linear = FromScaledVector4(options.RgbWorkingSpace.Expand(this.ToScaledVector4()));
+
+        // Then convert to xyz
+        return new CieXyz(Vector3.Transform(linear.ToScaledVector3(), GetRgbToCieXyzMatrix(options.RgbWorkingSpace)));
+    }
+
+    /// <inheritdoc/>
+    public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Rgb> source, Span<CieXyz> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        Matrix4x4 matrix = GetRgbToCieXyzMatrix(options.RgbWorkingSpace);
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb rgb = source[i];
+
+            // First expand to linear rgb
+            Rgb linear = FromScaledVector4(options.RgbWorkingSpace.Expand(rgb.ToScaledVector4()));
+
+            // Then convert to xyz
+            destination[i] = new CieXyz(Vector3.Transform(linear.ToScaledVector3(), matrix));
+        }
+    }
+
+    /// <inheritdoc/>
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
+
+    /// <summary>
+    /// Initializes the pixel instance from a generic scaled <see cref="Vector3"/>.
+    /// </summary>
+    /// <param name="source">The vector to load the pixel from.</param>
+    /// <returns>The <see cref="Rgb"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb FromScaledVector3(Vector3 source) => new(source);
+
+    /// <summary>
+    /// Initializes the pixel instance from a generic scaled <see cref="Vector4"/>.
+    /// </summary>
+    /// <param name="source">The vector to load the pixel from.</param>
+    /// <returns>The <see cref="Rgb"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb FromScaledVector4(Vector4 source) => new(source.X, source.Y, source.Z);
+
+    /// <summary>
+    /// Expands the color into a generic ("scaled") <see cref="Vector3"/> representation
+    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// The vector components are typically expanded in least to greatest significance order.
+    /// </summary>
+    /// <returns>The <see cref="Vector3"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3 ToScaledVector3() => new(this.R, this.G, this.B);
+
+    /// <summary>
+    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
+    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// The vector components are typically expanded in least to greatest significance order.
+    /// </summary>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector4 ToScaledVector4() => new(this.R, this.G, this.B, 1f);
+
+    private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
+    {
+        Matrix4x4 matrix = GetRgbToCieXyzMatrix(workingSpace);
+        Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix);
+        return inverseMatrix;
+    }
+
+    private static Matrix4x4 GetRgbToCieXyzMatrix(RgbWorkingSpace workingSpace)
+    {
+        DebugGuard.NotNull(workingSpace, nameof(workingSpace));
+        RgbPrimariesChromaticityCoordinates chromaticity = workingSpace.ChromaticityCoordinates;
+
+        float xr = chromaticity.R.X;
+        float xg = chromaticity.G.X;
+        float xb = chromaticity.B.X;
+        float yr = chromaticity.R.Y;
+        float yg = chromaticity.G.Y;
+        float yb = chromaticity.B.Y;
+
+        float mXr = xr / yr;
+        float mZr = (1 - xr - yr) / yr;
+
+        float mXg = xg / yg;
+        float mZg = (1 - xg - yg) / yg;
+
+        float mXb = xb / yb;
+        float mZb = (1 - xb - yb) / yb;
+
+        Matrix4x4 xyzMatrix = new()
+        {
+            M11 = mXr,
+            M21 = mXg,
+            M31 = mXb,
+            M12 = 1F,
+            M22 = 1F,
+            M32 = 1F,
+            M13 = mZr,
+            M23 = mZg,
+            M33 = mZb,
+            M44 = 1F
+        };
+
+        Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
+
+        Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
+
+        // Use transposed Rows/Columns
+        // TODO: Is there a built in method for this multiplication?
+        return new Matrix4x4
+        {
+            M11 = vector.X * mXr,
+            M21 = vector.Y * mXg,
+            M31 = vector.Z * mXb,
+            M12 = vector.X * 1,
+            M22 = vector.Y * 1,
+            M32 = vector.Z * 1,
+            M13 = vector.X * mZr,
+            M23 = vector.Y * mZg,
+            M33 = vector.Z * mZb,
+            M44 = 1F
+        };
+    }
+}

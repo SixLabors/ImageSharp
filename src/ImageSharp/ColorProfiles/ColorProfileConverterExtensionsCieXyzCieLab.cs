@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -18,7 +18,7 @@ internal static class ColorProfileConverterExtensionsCieXyzCieLab
         CieXyz pcsFrom = source.ToProfileConnectingSpace(options);
 
         // Adapt to target white point
-        VonKriesChromaticAdaptation.Transform(options, in pcsFrom);
+        VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, in pcsFrom);
 
         // Convert between PCS
         CieLab pcsTo = CieLab.FromProfileConnectingSpace(options, in pcsFrom);
@@ -39,7 +39,7 @@ internal static class ColorProfileConverterExtensionsCieXyzCieLab
         TFrom.ToProfileConnectionSpace(options, source, pcsFrom);
 
         // Adapt to target white point
-        VonKriesChromaticAdaptation.Transform(options, pcsFrom, pcsFrom);
+        VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, pcsFrom, pcsFrom);
 
         // Convert between PCS.
         using IMemoryOwner<CieLab> pcsToOwner = options.MemoryAllocator.Allocate<CieLab>(source.Length);

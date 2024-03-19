@@ -133,4 +133,7 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
             destination[i] = lms.ToProfileConnectingSpace(options);
         }
     }
+
+    /// <inheritdoc/>
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

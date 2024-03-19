@@ -121,4 +121,7 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         source.CopyTo(destination[..source.Length]);
     }
+
+    /// <inheritdoc/>
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

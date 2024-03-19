@@ -163,4 +163,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
             destination[i] = lch.ToProfileConnectingSpace(options);
         }
     }
+
+    /// <inheritdoc/>
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

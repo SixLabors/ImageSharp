@@ -172,4 +172,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
             destination[i] = lab.ToProfileConnectingSpace(options);
         }
     }
+
+    /// <inheritdoc/>
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

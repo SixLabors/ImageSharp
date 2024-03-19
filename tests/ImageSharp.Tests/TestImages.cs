@@ -315,6 +315,7 @@ public static class TestImages
             public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
             public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
+            public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
 
             public static class Fuzz
             {

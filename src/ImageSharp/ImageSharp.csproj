@@ -52,6 +52,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Formats\Heif\Heif4CharCode.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Heif4CharCode.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -150,6 +155,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Formats\Heif\Heif4CharCode.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Heif4CharCode.cs</LastGenOutput>
+    </None>
     <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>

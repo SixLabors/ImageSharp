@@ -39,8 +39,8 @@ internal static class ColorProfileConverterExtensionsCieLabCieXyz
         TFrom.ToProfileConnectionSpace(options, source, pcsFrom);
 
         // Convert between PCS.
-        using IMemoryOwner<CieXyz> pcsToOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length * 2);
-        Span<CieXyz> pcsTo = pcsToOwner.GetSpan()[..source.Length];
+        using IMemoryOwner<CieXyz> pcsToOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
+        Span<CieXyz> pcsTo = pcsToOwner.GetSpan();
         CieLab.ToProfileConnectionSpace(options, pcsFrom, pcsTo);
 
         // Adapt to target white point

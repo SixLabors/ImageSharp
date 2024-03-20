@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -11,7 +11,7 @@ public interface IColorProfile
     /// <summary>
     /// Gets the chromatic adaption white point source.
     /// </summary>
-    /// <returns>The <see cref="GetChromaticAdaptionWhitePointSource"/>.</returns>
+    /// <returns>The <see cref="ChromaticAdaptionWhitePointSource"/>.</returns>
     public static abstract ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource();
 }
 

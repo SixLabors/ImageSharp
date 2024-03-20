@@ -46,14 +46,14 @@ public static class Rec2020Companding
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
     public static void Compress(Span<Vector4> vectors)
-        => CompandingUtilities.Compand(vectors, CompandingUtilities.GetLookupTable<Rec2020CompandingKey>(CompressFunction).Value);
+        => CompandingUtilities.Compand(vectors, CompandingUtilities.GetCompressLookupTable<Rec2020CompandingKey>(CompressFunction));
 
     /// <summary>
     /// Expands the nonlinear vectors to their linear equivalents with respect to the energy.
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
     public static void Expand(Span<Vector4> vectors)
-        => CompandingUtilities.Compand(vectors, CompandingUtilities.GetLookupTable<Rec2020CompandingKey>(ExpandFunction).Value);
+        => CompandingUtilities.Compand(vectors, CompandingUtilities.GetExpandLookupTable<Rec2020CompandingKey>(ExpandFunction));
 
     /// <summary>
     /// Compresses the linear vector to its nonlinear equivalent with respect to the energy.
@@ -61,15 +61,15 @@ public static class Rec2020Companding
     /// <param name="vector">The vector.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public static Vector4 Compress(Vector4 vector)
-        => CompandingUtilities.Compand(vector, CompandingUtilities.GetLookupTable<Rec2020CompandingKey>(CompressFunction).Value);
+        => CompandingUtilities.Compand(vector, CompandingUtilities.GetCompressLookupTable<Rec2020CompandingKey>(CompressFunction));
 
     /// <summary>
-    /// Compresses the linear vector to its nonlinear equivalent with respect to the energy.
+    /// Expands the nonlinear vector to its linear equivalent with respect to the energy.
     /// </summary>
     /// <param name="vector">The vector.</param>
     /// <returns>The <see cref="Vector4"/>.</returns>
     public static Vector4 Expand(Vector4 vector)
-        => CompandingUtilities.Compand(vector, CompandingUtilities.GetLookupTable<Rec2020CompandingKey>(ExpandFunction).Value);
+        => CompandingUtilities.Compand(vector, CompandingUtilities.GetExpandLookupTable<Rec2020CompandingKey>(ExpandFunction));
 
     private class Rec2020CompandingKey;
 }

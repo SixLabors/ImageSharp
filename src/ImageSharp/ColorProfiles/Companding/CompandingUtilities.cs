@@ -17,17 +17,28 @@ public static class CompandingUtilities
 {
     private const int Length = Scale + 2; // 256kb @ 16bit precision.
     private const int Scale = (1 << 16) - 1;
-    private static readonly ConcurrentDictionary<(Type, double), Lazy<float[]>> LookupTables = new();
+    private static readonly ConcurrentDictionary<(Type, double), float[]> CompressLookupTables = new();
+    private static readonly ConcurrentDictionary<(Type, double), float[]> ExpandLookupTables = new();
 
     /// <summary>
-    /// Lazily creates and stores a companding lookup table using the given function and modifier.
+    /// Lazily creates and stores a companding compression lookup table using the given function and modifier.
     /// </summary>
     /// <typeparam name="T">The type of companding function.</typeparam>
     /// <param name="compandingFunction">The companding function.</param>
     /// <param name="modifier">A modifier to pass to the function.</param>
     /// <returns>The <see cref="float"/> array.</returns>
-    public static Lazy<float[]> GetLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
-        => LookupTables.GetOrAdd((typeof(T), modifier), args => new(() => CreateLookupTableImpl(compandingFunction, args.Item2), true));
+    public static float[] GetCompressLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
+        => CompressLookupTables.GetOrAdd((typeof(T), modifier), args => CreateLookupTableImpl(compandingFunction, args.Item2));
+
+    /// <summary>
+    /// Lazily creates and stores a companding expanding lookup table using the given function and modifier.
+    /// </summary>
+    /// <typeparam name="T">The type of companding function.</typeparam>
+    /// <param name="compandingFunction">The companding function.</param>
+    /// <param name="modifier">A modifier to pass to the function.</param>
+    /// <returns>The <see cref="float"/> array.</returns>
+    public static float[] GetExpandLookupTable<T>(Func<double, double, double> compandingFunction, double modifier = 0)
+        => ExpandLookupTables.GetOrAdd((typeof(T), modifier), args => CreateLookupTableImpl(compandingFunction, args.Item2));
 
     /// <summary>
     /// Creates a companding lookup table using the given function.

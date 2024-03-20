@@ -18,13 +18,10 @@ internal static class ColorProfileConverterExtensionsCieXyzCieXyz
         CieXyz pcsFrom = source.ToProfileConnectingSpace(options);
 
         // Adapt to target white point
-        VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, in pcsFrom);
-
-        // Convert between PCS
-        CieXyz pcsTo = CieXyz.FromProfileConnectingSpace(options, in pcsFrom);
+        pcsFrom = VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, in pcsFrom);
 
         // Convert to output from PCS
-        return TTo.FromProfileConnectingSpace(options, pcsTo);
+        return TTo.FromProfileConnectingSpace(options, pcsFrom);
     }
 
     public static void Convert<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
@@ -41,12 +38,7 @@ internal static class ColorProfileConverterExtensionsCieXyzCieXyz
         // Adapt to target white point
         VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, pcsFrom, pcsFrom);
 
-        // Convert between PCS.
-        using IMemoryOwner<CieXyz> pcsToOwner = options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-        Span<CieXyz> pcsTo = pcsToOwner.GetSpan();
-        CieXyz.FromProfileConnectionSpace(options, pcsFrom, pcsTo);
-
         // Convert to output from PCS
-        TTo.FromProfileConnectionSpace(options, pcsTo, destination);
+        TTo.FromProfileConnectionSpace(options, pcsFrom, destination);
     }
 }

@@ -9,19 +9,18 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 {
-    private static readonly Vector3 Min = Vector3.Zero;
-    private static readonly Vector3 Max = Vector3.One;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgb"/> struct.
     /// </summary>
-    /// <param name="r">The red component ranging between 0 and 1.</param>
-    /// <param name="g">The green component ranging between 0 and 1.</param>
-    /// <param name="b">The blue component ranging between 0 and 1.</param>
+    /// <param name="r">The red component usually ranging between 0 and 1.</param>
+    /// <param name="g">The green component usually ranging between 0 and 1.</param>
+    /// <param name="b">The blue component usually ranging between 0 and 1.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgb(float r, float g, float b)
-        : this(new Vector3(r, g, b))
     {
+        this.R = r;
+        this.G = g;
+        this.B = b;
     }
 
     /// <summary>
@@ -31,7 +30,6 @@ internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Rgb(Vector3 source)
     {
-        source = Vector3.Clamp(source, Min, Max);
         this.R = source.X;
         this.G = source.Y;
         this.B = source.Z;
@@ -165,7 +163,7 @@ internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector3"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector3"/>.</returns>
@@ -174,7 +172,7 @@ internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>

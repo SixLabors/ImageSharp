@@ -9,6 +9,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga;
 [Trait("Format", "Tga")]
 public class TgaFileHeaderTests
 {
+    // TODO: Some of these clash with the ICO magic bytes. Check correctness.
+    // https://en.wikipedia.org/wiki/Truevision_TGA#Header
     [Theory]
     [InlineData(new byte[] { 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 250, 0, 195, 0, 32, 8 })] // invalid tga image type.
     [InlineData(new byte[] { 0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 250, 0, 195, 0, 32, 8 })] // invalid colormap type.

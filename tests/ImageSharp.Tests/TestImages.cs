@@ -442,6 +442,8 @@ public static class TestImages
 
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
+        public const string Issue2696 = "Bmp/issue-2696.bmp";
+
         public static readonly string[] BitFields =
         {
               Rgb32bfdef,

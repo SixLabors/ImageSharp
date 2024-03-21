@@ -342,17 +342,17 @@ public partial class Buffer2DTests
     [InlineData(-1)]
     [InlineData(ushort.MaxValue + 1)]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<byte>(length, length));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<byte>(length, length));
 
     [Theory]
     [InlineData(-1)]
     [InlineData(ushort.MaxValue + 1)]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_Size(int length)
-        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<byte>(new Size(length, length)));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<byte>(new Size(length, length)));
 
     [Theory]
     [InlineData(-1)]
     [InlineData(ushort.MaxValue + 1)]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_OverAligned(int length)
-        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2DOverAligned<byte>(length, length, 1));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOverAligned<byte>(length, length, 1));
 }

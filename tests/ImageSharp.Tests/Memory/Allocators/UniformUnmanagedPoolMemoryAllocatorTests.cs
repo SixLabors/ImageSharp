@@ -116,12 +116,9 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData((ushort.MaxValue * 64) + 1)]
+    [InlineData(1073741823 + 1)]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-    {
-        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => new UniformUnmanagedMemoryPoolMemoryAllocator(null).Allocate<byte>(length));
-        Assert.Equal("length", ex.ParamName);
-    }
+        => Assert.Throws<InvalidMemoryOperationException>(() => new UniformUnmanagedMemoryPoolMemoryAllocator(null).Allocate<byte>(length));
 
     [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()

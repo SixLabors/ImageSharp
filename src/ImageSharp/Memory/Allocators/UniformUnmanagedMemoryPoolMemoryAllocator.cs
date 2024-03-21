@@ -79,16 +79,14 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
     /// <inheritdoc />
-    public override IMemoryOwner<T> Allocate<T>(
-        int length,
-        AllocationOptions options = AllocationOptions.None)
+    public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+        Guard.MustBeBetweenOrEqualTo(length, 0, this.MaxAllocatableSize1D, nameof(length));
         int lengthInBytes = length * Unsafe.SizeOf<T>();
 
         if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>(length);
+            SharedArrayPoolBuffer<T> buffer = new(length);
             if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
@@ -102,8 +100,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
-                return buffer;
+                return this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
             }
         }
 
@@ -124,7 +121,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
         if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
+            SharedArrayPoolBuffer<T> buffer = new((int)totalLength);
             return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
         }
 

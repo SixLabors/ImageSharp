@@ -29,8 +29,8 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Gets or sets the maximum allowable allocatable size of a 1 dimensional buffer.
     /// </summary>
-    /// Defaults to <value>65535 * 4.</value>
-    public int MaxAllocatableSize1D { get; set; } = ushort.MaxValue * 4;
+    /// Defaults to <value>65535 * 64.</value>
+    public int MaxAllocatableSize1D { get; set; } = ushort.MaxValue * 64;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.

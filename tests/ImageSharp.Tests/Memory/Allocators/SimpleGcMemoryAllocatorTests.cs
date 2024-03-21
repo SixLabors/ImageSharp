@@ -21,7 +21,7 @@ public class SimpleGcMemoryAllocatorTests
 
     [Theory]
     [InlineData(-1)]
-    [InlineData((ushort.MaxValue * 4) + 1)]
+    [InlineData((ushort.MaxValue * 64) + 1)]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
     {
         ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<BigStruct>(length));

@@ -21,6 +21,18 @@ public abstract class MemoryAllocator
     public static MemoryAllocator Default { get; } = Create();
 
     /// <summary>
+    /// Gets or sets the maximum allowable allocatable size of a 2 dimensional buffer.
+    /// Defaults to <value>65535 * 65535.</value>
+    /// </summary>
+    public Size MaxAllocatableSize2D { get; set; } = new Size(ushort.MaxValue, ushort.MaxValue);
+
+    /// <summary>
+    /// Gets or sets the maximum allowable allocatable size of a 1 dimensional buffer.
+    /// </summary>
+    /// Defaults to <value>65535 * 4.</value>
+    public int MaxAllocatableSize1D { get; set; } = ushort.MaxValue * 4;
+
+    /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
     /// </summary>
     /// <returns>The length of the largest contiguous buffer that can be handled by this allocator instance.</returns>
@@ -42,7 +54,7 @@ public abstract class MemoryAllocator
         new UniformUnmanagedMemoryPoolMemoryAllocator(options.MaximumPoolSizeMegabytes);
 
     /// <summary>
-    /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
+    /// Allocates an <see cref="IMemoryOwner{T}"/>, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
     /// </summary>
     /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
     /// <param name="length">Size of the buffer to allocate.</param>
@@ -64,6 +76,7 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Allocates a <see cref="MemoryGroup{T}"/>.
     /// </summary>
+    /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
     /// <param name="totalLength">The total length of the buffer.</param>
     /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
     /// <param name="options">The <see cref="AllocationOptions"/>.</param>

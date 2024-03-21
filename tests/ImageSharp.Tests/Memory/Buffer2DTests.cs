@@ -72,11 +72,11 @@ public partial class Buffer2DTests
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
                 new Size(200, 200),
-                preferContiguosImageBuffers: true) :
+                preferContiguousImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
             200,
-            preferContiguosImageBuffers: true);
+            preferContiguousImageBuffers: true);
         Assert.Equal(1, buffer.FastMemoryGroup.Count);
         Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
     }
@@ -87,7 +87,7 @@ public partial class Buffer2DTests
     {
         this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
-        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
+        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOverAligned<int>(width, height, alignmentMultiplier);
         MemoryGroup<int> memoryGroup = buffer.FastMemoryGroup;
         int expectedAlignment = width * alignmentMultiplier;
 
@@ -337,4 +337,22 @@ public partial class Buffer2DTests
         Assert.False(mgBefore.IsValid);
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(ushort.MaxValue + 1)]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<byte>(length, length));
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(ushort.MaxValue + 1)]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_Size(int length)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<byte>(new Size(length, length)));
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(ushort.MaxValue + 1)]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_OverAligned(int length)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2DOverAligned<byte>(length, length, 1));
 }

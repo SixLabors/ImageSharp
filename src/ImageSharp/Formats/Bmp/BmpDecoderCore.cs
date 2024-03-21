@@ -1390,16 +1390,6 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         this.ReadFileHeader(stream);
         this.ReadInfoHeader(stream);
 
-        // BMPs with negative-or-zero width are invalid. Also, reject extremely wide images
-        // to keep the math sane. And reject int.MinValue as a height because you can't
-        // get its absolute value (because -int.MinValue is one more than int.MaxValue).
-        const int k64KWidth = 65535;
-        bool sizeOk = this.infoHeader.Width > 0 && this.infoHeader.Width <= k64KWidth && this.infoHeader.Height != int.MinValue;
-        if (!sizeOk)
-        {
-            BmpThrowHelper.ThrowInvalidImageContentException($"Invalid file header dimensions found. {this.infoHeader.Width}x{this.infoHeader.Height}px.");
-        }
-
         // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
         // If the height is negative, then this is a Windows bitmap whose origin
         // is the upper-left corner and not the lower-left. The inverted flag

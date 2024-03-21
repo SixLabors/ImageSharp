@@ -20,7 +20,9 @@ internal class UnmanagedMemoryAllocator : MemoryAllocator
 
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        var buffer = UnmanagedBuffer<T>.Allocate(length);
+        Guard.MustBeBetweenOrEqualTo(length, 0, this.MaxAllocatableSize1D, nameof(length));
+
+        UnmanagedBuffer<T> buffer = UnmanagedBuffer<T>.Allocate(length);
         if (options.Has(AllocationOptions.Clean))
         {
             buffer.GetSpan().Clear();

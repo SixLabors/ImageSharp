@@ -81,7 +81,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     /// <inheritdoc />
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        Guard.MustBeBetweenOrEqualTo(length, 0, this.MaxAllocatableSize1D, nameof(length));
+        MemoryGuardMustBeBetweenOrEqualTo(length, 0, this.MaxAllocatableSize1D, nameof(length));
         int lengthInBytes = length * Unsafe.SizeOf<T>();
 
         if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)

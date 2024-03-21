@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -349,13 +350,15 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [InlineData(1, 66535)]
-    [InlineData(66535, 1)]
+    [InlineData(1, 65536)]
+    [InlineData(65536, 1)]
     public void Encode_WorksWithSizeGreaterThen65k(int width, int height)
     {
         Exception exception = Record.Exception(() =>
         {
-            using Image image = new Image<Rgba32>(width, height);
+            Configuration c = Configuration.CreateDefaultInstance();
+            c.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2D = new(65537, 65537) };
+            using Image image = new Image<Rgba32>(c, width, height);
             using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);
         });

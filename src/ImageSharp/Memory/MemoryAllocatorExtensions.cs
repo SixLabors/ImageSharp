@@ -29,8 +29,8 @@ public static class MemoryAllocatorExtensions
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
-        Guard.MustBeBetweenOrEqualTo(width, 0, memoryAllocator.MaxAllocatableSize2D.Width, nameof(width));
-        Guard.MustBeBetweenOrEqualTo(height, 0, memoryAllocator.MaxAllocatableSize2D.Height, nameof(height));
+        MemoryAllocator.MemoryGuardMustBeBetweenOrEqualTo(width, 0, memoryAllocator.MaxAllocatableSize2D.Width, nameof(width));
+        MemoryAllocator.MemoryGuardMustBeBetweenOrEqualTo(height, 0, memoryAllocator.MaxAllocatableSize2D.Height, nameof(height));
 
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup;
@@ -107,8 +107,8 @@ public static class MemoryAllocatorExtensions
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
-        Guard.MustBeBetweenOrEqualTo(width, 0, memoryAllocator.MaxAllocatableSize2D.Width, nameof(width));
-        Guard.MustBeBetweenOrEqualTo(height, 0, memoryAllocator.MaxAllocatableSize2D.Height, nameof(height));
+        MemoryAllocator.MemoryGuardMustBeBetweenOrEqualTo(width, 0, memoryAllocator.MaxAllocatableSize2D.Width, nameof(width));
+        MemoryAllocator.MemoryGuardMustBeBetweenOrEqualTo(height, 0, memoryAllocator.MaxAllocatableSize2D.Height, nameof(height));
 
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup = memoryAllocator.AllocateGroup<T>(
@@ -133,7 +133,7 @@ public static class MemoryAllocatorExtensions
         int paddingInBytes)
     {
         int length = (width * pixelSizeInBytes) + paddingInBytes;
-        Guard.MustBeBetweenOrEqualTo(length, 0, memoryAllocator.MaxAllocatableSize1D, nameof(length));
+        MemoryAllocator.MemoryGuardMustBeBetweenOrEqualTo(length, 0, memoryAllocator.MaxAllocatableSize1D, nameof(length));
 
         return memoryAllocator.Allocate<byte>(length);
     }

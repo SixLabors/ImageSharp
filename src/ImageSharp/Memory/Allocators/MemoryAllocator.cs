@@ -29,8 +29,8 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Gets or sets the maximum allowable allocatable size of a 1 dimensional buffer.
     /// </summary>
-    /// Defaults to <value>65535 * 64.</value>
-    public int MaxAllocatableSize1D { get; set; } = ushort.MaxValue * 64;
+    /// Defaults to <value>1073741823.</value>
+    public int MaxAllocatableSize1D { get; set; } = int.MaxValue / 2;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -88,4 +88,14 @@ public abstract class MemoryAllocator
         AllocationOptions options = AllocationOptions.None)
         where T : struct
         => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
+
+    internal static void MemoryGuardMustBeBetweenOrEqualTo(int value, int min, int max, string paramName)
+    {
+        if (value >= min && value <= max)
+        {
+            return;
+        }
+
+        throw new InvalidMemoryOperationException($"Parameter \"{paramName}\" must be between or equal to {min} and {max}, was {value}");
+    }
 }

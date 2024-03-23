@@ -101,7 +101,31 @@ public abstract class MemoryAllocator
         where T : struct
         => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
 
-    internal static void MemoryGuardMustBeBetweenOrEqualTo<T>(int value, int min, int max, string paramName)
+    internal void MemoryGuardAllocation2D<T>(Size value, string paramName)
+        where T : struct
+    {
+        int typeSizeInBytes = Unsafe.SizeOf<T>();
+        long widthInBytes = value.Width * typeSizeInBytes;
+
+        // If a sufficiently large value is passed in, the multiplication will overflow.
+        // We can detect this by checking if the result is less than the original value.
+        if (widthInBytes < value.Width && value.Width > 0)
+        {
+            widthInBytes = long.MaxValue;
+        }
+
+        int maxWidth = this.MaxAllocatableSize2DInBytes.Width;
+        int maxHeight = this.MaxAllocatableSize2DInBytes.Height;
+        if (widthInBytes >= 0 && widthInBytes <= maxWidth && value.Height >= 0 && value.Height <= maxHeight)
+        {
+            return;
+        }
+
+        throw new InvalidMemoryOperationException(
+            $"An allocation was attempted that exceeded allowable limits; \"{paramName}\" must be less than or equal {maxWidth}x{maxHeight}, was {widthInBytes}x{value.Height}");
+    }
+
+    internal void MemoryGuardAllocation1D<T>(int value, string paramName)
         where T : struct
     {
         int typeSizeInBytes = Unsafe.SizeOf<T>();
@@ -114,20 +138,20 @@ public abstract class MemoryAllocator
             valueInBytes = long.MaxValue;
         }
 
-        if (valueInBytes >= min && valueInBytes <= max)
+        if (valueInBytes >= 0 && valueInBytes <= this.MaxAllocatableSize1DInBytes)
         {
             return;
         }
 
-        throw new InvalidMemoryOperationException($"Parameter \"{paramName}\" must be between or equal to {min} and {max}, was {valueInBytes}");
+        throw new InvalidMemoryOperationException(
+            $"An allocation was attempted that exceeded allowable limits; \"{paramName}\" must be less than or equal {this.MaxAllocatableSize1DInBytes}, was {valueInBytes}");
     }
 
     private static Size GetDefaultMaxAllocatableSize2DInBytes()
     {
         // Limit dimensions to 65535x65535 and 32767x32767 @ 4 bytes per pixel for 64 and 32 bit processes respectively.
         int maxLength = Environment.Is64BitProcess ? ushort.MaxValue : short.MaxValue;
-        int maxLengthInRgba32Bytes = maxLength * Unsafe.SizeOf<Rgba32>();
-        return new(maxLengthInRgba32Bytes, maxLengthInRgba32Bytes);
+        return new(maxLength * Unsafe.SizeOf<Rgba32>(), maxLength);
     }
 
     private static int GetDefaultMaxAllocatableSize1DInBytes()

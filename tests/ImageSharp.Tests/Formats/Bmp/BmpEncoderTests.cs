@@ -349,16 +349,21 @@ public class BmpEncoderTests
         Assert.Equal(expectedProfileBytes, actualProfileBytes);
     }
 
+    public static TheoryData<Size> Encode_WorksWithSizeGreaterThen65k_Data { get; set; } = new()
+    {
+        { new Size(1, MemoryAllocator.DefaultMaxAllocatableSize2DInBytes.Height + 1) },
+        { new Size(MemoryAllocator.DefaultMaxAllocatableSize2DInBytes.Width + 1, 1) }
+    };
+
     [Theory]
-    [InlineData(1, 65536)]
-    [InlineData(65536, 1)]
-    public void Encode_WorksWithSizeGreaterThen65k(int width, int height)
+    [MemberData(nameof(Encode_WorksWithSizeGreaterThen65k_Data))]
+    public void Encode_WorksWithSizeGreaterThen65k(Size size)
     {
         Exception exception = Record.Exception(() =>
         {
-            Configuration c = Configuration.CreateDefaultInstance();
-            c.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2D = new(65537, 65537) };
-            using Image image = new Image<Rgba32>(c, width, height);
+            Configuration configuration = Configuration.CreateDefaultInstance();
+            configuration.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2DInBytes = size + new Size(1, 1) };
+            using Image image = new Image<L8>(configuration, size.Width, size.Height);
             using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);
         });

@@ -17,7 +17,7 @@ public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     /// <inheritdoc />
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        MemoryGuardMustBeBetweenOrEqualTo(length, 0, this.MaxAllocatableSize1D, nameof(length));
+        MemoryGuardMustBeBetweenOrEqualTo<T>(length, 0, this.MaxAllocatableSize1DInBytes, nameof(length));
 
         return new BasicArrayBuffer<T>(new T[length]);
     }

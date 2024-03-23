@@ -17,18 +17,23 @@ public class SimpleGcMemoryAllocatorTests
         }
     }
 
-    protected SimpleGcMemoryAllocator MemoryAllocator { get; } = new SimpleGcMemoryAllocator();
+    protected SimpleGcMemoryAllocator TestMemoryAllocator { get; } = new SimpleGcMemoryAllocator();
+
+    public static TheoryData<int> InvalidLengths { get; set; } = new()
+    {
+        { -1 },
+        { MemoryAllocator.DefaultMaxAllocatableSize1DInBytes + 1 }
+    };
 
     [Theory]
-    [InlineData(-1)]
-    [InlineData(1073741823 + 1)]
+    [MemberData(nameof(InvalidLengths))]
     public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate<BigStruct>(length));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate<BigStruct>(length));
 
     [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
     {
-        SimpleGcMemoryAllocator allocator = this.MemoryAllocator;
+        SimpleGcMemoryAllocator allocator = this.TestMemoryAllocator;
         using IMemoryOwner<byte> memoryOwner = allocator.Allocate<byte>(100);
 
         using (MemoryHandle pin = memoryOwner.Memory.Pin())

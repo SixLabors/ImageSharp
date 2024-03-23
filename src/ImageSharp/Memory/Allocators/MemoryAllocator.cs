@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Memory;
 
@@ -10,6 +12,16 @@ namespace SixLabors.ImageSharp.Memory;
 /// </summary>
 public abstract class MemoryAllocator
 {
+    /// <summary>
+    /// Gets the default max allocatable size of a 1D buffer in bytes.
+    /// </summary>
+    public static readonly int DefaultMaxAllocatableSize1DInBytes = GetDefaultMaxAllocatableSize1DInBytes();
+
+    /// <summary>
+    /// Gets the default max allocatable size of a 2D buffer in bytes.
+    /// </summary>
+    public static readonly Size DefaultMaxAllocatableSize2DInBytes = GetDefaultMaxAllocatableSize2DInBytes();
+
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
     /// serves as the default value for <see cref="Configuration.MemoryAllocator"/>.
@@ -22,15 +34,15 @@ public abstract class MemoryAllocator
 
     /// <summary>
     /// Gets or sets the maximum allowable allocatable size of a 2 dimensional buffer.
-    /// Defaults to <value>65535 * 65535.</value>
+    /// Defaults to <value><see cref="DefaultMaxAllocatableSize2DInBytes"/>.</value>
     /// </summary>
-    public Size MaxAllocatableSize2D { get; set; } = new Size(ushort.MaxValue, ushort.MaxValue);
+    public Size MaxAllocatableSize2DInBytes { get; set; } = DefaultMaxAllocatableSize2DInBytes;
 
     /// <summary>
     /// Gets or sets the maximum allowable allocatable size of a 1 dimensional buffer.
     /// </summary>
-    /// Defaults to <value>1073741823.</value>
-    public int MaxAllocatableSize1D { get; set; } = int.MaxValue / 2;
+    /// Defaults to <value><see cref="GetDefaultMaxAllocatableSize1DInBytes"/>.</value>
+    public int MaxAllocatableSize1DInBytes { get; set; } = DefaultMaxAllocatableSize1DInBytes;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -89,13 +101,42 @@ public abstract class MemoryAllocator
         where T : struct
         => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
 
-    internal static void MemoryGuardMustBeBetweenOrEqualTo(int value, int min, int max, string paramName)
+    internal static void MemoryGuardMustBeBetweenOrEqualTo<T>(int value, int min, int max, string paramName)
+        where T : struct
     {
-        if (value >= min && value <= max)
+        int typeSizeInBytes = Unsafe.SizeOf<T>();
+        long valueInBytes = value * typeSizeInBytes;
+
+        // If a sufficiently large value is passed in, the multiplication will overflow.
+        // We can detect this by checking if the result is less than the original value.
+        if (valueInBytes < value && value > 0)
+        {
+            valueInBytes = long.MaxValue;
+        }
+
+        if (valueInBytes >= min && valueInBytes <= max)
         {
             return;
         }
 
-        throw new InvalidMemoryOperationException($"Parameter \"{paramName}\" must be between or equal to {min} and {max}, was {value}");
+        throw new InvalidMemoryOperationException($"Parameter \"{paramName}\" must be between or equal to {min} and {max}, was {valueInBytes}");
+    }
+
+    private static Size GetDefaultMaxAllocatableSize2DInBytes()
+    {
+        // Limit dimensions to 65535x65535 and 32767x32767 @ 4 bytes per pixel for 64 and 32 bit processes respectively.
+        int maxLength = Environment.Is64BitProcess ? ushort.MaxValue : short.MaxValue;
+        int maxLengthInRgba32Bytes = maxLength * Unsafe.SizeOf<Rgba32>();
+        return new(maxLengthInRgba32Bytes, maxLengthInRgba32Bytes);
+    }
+
+    private static int GetDefaultMaxAllocatableSize1DInBytes()
+    {
+        // It's possible to require buffers that are not related to image dimensions.
+        // For example, when we need to allocate buffers for IDAT chunks in PNG files or when allocating
+        // cache buffers for image quantization.
+        // Limit the maximum buffer size to 64MB for 64bit processes and 32MB for 32 bit processes.
+        int limitInMB = Environment.Is64BitProcess ? 64 : 32;
+        return limitInMB * 1024 * 1024;
     }
 }

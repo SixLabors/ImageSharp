@@ -135,7 +135,7 @@ public abstract class MemoryAllocator
         // It's possible to require buffers that are not related to image dimensions.
         // For example, when we need to allocate buffers for IDAT chunks in PNG files or when allocating
         // cache buffers for image quantization.
-        // Limit the maximum buffer size to 64MB for 64bit processes and 32MB for 32 bit processes.
+        // Limit the maximum buffer size to 64MB for 64-bit processes and 32MB for 32-bit processes.
         int limitInMB = Environment.Is64BitProcess ? 64 : 32;
         return limitInMB * 1024 * 1024;
     }

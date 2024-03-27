@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory;
@@ -341,21 +342,22 @@ public partial class Buffer2DTests
     public static TheoryData<Size> InvalidLengths { get; set; } = new()
     {
         { new(-1, -1) },
-        { MemoryAllocator.DefaultMaxAllocatableSize2DInBytes + new Size(1, 1) }
+        { new(32768, 32767) },
+        { new(32767, 32768) }
     };
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<byte>(size.Width, size.Height));
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_Size(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<byte>(new Size(size)));
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException_OverAligned(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2DOverAligned<byte>(size.Width, size.Height, 1));
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2DOverAligned<Rgba32>(size.Width, size.Height, 1));
 }

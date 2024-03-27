@@ -338,7 +338,7 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.Rgba32)]
     public void DecodeHang_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         => Assert.Throws<InvalidImageContentException>(() => { using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance); });

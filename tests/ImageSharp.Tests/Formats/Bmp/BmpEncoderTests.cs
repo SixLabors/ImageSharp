@@ -351,8 +351,8 @@ public class BmpEncoderTests
 
     public static TheoryData<Size> Encode_WorksWithSizeGreaterThen65k_Data { get; set; } = new()
     {
-        { new Size(1, MemoryAllocator.DefaultMaxAllocatableSize2DInBytes.Height + 1) },
-        { new Size(MemoryAllocator.DefaultMaxAllocatableSize2DInBytes.Width + 1, 1) }
+        { new Size(65535, 1) },
+        { new Size(1, 65535) },
     };
 
     [Theory]
@@ -362,7 +362,7 @@ public class BmpEncoderTests
         Exception exception = Record.Exception(() =>
         {
             Configuration configuration = Configuration.CreateDefaultInstance();
-            configuration.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2DInBytes = size + new Size(1, 1) };
+            configuration.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2DInBytes = ulong.MaxValue };
             using Image image = new Image<L8>(configuration, size.Width, size.Height);
             using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);

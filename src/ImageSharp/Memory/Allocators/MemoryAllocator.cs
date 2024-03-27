@@ -20,7 +20,7 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Gets the default max allocatable size of a 2D buffer in bytes.
     /// </summary>
-    public static readonly Size DefaultMaxAllocatableSize2DInBytes = GetDefaultMaxAllocatableSize2DInBytes();
+    public static readonly ulong DefaultMaxAllocatableSize2DInBytes = GetDefaultMaxAllocatableSize2DInBytes();
 
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
@@ -36,7 +36,7 @@ public abstract class MemoryAllocator
     /// Gets or sets the maximum allowable allocatable size of a 2 dimensional buffer.
     /// Defaults to <value><see cref="DefaultMaxAllocatableSize2DInBytes"/>.</value>
     /// </summary>
-    public Size MaxAllocatableSize2DInBytes { get; set; } = DefaultMaxAllocatableSize2DInBytes;
+    public ulong MaxAllocatableSize2DInBytes { get; set; } = DefaultMaxAllocatableSize2DInBytes;
 
     /// <summary>
     /// Gets or sets the maximum allowable allocatable size of a 1 dimensional buffer.
@@ -104,41 +104,35 @@ public abstract class MemoryAllocator
     internal void MemoryGuardAllocation2D<T>(Size value, string paramName)
         where T : struct
     {
-        int typeSizeInBytes = Unsafe.SizeOf<T>();
-        long widthInBytes = value.Width * typeSizeInBytes;
-
-        // If a sufficiently large value is passed in, the multiplication will overflow.
-        // We can detect this by checking if the result is less than the original value.
-        if (widthInBytes < value.Width && value.Width > 0)
+        if (value.Width < 0 || value.Height < 0)
         {
-            widthInBytes = long.MaxValue;
+            throw new InvalidMemoryOperationException($"An allocation was attempted that exceeded allowable limits; \"{paramName}\" at {value.Width}x{value.Height}");
         }
 
-        int maxWidth = this.MaxAllocatableSize2DInBytes.Width;
-        int maxHeight = this.MaxAllocatableSize2DInBytes.Height;
-        if (widthInBytes >= 0 && widthInBytes <= maxWidth && value.Height >= 0 && value.Height <= maxHeight)
+        ulong typeSizeInBytes = (ulong)Unsafe.SizeOf<T>();
+        ulong valueInBytes = (ulong)value.Width * typeSizeInBytes * (ulong)value.Height;
+
+        if (valueInBytes <= this.MaxAllocatableSize2DInBytes)
         {
             return;
         }
 
         throw new InvalidMemoryOperationException(
-            $"An allocation was attempted that exceeded allowable limits; \"{paramName}\" must be less than or equal {maxWidth}x{maxHeight}, was {widthInBytes}x{value.Height}");
+            $"An allocation was attempted that exceeded allowable limits; \"{paramName}\" at {value.Width}x{value.Height} must be less than or equal to {this.MaxAllocatableSize2DInBytes}, was {valueInBytes}");
     }
 
     internal void MemoryGuardAllocation1D<T>(int value, string paramName)
         where T : struct
     {
-        int typeSizeInBytes = Unsafe.SizeOf<T>();
-        long valueInBytes = value * typeSizeInBytes;
-
-        // If a sufficiently large value is passed in, the multiplication will overflow.
-        // We can detect this by checking if the result is less than the original value.
-        if (valueInBytes < value && value > 0)
+        if (value < 0)
         {
-            valueInBytes = long.MaxValue;
+            throw new InvalidMemoryOperationException($"An allocation was attempted that exceeded allowable limits; {paramName} must be greater than or equal to zero, was {value}");
         }
 
-        if (valueInBytes >= 0 && valueInBytes <= this.MaxAllocatableSize1DInBytes)
+        ulong typeSizeInBytes = (ulong)Unsafe.SizeOf<T>();
+        ulong valueInBytes = (ulong)value * typeSizeInBytes;
+
+        if (valueInBytes <= (ulong)this.MaxAllocatableSize1DInBytes)
         {
             return;
         }
@@ -147,11 +141,11 @@ public abstract class MemoryAllocator
             $"An allocation was attempted that exceeded allowable limits; \"{paramName}\" must be less than or equal {this.MaxAllocatableSize1DInBytes}, was {valueInBytes}");
     }
 
-    private static Size GetDefaultMaxAllocatableSize2DInBytes()
+    private static ulong GetDefaultMaxAllocatableSize2DInBytes()
     {
-        // Limit dimensions to 65535x65535 and 32767x32767 @ 4 bytes per pixel for 64 and 32 bit processes respectively.
-        int maxLength = Environment.Is64BitProcess ? ushort.MaxValue : short.MaxValue;
-        return new(maxLength * Unsafe.SizeOf<Rgba32>(), maxLength);
+        // Limit dimensions to 32767x32767 and 16383x16383 @ 4 bytes per pixel for 64 and 32 bit processes respectively.
+        ulong maxLength = Environment.Is64BitProcess ? ushort.MaxValue / 2 : (ulong)short.MaxValue / 4;
+        return maxLength * (ulong)Unsafe.SizeOf<Rgba32>() * maxLength;
     }
 
     private static int GetDefaultMaxAllocatableSize1DInBytes()

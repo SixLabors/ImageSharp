@@ -18,20 +18,22 @@ public static class MemoryAllocatorExtensions
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="width">The buffer width.</param>
     /// <param name="height">The buffer height.</param>
-    /// <param name="preferContiguosImageBuffers">A value indicating whether the allocated buffer should be contiguous, unless bigger than <see cref="int.MaxValue"/>.</param>
+    /// <param name="preferContiguousImageBuffers">A value indicating whether the allocated buffer should be contiguous, unless bigger than <see cref="int.MaxValue"/>.</param>
     /// <param name="options">The allocation options.</param>
     /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
     public static Buffer2D<T> Allocate2D<T>(
         this MemoryAllocator memoryAllocator,
         int width,
         int height,
-        bool preferContiguosImageBuffers,
+        bool preferContiguousImageBuffers,
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
+        memoryAllocator.MemoryGuardAllocation2D<T>(new Size(width, height), "size");
+
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup;
-        if (preferContiguosImageBuffers && groupLength < int.MaxValue)
+        if (preferContiguousImageBuffers && groupLength < int.MaxValue)
         {
             IMemoryOwner<T> buffer = memoryAllocator.Allocate<T>((int)groupLength, options);
             memoryGroup = MemoryGroup<T>.CreateContiguous(buffer, false);
@@ -69,16 +71,16 @@ public static class MemoryAllocatorExtensions
     /// <typeparam name="T">The type of buffer items to allocate.</typeparam>
     /// <param name="memoryAllocator">The memory allocator.</param>
     /// <param name="size">The buffer size.</param>
-    /// <param name="preferContiguosImageBuffers">A value indicating whether the allocated buffer should be contiguous, unless bigger than <see cref="int.MaxValue"/>.</param>
+    /// <param name="preferContiguousImageBuffers">A value indicating whether the allocated buffer should be contiguous, unless bigger than <see cref="int.MaxValue"/>.</param>
     /// <param name="options">The allocation options.</param>
     /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
     public static Buffer2D<T> Allocate2D<T>(
         this MemoryAllocator memoryAllocator,
         Size size,
-        bool preferContiguosImageBuffers,
+        bool preferContiguousImageBuffers,
         AllocationOptions options = AllocationOptions.None)
         where T : struct =>
-        Allocate2D<T>(memoryAllocator, size.Width, size.Height, preferContiguosImageBuffers, options);
+        Allocate2D<T>(memoryAllocator, size.Width, size.Height, preferContiguousImageBuffers, options);
 
     /// <summary>
     /// Allocates a buffer of value type objects interpreted as a 2D region
@@ -96,7 +98,7 @@ public static class MemoryAllocatorExtensions
         where T : struct =>
         Allocate2D<T>(memoryAllocator, size.Width, size.Height, false, options);
 
-    internal static Buffer2D<T> Allocate2DOveraligned<T>(
+    internal static Buffer2D<T> Allocate2DOverAligned<T>(
         this MemoryAllocator memoryAllocator,
         int width,
         int height,
@@ -104,6 +106,8 @@ public static class MemoryAllocatorExtensions
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
+        memoryAllocator.MemoryGuardAllocation2D<T>(new Size(width, height), "size");
+
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup = memoryAllocator.AllocateGroup<T>(
             groupLength,
@@ -127,6 +131,7 @@ public static class MemoryAllocatorExtensions
         int paddingInBytes)
     {
         int length = (width * pixelSizeInBytes) + paddingInBytes;
+        memoryAllocator.MemoryGuardAllocation1D<byte>(length, nameof(length));
         return memoryAllocator.Allocate<byte>(length);
     }
 }

@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -348,14 +349,21 @@ public class BmpEncoderTests
         Assert.Equal(expectedProfileBytes, actualProfileBytes);
     }
 
+    public static TheoryData<Size> Encode_WorksWithSizeGreaterThen65k_Data { get; set; } = new()
+    {
+        { new Size(65535, 1) },
+        { new Size(1, 65535) },
+    };
+
     [Theory]
-    [InlineData(1, 66535)]
-    [InlineData(66535, 1)]
-    public void Encode_WorksWithSizeGreaterThen65k(int width, int height)
+    [MemberData(nameof(Encode_WorksWithSizeGreaterThen65k_Data))]
+    public void Encode_WorksWithSizeGreaterThen65k(Size size)
     {
         Exception exception = Record.Exception(() =>
         {
-            using Image image = new Image<Rgba32>(width, height);
+            Configuration configuration = Configuration.CreateDefaultInstance();
+            configuration.MemoryAllocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null) { MaxAllocatableSize2DInBytes = ulong.MaxValue };
+            using Image image = new Image<L8>(configuration, size.Width, size.Height);
             using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);
         });

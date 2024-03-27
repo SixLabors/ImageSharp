@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory;
@@ -23,7 +24,7 @@ public partial class Buffer2DTests
         }
     }
 
-    private TestMemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
+    private TestMemoryAllocator TestMemoryAllocator { get; } = new TestMemoryAllocator();
 
     private const int Big = 99999;
 
@@ -33,9 +34,9 @@ public partial class Buffer2DTests
     [InlineData(300, 42, 777)]
     public unsafe void Construct(int bufferCapacity, int width, int height)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
+        this.TestMemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
-        using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
+        using (Buffer2D<TestStructs.Foo> buffer = this.TestMemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
         {
             Assert.Equal(width, buffer.Width);
             Assert.Equal(height, buffer.Height);
@@ -51,9 +52,9 @@ public partial class Buffer2DTests
     [InlineData(3, 0, 0)]
     public unsafe void Construct_Empty(int bufferCapacity, int width, int height)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
+        this.TestMemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
-        using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
+        using (Buffer2D<TestStructs.Foo> buffer = this.TestMemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
         {
             Assert.Equal(width, buffer.Width);
             Assert.Equal(height, buffer.Height);
@@ -67,16 +68,16 @@ public partial class Buffer2DTests
     [InlineData(true)]
     public void Construct_PreferContiguousImageBuffers_AllocatesContiguousRegardlessOfCapacity(bool useSizeOverload)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = 10_000;
+        this.TestMemoryAllocator.BufferCapacityInBytes = 10_000;
 
         using Buffer2D<byte> buffer = useSizeOverload ?
-            this.MemoryAllocator.Allocate2D<byte>(
+            this.TestMemoryAllocator.Allocate2D<byte>(
                 new Size(200, 200),
-                preferContiguosImageBuffers: true) :
-            this.MemoryAllocator.Allocate2D<byte>(
+                preferContiguousImageBuffers: true) :
+            this.TestMemoryAllocator.Allocate2D<byte>(
             200,
             200,
-            preferContiguosImageBuffers: true);
+            preferContiguousImageBuffers: true);
         Assert.Equal(1, buffer.FastMemoryGroup.Count);
         Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
     }
@@ -85,9 +86,9 @@ public partial class Buffer2DTests
     [InlineData(50, 10, 20, 4)]
     public void Allocate2DOveraligned(int bufferCapacity, int width, int height, int alignmentMultiplier)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
+        this.TestMemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
-        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
+        using Buffer2D<int> buffer = this.TestMemoryAllocator.Allocate2DOverAligned<int>(width, height, alignmentMultiplier);
         MemoryGroup<int> memoryGroup = buffer.FastMemoryGroup;
         int expectedAlignment = width * alignmentMultiplier;
 
@@ -97,7 +98,7 @@ public partial class Buffer2DTests
     [Fact]
     public void CreateClean()
     {
-        using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
+        using (Buffer2D<int> buffer = this.TestMemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
         {
             Span<int> span = buffer.DangerousGetSingleSpan();
             for (int j = 0; j < span.Length; j++)
@@ -117,9 +118,9 @@ public partial class Buffer2DTests
     [InlineData(200, 100, 30, 4, 2)]
     public unsafe void DangerousGetRowSpan_TestAllocator(int bufferCapacity, int width, int height, int y, int expectedBufferIndex)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
+        this.TestMemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
-        using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
+        using (Buffer2D<TestStructs.Foo> buffer = this.TestMemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
         {
             Span<TestStructs.Foo> span = buffer.DangerousGetRowSpan(y);
 
@@ -194,8 +195,8 @@ public partial class Buffer2DTests
     [InlineData(30, 4, 1, -1)]
     public void TryGetPaddedRowSpanY(int bufferCapacity, int y, int padding, int expectedBufferIndex)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
-        using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(3, 5);
+        this.TestMemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+        using Buffer2D<byte> buffer = this.TestMemoryAllocator.Allocate2D<byte>(3, 5);
 
         bool expectSuccess = expectedBufferIndex >= 0;
         bool success = buffer.DangerousTryGetPaddedRowSpan(y, padding, out Span<byte> paddedSpan);
@@ -219,8 +220,8 @@ public partial class Buffer2DTests
     [MemberData(nameof(GetRowSpanY_OutOfRange_Data))]
     public void GetRowSpan_OutOfRange(int bufferCapacity, int width, int height, int y)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
-        using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
+        this.TestMemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+        using Buffer2D<byte> buffer = this.TestMemoryAllocator.Allocate2D<byte>(width, height);
 
         Exception ex = Assert.ThrowsAny<Exception>(() => buffer.DangerousGetRowSpan(y));
         Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
@@ -242,8 +243,8 @@ public partial class Buffer2DTests
     [MemberData(nameof(Indexer_OutOfRange_Data))]
     public void Indexer_OutOfRange(int bufferCapacity, int width, int height, int x, int y)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
-        using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
+        this.TestMemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+        using Buffer2D<byte> buffer = this.TestMemoryAllocator.Allocate2D<byte>(width, height);
 
         Exception ex = Assert.ThrowsAny<Exception>(() => buffer[x, y]++);
         Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
@@ -257,9 +258,9 @@ public partial class Buffer2DTests
     [InlineData(500, 200, 30, 199, 29)]
     public unsafe void Indexer(int bufferCapacity, int width, int height, int x, int y)
     {
-        this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
+        this.TestMemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
-        using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
+        using (Buffer2D<TestStructs.Foo> buffer = this.TestMemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
         {
             int bufferIndex = (width * y) / buffer.FastMemoryGroup.BufferLength;
             int subBufferStart = (width * y) - (bufferIndex * buffer.FastMemoryGroup.BufferLength);
@@ -284,7 +285,7 @@ public partial class Buffer2DTests
     public void CopyColumns(int width, int height, int startIndex, int destIndex, int columnCount)
     {
         var rnd = new Random(123);
-        using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
+        using (Buffer2D<float> b = this.TestMemoryAllocator.Allocate2D<float>(width, height))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
 
@@ -306,7 +307,7 @@ public partial class Buffer2DTests
     public void CopyColumns_InvokeMultipleTimes()
     {
         var rnd = new Random(123);
-        using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
+        using (Buffer2D<float> b = this.TestMemoryAllocator.Allocate2D<float>(100, 100))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
 
@@ -328,8 +329,8 @@ public partial class Buffer2DTests
     [Fact]
     public void PublicMemoryGroup_IsMemoryGroupView()
     {
-        using Buffer2D<int> buffer1 = this.MemoryAllocator.Allocate2D<int>(10, 10);
-        using Buffer2D<int> buffer2 = this.MemoryAllocator.Allocate2D<int>(10, 10);
+        using Buffer2D<int> buffer1 = this.TestMemoryAllocator.Allocate2D<int>(10, 10);
+        using Buffer2D<int> buffer2 = this.TestMemoryAllocator.Allocate2D<int>(10, 10);
         IMemoryGroup<int> mgBefore = buffer1.MemoryGroup;
 
         Buffer2D<int>.SwapOrCopyContent(buffer1, buffer2);
@@ -337,4 +338,26 @@ public partial class Buffer2DTests
         Assert.False(mgBefore.IsValid);
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
+
+    public static TheoryData<Size> InvalidLengths { get; set; } = new()
+    {
+        { new(-1, -1) },
+        { new(32768, 32767) },
+        { new(32767, 32768) }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.TestMemoryAllocator.Allocate2DOverAligned<Rgba32>(size.Width, size.Height, 1));
 }

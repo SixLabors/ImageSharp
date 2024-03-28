@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory;
@@ -18,6 +19,13 @@ public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
         Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+
+        int lengthInBytes = length * Unsafe.SizeOf<T>();
+
+        if (lengthInBytes > this.SingleBufferAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
+        }
 
         return new BasicArrayBuffer<T>(new T[length]);
     }

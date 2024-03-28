@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace SixLabors.ImageSharp.Memory;
 
 /// <summary>
@@ -24,4 +26,8 @@ public class InvalidMemoryOperationException : InvalidOperationException
     public InvalidMemoryOperationException()
     {
     }
+
+    [DoesNotReturn]
+    internal static void ThrowAllocationOverLimitException(long length, long limit) =>
+            throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of length={length} that exceeded the limit {limit}.");
 }

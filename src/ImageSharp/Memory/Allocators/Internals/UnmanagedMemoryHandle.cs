@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Memory.Internals
     internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
     {
         // Number of allocation re-attempts when detecting OutOfMemoryException.
-        private const int MaxAllocationAttempts = 1000;
+        private const int MaxAllocationAttempts = 10;
 
         // Track allocations for testing purposes:
         private static int totalOutstandingHandles;

@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -10,7 +9,6 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 {
@@ -225,12 +223,18 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
     [StructLayout(LayoutKind.Sequential, Size = 5)]
     internal struct S5
     {
-        public override string ToString() => "S5";
+        public override readonly string ToString() => nameof(S5);
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     internal struct S4
     {
-        public override string ToString() => "S4";
+        public override readonly string ToString() => nameof(S4);
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 512)]
+    internal struct S512
+    {
+        public override readonly string ToString() => nameof(S512);
     }
 }

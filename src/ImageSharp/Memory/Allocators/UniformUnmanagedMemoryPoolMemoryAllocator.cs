@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -86,6 +87,11 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
         int lengthInBytes = length * Unsafe.SizeOf<T>();
 
+        if (lengthInBytes > this.SingleBufferAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
+        }
+
         if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
             var buffer = new SharedArrayPoolBuffer<T>(length);
@@ -111,20 +117,15 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     }
 
     /// <inheritdoc />
-    internal override MemoryGroup<T> AllocateGroup<T>(
-        long totalLength,
+    internal override MemoryGroup<T> AllocateGroupCore<T>(
+        long totalLengthInElements,
+        long totalLengthInBytes,
         int bufferAlignment,
         AllocationOptions options = AllocationOptions.None)
     {
-        long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
-        if (totalLengthInBytes < 0)
-        {
-            throw new InvalidMemoryOperationException("Attempted to allocate a MemoryGroup of a size that is not representable.");
-        }
-
         if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
+            var buffer = new SharedArrayPoolBuffer<T>((int)totalLengthInElements);
             return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
         }
 
@@ -134,18 +135,18 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLength, options.Has(AllocationOptions.Clean));
+                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLengthInElements, options.Has(AllocationOptions.Clean));
                 return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
             }
         }
 
         // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:
-        if (MemoryGroup<T>.TryAllocate(this.pool, totalLength, bufferAlignment, options, out MemoryGroup<T>? poolGroup))
+        if (MemoryGroup<T>.TryAllocate(this.pool, totalLengthInElements, bufferAlignment, options, out MemoryGroup<T>? poolGroup))
         {
             return poolGroup;
         }
 
-        return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLength, bufferAlignment, options);
+        return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLengthInElements, bufferAlignment, options);
     }
 
     public override void ReleaseRetainedResources() => this.pool.Release();

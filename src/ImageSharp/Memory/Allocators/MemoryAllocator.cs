@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;
 
@@ -10,6 +12,8 @@ namespace SixLabors.ImageSharp.Memory;
 /// </summary>
 public abstract class MemoryAllocator
 {
+    private const int OneGigabyte = 1 << 30;
+
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
     /// serves as the default value for <see cref="Configuration.MemoryAllocator"/>.
@@ -19,6 +23,12 @@ public abstract class MemoryAllocator
     /// to change the default allocator used by <see cref="Image"/> and it's operations.
     /// </summary>
     public static MemoryAllocator Default { get; } = Create();
+
+    internal long MemoryGroupAllocationLimitBytes { get; private set; } = Environment.Is64BitProcess ?
+        4L * OneGigabyte :
+        OneGigabyte;
+
+    internal int SingleBufferAllocationLimitBytes { get; private set; } = OneGigabyte;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -30,16 +40,24 @@ public abstract class MemoryAllocator
     /// Creates a default instance of a <see cref="MemoryAllocator"/> optimized for the executing platform.
     /// </summary>
     /// <returns>The <see cref="MemoryAllocator"/>.</returns>
-    public static MemoryAllocator Create() =>
-        new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+    public static MemoryAllocator Create() => Create(default);
 
     /// <summary>
     /// Creates the default <see cref="MemoryAllocator"/> using the provided options.
     /// </summary>
     /// <param name="options">The <see cref="MemoryAllocatorOptions"/>.</param>
     /// <returns>The <see cref="MemoryAllocator"/>.</returns>
-    public static MemoryAllocator Create(MemoryAllocatorOptions options) =>
-        new UniformUnmanagedMemoryPoolMemoryAllocator(options.MaximumPoolSizeMegabytes);
+    public static MemoryAllocator Create(MemoryAllocatorOptions options)
+    {
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(options.MaximumPoolSizeMegabytes);
+        if (options.AllocationLimitMegabytes.HasValue)
+        {
+            allocator.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024 * 1024;
+            allocator.SingleBufferAllocationLimitBytes = (int)Math.Min(allocator.SingleBufferAllocationLimitBytes, allocator.MemoryGroupAllocationLimitBytes);
+        }
+
+        return allocator;
+    }
 
     /// <summary>
     /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
@@ -69,10 +87,31 @@ public abstract class MemoryAllocator
     /// <param name="options">The <see cref="AllocationOptions"/>.</param>
     /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
     /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
-    internal virtual MemoryGroup<T> AllocateGroup<T>(
+    internal MemoryGroup<T> AllocateGroup<T>(
         long totalLength,
         int bufferAlignment,
         AllocationOptions options = AllocationOptions.None)
         where T : struct
-        => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
+    {
+        long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
+        if (totalLengthInBytes < 0)
+        {
+            ThrowNotRepresentable();
+        }
+
+        if (totalLengthInBytes > this.MemoryGroupAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(totalLengthInBytes, this.MemoryGroupAllocationLimitBytes);
+        }
+
+        return this.AllocateGroupCore<T>(totalLengthInBytes, totalLength, bufferAlignment, options);
+
+        [DoesNotReturn]
+        static void ThrowNotRepresentable() =>
+            throw new InvalidMemoryOperationException("Attempted to allocate a MemoryGroup of a size that is not representable.");
+    }
+
+    internal virtual MemoryGroup<T> AllocateGroupCore<T>(long totalLengthInElements, long totalLengthInBytes, int bufferAlignment, AllocationOptions options)
+        where T : struct
+        => MemoryGroup<T>.Allocate(this, totalLengthInElements, bufferAlignment, options);
 }

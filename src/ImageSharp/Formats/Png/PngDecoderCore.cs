@@ -228,8 +228,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 PngThrowHelper.ThrowMissingFrameControl();
                             }
 
-                            previousFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
-                            this.InitializeFrame(previousFrameControl.Value, currentFrameControl.Value, image, previousFrame, out currentFrame);
+                            this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
                             this.currentStream.Position += 4;
                             this.ReadScanlines(
@@ -249,7 +248,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             break;
                         case PngChunkType.Data:
-
+                            pngMetadata.DefaultImageAnimated = currentFrameControl != null;
                             currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
@@ -266,9 +265,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.ReadNextDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
+                            if (pngMetadata.DefaultImageAnimated)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
                             break;
                         case PngChunkType.Palette:
                             this.palette = chunk.Data.GetSpan().ToArray();
@@ -637,7 +639,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="previousFrame">The previous frame.</param>
     /// <param name="frame">The created frame</param>
     private void InitializeFrame<TPixel>(
-        FrameControl previousFrameControl,
+        FrameControl? previousFrameControl,
         FrameControl currentFrameControl,
         Image<TPixel> image,
         ImageFrame<TPixel>? previousFrame,
@@ -646,15 +648,15 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
-        // if restoring to before first frame, restore to background
-        if (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious)
+        // If restoring to before first frame, restore to background. Same if first frame (previousFrameControl null).
+        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
         {
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
             pixelRegion.Clear();
         }
-        else if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground)
+        else if (previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToBackground)
         {
-            Rectangle restoreArea = previousFrameControl.Bounds;
+            Rectangle restoreArea = previousFrameControl.Value.Bounds;
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
             pixelRegion.Clear();
         }

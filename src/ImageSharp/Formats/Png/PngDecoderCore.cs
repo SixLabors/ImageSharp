@@ -246,8 +246,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 currentFrameControl.Value,
                                 cancellationToken);
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
+                            // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
+                            if (currentFrameControl.Value.DisposeOperation != PngDisposalMethod.RestoreToPrevious)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
+
                             break;
                         case PngChunkType.Data:
 
@@ -645,18 +650,18 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         out ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // We create a clone of the previous frame and add it.
-        // We will overpaint the difference of pixels on the current frame to create a complete image.
-        // This ensures that we have enough pixel data to process without distortion. #2450
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
-        // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
-        if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground
-            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
+        // if restoring to before first frame, restore to background
+        if (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious)
+        {
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
+            pixelRegion.Clear();
+        }
+        else if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground)
         {
             Rectangle restoreArea = previousFrameControl.Bounds;
-            Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
-            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
             pixelRegion.Clear();
         }
 

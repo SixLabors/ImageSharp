@@ -83,6 +83,11 @@ public class PngMetadata : IDeepCloneable
     /// </summary>
     public uint RepeatCount { get; set; } = 1;
 
+    /// <summary>
+    ///  Gets or sets a value indicating whether the default image is shown as part of the animated sequence
+    /// </summary>
+    public bool DefaultImageAnimated { get; set; }
+
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);
 

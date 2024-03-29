@@ -88,7 +88,8 @@ public partial class PngDecoderTests
         TestImages.Png.DisposePreviousFirst,
         TestImages.Png.DisposeBackgroundBeforeRegion,
         TestImages.Png.BlendOverMultiple,
-        TestImages.Png.FrameOffset
+        TestImages.Png.FrameOffset,
+        TestImages.Png.DefaultNotAnimated
     };
 
     [Theory]

@@ -74,6 +74,7 @@ public static class TestImages
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
         public const string FrameOffset = "Png/animated/frame-offset.png";
+        public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html

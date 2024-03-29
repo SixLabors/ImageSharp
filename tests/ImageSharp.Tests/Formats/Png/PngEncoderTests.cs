@@ -587,6 +587,29 @@ public partial class PngEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    public void Encode_DefaultNotAnimated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        Assert.Equal(2, image.Frames.Count);
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+
+        PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
+        PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
+        Assert.Equal(originalMetadata.DefaultImageAnimated, outputMetadata.DefaultImageAnimated);
+    }
+
+    [Theory]
     [MemberData(nameof(PngTrnsFiles))]
     public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
     {

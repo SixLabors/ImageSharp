@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
@@ -57,6 +58,38 @@ public partial class PngEncoderTests
 
             bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
         }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void AcTL_CorrectlyWritten<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngMetadata metadata = image.Metadata.GetPngMetadata();
+        int correctFrameCount = image.Frames.Count - (metadata.DefaultImageAnimated ? 0 : 1);
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+        Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
+        bool foundAcTl = false;
+        while (bytesSpan.Length > 0 && !foundAcTl)
+        {
+            int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan[..4]);
+            PngChunkType type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            if (type == PngChunkType.AnimationControl)
+            {
+                AnimationControl control = AnimationControl.Parse(bytesSpan[8..]);
+                foundAcTl = true;
+                Assert.True(control.NumberFrames == correctFrameCount);
+                Assert.True(control.NumberPlays == metadata.RepeatCount);
+            }
+
+            bytesSpan = bytesSpan[(4 + 4 + length + 4)..];
+        }
+
+        Assert.True(foundAcTl);
     }
 
     [Theory]

@@ -147,6 +147,26 @@ public class PngMetadataTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    public void Decode_IdentifiesDefaultFrameNotAnimated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+        Assert.False(meta.DefaultImageAnimated);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Decode_IdentifiesDefaultFrameAnimated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+        Assert.True(meta.DefaultImageAnimated);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
     public void Decode_IgnoresExifData_WhenIgnoreMetadataIsTrue<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

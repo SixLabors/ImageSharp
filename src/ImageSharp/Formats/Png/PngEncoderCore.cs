@@ -190,7 +190,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)image.Frames.Count, pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.DefaultImageAnimated ? 0 : 1)), pngMetadata.RepeatCount);
         }
 
         // If the first frame isn't animated, write it as usual and skip it when writing animated frames

@@ -54,7 +54,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// The flag to decide how to handle the background color in the Animation Chunk.
     /// </summary>
-    private BackgroundColorHandling backgroundColorHandling;
+    private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.

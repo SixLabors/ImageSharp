@@ -7,7 +7,10 @@ using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
-internal readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
+/// <summary>
+/// Represents an RGB (red, green, blue) color profile.
+/// </summary>
+public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="Rgb"/> struct.

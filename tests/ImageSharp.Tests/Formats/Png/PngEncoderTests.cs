@@ -447,6 +447,8 @@ public partial class PngEncoderTests
 
     [Theory]
     [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.FrameOffset, PixelTypes.Rgba32)]
     public void Encode_APng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -458,15 +460,17 @@ public partial class PngEncoderTests
         image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
 
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
-        ImageComparer.Exact.VerifySimilarity(output, image);
 
-        Assert.Equal(5, image.Frames.Count);
+        // some loss from original, due to compositing
+        ImageComparer.TolerantPercentage(0.01f).VerifySimilarity(output, image);
+
         Assert.Equal(image.Frames.Count, output.Frames.Count);
 
         PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
         PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
 
         Assert.Equal(originalMetadata.RepeatCount, outputMetadata.RepeatCount);
+        Assert.Equal(originalMetadata.DefaultImageAnimated, outputMetadata.DefaultImageAnimated);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
@@ -584,29 +588,6 @@ public partial class PngEncoderTests
                     break;
             }
         }
-    }
-
-    [Theory]
-    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
-    public void Encode_DefaultNotAnimated<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        using MemoryStream memStream = new();
-        image.Save(memStream, PngEncoder);
-        memStream.Position = 0;
-
-        image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
-
-        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
-        ImageComparer.Exact.VerifySimilarity(output, image);
-
-        Assert.Equal(2, image.Frames.Count);
-        Assert.Equal(image.Frames.Count, output.Frames.Count);
-
-        PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
-        PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
-        Assert.Equal(originalMetadata.DefaultImageAnimated, outputMetadata.DefaultImageAnimated);
     }
 
     [Theory]

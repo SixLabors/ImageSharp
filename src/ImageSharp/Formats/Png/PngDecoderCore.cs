@@ -646,6 +646,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         out ImageFrame<TPixel> frame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // We create a clone of the previous frame and add it.
+        // We will overpaint the difference of pixels on the current frame to create a complete image.
+        // This ensures that we have enough pixel data to process without distortion. #2450
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.

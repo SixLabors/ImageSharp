@@ -33,7 +33,7 @@ public class PngMetadataTests
             Gamma = 2,
             TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") },
             RepeatCount = 123,
-            DefaultImageAnimated = false
+            AnimateRootFrame = false
         };
 
         PngMetadata clone = (PngMetadata)meta.DeepClone();
@@ -45,7 +45,7 @@ public class PngMetadataTests
         Assert.False(meta.TextData.Equals(clone.TextData));
         Assert.True(meta.TextData.SequenceEqual(clone.TextData));
         Assert.True(meta.RepeatCount == clone.RepeatCount);
-        Assert.True(meta.DefaultImageAnimated == clone.DefaultImageAnimated);
+        Assert.True(meta.AnimateRootFrame == clone.AnimateRootFrame);
 
         clone.BitDepth = PngBitDepth.Bit2;
         clone.ColorType = PngColorType.Palette;
@@ -153,7 +153,7 @@ public class PngMetadataTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-        Assert.False(meta.DefaultImageAnimated);
+        Assert.False(meta.AnimateRootFrame);
     }
 
     [Theory]
@@ -163,7 +163,7 @@ public class PngMetadataTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-        Assert.True(meta.DefaultImageAnimated);
+        Assert.True(meta.AnimateRootFrame);
     }
 
     [Theory]

@@ -68,7 +68,7 @@ public partial class PngEncoderTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
-        int correctFrameCount = image.Frames.Count - (metadata.DefaultImageAnimated ? 0 : 1);
+        int correctFrameCount = image.Frames.Count - (metadata.AnimateRootFrame ? 0 : 1);
         using MemoryStream memStream = new();
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;

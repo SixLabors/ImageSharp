@@ -190,11 +190,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.DefaultImageAnimated ? 0 : 1)), pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)), pngMetadata.RepeatCount);
         }
 
         // If the first frame isn't animated, write it as usual and skip it when writing animated frames
-        if (!pngMetadata.DefaultImageAnimated || image.Frames.Count == 1)
+        if (!pngMetadata.AnimateRootFrame || image.Frames.Count == 1)
         {
             FrameControl frameControl = new((uint)this.width, (uint)this.height);
             this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
@@ -209,7 +209,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
             uint sequenceNumber = 1;
-            if (pngMetadata.DefaultImageAnimated)
+            if (pngMetadata.AnimateRootFrame)
             {
                 this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
             }

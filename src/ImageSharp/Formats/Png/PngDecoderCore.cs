@@ -248,7 +248,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             break;
                         case PngChunkType.Data:
-                            pngMetadata.DefaultImageAnimated = currentFrameControl != null;
+                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
                             currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
@@ -265,7 +265,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.ReadNextDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
-                            if (pngMetadata.DefaultImageAnimated)
+                            if (pngMetadata.AnimateRootFrame)
                             {
                                 previousFrame = currentFrame;
                                 previousFrameControl = currentFrameControl;

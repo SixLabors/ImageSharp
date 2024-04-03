@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;
@@ -24,9 +23,7 @@ public abstract class MemoryAllocator
     /// </summary>
     public static MemoryAllocator Default { get; } = Create();
 
-    internal long MemoryGroupAllocationLimitBytes { get; private set; } = Environment.Is64BitProcess ?
-        4L * OneGigabyte :
-        OneGigabyte;
+    internal long MemoryGroupAllocationLimitBytes { get; private set; } = Environment.Is64BitProcess ? 4L * OneGigabyte : OneGigabyte;
 
     internal int SingleBufferAllocationLimitBytes { get; private set; } = OneGigabyte;
 
@@ -82,6 +79,7 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Allocates a <see cref="MemoryGroup{T}"/>.
     /// </summary>
+    /// <typeparam name="T">The type of element to allocate.</typeparam>
     /// <param name="totalLength">The total length of the buffer.</param>
     /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
     /// <param name="options">The <see cref="AllocationOptions"/>.</param>
@@ -93,22 +91,19 @@ public abstract class MemoryAllocator
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
-        long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
-        if (totalLengthInBytes < 0)
+        if (totalLength < 0)
         {
-            ThrowNotRepresentable();
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(totalLength);
         }
 
-        if (totalLengthInBytes > this.MemoryGroupAllocationLimitBytes)
+        ulong totalLengthInBytes = (ulong)totalLength * (ulong)Unsafe.SizeOf<T>();
+        if (totalLengthInBytes > (ulong)this.MemoryGroupAllocationLimitBytes)
         {
             InvalidMemoryOperationException.ThrowAllocationOverLimitException(totalLengthInBytes, this.MemoryGroupAllocationLimitBytes);
         }
 
-        return this.AllocateGroupCore<T>(totalLengthInBytes, totalLength, bufferAlignment, options);
-
-        [DoesNotReturn]
-        static void ThrowNotRepresentable() =>
-            throw new InvalidMemoryOperationException("Attempted to allocate a MemoryGroup of a size that is not representable.");
+        // Cast to long is safe because we already checked that the total length is within the limit.
+        return this.AllocateGroupCore<T>(totalLength, (long)totalLengthInBytes, bufferAlignment, options);
     }
 
     internal virtual MemoryGroup<T> AllocateGroupCore<T>(long totalLengthInElements, long totalLengthInBytes, int bufferAlignment, AllocationOptions options)

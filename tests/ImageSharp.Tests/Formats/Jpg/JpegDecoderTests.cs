@@ -338,21 +338,11 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
-    public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.Rgb24)]
+    public void DecodeHang_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (TestEnvironment.IsWindows &&
-            TestEnvironment.RunsOnCI)
-        {
-            // Windows CI runs consistently fail with OOM.
-            return;
-        }
-
-        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-        Assert.Equal(65503, image.Width);
-        Assert.Equal(65503, image.Height);
-    }
+        => Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance); });
 
     // https://github.com/SixLabors/ImageSharp/issues/2517
     [Theory]

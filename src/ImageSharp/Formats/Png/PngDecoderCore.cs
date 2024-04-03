@@ -1968,6 +1968,9 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         }
 
         // We rent the buffer here to return it afterwards in Decode()
+        // We don't want to throw a degenerated memory exception here as we want to allow partial decoding
+        // so limit the length.
+        length = (int)Math.Min(length, this.currentStream.Length - this.currentStream.Position);
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
         this.currentStream.Read(buffer.GetSpan(), 0, length);

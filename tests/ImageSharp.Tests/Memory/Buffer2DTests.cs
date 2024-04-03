@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory;
@@ -72,11 +73,11 @@ public partial class Buffer2DTests
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
                 new Size(200, 200),
-                preferContiguosImageBuffers: true) :
+                preferContiguousImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
             200,
-            preferContiguosImageBuffers: true);
+            preferContiguousImageBuffers: true);
         Assert.Equal(1, buffer.FastMemoryGroup.Count);
         Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
     }
@@ -87,7 +88,7 @@ public partial class Buffer2DTests
     {
         this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
-        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
+        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOverAligned<int>(width, height, alignmentMultiplier);
         MemoryGroup<int> memoryGroup = buffer.FastMemoryGroup;
         int expectedAlignment = width * alignmentMultiplier;
 
@@ -337,4 +338,26 @@ public partial class Buffer2DTests
         Assert.False(mgBefore.IsValid);
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
+
+    public static TheoryData<Size> InvalidLengths { get; set; } = new()
+    {
+        { new(-1, -1) },
+        { new(32768, 32769) },
+        { new(32769, 32768) }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOverAligned<Rgba32>(size.Width, size.Height, 1));
 }

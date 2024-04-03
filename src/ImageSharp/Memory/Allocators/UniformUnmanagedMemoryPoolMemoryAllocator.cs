@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -84,15 +83,18 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         int length,
         AllocationOptions options = AllocationOptions.None)
     {
-        Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-        int lengthInBytes = length * Unsafe.SizeOf<T>();
+        if (length < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
+        }
 
-        if (lengthInBytes > this.SingleBufferAllocationLimitBytes)
+        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
         {
             InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
         }
 
-        if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
+        if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
         {
             var buffer = new SharedArrayPoolBuffer<T>(length);
             if (options.Has(AllocationOptions.Clean))
@@ -103,7 +105,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             return buffer;
         }
 
-        if (lengthInBytes <= this.poolBufferSizeInBytes)
+        if (lengthInBytes <= (ulong)this.poolBufferSizeInBytes)
         {
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)

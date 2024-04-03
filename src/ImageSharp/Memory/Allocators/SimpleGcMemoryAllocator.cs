@@ -18,11 +18,13 @@ public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     /// <inheritdoc />
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+        if (length < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
+        }
 
-        int lengthInBytes = length * Unsafe.SizeOf<T>();
-
-        if (lengthInBytes > this.SingleBufferAllocationLimitBytes)
+        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
         {
             InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
         }

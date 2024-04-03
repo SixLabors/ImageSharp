@@ -32,7 +32,8 @@ public class PngMetadataTests
             InterlaceMethod = PngInterlaceMode.Adam7,
             Gamma = 2,
             TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") },
-            RepeatCount = 123
+            RepeatCount = 123,
+            AnimateRootFrame = false
         };
 
         PngMetadata clone = (PngMetadata)meta.DeepClone();
@@ -44,6 +45,7 @@ public class PngMetadataTests
         Assert.False(meta.TextData.Equals(clone.TextData));
         Assert.True(meta.TextData.SequenceEqual(clone.TextData));
         Assert.True(meta.RepeatCount == clone.RepeatCount);
+        Assert.True(meta.AnimateRootFrame == clone.AnimateRootFrame);
 
         clone.BitDepth = PngBitDepth.Bit2;
         clone.ColorType = PngColorType.Palette;
@@ -142,6 +144,26 @@ public class PngMetadataTests
         Assert.NotNull(image.Metadata.ExifProfile);
         ExifProfile exif = image.Metadata.ExifProfile;
         VerifyExifDataIsPresent(exif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    public void Decode_IdentifiesDefaultFrameNotAnimated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+        Assert.False(meta.AnimateRootFrame);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Decode_IdentifiesDefaultFrameAnimated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
+        Assert.True(meta.AnimateRootFrame);
     }
 
     [Theory]

@@ -180,8 +180,9 @@ internal static class PngScanlineProcessor
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
         ref Color paletteBase = ref MemoryMarshal.GetReference(palette.Value.Span);
+        uint offset = pixelOffset + frameControl.XOffset;
 
-        for (nuint x = pixelOffset, o = 0; x < frameControl.XMax; x += increment, o++)
+        for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
         {
             uint index = Unsafe.Add(ref scanlineSpanRef, o);
             Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(Unsafe.Add(ref paletteBase, index).ToPixel<Rgba32>());

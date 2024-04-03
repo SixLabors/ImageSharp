@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
 
@@ -107,6 +108,7 @@ internal static class RiffHelper
             position++;
         }
 
+        // Add the size of the encoded file to the Riff header.
         BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
         stream.Position = sizePosition;
         stream.Write(buffer);
@@ -120,5 +122,18 @@ internal static class RiffHelper
         return sizePosition;
     }
 
-    public static void EndWriteRiffFile(Stream stream, long sizePosition) => EndWriteChunk(stream, sizePosition);
+    public static void EndWriteRiffFile(Stream stream, in WebpVp8X vp8x, bool updateVp8x, long sizePosition)
+    {
+        EndWriteChunk(stream, sizePosition + 4);
+
+        // Write the VP8X chunk if necessary.
+        if (updateVp8x)
+        {
+            long position = stream.Position;
+
+            stream.Position = sizePosition + 12;
+            vp8x.WriteTo(stream);
+            stream.Position = position;
+        }
+    }
 }

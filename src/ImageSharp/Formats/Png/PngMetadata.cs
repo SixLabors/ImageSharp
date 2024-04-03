@@ -29,7 +29,7 @@ public class PngMetadata : IDeepCloneable
         this.InterlaceMethod = other.InterlaceMethod;
         this.TransparentColor = other.TransparentColor;
         this.RepeatCount = other.RepeatCount;
-        this.DefaultImageAnimated = other.DefaultImageAnimated;
+        this.AnimateRootFrame = other.AnimateRootFrame;
 
         if (other.ColorTable?.Length > 0)
         {
@@ -85,9 +85,9 @@ public class PngMetadata : IDeepCloneable
     public uint RepeatCount { get; set; } = 1;
 
     /// <summary>
-    ///  Gets or sets a value indicating whether the default image is shown as part of the animated sequence
+    ///  Gets or sets a value indicating whether the root frame is shown as part of the animated sequence
     /// </summary>
-    public bool DefaultImageAnimated { get; set; } = true;
+    public bool AnimateRootFrame { get; set; } = true;
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new PngMetadata(this);

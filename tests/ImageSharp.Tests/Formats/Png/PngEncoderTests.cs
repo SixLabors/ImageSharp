@@ -471,7 +471,7 @@ public partial class PngEncoderTests
         PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
 
         Assert.Equal(originalMetadata.RepeatCount, outputMetadata.RepeatCount);
-        Assert.Equal(originalMetadata.DefaultImageAnimated, outputMetadata.DefaultImageAnimated);
+        Assert.Equal(originalMetadata.AnimateRootFrame, outputMetadata.AnimateRootFrame);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {

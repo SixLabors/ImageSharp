@@ -167,6 +167,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         ImageFrame<TPixel>? clonedFrame = null;
         ImageFrame<TPixel> currentFrame = image.Frames.RootFrame;
+        int currentFrameIndex = 0;
 
         bool clearTransparency = this.encoder.TransparentColorMode is PngTransparentColorMode.Clear;
         if (clearTransparency)
@@ -195,29 +196,50 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)image.Frames.Count, pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)), pngMetadata.RepeatCount);
+        }
 
-            // Write the first frame.
+        // If the first frame isn't animated, write it as usual and skip it when writing animated frames
+        if (!pngMetadata.AnimateRootFrame || image.Frames.Count == 1)
+        {
+            FrameControl frameControl = new((uint)this.width, (uint)this.height);
+            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            currentFrameIndex++;
+        }
+
+        if (image.Frames.Count > 1)
+        {
+            // Write the first animated frame.
+            currentFrame = image.Frames[currentFrameIndex];
             PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
             PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
-            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            uint sequenceNumber = 1;
+            if (pngMetadata.AnimateRootFrame)
+            {
+                this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            }
+            else
+            {
+                sequenceNumber += this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, true);
+            }
+
+            currentFrameIndex++;
 
             // Capture the global palette for reuse on subsequent frames.
             ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
 
             // Write following frames.
-            uint increment = 0;
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
 
             // This frame is reused to store de-duplicated pixel buffers.
             using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
 
-            for (int i = 1; i < image.Frames.Count; i++)
+            for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
                 ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
-                currentFrame = image.Frames[i];
-                ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+                currentFrame = image.Frames[currentFrameIndex];
+                ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
                 frameMetadata = GetPngFrameMetadata(currentFrame);
                 bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
@@ -238,21 +260,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 }
 
                 // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
-                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, (uint)i + increment);
+                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, sequenceNumber);
 
                 // Dispose of previous quantized frame and reassign.
                 quantized?.Dispose();
                 quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, encodingFrame, bounds, previousPalette);
-                increment += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true);
+                sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
 
                 previousFrame = currentFrame;
                 previousDisposal = frameMetadata.DisposalMethod;
             }
-        }
-        else
-        {
-            FrameControl frameControl = new((uint)this.width, (uint)this.height);
-            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
         }
 
         this.WriteEndChunk(stream);

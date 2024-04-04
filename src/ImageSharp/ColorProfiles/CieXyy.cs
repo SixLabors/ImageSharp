@@ -18,7 +18,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <param name="x">The x chroma component.</param>
     /// <param name="y">The y chroma component.</param>
     /// <param name="yl">The y luminance component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieXyy(float x, float y, float yl)
     {
         // Not clamping as documentation about this space only indicates "usual" ranges
@@ -31,7 +31,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// Initializes a new instance of the <see cref="CieXyy"/> struct.
     /// </summary>
     /// <param name="vector">The vector representing the x, y, Y components.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieXyy(Vector3 vector)
         : this()
     {
@@ -67,7 +67,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <returns>
     /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(CieXyy left, CieXyy right) => left.Equals(right);
 
     /// <summary>
@@ -78,7 +78,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <returns>
     /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieXyy left, CieXyy right) => !left.Equals(right);
 
     /// <inheritdoc/>
@@ -148,7 +148,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     public override bool Equals(object? obj) => obj is CieXyy other && this.Equals(other);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieXyy other)
         => this.X.Equals(other.X)
         && this.Y.Equals(other.Y)

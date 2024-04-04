@@ -12,10 +12,10 @@ internal static class CieConstants
     /// <summary>
     /// 216F / 24389F
     /// </summary>
-    public const float Epsilon = 0.008856452F;
+    public const float Epsilon = 216f / 24389f;
 
     /// <summary>
     /// 24389F / 27F
     /// </summary>
-    public const float Kappa = 903.2963F;
+    public const float Kappa = 24389f / 27f;
 }

@@ -15,7 +15,9 @@ internal readonly struct ApproximateColorProfileComparer :
     IEqualityComparer<Lms>,
     IEqualityComparer<CieLch>,
     IEqualityComparer<Rgb>,
-    IEqualityComparer<YCbCr>
+    IEqualityComparer<YCbCr>,
+    IEqualityComparer<CieLchuv>,
+    IEqualityComparer<CieLuv>
 {
     private readonly float epsilon;
 
@@ -37,6 +39,10 @@ internal readonly struct ApproximateColorProfileComparer :
 
     public bool Equals(YCbCr x, YCbCr y) => this.Equals(x.Y, y.Y) && this.Equals(x.Cb, y.Cb) && this.Equals(x.Cr, y.Cr);
 
+    public bool Equals(CieLchuv x, CieLchuv y) => this.Equals(x.L, y.L) && this.Equals(x.C, y.C) && this.Equals(x.H, y.H);
+
+    public bool Equals(CieLuv x, CieLuv y) => this.Equals(x.L, y.L) && this.Equals(x.U, y.U) && this.Equals(x.V, y.V);
+
     public int GetHashCode([DisallowNull] CieLab obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] CieXyz obj) => obj.GetHashCode();
@@ -48,6 +54,10 @@ internal readonly struct ApproximateColorProfileComparer :
     public int GetHashCode([DisallowNull] Rgb obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] YCbCr obj) => obj.GetHashCode();
+
+    public int GetHashCode([DisallowNull] CieLchuv obj) => obj.GetHashCode();
+
+    public int GetHashCode([DisallowNull] CieLuv obj) => obj.GetHashCode();
 
     private bool Equals(float x, float y)
     {

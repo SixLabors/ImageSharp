@@ -22,7 +22,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <param name="y">The y luminance component.</param>
     /// <param name="cb">The cb chroma component.</param>
     /// <param name="cr">The cr chroma component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public YCbCr(float y, float cb, float cr)
         : this(new Vector3(y, cb, cr))
     {
@@ -32,7 +32,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// Initializes a new instance of the <see cref="YCbCr"/> struct.
     /// </summary>
     /// <param name="vector">The vector representing the y, cb, cr components.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public YCbCr(Vector3 vector)
     {
         vector = Vector3.Clamp(vector, Min, Max);
@@ -77,7 +77,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <returns>
     /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(YCbCr left, YCbCr right) => !left.Equals(right);
 
     /// <inheritdoc/>
@@ -140,7 +140,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => HashCode.Combine(this.Y, this.Cb, this.Cr);
 
     /// <inheritdoc/>
@@ -150,7 +150,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     public override bool Equals(object? obj) => obj is YCbCr other && this.Equals(other);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(YCbCr other)
         => this.Y.Equals(other.Y)
         && this.Cb.Equals(other.Cb)

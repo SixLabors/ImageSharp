@@ -19,7 +19,7 @@ public class CieLabAndCieLchuvConversionTests
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(30.66194, 200, 352.7564, 31.95653, 116.8745, 2.388602)]
-    public void Convert_Lchuv_to_Lab(float l, float c, float h, float l2, float a, float b)
+    public void Convert_Lchuv_To_Lab(float l, float c, float h, float l2, float a, float b)
     {
         // Arrange
         CieLchuv input = new(l, c, h);
@@ -48,7 +48,7 @@ public class CieLabAndCieLchuvConversionTests
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(36.0555, 303.6901, 10.01514, 29.4713573, 200, 352.6346)]
-    public void Convert_Lab_to_Lchuv(float l, float a, float b, float l2, float c, float h)
+    public void Convert_Lab_To_Lchuv(float l, float a, float b, float l2, float c, float h)
     {
         // Arrange
         CieLab input = new(l, a, b);

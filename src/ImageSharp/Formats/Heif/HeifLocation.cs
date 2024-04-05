@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Location within the file of an <see cref="HeifItem"/>.
 /// </summary>
-public class HeifLocation(long offset, long length)
+internal class HeifLocation(long offset, long length)
 {
     /// <summary>
     /// Gets the file offset of this location.

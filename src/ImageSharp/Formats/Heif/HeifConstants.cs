@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 internal static class HeifConstants
 {
-    public const Heif4CharCode HeicBrand = Heif4CharCode.heic;
+    public const Heif4CharCode HeicBrand = Heif4CharCode.Heic;
 
     /// <summary>
     /// The list of mimetypes that equate to a HEIC.

@@ -16,7 +16,7 @@ internal abstract class ComponentProcessor : IDisposable
         this.Component = component;
 
         this.BlockAreaSize = component.SubSamplingDivisors * blockSize;
-        this.ColorBuffer = memoryAllocator.Allocate2DOverAligned<float>(
+        this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
             postProcessorBufferSize.Width,
             postProcessorBufferSize.Height,
             this.BlockAreaSize.Height);

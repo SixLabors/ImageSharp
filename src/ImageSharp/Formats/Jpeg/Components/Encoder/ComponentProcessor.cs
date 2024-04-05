@@ -28,7 +28,7 @@ internal class ComponentProcessor : IDisposable
         this.blockAreaSize = component.SubSamplingDivisors * 8;
 
         // alignment of 8 so each block stride can be sampled from a single 'ref pointer'
-        this.ColorBuffer = memoryAllocator.Allocate2DOverAligned<float>(
+        this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
             postProcessorBufferSize.Width,
             postProcessorBufferSize.Height,
             8,

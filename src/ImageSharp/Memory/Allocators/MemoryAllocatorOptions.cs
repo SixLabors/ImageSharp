@@ -17,7 +17,7 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? MaximumPoolSizeMegabytes
     {
-        readonly get => this.maximumPoolSizeMegabytes;
+        get => this.maximumPoolSizeMegabytes;
         set
         {
             if (value.HasValue)
@@ -35,7 +35,7 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? AllocationLimitMegabytes
     {
-        readonly get => this.allocationLimitMegabytes;
+        get => this.allocationLimitMegabytes;
         set
         {
             if (value.HasValue)

@@ -83,7 +83,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.transposedFirstPassBuffer = configuration.MemoryAllocator.Allocate2D<Vector4>(
             this.workerHeight,
             targetWorkingRect.Width,
-            preferContiguousImageBuffers: true,
+            preferContiguosImageBuffers: true,
             options: AllocationOptions.Clean);
 
         this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);

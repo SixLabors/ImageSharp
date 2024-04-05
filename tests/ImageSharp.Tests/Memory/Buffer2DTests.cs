@@ -73,11 +73,11 @@ public partial class Buffer2DTests
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
                 new Size(200, 200),
-                preferContiguousImageBuffers: true) :
+                preferContiguosImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
             200,
-            preferContiguousImageBuffers: true);
+            preferContiguosImageBuffers: true);
         Assert.Equal(1, buffer.FastMemoryGroup.Count);
         Assert.Equal(200 * 200, buffer.FastMemoryGroup.TotalLength);
     }
@@ -88,7 +88,7 @@ public partial class Buffer2DTests
     {
         this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
-        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOverAligned<int>(width, height, alignmentMultiplier);
+        using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
         MemoryGroup<int> memoryGroup = buffer.FastMemoryGroup;
         int expectedAlignment = width * alignmentMultiplier;
 
@@ -359,5 +359,5 @@ public partial class Buffer2DTests
     [Theory]
     [MemberData(nameof(InvalidLengths))]
     public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOverAligned<Rgba32>(size.Width, size.Height, 1));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOveraligned<Rgba32>(size.Width, size.Height, 1));
 }

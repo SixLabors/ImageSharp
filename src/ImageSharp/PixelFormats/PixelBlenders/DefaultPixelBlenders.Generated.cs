@@ -38,9 +38,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -143,9 +141,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplySrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplySrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -248,9 +244,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -353,9 +347,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -458,9 +450,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -563,9 +553,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -668,9 +656,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -773,9 +759,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlaySrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlaySrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -878,9 +862,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightSrc(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -983,9 +965,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1088,9 +1068,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplySrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplySrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1193,9 +1171,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1298,9 +1274,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1403,9 +1377,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1508,9 +1480,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1613,9 +1583,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1718,9 +1686,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlaySrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlaySrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1823,9 +1789,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightSrcAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -1928,9 +1892,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2033,9 +1995,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplySrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplySrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2138,9 +2098,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2243,9 +2201,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2348,9 +2304,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2453,9 +2407,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2558,9 +2510,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2663,9 +2613,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlaySrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlaySrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2768,9 +2716,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightSrcOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2873,9 +2819,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -2978,9 +2922,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplySrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplySrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3083,9 +3025,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3188,9 +3128,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3293,9 +3231,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3398,9 +3334,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3503,9 +3437,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3608,9 +3540,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlaySrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlaySrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3713,9 +3643,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightSrcIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3818,9 +3746,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -3923,9 +3849,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplySrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplySrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4028,9 +3952,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4133,9 +4055,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4238,9 +4158,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4343,9 +4261,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4448,9 +4364,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4553,9 +4467,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlaySrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlaySrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4658,9 +4570,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightSrcOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4763,9 +4673,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4868,9 +4776,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -4973,9 +4879,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5078,9 +4982,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5183,9 +5085,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5288,9 +5188,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5393,9 +5291,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5498,9 +5394,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5603,9 +5497,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightDest(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5708,9 +5600,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5813,9 +5703,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -5918,9 +5806,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6023,9 +5909,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6128,9 +6012,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6233,9 +6115,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6338,9 +6218,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6443,9 +6321,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6548,9 +6424,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightDestAtop(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6653,9 +6527,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6758,9 +6630,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6863,9 +6733,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -6968,9 +6836,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7073,9 +6939,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7178,9 +7042,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7283,9 +7145,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7388,9 +7248,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7493,9 +7351,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightDestOver(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7598,9 +7454,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7703,9 +7557,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7808,9 +7660,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -7913,9 +7763,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8018,9 +7866,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8123,9 +7969,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8228,9 +8072,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8333,9 +8175,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8438,9 +8278,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightDestIn(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8543,9 +8381,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8648,9 +8484,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8753,9 +8587,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8858,9 +8690,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -8963,9 +8793,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9068,9 +8896,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9173,9 +8999,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9278,9 +9102,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9383,9 +9205,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightDestOut(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9488,9 +9308,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9593,9 +9411,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9698,9 +9514,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9803,9 +9617,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -9908,9 +9720,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10013,9 +9823,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10118,9 +9926,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10223,9 +10029,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10328,9 +10132,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightClear(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10433,9 +10235,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.NormalXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.NormalXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10538,9 +10338,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.MultiplyXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.MultiplyXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10643,9 +10441,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.AddXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.AddXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10748,9 +10544,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.SubtractXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.SubtractXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10853,9 +10647,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.ScreenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.ScreenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -10958,9 +10750,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.DarkenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.DarkenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -11063,9 +10853,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.LightenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.LightenXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -11168,9 +10956,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.OverlayXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.OverlayXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />
@@ -11273,9 +11059,7 @@ internal static class DefaultPixelBlenders<TPixel>
         /// <inheritdoc />
         public override TPixel Blend(TPixel background, TPixel source, float amount)
         {
-            TPixel dest = default;
-            dest.FromScaledVector4(PorterDuffFunctions.HardLightXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
-            return dest;
+            return TPixel.FromScaledVector4(PorterDuffFunctions.HardLightXor(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
         }
 
         /// <inheritdoc />

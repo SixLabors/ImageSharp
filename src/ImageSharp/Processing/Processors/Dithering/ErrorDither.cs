@@ -203,7 +203,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
                 Vector4 result = pixel.ToVector4();
 
                 result += error * coefficient;
-                pixel.FromVector4(result);
+                pixel = TPixel.FromVector4(result);
             }
         }
 

@@ -18,34 +18,25 @@ namespace SixLabors.ImageSharp;
 /// </remarks>
 public readonly partial struct Color : IEquatable<Color>
 {
-    private readonly Rgba64 data;
+    private readonly Vector4 data;
     private readonly IPixel? boxedHighPrecisionPixel;
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private Color(byte r, byte g, byte b, byte a)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Color"/> struct.
+    /// </summary>
+    /// <param name="vector">The <see cref="Vector4"/> containing the color information.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Color(Vector4 vector)
     {
-        this.data = new Rgba64(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(r),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(g),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(b),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(a));
-
+        this.data = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
         this.boxedHighPrecisionPixel = null;
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private Color(byte r, byte g, byte b)
-    {
-        this.data = new Rgba64(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(r),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(g),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(b),
-            ushort.MaxValue);
-
-        this.boxedHighPrecisionPixel = null;
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Color"/> struct.
+    /// </summary>
+    /// <param name="pixel">The pixel containing color information.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Color(IPixel pixel)
     {
         this.boxedHighPrecisionPixel = pixel;
@@ -61,7 +52,7 @@ public readonly partial struct Color : IEquatable<Color>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter;
     /// otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Color left, Color right) => left.Equals(right);
 
     /// <summary>
@@ -73,66 +64,64 @@ public readonly partial struct Color : IEquatable<Color>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter;
     /// otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Color left, Color right) => !left.Equals(right);
-
-    /// <summary>
-    /// Creates a <see cref="Color"/> from RGBA bytes.
-    /// </summary>
-    /// <param name="r">The red component (0-255).</param>
-    /// <param name="g">The green component (0-255).</param>
-    /// <param name="b">The blue component (0-255).</param>
-    /// <param name="a">The alpha component (0-255).</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Color FromRgba(byte r, byte g, byte b, byte a) => new(r, g, b, a);
-
-    /// <summary>
-    /// Creates a <see cref="Color"/> from RGB bytes.
-    /// </summary>
-    /// <param name="r">The red component (0-255).</param>
-    /// <param name="g">The green component (0-255).</param>
-    /// <param name="b">The blue component (0-255).</param>
-    /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Color FromRgb(byte r, byte g, byte b) => new(r, g, b);
 
     /// <summary>
     /// Creates a <see cref="Color"/> from the given <typeparamref name="TPixel"/>.
     /// </summary>
-    /// <param name="pixel">The pixel to convert from.</param>
+    /// <param name="source">The pixel to convert from.</param>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>The <see cref="Color"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Color FromPixel<TPixel>(TPixel pixel)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Color FromPixel<TPixel>(TPixel source)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // Avoid boxing in case we can convert to Rgba64 safely and efficently
-        if (typeof(TPixel) == typeof(Rgba64))
+        // Avoid boxing in case we can convert to Vector4 safely and efficiently
+        PixelTypeInfo info = TPixel.GetPixelTypeInfo();
+        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
-            return new((Rgba64)(object)pixel);
+            return new(source.ToScaledVector4());
         }
-        else if (typeof(TPixel) == typeof(Rgb48))
+
+        return new(source);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Color"/> from a generic scaled <see cref="Vector4"/>.
+    /// </summary>
+    /// <param name="source">The vector to load the pixel from.</param>
+    /// <returns>The <see cref="Color"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Color FromScaledVector(Vector4 source) => new(source);
+
+    /// <summary>
+    /// Bulk converts a span of a specified <typeparamref name="TPixel"/> type to a span of <see cref="Color"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
+    /// <param name="source">The source pixel span.</param>
+    /// <param name="destination">The destination color span.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FromPixel<TPixel>(ReadOnlySpan<TPixel> source, Span<Color> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // Avoid boxing in case we can convert to Vector4 safely and efficiently
+        PixelTypeInfo info = TPixel.GetPixelTypeInfo();
+        if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
-            return new((Rgb48)(object)pixel);
-        }
-        else if (typeof(TPixel) == typeof(La32))
-        {
-            return new((La32)(object)pixel);
-        }
-        else if (typeof(TPixel) == typeof(L16))
-        {
-            return new((L16)(object)pixel);
-        }
-        else if (Unsafe.SizeOf<TPixel>() <= Unsafe.SizeOf<Rgba32>())
-        {
-            Rgba32 p = default;
-            pixel.ToRgba32(ref p);
-            return new(p);
+            for (int i = 0; i < destination.Length; i++)
+            {
+                destination[i] = FromScaledVector(source[i].ToScaledVector4());
+            }
         }
         else
         {
-            return new(pixel);
+            for (int i = 0; i < destination.Length; i++)
+            {
+                destination[i] = new(source[i]);
+            }
         }
     }
 
@@ -147,12 +136,11 @@ public readonly partial struct Color : IEquatable<Color>
     /// <returns>
     /// The <see cref="Color"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Color ParseHex(string hex)
     {
         Rgba32 rgba = Rgba32.ParseHex(hex);
-
-        return new Color(rgba);
+        return FromPixel(rgba);
     }
 
     /// <summary>
@@ -167,14 +155,14 @@ public readonly partial struct Color : IEquatable<Color>
     /// <returns>
     /// The <see cref="bool"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParseHex(string hex, out Color result)
     {
         result = default;
 
         if (Rgba32.TryParseHex(hex, out Rgba32 rgba))
         {
-            result = new Color(rgba);
+            result = FromPixel(rgba);
             return true;
         }
 
@@ -241,26 +229,24 @@ public readonly partial struct Color : IEquatable<Color>
     /// <returns>The color having it's alpha channel altered.</returns>
     public Color WithAlpha(float alpha)
     {
-        Vector4 v = (Vector4)this;
+        Vector4 v = this.ToScaledVector4();
         v.W = alpha;
-        return new Color(v);
+        return FromScaledVector(v);
     }
 
     /// <summary>
     /// Gets the hexadecimal representation of the color instance in rrggbbaa form.
     /// </summary>
     /// <returns>A hexadecimal string representation of the value.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToHex()
     {
         if (this.boxedHighPrecisionPixel is not null)
         {
-            Rgba32 rgba = default;
-            this.boxedHighPrecisionPixel.ToRgba32(ref rgba);
-            return rgba.ToHex();
+            return this.boxedHighPrecisionPixel.ToRgba32().ToHex();
         }
 
-        return this.data.ToRgba32().ToHex();
+        return Rgba32.FromScaledVector4(this.data).ToHex();
     }
 
     /// <inheritdoc />
@@ -270,8 +256,8 @@ public readonly partial struct Color : IEquatable<Color>
     /// Converts the color instance to a specified <typeparamref name="TPixel"/> type.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
-    /// <returns>The pixel value.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    /// <returns>The <typeparamref name="TPixel"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TPixel ToPixel<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -282,14 +268,27 @@ public readonly partial struct Color : IEquatable<Color>
 
         if (this.boxedHighPrecisionPixel is null)
         {
-            pixel = default;
-            pixel.FromRgba64(this.data);
-            return pixel;
+            return TPixel.FromScaledVector4(this.data);
         }
 
-        pixel = default;
-        pixel.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
-        return pixel;
+        return TPixel.FromScaledVector4(this.boxedHighPrecisionPixel.ToScaledVector4());
+    }
+
+    /// <summary>
+    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
+    /// with values scaled and clamped between <value>0</value> and <value>1</value>.
+    /// The vector components are typically expanded in least to greatest significance order.
+    /// </summary>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector4 ToScaledVector4()
+    {
+        if (this.boxedHighPrecisionPixel is null)
+        {
+            return this.data;
+        }
+
+        return this.boxedHighPrecisionPixel.ToScaledVector4();
     }
 
     /// <summary>
@@ -298,11 +297,12 @@ public readonly partial struct Color : IEquatable<Color>
     /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
     /// <param name="source">The source color span.</param>
     /// <param name="destination">The destination pixel span.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ToPixel<TPixel>(ReadOnlySpan<Color> source, Span<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // TODO: Investigate bulk operations utilizing configuration parameter here.
+        // We cannot use bulk pixel operations here as there is no guarantee that the source colors are
+        // created from pixel formats which fit into the unboxed vector data.
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         for (int i = 0; i < source.Length; i++)
         {
@@ -311,12 +311,12 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Color other)
     {
         if (this.boxedHighPrecisionPixel is null && other.boxedHighPrecisionPixel is null)
         {
-            return this.data.PackedValue == other.data.PackedValue;
+            return this.data == other.data;
         }
 
         return this.boxedHighPrecisionPixel?.Equals(other.boxedHighPrecisionPixel) == true;
@@ -326,12 +326,12 @@ public readonly partial struct Color : IEquatable<Color>
     public override bool Equals(object? obj) => obj is Color other && this.Equals(other);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
         if (this.boxedHighPrecisionPixel is null)
         {
-            return this.data.PackedValue.GetHashCode();
+            return this.data.GetHashCode();
         }
 
         return this.boxedHighPrecisionPixel.GetHashCode();

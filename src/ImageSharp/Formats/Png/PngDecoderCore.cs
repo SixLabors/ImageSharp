@@ -127,6 +127,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private readonly Crc32 crc32 = new();
 
     /// <summary>
+    /// The maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
+    /// </summary>
+    private readonly int maxUncompressedLength;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -138,6 +143,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
@@ -149,6 +155,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
         this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     /// <inheritdoc/>
@@ -227,8 +234,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 PngThrowHelper.ThrowMissingFrameControl();
                             }
 
-                            previousFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
-                            this.InitializeFrame(previousFrameControl.Value, currentFrameControl.Value, image, previousFrame, out currentFrame);
+                            this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
                             this.currentStream.Position += 4;
                             this.ReadScanlines(
@@ -239,11 +245,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 currentFrameControl.Value,
                                 cancellationToken);
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
+                            // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
+                            if (currentFrameControl.Value.DisposeOperation != PngDisposalMethod.RestoreToPrevious)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
+
                             break;
                         case PngChunkType.Data:
-
+                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
                             currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
@@ -260,9 +271,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.ReadNextDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
+                            if (pngMetadata.AnimateRootFrame)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
                             break;
                         case PngChunkType.Palette:
                             this.palette = chunk.Data.GetSpan().ToArray();
@@ -602,23 +616,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // When ignoring data CRCs, we can't use the image constructor that leaves the buffer uncleared.
-        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
-        {
-            image = new Image<TPixel>(
-                this.configuration,
-                this.header.Width,
-                this.header.Height,
-                metadata);
-        }
-        else
-        {
-            image = Image.CreateUninitialized<TPixel>(
-                this.configuration,
-                this.header.Width,
-                this.header.Height,
-                metadata);
-        }
+        image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
 
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
@@ -647,7 +645,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="previousFrame">The previous frame.</param>
     /// <param name="frame">The created frame</param>
     private void InitializeFrame<TPixel>(
-        FrameControl previousFrameControl,
+        FrameControl? previousFrameControl,
         FrameControl currentFrameControl,
         Image<TPixel> image,
         ImageFrame<TPixel>? previousFrame,
@@ -660,12 +658,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
-        if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground
-            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
+        // So, if restoring to before first frame, clear entire area. Same if first frame (previousFrameControl null).
+        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
         {
-            Rectangle restoreArea = previousFrameControl.Bounds;
-            Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
-            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
+            pixelRegion.Clear();
+        }
+        else if (previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToBackground)
+        {
+            Rectangle restoreArea = previousFrameControl.Value.Bounds;
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
             pixelRegion.Clear();
         }
 
@@ -1240,10 +1242,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Rgb24>()];
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        for (int i = 0; i < colorTable.Length; i++)
-        {
-            colorTable[i] = new Color(rgbTable[i]);
-        }
+        Color.FromPixel(rgbTable, colorTable);
 
         if (alpha.Length > 0)
         {
@@ -1276,14 +1275,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     ushort gc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(2, 2));
                     ushort bc = BinaryPrimitives.ReadUInt16LittleEndian(alpha.Slice(4, 2));
 
-                    pngMetadata.TransparentColor = new(new Rgb48(rc, gc, bc));
+                    pngMetadata.TransparentColor = Color.FromPixel(new Rgb48(rc, gc, bc));
                     return;
                 }
 
                 byte r = ReadByteLittleEndian(alpha, 0);
                 byte g = ReadByteLittleEndian(alpha, 2);
                 byte b = ReadByteLittleEndian(alpha, 4);
-                pngMetadata.TransparentColor = new(new Rgb24(r, g, b));
+                pngMetadata.TransparentColor = Color.FromPixel(new Rgb24(r, g, b));
             }
         }
         else if (this.pngColorType == PngColorType.Grayscale)
@@ -1578,7 +1577,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
 
-        if (this.TryDecompressZlibData(compressedData, out byte[] iccpProfileBytes))
+        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
         {
             metadata.IccProfile = new IccProfile(iccpProfileBytes);
         }
@@ -1588,9 +1587,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// Tries to decompress zlib compressed data.
     /// </summary>
     /// <param name="compressedData">The compressed data.</param>
+    /// <param name="maxLength">The maximum uncompressed length.</param>
     /// <param name="uncompressedBytesArray">The uncompressed bytes array.</param>
     /// <returns>True, if de-compressing was successful.</returns>
-    private unsafe bool TryDecompressZlibData(ReadOnlySpan<byte> compressedData, out byte[] uncompressedBytesArray)
+    private unsafe bool TryDecompressZlibData(ReadOnlySpan<byte> compressedData, int maxLength, out byte[] uncompressedBytesArray)
     {
         fixed (byte* compressedDataBase = compressedData)
         {
@@ -1610,6 +1610,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
             while (bytesRead != 0)
             {
+                if (memoryStreamOutput.Length > maxLength)
+                {
+                    uncompressedBytesArray = Array.Empty<byte>();
+                    return false;
+                }
+
                 memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
                 bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
             }
@@ -1752,7 +1758,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <returns>The <see cref="bool"/>.</returns>
     private bool TryDecompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, [NotNullWhen(true)] out string? value)
     {
-        if (this.TryDecompressZlibData(compressedData, out byte[] uncompressedData))
+        if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] uncompressedData))
         {
             value = encoding.GetString(uncompressedData);
             return true;
@@ -1877,8 +1883,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngChunkType type = this.ReadChunkType(buffer);
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
-        // We can skip all other chunk data in the stream for better performance.
-        if (this.colorMetadataOnly && type != PngChunkType.Header && type != PngChunkType.Transparency && type != PngChunkType.Palette)
+        // We can skip most other chunk data in the stream for better performance.
+        if (this.colorMetadataOnly &&
+            type != PngChunkType.Header &&
+            type != PngChunkType.Transparency &&
+            type != PngChunkType.Palette &&
+            type != PngChunkType.AnimationControl &&
+            type != PngChunkType.FrameControl)
         {
             chunk = new PngChunk(length, type);
             return true;

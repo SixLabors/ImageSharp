@@ -140,7 +140,6 @@ internal sealed class WebpLossyDecoder
     private static void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels, IMemoryOwner<byte> alpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         Span<byte> alphaSpan = alpha.Memory.Span;
         Span<Bgr24> pixelsBgr = MemoryMarshal.Cast<byte, Bgr24>(pixelData);
         for (int y = 0; y < height; y++)
@@ -151,8 +150,7 @@ internal sealed class WebpLossyDecoder
             {
                 int offset = yMulWidth + x;
                 Bgr24 bgr = pixelsBgr[offset];
-                color.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
-                decodedPixelRow[x] = color;
+                decodedPixelRow[x] = TPixel.FromBgra32(new(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
             }
         }
     }

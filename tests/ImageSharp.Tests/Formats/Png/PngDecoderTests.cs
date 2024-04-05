@@ -87,7 +87,9 @@ public partial class PngDecoderTests
         TestImages.Png.DisposeBackgroundRegion,
         TestImages.Png.DisposePreviousFirst,
         TestImages.Png.DisposeBackgroundBeforeRegion,
-        TestImages.Png.BlendOverMultiple
+        TestImages.Png.BlendOverMultiple,
+        TestImages.Png.FrameOffset,
+        TestImages.Png.DefaultNotAnimated
     };
 
     [Theory]
@@ -581,7 +583,7 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -594,7 +596,7 @@ public partial class PngDecoderTests
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410
@@ -664,5 +666,31 @@ public partial class PngDecoderTests
         // TODO: Try to reduce this to 1.
         Assert.True(eofHitCounter.EofHitCount <= 3);
         Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+    }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Decode_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Info_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        _ = Image.Identify(path);
     }
 }

@@ -1,4 +1,4 @@
-﻿The benchmarks have been adapted from the
+The benchmarks have been adapted from the
 [PhotoSauce's MemoryStress project](https://github.com/saucecontrol/core-imaging-playground/tree/beeees/MemoryStress).  
 
 ### Setup

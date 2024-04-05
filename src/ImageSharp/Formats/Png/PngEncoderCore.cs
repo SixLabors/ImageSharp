@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Hashing;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -166,6 +167,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         ImageFrame<TPixel>? clonedFrame = null;
         ImageFrame<TPixel> currentFrame = image.Frames.RootFrame;
+        int currentFrameIndex = 0;
 
         bool clearTransparency = this.encoder.TransparentColorMode is PngTransparentColorMode.Clear;
         if (clearTransparency)
@@ -194,29 +196,50 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)image.Frames.Count, pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)), pngMetadata.RepeatCount);
+        }
 
-            // Write the first frame.
+        // If the first frame isn't animated, write it as usual and skip it when writing animated frames
+        if (!pngMetadata.AnimateRootFrame || image.Frames.Count == 1)
+        {
+            FrameControl frameControl = new((uint)this.width, (uint)this.height);
+            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            currentFrameIndex++;
+        }
+
+        if (image.Frames.Count > 1)
+        {
+            // Write the first animated frame.
+            currentFrame = image.Frames[currentFrameIndex];
             PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
             PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
-            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            uint sequenceNumber = 1;
+            if (pngMetadata.AnimateRootFrame)
+            {
+                this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+            }
+            else
+            {
+                sequenceNumber += this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, true);
+            }
+
+            currentFrameIndex++;
 
             // Capture the global palette for reuse on subsequent frames.
             ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
 
             // Write following frames.
-            uint increment = 0;
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
 
             // This frame is reused to store de-duplicated pixel buffers.
             using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
 
-            for (int i = 1; i < image.Frames.Count; i++)
+            for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
                 ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
-                currentFrame = image.Frames[i];
-                ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+                currentFrame = image.Frames[currentFrameIndex];
+                ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
                 frameMetadata = GetPngFrameMetadata(currentFrame);
                 bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
@@ -237,21 +260,16 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 }
 
                 // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
-                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, (uint)i + increment);
+                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, sequenceNumber);
 
                 // Dispose of previous quantized frame and reassign.
                 quantized?.Dispose();
                 quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, encodingFrame, bounds, previousPalette);
-                increment += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true);
+                sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
 
                 previousFrame = currentFrame;
                 previousDisposal = frameMetadata.DisposalMethod;
             }
-        }
-        else
-        {
-            FrameControl frameControl = new((uint)this.width, (uint)this.height);
-            this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
         }
 
         this.WriteEndChunk(stream);
@@ -328,18 +346,17 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         => clone.ProcessPixelRows(accessor =>
         {
             // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 rgba32 = default;
-            Rgba32 transparent = Color.Transparent;
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> span = accessor.GetRowSpan(y);
                 for (int x = 0; x < accessor.Width; x++)
                 {
-                    span[x].ToRgba32(ref rgba32);
-
-                    if (rgba32.A is 0)
+                    ref TPixel pixel = ref span[x];
+                    Rgba32 rgba = pixel.ToRgba32();
+                    if (rgba.A is 0)
                     {
-                        span[x].FromRgba32(transparent);
+                        pixel = TPixel.FromRgba32(transparent);
                     }
                 }
             }
@@ -1066,7 +1083,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             else
             {
                 alpha.Clear();
-                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToRgb24();
+                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToPixel<Rgb24>();
                 alpha[1] = rgb.R;
                 alpha[3] = rgb.G;
                 alpha[5] = rgb.B;
@@ -1466,23 +1483,48 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         // Use options, then check metadata, if nothing set there then we suggest
         // a sensible default based upon the pixel format.
-        this.colorType = encoder.ColorType ?? pngMetadata.ColorType ?? SuggestColorType<TPixel>();
+        PngColorType? colorType = encoder.ColorType ?? pngMetadata.ColorType;
+        byte? bits = (byte?)(encoder.BitDepth ?? pngMetadata.BitDepth);
+
+        if (colorType is null || bits is null)
+        {
+            PixelTypeInfo info = TPixel.GetPixelTypeInfo();
+            PixelComponentInfo? componentInfo = info.ComponentInfo;
+
+            colorType ??= SuggestColorType<TPixel>(in info);
+
+            if (bits is null)
+            {
+                // TODO: Update once we stop abusing PixelTypeInfo in decoders.
+                if (componentInfo.HasValue)
+                {
+                    PixelComponentInfo c = componentInfo.Value;
+                    bits = (byte)SuggestBitDepth<TPixel>(in c);
+                }
+                else
+                {
+                    bits = (byte)PngBitDepth.Bit8;
+                }
+            }
+        }
+
+        // Ensure bit depth and color type are a supported combination.
+        // Bit8 is the only bit depth supported by all color types.
+        byte[] validBitDepths = PngConstants.ColorTypes[colorType.Value];
+        if (Array.IndexOf(validBitDepths, bits) == -1)
+        {
+            bits = (byte)PngBitDepth.Bit8;
+        }
+
+        this.colorType = colorType.Value;
+        this.bitDepth = bits.Value;
+
         if (!encoder.FilterMethod.HasValue)
         {
             // Specification recommends default filter method None for paletted images and Paeth for others.
             this.filterMethod = this.colorType is PngColorType.Palette ? PngFilterMethod.None : PngFilterMethod.Paeth;
         }
 
-        // Ensure bit depth and color type are a supported combination.
-        // Bit8 is the only bit depth supported by all color types.
-        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>());
-        byte[] validBitDepths = PngConstants.ColorTypes[this.colorType];
-        if (Array.IndexOf(validBitDepths, bits) == -1)
-        {
-            bits = (byte)PngBitDepth.Bit8;
-        }
-
-        this.bitDepth = bits;
         use16Bit = bits == (byte)PngBitDepth.Bit16;
         bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
 
@@ -1535,7 +1577,24 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             {
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
-                this.derivedTransparencyIndex = metadata.ColorTable.Value.Span.IndexOf(Color.Transparent);
+                ReadOnlySpan<Color> palette = metadata.ColorTable.Value.Span;
+
+                // Certain operations perform alpha premultiplication, which can cause the color to change so we
+                // must search for the transparency index in the palette.
+                // Transparent pixels are much more likely to be found at the end of a palette.
+                int index = -1;
+                for (int i = palette.Length - 1; i >= 0; i--)
+                {
+                    Vector4 instance = palette[i].ToScaledVector4();
+                    if (instance.W == 0f)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                this.derivedTransparencyIndex = index;
+
                 this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null }, this.derivedTransparencyIndex);
             }
             else
@@ -1611,53 +1670,44 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
     /// <summary>
     /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
-    /// This is not exhaustive but covers many common pixel formats.
     /// </summary>
+    /// <param name="info">The pixel type info.</param>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngColorType SuggestColorType<TPixel>()
+    private static PngColorType SuggestColorType<TPixel>(in PixelTypeInfo info)
         where TPixel : unmanaged, IPixel<TPixel>
-        => default(TPixel) switch
+    {
+        if (info.AlphaRepresentation == PixelAlphaRepresentation.None)
         {
-            A8 => PngColorType.GrayscaleWithAlpha,
-            Argb32 => PngColorType.RgbWithAlpha,
-            Bgr24 => PngColorType.Rgb,
-            Bgra32 => PngColorType.RgbWithAlpha,
-            L8 => PngColorType.Grayscale,
-            L16 => PngColorType.Grayscale,
-            La16 => PngColorType.GrayscaleWithAlpha,
-            La32 => PngColorType.GrayscaleWithAlpha,
-            Rgb24 => PngColorType.Rgb,
-            Rgba32 => PngColorType.RgbWithAlpha,
-            Rgb48 => PngColorType.Rgb,
-            Rgba64 => PngColorType.RgbWithAlpha,
-            RgbaVector => PngColorType.RgbWithAlpha,
-            _ => PngColorType.RgbWithAlpha
+            return info.ColorType switch
+            {
+                PixelColorType.Grayscale => PngColorType.Grayscale,
+                _ => PngColorType.Rgb,
+            };
+        }
+
+        return info.ColorType switch
+        {
+            PixelColorType.Grayscale | PixelColorType.Alpha or PixelColorType.Alpha => PngColorType.GrayscaleWithAlpha,
+            _ => PngColorType.RgbWithAlpha,
         };
+    }
 
     /// <summary>
     /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
-    /// This is not exhaustive but covers many common pixel formats.
     /// </summary>
+    /// <param name="info">The pixel type info.</param>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngBitDepth SuggestBitDepth<TPixel>()
+    private static PngBitDepth SuggestBitDepth<TPixel>(in PixelComponentInfo info)
         where TPixel : unmanaged, IPixel<TPixel>
-        => default(TPixel) switch
+    {
+        int bits = info.GetMaximumComponentPrecision();
+        if (bits > (int)PixelComponentBitDepth.Bit8)
         {
-            A8 => PngBitDepth.Bit8,
-            Argb32 => PngBitDepth.Bit8,
-            Bgr24 => PngBitDepth.Bit8,
-            Bgra32 => PngBitDepth.Bit8,
-            L8 => PngBitDepth.Bit8,
-            L16 => PngBitDepth.Bit16,
-            La16 => PngBitDepth.Bit8,
-            La32 => PngBitDepth.Bit16,
-            Rgb24 => PngBitDepth.Bit8,
-            Rgba32 => PngBitDepth.Bit8,
-            Rgb48 => PngBitDepth.Bit16,
-            Rgba64 => PngBitDepth.Bit16,
-            RgbaVector => PngBitDepth.Bit16,
-            _ => PngBitDepth.Bit8
-        };
+            return PngBitDepth.Bit16;
+        }
+
+        return PngBitDepth.Bit8;
+    }
 
     private unsafe struct ScratchBuffer
     {

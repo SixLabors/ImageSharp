@@ -294,70 +294,58 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     private void ReadRle<TPixel>(BufferedReadStream stream, BmpCompression compression, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
-        using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean))
-        using (IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean))
-        using (IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean))
+        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean);
+        using IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean);
+        using IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean);
+        Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
+        Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
+        Span<byte> bufferSpan = buffer.Memory.Span;
+        if (compression is BmpCompression.RLE8)
         {
-            Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
-            Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
-            Span<byte> bufferSpan = buffer.Memory.Span;
-            if (compression is BmpCompression.RLE8)
+            this.UncompressRle8(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+        }
+        else
+        {
+            this.UncompressRle4(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+        }
+
+        for (int y = 0; y < height; y++)
+        {
+            int newY = Invert(y, height, inverted);
+            int rowStartIdx = y * width;
+            Span<byte> bufferRow = bufferSpan.Slice(rowStartIdx, width);
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
+
+            bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
+            if (rowHasUndefinedPixels)
             {
-                this.UncompressRle8(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+                // Slow path with undefined pixels.
+                for (int x = 0; x < width; x++)
+                {
+                    byte colorIdx = bufferRow[x];
+                    if (undefinedPixelsSpan[rowStartIdx + x])
+                    {
+                        pixelRow[x] = this.rleSkippedPixelHandling switch
+                        {
+                            RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4])),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
+
+                            // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
+                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                        };
+                    }
+                    else
+                    {
+                        pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
+                    }
+                }
             }
             else
             {
-                this.UncompressRle4(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
-            }
-
-            for (int y = 0; y < height; y++)
-            {
-                int newY = Invert(y, height, inverted);
-                int rowStartIdx = y * width;
-                Span<byte> bufferRow = bufferSpan.Slice(rowStartIdx, width);
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-
-                bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
-                if (rowHasUndefinedPixels)
+                // Fast path without any undefined pixels.
+                for (int x = 0; x < width; x++)
                 {
-                    // Slow path with undefined pixels.
-                    for (int x = 0; x < width; x++)
-                    {
-                        byte colorIdx = bufferRow[x];
-                        if (undefinedPixelsSpan[rowStartIdx + x])
-                        {
-                            switch (this.rleSkippedPixelHandling)
-                            {
-                                case RleSkippedPixelHandling.FirstColorOfPalette:
-                                    color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
-                                    break;
-                                case RleSkippedPixelHandling.Transparent:
-                                    color.FromScaledVector4(Vector4.Zero);
-                                    break;
-
-                                // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                                default:
-                                    color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4]));
-                        }
-
-                        pixelRow[x] = color;
-                    }
-                }
-                else
-                {
-                    // Fast path without any undefined pixels.
-                    for (int x = 0; x < width; x++)
-                    {
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
-                        pixelRow[x] = color;
-                    }
+                    pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]));
                 }
             }
         }
@@ -375,64 +363,52 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     private void ReadRle24<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
-        using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
-        using (IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean))
-        using (IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean))
+        using IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean);
+        using IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean);
+        using IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean);
+        Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
+        Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
+        Span<byte> bufferSpan = buffer.GetSpan();
+
+        this.UncompressRle24(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
+        for (int y = 0; y < height; y++)
         {
-            Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
-            Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
-            Span<byte> bufferSpan = buffer.GetSpan();
-
-            this.UncompressRle24(stream, width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
-            for (int y = 0; y < height; y++)
+            int newY = Invert(y, height, inverted);
+            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
+            bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
+            if (rowHasUndefinedPixels)
             {
-                int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(newY);
-                bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
-                if (rowHasUndefinedPixels)
+                // Slow path with undefined pixels.
+                int yMulWidth = y * width;
+                int rowStartIdx = yMulWidth * 3;
+                for (int x = 0; x < width; x++)
                 {
-                    // Slow path with undefined pixels.
-                    int yMulWidth = y * width;
-                    int rowStartIdx = yMulWidth * 3;
-                    for (int x = 0; x < width; x++)
+                    int idx = rowStartIdx + (x * 3);
+                    if (undefinedPixelsSpan[yMulWidth + x])
                     {
-                        int idx = rowStartIdx + (x * 3);
-                        if (undefinedPixelsSpan[yMulWidth + x])
+                        pixelRow[x] = this.rleSkippedPixelHandling switch
                         {
-                            switch (this.rleSkippedPixelHandling)
-                            {
-                                case RleSkippedPixelHandling.FirstColorOfPalette:
-                                    color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
-                                    break;
-                                case RleSkippedPixelHandling.Transparent:
-                                    color.FromScaledVector4(Vector4.Zero);
-                                    break;
+                            RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx])),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
 
-                                // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                                default:
-                                    color.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
-                        }
-
-                        pixelRow[x] = color;
+                            // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
+                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                        };
+                    }
+                    else
+                    {
+                        pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                     }
                 }
-                else
+            }
+            else
+            {
+                // Fast path without any undefined pixels.
+                int rowStartIdx = y * width * 3;
+                for (int x = 0; x < width; x++)
                 {
-                    // Fast path without any undefined pixels.
-                    int rowStartIdx = y * width * 3;
-                    for (int x = 0; x < width; x++)
-                    {
-                        int idx = rowStartIdx + (x * 3);
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
-                        pixelRow[x] = color;
-                    }
+                    int idx = rowStartIdx + (x * 3);
+                    pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                 }
             }
         }
@@ -492,7 +468,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         int max = cmd[1];
                         int bytesToRead = (int)(((uint)max + 1) / 2);
 
-                        Span<byte> run = bytesToRead <= 128 ? scratchBuffer.Slice(0, bytesToRead) : new byte[bytesToRead];
+                        Span<byte> run = bytesToRead <= 128 ? scratchBuffer[..bytesToRead] : new byte[bytesToRead];
 
                         stream.Read(run);
 
@@ -598,7 +574,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         // Take this number of bytes from the stream as uncompressed data.
                         int length = cmd[1];
 
-                        Span<byte> run = length <= 128 ? scratchBuffer.Slice(0, length) : new byte[length];
+                        Span<byte> run = length <= 128 ? scratchBuffer[..length] : new byte[length];
 
                         stream.Read(run);
 
@@ -680,7 +656,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         int length = cmd[1];
                         int length3 = length * 3;
 
-                        Span<byte> run = length3 <= 128 ? scratchBuffer.Slice(0, length3) : new byte[length3];
+                        Span<byte> run = length3 <= 128 ? scratchBuffer[..length3] : new byte[length3];
 
                         stream.Read(run);
 
@@ -835,7 +811,6 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         }
 
         using IMemoryOwner<byte> row = this.memoryAllocator.Allocate<byte>(arrayWidth + padding, AllocationOptions.Clean);
-        TPixel color = default;
         Span<byte> rowSpan = row.GetSpan();
 
         for (int y = 0; y < height; y++)
@@ -856,8 +831,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                 {
                     int colorIndex = ((rowSpan[offset] >> (8 - bitsPerPixel - (shift * bitsPerPixel))) & mask) * bytesPerColorMapEntry;
 
-                    color.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
-                    pixelRow[newX] = color;
+                    pixelRow[newX] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIndex]));
                 }
 
                 offset++;
@@ -882,8 +856,6 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     {
         int padding = CalculatePadding(width, 2);
         int stride = (width * 2) + padding;
-        TPixel color = default;
-
         int rightShiftRedMask = CalculateRightShift((uint)redMask);
         int rightShiftGreenMask = CalculateRightShift((uint)greenMask);
         int rightShiftBlueMask = CalculateRightShift((uint)blueMask);
@@ -917,8 +889,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                 int b = (blueMaskBits == 5) ? GetBytesFrom5BitValue((temp & blueMask) >> rightShiftBlueMask) : GetBytesFrom6BitValue((temp & blueMask) >> rightShiftBlueMask);
                 Rgb24 rgb = new((byte)r, (byte)g, (byte)b);
 
-                color.FromRgb24(rgb);
-                pixelRow[x] = color;
+                pixelRow[x] = TPixel.FromRgb24(rgb);
                 offset += 2;
             }
         }
@@ -1107,8 +1078,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             {
                 Bgra32 bgra = bgraRowSpan[x];
                 bgra.A = byte.MaxValue;
-                ref TPixel pixel = ref pixelSpan[x];
-                pixel.FromBgra32(bgra);
+                pixelSpan[x] = TPixel.FromBgra32(bgra);
             }
         }
     }
@@ -1129,7 +1099,6 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     private void ReadRgb32BitFields<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         int padding = CalculatePadding(width, 4);
         int stride = (width * 4) + padding;
 
@@ -1179,18 +1148,17 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
                         g * invMaxValueGreen,
                         b * invMaxValueBlue,
                         alpha);
-                    color.FromScaledVector4(vector4);
+                    pixelRow[x] = TPixel.FromScaledVector4(vector4);
                 }
                 else
                 {
                     byte r = (byte)((temp & redMask) >> rightShiftRedMask);
                     byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
                     byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
-                    byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : (byte)255;
-                    color.FromRgba32(new Rgba32(r, g, b, a));
+                    byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : byte.MaxValue;
+                    pixelRow[x] = TPixel.FromRgba32(new(r, g, b, a));
                 }
 
-                pixelRow[x] = color;
                 offset += 4;
             }
         }
@@ -1468,7 +1436,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             colorMapSizeBytes = this.infoHeader.ClrUsed * bytesPerColorMapEntry;
         }
 
-        palette = Array.Empty<byte>();
+        palette = [];
 
         if (colorMapSizeBytes > 0)
         {

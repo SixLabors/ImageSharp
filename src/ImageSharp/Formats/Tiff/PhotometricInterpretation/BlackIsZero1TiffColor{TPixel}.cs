@@ -19,11 +19,9 @@ internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         nuint offset = 0;
-        TPixel colorBlack = default;
-        TPixel colorWhite = default;
+        TPixel colorBlack = TPixel.FromRgba32(Color.Black.ToPixel<Rgba32>());
+        TPixel colorWhite = TPixel.FromRgba32(Color.White.ToPixel<Rgba32>());
 
-        colorBlack.FromRgba32(Color.Black);
-        colorWhite.FromRgba32(Color.White);
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
         for (nuint y = (uint)top; y < (uint)(top + height); y++)
         {

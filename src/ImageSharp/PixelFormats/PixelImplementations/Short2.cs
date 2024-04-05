@@ -50,7 +50,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Short2 left, Short2 right) => left.Equals(right);
 
     /// <summary>
@@ -61,126 +61,127 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Short2 left, Short2 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector)
-    {
-        Vector2 scaled = new Vector2(vector.X, vector.Y) * 65534F;
-        scaled -= new Vector2(32767F);
-        this.PackedValue = Pack(scaled);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
     {
-        var scaled = this.ToVector2();
-        scaled += new Vector2(32767F);
+        Vector2 scaled = this.ToVector2();
+        scaled += new Vector2(32767f);
         scaled /= 65534F;
-        return new Vector4(scaled, 0F, 1F);
+        return new Vector4(scaled, 0f, 1f);
     }
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0f, 1f);
+
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<Short2>(
+            PixelComponentInfo.Create<Short2>(2, 16, 16),
+            PixelColorType.Red | PixelColorType.Green,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc />
+    public static PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromScaledVector4(Vector4 source)
     {
-        var vector2 = new Vector2(vector.X, vector.Y);
-        this.PackedValue = Pack(vector2);
+        Vector2 scaled = new Vector2(source.X, source.Y) * 65534F;
+        scaled -= new Vector2(32767F);
+        return new() { PackedValue = Pack(scaled) };
     }
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly Vector4 ToVector4() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0, 1);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromVector4(Vector4 source) => new() { PackedValue = Pack(new Vector2(source.X, source.Y)) };
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromAbgr32(Abgr32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromArgb32(Argb32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromBgr24(Bgr24 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromBgra32(Bgra32 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this.FromScaledVector4(source.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromL8(L8 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromL16(L16 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromLa16(La16 source) => FromScaledVector4(source.ToScaledVector4());
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromLa32(La32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromRgb24(Rgb24 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromRgba32(Rgba32 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromRgb48(Rgb48 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromRgba64(Rgba64 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <summary>
     /// Expands the packed representation into a <see cref="Vector2"/>.
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector2 ToVector2() => new((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is Short2 other && this.Equals(other);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(Short2 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
     /// <inheritdoc />
     public override readonly string ToString()
     {
-        var vector = this.ToVector2();
+        Vector2 vector = this.ToVector2();
         return FormattableString.Invariant($"Short2({vector.X:#0.##}, {vector.Y:#0.##})");
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Pack(Vector2 vector)
     {
         vector = Vector2.Clamp(vector, Min, Max);

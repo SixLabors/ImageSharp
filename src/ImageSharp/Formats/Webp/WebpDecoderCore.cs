@@ -54,7 +54,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// The flag to decide how to handle the background color in the Animation Chunk.
     /// </summary>
-    private BackgroundColorHandling backgroundColorHandling;
+    private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
@@ -438,7 +438,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         byte green = (byte)stream.ReadByte();
         byte red = (byte)stream.ReadByte();
         byte alpha = (byte)stream.ReadByte();
-        features.AnimationBackgroundColor = new Color(new Rgba32(red, green, blue, alpha));
+        features.AnimationBackgroundColor = Color.FromPixel(new Rgba32(red, green, blue, alpha));
         int bytesRead = stream.Read(buffer, 0, 2);
         if (bytesRead != 2)
         {

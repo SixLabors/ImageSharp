@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
@@ -24,8 +25,8 @@ public class La16Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new La16(100, 50);
-        var color2 = new La16(100, 50);
+        La16 color1 = new(100, 50);
+        La16 color2 = new(100, 50);
 
         Assert.Equal(color1, color2);
     }
@@ -33,8 +34,8 @@ public class La16Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new La16(100, 50);
-        var color2 = new La16(200, 50);
+        La16 color1 = new(100, 50);
+        La16 color2 = new(200, 50);
 
         Assert.NotEqual(color1, color2);
     }
@@ -43,12 +44,11 @@ public class La16Tests
     public void La16_FromScaledVector4()
     {
         // Arrange
-        La16 gray = default;
         const ushort expected = 32896;
         Vector4 scaled = new La16(128, 128).ToScaledVector4();
 
         // Act
-        gray.FromScaledVector4(scaled);
+        La16 gray = La16.FromScaledVector4(scaled);
         ushort actual = gray.PackedValue;
 
         // Assert
@@ -60,7 +60,7 @@ public class La16Tests
     public void La16_ToScaledVector4(byte input)
     {
         // Arrange
-        var gray = new La16(input, input);
+        La16 gray = new(input, input);
 
         // Act
         Vector4 actual = gray.ToScaledVector4();
@@ -78,11 +78,10 @@ public class La16Tests
     public void La16_FromVector4(byte luminance)
     {
         // Arrange
-        La16 gray = default;
-        var vector = new La16(luminance, luminance).ToVector4();
+        Vector4 vector = new La16(luminance, luminance).ToVector4();
 
         // Act
-        gray.FromVector4(vector);
+        La16 gray = La16.FromVector4(vector);
         byte actualL = gray.L;
         byte actualA = gray.A;
 
@@ -96,10 +95,10 @@ public class La16Tests
     public void La16_ToVector4(byte input)
     {
         // Arrange
-        var gray = new La16(input, input);
+        La16 gray = new(input, input);
 
         // Act
-        var actual = gray.ToVector4();
+        Vector4 actual = gray.ToVector4();
 
         // Assert
         float scaledInput = input / 255F;
@@ -114,11 +113,10 @@ public class La16Tests
     public void La16_FromRgba32(byte rgb)
     {
         // Arrange
-        La16 gray = default;
         byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
         // Act
-        gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        La16 gray = La16.FromRgba32(new Rgba32(rgb, rgb, rgb));
         byte actual = gray.L;
 
         // Assert
@@ -131,11 +129,10 @@ public class La16Tests
     public void La16_ToRgba32(byte luminance)
     {
         // Arrange
-        var gray = new La16(luminance, luminance);
+        La16 gray = new(luminance, luminance);
 
         // Act
-        Rgba32 actual = default;
-        gray.ToRgba32(ref actual);
+        Rgba32 actual = gray.ToRgba32();
 
         // Assert
         Assert.Equal(luminance, actual.R);
@@ -148,11 +145,10 @@ public class La16Tests
     public void La16_FromBgra5551()
     {
         // arrange
-        var grey = default(La16);
-        byte expected = byte.MaxValue;
+        const byte expected = byte.MaxValue;
 
         // act
-        grey.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        La16 grey = La16.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, grey.L);
@@ -168,13 +164,11 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void La16_FromRgba32_IsInverseOf_ToRgba32(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            La16 mirror = default;
-            mirror.FromRgba32(rgba);
+            La16 mirror = La16.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -183,13 +177,11 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void Rgba32_ToLa16_IsInverseOf_La16_ToRgba32(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            La16 mirror = default;
-            mirror.FromRgba32(rgba);
+            La16 mirror = La16.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -198,13 +190,12 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void ToVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            var la16Vector = original.ToVector4();
-            var rgbaVector = original.ToVector4();
+            Vector4 la16Vector = original.ToVector4();
+            Vector4 rgbaVector = rgba.ToVector4();
 
             Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -213,15 +204,12 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void FromVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
+            Vector4 rgbaVector = rgba.ToVector4();
 
-            var rgbaVector = original.ToVector4();
-
-            La16 mirror = default;
-            mirror.FromVector4(rgbaVector);
+            La16 mirror = La16.FromVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
         }
@@ -230,13 +218,12 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void ToScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
             Vector4 la16Vector = original.ToScaledVector4();
-            Vector4 rgbaVector = original.ToScaledVector4();
+            Vector4 rgbaVector = rgba.ToScaledVector4();
 
             Assert.Equal(la16Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -245,17 +232,30 @@ public class La16Tests
         [MemberData(nameof(LuminanceData))]
         public void FromScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new La16(luminance, luminance);
+            La16 original = new(luminance, luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
+            Vector4 rgbaVector = rgba.ToScaledVector4();
 
-            Vector4 rgbaVector = original.ToScaledVector4();
-
-            La16 mirror = default;
-            mirror.FromScaledVector4(rgbaVector);
+            La16 mirror = La16.FromScaledVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
+        }
+
+        [Fact]
+        public void La16_PixelInformation()
+        {
+            PixelTypeInfo info = La16.GetPixelTypeInfo();
+            Assert.Equal(Unsafe.SizeOf<La16>() * 8, info.BitsPerPixel);
+            Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+            Assert.Equal(PixelColorType.Grayscale | PixelColorType.Alpha, info.ColorType);
+
+            PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+            Assert.Equal(2, componentInfo.ComponentCount);
+            Assert.Equal(0, componentInfo.Padding);
+            Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+            Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+            Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
         }
     }
 }

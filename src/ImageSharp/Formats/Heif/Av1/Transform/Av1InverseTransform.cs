@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
 
-internal static class Av1Quantization
+internal static class Av1InverseTransform
 {
     public static readonly int[,] AcQLookup = new int[3, 256]
     {
@@ -121,18 +121,14 @@ internal static class Av1Quantization
     public static int GetQzbinFactor(int q, Av1BitDepth bitDepth)
     {
         int quant = GetDcQuantization(q, 0, bitDepth);
-        switch (bitDepth)
-        {
-            case Av1BitDepth.EightBit:
-                return q == 0 ? 64 : (quant < 148 ? 84 : 80);
-            case Av1BitDepth.TenBit:
-                return q == 0 ? 64 : (quant < 592 ? 84 : 80);
-            case Av1BitDepth.TwelveBit:
-                return q == 0 ? 64 : (quant < 2368 ? 84 : 80);
-            default:
-                DebugGuard.IsTrue(false, "bit_depth should be EIGHT_BIT, TEN_BIT or TWELVE_BIT");
-                return -1;
-        }
+
+        // Bit hack to get to:
+        // EightBit => 148
+        // TenBit => 592
+        // TwelveBit => 2368
+        int shift = (int)bitDepth << 1;
+        int threshold = (1 << shift) * 148;
+        return q == 0 ? 64 : (quant < threshold ? 84 : 80);
     }
 
     public static void InvertQuantization(out int quantization, out int shift, int d)

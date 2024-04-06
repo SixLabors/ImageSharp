@@ -192,6 +192,8 @@ public static class TestImages
 
             public const string BadZTXT = "Png/issues/bad-ztxt.png";
             public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
+
+            public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
         }
     }
 

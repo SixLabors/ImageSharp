@@ -693,4 +693,12 @@ public partial class PngDecoderTests
         string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
         _ = Image.Identify(path);
     }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.Issue2714BadPalette)]
+    public void Decode_BadPalette(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
 }

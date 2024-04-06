@@ -250,6 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
             ReadOnlySpan<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(palette);
             ref Rgb24 palettePixelsRef = ref MemoryMarshal.GetReference(palettePixels);
+            int maxIndex = palettePixels.Length - 1;
 
             if (paletteAlpha?.Length > 0)
             {
@@ -260,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 for (int x = 0; x < header.Width; x++)
                 {
-                    int index = Unsafe.Add(ref scanlineSpanRef, x);
+                    int index = Numerics.Clamp(Unsafe.Add(ref scanlineSpanRef, x), 0, maxIndex);
                     rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
                     rgba.A = paletteAlpha.Length > index ? Unsafe.Add(ref paletteAlphaRef, index) : byte.MaxValue;
 
@@ -272,8 +273,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 for (int x = 0; x < header.Width; x++)
                 {
-                    int index = Unsafe.Add(ref scanlineSpanRef, x);
-                    Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, index);
+                    uint index = Unsafe.Add(ref scanlineSpanRef, x);
+                    Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, (int)Math.Min(index, maxIndex));
 
                     pixel.FromRgb24(rgb);
                     Unsafe.Add(ref rowSpanRef, x) = pixel;

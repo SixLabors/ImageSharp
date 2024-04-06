@@ -526,5 +526,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     "Disco")
                 .Dispose();
         }
+
+        [Theory]
+        [InlineData(TestImages.Png.Bad.Issue2714BadPalette)]
+        public void Decode_BadPalette(string file)
+        {
+            string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+            using Image image = Image.Load(path);
+        }
     }
 }

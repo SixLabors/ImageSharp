@@ -156,6 +156,8 @@ namespace SixLabors.ImageSharp.Tests
                 // Invalid color type.
                 public const string ColorTypeOne = "Png/xc1n0g08.png";
                 public const string ColorTypeNine = "Png/xc9n2c08.png";
+
+                public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
             }
         }
 

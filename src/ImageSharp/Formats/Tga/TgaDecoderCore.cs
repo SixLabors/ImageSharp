@@ -84,7 +84,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 throw new UnknownImageFormatException("Width or height cannot be 0");
             }
 
-            Image<TPixel> image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+            Image<TPixel> image = new(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
             if (this.fileHeader.ColorMapType == 1)

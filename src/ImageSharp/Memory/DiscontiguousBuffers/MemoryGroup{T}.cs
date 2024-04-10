@@ -83,15 +83,16 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     {
         int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
         Guard.NotNull(allocator, nameof(allocator));
-        Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
-        Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
+
+        if (totalLengthInElements < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(totalLengthInElements);
+        }
 
         int blockCapacityInElements = bufferCapacityInBytes / ElementSize;
-
-        if (bufferAlignmentInElements > blockCapacityInElements)
+        if (bufferAlignmentInElements < 0 || bufferAlignmentInElements > blockCapacityInElements)
         {
-            throw new InvalidMemoryOperationException(
-                $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignmentInElements}.");
+            InvalidMemoryOperationException.ThrowInvalidAlignmentException(bufferAlignmentInElements);
         }
 
         if (totalLengthInElements == 0)

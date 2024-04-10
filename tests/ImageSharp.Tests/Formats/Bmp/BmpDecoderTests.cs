@@ -563,8 +563,11 @@ public class BmpDecoderTests
     [WithFile(Issue2696, PixelTypes.Rgba32)]
     public void BmpDecoder_ThrowsException_Issue2696<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Assert.Throws<InvalidImageContentException>(() =>
-        {
-            using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
-        });
+    {
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+            });
+        Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+    }
 }

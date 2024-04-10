@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = Image.CreateUninitialized<TPixel>(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                Image<TPixel> image = new(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType == 1)

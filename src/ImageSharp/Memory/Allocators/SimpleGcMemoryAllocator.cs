@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
@@ -17,7 +18,16 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
-            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+            if (length < 0)
+            {
+                throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of negative length={length}.");
+            }
+
+            ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+            if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
+            {
+                throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of length={lengthInBytes} that exceeded the limit {this.SingleBufferAllocationLimitBytes}.");
+            }
 
             return new BasicArrayBuffer<T>(new T[length]);
         }

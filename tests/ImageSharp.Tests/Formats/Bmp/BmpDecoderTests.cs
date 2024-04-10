@@ -619,5 +619,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 // image.CompareToOriginal(provider);
             }
         }
+
+        [Theory]
+        [WithFile(Issue2696, PixelTypes.Rgba32)]
+        public void BmpDecoder_ThrowsException_Issue2696<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // On V2 this is throwing InvalidOperationException,
+            // because of the validation logic in BmpInfoHeader.VerifyDimensions().
+            Assert.Throws<InvalidOperationException>(() =>
+                {
+                    using Image<TPixel> image = provider.GetImage(BmpDecoder);
+                });
+        }
     }
 }

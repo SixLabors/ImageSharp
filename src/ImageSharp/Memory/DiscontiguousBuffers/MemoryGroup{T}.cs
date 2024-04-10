@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <typeparam name="T">The element type.</typeparam>
     internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         where T : struct
-    {
+    {    
         private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
         private MemoryGroupSpanCache memoryGroupSpanCache;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public bool IsValid { get; private set; } = true;
 
-        public MemoryGroupView<T> View { get; private set; }
+        public MemoryGroupView<T> View { get; private set; } = null!;
 
         /// <inheritdoc />
         public abstract Memory<T> this[int index] { get; }
@@ -85,12 +85,14 @@ namespace SixLabors.ImageSharp.Memory
         {
             int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
             Guard.NotNull(allocator, nameof(allocator));
-            Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
-            Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
+
+            if (totalLengthInElements < 0)
+            {
+                throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of negative length={totalLengthInElements}.");
+            }
 
             int blockCapacityInElements = bufferCapacityInBytes / ElementSize;
-
-            if (bufferAlignmentInElements > blockCapacityInElements)
+            if (bufferAlignmentInElements < 0 || bufferAlignmentInElements > blockCapacityInElements)
             {
                 throw new InvalidMemoryOperationException(
                     $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignmentInElements}.");

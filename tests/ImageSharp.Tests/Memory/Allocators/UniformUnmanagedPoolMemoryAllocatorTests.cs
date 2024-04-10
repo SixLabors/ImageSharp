@@ -398,6 +398,30 @@ namespace SixLabors.ImageSharp.Tests.Memory.Allocators
             }
         }
 
+        [Fact]
+        public void Allocate_OverLimit_ThrowsInvalidMemoryOperationException()
+        {
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            {
+                AllocationLimitMegabytes = 4
+            });
+            const int oneMb = 1 << 20;
+            allocator.Allocate<byte>(4 * oneMb).Dispose(); // Should work
+            Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(5 * oneMb));
+        }
+
+        [Fact]
+        public void AllocateGroup_OverLimit_ThrowsInvalidMemoryOperationException()
+        {
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            {
+                AllocationLimitMegabytes = 4
+            });
+            const int oneMb = 1 << 20;
+            allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
+            Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
+        }
+
 #if NETCOREAPP3_1_OR_GREATER
         [Fact]
         public void Issue2001_NegativeMemoryReportedByGc()

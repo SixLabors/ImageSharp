@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory;
@@ -337,4 +338,26 @@ public partial class Buffer2DTests
         Assert.False(mgBefore.IsValid);
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
+
+    public static TheoryData<Size> InvalidLengths { get; set; } = new()
+    {
+        { new(-1, -1) },
+        { new(32768, 32769) },
+        { new(32769, 32768) }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOveraligned<Rgba32>(size.Width, size.Height, 1));
 }

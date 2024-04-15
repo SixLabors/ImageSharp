@@ -201,7 +201,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         this.pixelBuffer = allocator.Allocate2D<TPixel>(
             pixelSize.Width,
             pixelSize.Height,
-            this.Configuration.PreferContiguousImageBuffers);
+            this.Configuration.PreferContiguousImageBuffers,
+            AllocationOptions.Clean);
         this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
         // Component processors from spectral to RGB

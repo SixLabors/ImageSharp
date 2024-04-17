@@ -20,7 +20,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <param name="h">The h hue component.</param>
     /// <param name="s">The s saturation component.</param>
     /// <param name="v">The v value (brightness) component.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Hsv(float h, float s, float v)
         : this(new Vector3(h, s, v))
     {
@@ -30,7 +30,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// Initializes a new instance of the <see cref="Hsv"/> struct.
     /// </summary>
     /// <param name="vector">The vector representing the h, s, v components.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Hsv(Vector3 vector)
     {
         vector = Vector3.Clamp(vector, Min, Max);
@@ -65,7 +65,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <returns>
     /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Hsv left, Hsv right) => left.Equals(right);
 
     /// <summary>
@@ -76,7 +76,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <returns>
     /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Hsv left, Hsv right) => !left.Equals(right);
 
     /// <inheritdoc/>
@@ -211,7 +211,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
         => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => HashCode.Combine(this.H, this.S, this.V);
 
     /// <inheritdoc/>
@@ -221,7 +221,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     public override bool Equals(object? obj) => obj is Hsv other && this.Equals(other);
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Hsv other)
         => this.H.Equals(other.H)
         && this.S.Equals(other.S)

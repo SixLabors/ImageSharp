@@ -104,7 +104,8 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CieLab FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
-        // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
+        // Conversion algorithm described here:
+        // http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
         CieXyz whitePoint = options.TargetWhitePoint;
         float wx = whitePoint.X, wy = whitePoint.Y, wz = whitePoint.Z;
 
@@ -174,5 +175,6 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     }
 
     /// <inheritdoc/>
-    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource()
+        => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

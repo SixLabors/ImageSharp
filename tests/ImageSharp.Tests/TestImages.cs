@@ -73,6 +73,8 @@ public static class TestImages
         public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+        public const string FrameOffset = "Png/animated/frame-offset.png";
+        public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
@@ -190,6 +192,8 @@ public static class TestImages
 
             public const string BadZTXT = "Png/issues/bad-ztxt.png";
             public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
+
+            public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
         }
     }
 
@@ -316,6 +320,7 @@ public static class TestImages
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
             public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
             public const string Issue2067_CommentMarker = "Jpg/issues/issue-2067-comment.jpg";
+            public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
 
             public static class Fuzz
             {
@@ -438,6 +443,8 @@ public static class TestImages
         public const string Rgb32h52AdobeV3 = "Bmp/rgb32h52.bmp";
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
+
+        public const string Issue2696 = "Bmp/issue-2696.bmp";
 
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 

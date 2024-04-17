@@ -111,8 +111,19 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     public void AllocateGroup_SizeInBytesOverLongMaxValue_ThrowsInvalidMemoryOperationException()
     {
         var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
-        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<S4>(int.MaxValue * (long)int.MaxValue, int.MaxValue));
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(int.MaxValue * (long)int.MaxValue, int.MaxValue));
     }
+
+    public static TheoryData<int> InvalidLengths { get; set; } = new()
+    {
+        { -1 },
+        { (1 << 30) + 1 }
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(int length)
+        => Assert.Throws<InvalidMemoryOperationException>(() => new UniformUnmanagedMemoryPoolMemoryAllocator(null).Allocate<S512>(length));
 
     [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
@@ -406,5 +417,29 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             UniformUnmanagedMemoryPoolMemoryAllocator.GetTotalAvailableMemoryBytes = () => -402354176;
             _ = MemoryAllocator.Create();
         }
+    }
+
+    [Fact]
+    public void Allocate_OverLimit_ThrowsInvalidMemoryOperationException()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+        {
+            AllocationLimitMegabytes = 4
+        });
+        const int oneMb = 1 << 20;
+        allocator.Allocate<byte>(4 * oneMb).Dispose(); // Should work
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(5 * oneMb));
+    }
+
+    [Fact]
+    public void AllocateGroup_OverLimit_ThrowsInvalidMemoryOperationException()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+        {
+            AllocationLimitMegabytes = 4
+        });
+        const int oneMb = 1 << 20;
+        allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
     }
 }

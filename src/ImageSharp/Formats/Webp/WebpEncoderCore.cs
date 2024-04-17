@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -143,12 +144,14 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.nearLossless,
                 this.nearLosslessQuality);
 
-            encoder.EncodeHeader(image, stream, hasAnimation);
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = encoder.EncodeHeader(image, stream, hasAnimation);
 
             // Encode the first frame.
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
             WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
-            encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
+            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
 
             if (hasAnimation)
             {
@@ -190,14 +193,14 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                         this.nearLossless,
                         this.nearLosslessQuality);
 
-                    animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
+                    hasAlpha |= animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
 
                     previousFrame = currentFrame;
                     previousDisposal = frameMetadata.DisposalMethod;
                 }
             }
 
-            encoder.EncodeFooter(image, stream);
+            encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
         }
         else
         {
@@ -214,17 +217,20 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.spatialNoiseShaping,
                 this.alphaCompression);
 
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = default;
             if (image.Frames.Count > 1)
             {
-                // TODO: What about alpha here?
-                encoder.EncodeHeader(image, stream, false, true);
+                // The alpha flag is updated following encoding.
+                vp8x = encoder.EncodeHeader(image, stream, false, true);
 
                 // Encode the first frame.
                 ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
                 WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
                 WebpDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
 
-                encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
+                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
@@ -263,18 +269,19 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                         this.spatialNoiseShaping,
                         this.alphaCompression);
 
-                    animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
+                    hasAlpha |= animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
 
                     previousFrame = currentFrame;
                     previousDisposal = frameMetadata.DisposalMethod;
                 }
+
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
             }
             else
             {
                 encoder.EncodeStatic(stream, image);
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
             }
-
-            encoder.EncodeFooter(image, stream);
         }
     }
 }

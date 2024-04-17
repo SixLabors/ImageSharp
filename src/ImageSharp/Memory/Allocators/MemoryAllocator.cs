@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory;
 
@@ -10,6 +11,8 @@ namespace SixLabors.ImageSharp.Memory;
 /// </summary>
 public abstract class MemoryAllocator
 {
+    private const int OneGigabyte = 1 << 30;
+
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
     /// serves as the default value for <see cref="Configuration.MemoryAllocator"/>.
@@ -19,6 +22,10 @@ public abstract class MemoryAllocator
     /// to change the default allocator used by <see cref="Image"/> and it's operations.
     /// </summary>
     public static MemoryAllocator Default { get; } = Create();
+
+    internal long MemoryGroupAllocationLimitBytes { get; private set; } = Environment.Is64BitProcess ? 4L * OneGigabyte : OneGigabyte;
+
+    internal int SingleBufferAllocationLimitBytes { get; private set; } = OneGigabyte;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -30,16 +37,24 @@ public abstract class MemoryAllocator
     /// Creates a default instance of a <see cref="MemoryAllocator"/> optimized for the executing platform.
     /// </summary>
     /// <returns>The <see cref="MemoryAllocator"/>.</returns>
-    public static MemoryAllocator Create() =>
-        new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+    public static MemoryAllocator Create() => Create(default);
 
     /// <summary>
     /// Creates the default <see cref="MemoryAllocator"/> using the provided options.
     /// </summary>
     /// <param name="options">The <see cref="MemoryAllocatorOptions"/>.</param>
     /// <returns>The <see cref="MemoryAllocator"/>.</returns>
-    public static MemoryAllocator Create(MemoryAllocatorOptions options) =>
-        new UniformUnmanagedMemoryPoolMemoryAllocator(options.MaximumPoolSizeMegabytes);
+    public static MemoryAllocator Create(MemoryAllocatorOptions options)
+    {
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(options.MaximumPoolSizeMegabytes);
+        if (options.AllocationLimitMegabytes.HasValue)
+        {
+            allocator.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024 * 1024;
+            allocator.SingleBufferAllocationLimitBytes = (int)Math.Min(allocator.SingleBufferAllocationLimitBytes, allocator.MemoryGroupAllocationLimitBytes);
+        }
+
+        return allocator;
+    }
 
     /// <summary>
     /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="Memory{T}"/> of length <paramref name="length"/>.
@@ -64,15 +79,34 @@ public abstract class MemoryAllocator
     /// <summary>
     /// Allocates a <see cref="MemoryGroup{T}"/>.
     /// </summary>
+    /// <typeparam name="T">The type of element to allocate.</typeparam>
     /// <param name="totalLength">The total length of the buffer.</param>
     /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
     /// <param name="options">The <see cref="AllocationOptions"/>.</param>
     /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
     /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
-    internal virtual MemoryGroup<T> AllocateGroup<T>(
+    internal MemoryGroup<T> AllocateGroup<T>(
         long totalLength,
         int bufferAlignment,
         AllocationOptions options = AllocationOptions.None)
         where T : struct
-        => MemoryGroup<T>.Allocate(this, totalLength, bufferAlignment, options);
+    {
+        if (totalLength < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(totalLength);
+        }
+
+        ulong totalLengthInBytes = (ulong)totalLength * (ulong)Unsafe.SizeOf<T>();
+        if (totalLengthInBytes > (ulong)this.MemoryGroupAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(totalLengthInBytes, this.MemoryGroupAllocationLimitBytes);
+        }
+
+        // Cast to long is safe because we already checked that the total length is within the limit.
+        return this.AllocateGroupCore<T>(totalLength, (long)totalLengthInBytes, bufferAlignment, options);
+    }
+
+    internal virtual MemoryGroup<T> AllocateGroupCore<T>(long totalLengthInElements, long totalLengthInBytes, int bufferAlignment, AllocationOptions options)
+        where T : struct
+        => MemoryGroup<T>.Allocate(this, totalLengthInElements, bufferAlignment, options);
 }

@@ -1135,5 +1135,7 @@ public static class TestImages
 
         // Downloaded from: https://github.com/AOMediaCodec/av1-avif/blob/master/testFiles/Microsoft/Irvine_CA.avif
         public const string IrvineAvif = "Heif/Irvine_CA.avif";
+
+        public const string XnConvert = "Heif/jpeg444_xnconvert.avif";
     }
 }

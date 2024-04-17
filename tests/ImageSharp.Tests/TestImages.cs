@@ -192,6 +192,8 @@ public static class TestImages
 
             public const string BadZTXT = "Png/issues/bad-ztxt.png";
             public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
+
+            public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
         }
     }
 
@@ -441,6 +443,8 @@ public static class TestImages
         public const string Rgb32h52AdobeV3 = "Bmp/rgb32h52.bmp";
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
+
+        public const string Issue2696 = "Bmp/issue-2696.bmp";
 
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 

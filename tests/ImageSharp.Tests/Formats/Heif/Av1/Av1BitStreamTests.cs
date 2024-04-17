@@ -12,11 +12,11 @@ public class Av1BitsStreamTests
     [Theory]
     [InlineData(42, new bool[] { false, false, true, false, true, false, true, false })]
     [InlineData(52, new bool[] { false, false, true, true, false, true, false, false })]
-    public void ReadAsBoolean(int value, bool[] bits)
+    public void ReadAsBoolean(byte value, bool[] bits)
     {
         int bitCount = bits.Length;
-        byte[] buffer = new byte[4];
-        BinaryPrimitives.WriteInt32BigEndian(buffer, value << (32 - bitCount));
+        byte[] buffer = new byte[8];
+        buffer[0] = value;
         Av1BitStreamReader reader = new(buffer);
         bool[] actual = new bool[bitCount];
         for (int i = 0; i < bitCount; i++)
@@ -34,7 +34,7 @@ public class Av1BitsStreamTests
     [InlineData(4050, 16)]
     public void ReadAsLiteral(uint expected, int bitCount)
     {
-        byte[] buffer = new byte[4];
+        byte[] buffer = new byte[8];
         BinaryPrimitives.WriteUInt32BigEndian(buffer, expected << (32 - bitCount));
         Av1BitStreamReader reader = new(buffer);
         uint actual = reader.ReadLiteral(bitCount);
@@ -46,7 +46,7 @@ public class Av1BitsStreamTests
     [InlineData(new bool[] { false, true, false, true })]
     public void WriteAsBoolean(bool[] booleans)
     {
-        using MemoryStream stream = new(4);
+        using MemoryStream stream = new(8);
         Av1BitStreamWriter writer = new(stream);
         for (int i = 0; i < booleans.Length; i++)
         {
@@ -73,7 +73,7 @@ public class Av1BitsStreamTests
     [InlineData(4050, 16)]
     public void WriteAsLiteral(uint value, int bitCount)
     {
-        using MemoryStream stream = new(4);
+        using MemoryStream stream = new(8);
         Av1BitStreamWriter writer = new(stream);
         writer.WriteLiteral(value, bitCount);
         writer.Flush();

@@ -1,19 +1,35 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal ref struct Av1BitStreamReader(Span<byte> data)
+internal ref struct Av1BitStreamReader
 {
-    private const int WordSize = sizeof(byte) * 8;
-    private readonly Span<byte> data = data;
+    private const int WordSize = 32;
+
+    private readonly Span<uint> data;
+    private uint currentWord;
+    private uint nextWord;
     private int wordPosition = 0;
     private int bitOffset = 0;
 
-    public readonly int BitPosition => (this.wordPosition * WordSize) + this.bitOffset;
+    public Av1BitStreamReader(Span<byte> data)
+    {
+        this.data = MemoryMarshal.Cast<byte, uint>(data);
+        this.wordPosition = -1;
+        this.AdvanceToNextWord();
+        this.AdvanceToNextWord();
+    }
 
+    public readonly int BitPosition => ((this.wordPosition - 1) * WordSize) + this.bitOffset;
+
+    /// <summary>
+    /// Gets the number of bytes in the readers buffer.
+    /// </summary>
     public readonly int Length => this.data.Length;
 
     public void Reset()
@@ -34,22 +50,34 @@ internal ref struct Av1BitStreamReader(Span<byte> data)
 
     public uint ReadLiteral(int bitCount)
     {
-        uint bits = BinaryPrimitives.ReadUInt32BigEndian(this.data[this.wordPosition..]);
-        this.Skip(bitCount);
-        return bits >> (32 - bitCount);
+        DebugGuard.MustBeBetweenOrEqualTo(bitCount, 1, 32, nameof(bitCount));
+
+        uint bits = (this.currentWord << this.bitOffset) >> (WordSize - bitCount);
+        this.bitOffset += bitCount;
+        if (this.bitOffset > WordSize)
+        {
+            int overshoot = WordSize + WordSize - this.bitOffset;
+            if (overshoot < 32)
+            {
+                bits |= this.nextWord >> overshoot;
+            }
+        }
+
+        if (this.bitOffset >= WordSize)
+        {
+            this.AdvanceToNextWord();
+            this.bitOffset -= WordSize;
+        }
+
+        return bits;
     }
 
-    internal bool ReadBoolean()
-    {
-        bool bit = (this.data[this.wordPosition] & (1 << (WordSize - this.bitOffset - 1))) > 0;
-        this.Skip(1);
-        return bit;
-    }
+    internal bool ReadBoolean() => this.ReadLiteral(1) > 0;
 
     public ulong ReadLittleEndianBytes128(out int length)
     {
         // See section 4.10.5 of the AV1-Specification
-        DebugGuard.IsTrue((this.bitOffset & (WordSize - 1)) == 0, "Reading of Little Endian 128 value only allowed on byte alignment");
+        DebugGuard.IsTrue((this.bitOffset & 0xF7) == 0, "Reading of Little Endian 128 value only allowed on byte alignment");
 
         ulong value = 0;
         length = 0;
@@ -58,7 +86,7 @@ internal ref struct Av1BitStreamReader(Span<byte> data)
             uint leb128Byte = this.ReadLiteral(8);
             value |= (leb128Byte & 0x7FUL) << i;
             length++;
-            if ((leb128Byte & 0x80U) != 0x80U)
+            if ((leb128Byte & 0x80U) == 0)
             {
                 break;
             }
@@ -136,5 +164,13 @@ internal ref struct Av1BitStreamReader(Span<byte> data)
         }
 
         return t;
+    }
+
+    public void AdvanceToNextWord()
+    {
+        this.currentWord = this.nextWord;
+        this.wordPosition++;
+        uint temp = this.data[this.wordPosition];
+        this.nextWord = (temp << 24) | ((temp & 0x0000ff00U) << 8) | ((temp & 0x00ff0000U) >> 8) | (temp >> 24);
     }
 }

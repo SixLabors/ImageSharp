@@ -132,8 +132,8 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
         float l = this.L, a = this.A, b = this.B;
         float xn = whitePoint.X, yn = whitePoint.Y, zn = whitePoint.Z;
 
-        float ka = ComputeKa(whitePoint);
-        float kb = ComputeKb(whitePoint);
+        float ka = ComputeKa(in whitePoint);
+        float kb = ComputeKb(in whitePoint);
 
         float pow = Numerics.Pow2(l / 100F);
         float sqrtPow = MathF.Sqrt(pow);

@@ -10,7 +10,7 @@ internal class ObuReader
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public static void Read(ref Av1BitStreamReader reader, int dataSize, Av1DecoderHandle decoderHandle, bool isAnnexB)
+    public static void Read(ref Av1BitStreamReader reader, int dataSize, Av1Decoder decoderHandle, bool isAnnexB)
     {
         bool frameDecodingFinished = false;
         while (!frameDecodingFinished)
@@ -57,11 +57,11 @@ internal class ObuReader
                     }
                     else if (header.Type != ObuType.FrameHeader)
                     {
-                        Guard.IsFalse(decoderHandle.SeenFrameHeader, nameof(Av1DecoderHandle.SeenFrameHeader), "Frame header expected");
+                        Guard.IsFalse(decoderHandle.SeenFrameHeader, nameof(Av1Decoder.SeenFrameHeader), "Frame header expected");
                     }
                     else
                     {
-                        Guard.IsTrue(decoderHandle.SeenFrameHeader, nameof(Av1DecoderHandle.SeenFrameHeader), "Already decoded a frame header");
+                        Guard.IsTrue(decoderHandle.SeenFrameHeader, nameof(Av1Decoder.SeenFrameHeader), "Already decoded a frame header");
                     }
 
                     if (!decoderHandle.SeenFrameHeader)

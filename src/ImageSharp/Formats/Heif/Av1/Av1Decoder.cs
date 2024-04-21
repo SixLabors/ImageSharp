@@ -5,9 +5,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal class Av1DecoderHandle
+internal class Av1Decoder
 {
-    public Av1DecoderHandle()
+    public Av1Decoder()
     {
         this.FrameInfo = new ObuFrameHeader();
         this.SequenceHeader = new ObuSequenceHeader();
@@ -25,4 +25,10 @@ internal class Av1DecoderHandle
     public ObuSequenceHeader SequenceHeader { get; }
 
     public ObuTileInfo TileInfo { get; }
+
+    public void Decode(Span<byte> buffer)
+    {
+        Av1BitStreamReader reader = new(buffer);
+        ObuReader.Read(ref reader, buffer.Length, this, false);
+    }
 }

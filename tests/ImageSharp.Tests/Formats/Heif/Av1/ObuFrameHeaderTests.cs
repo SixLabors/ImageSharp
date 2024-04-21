@@ -12,17 +12,17 @@ public class ObuFrameHeaderTests
     [Theory]
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000D, false)]
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0198, 0x6BD1, false)]
-    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x0017, false)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, false)]
     public void ReadFrameHeader(string filename, int fileOffset, int blockSize, bool isAnnexB)
     {
         // Assign
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
-        Av1BitStreamReader reader = new(content.AsSpan(fileOffset));
-        Av1DecoderHandle decoder = new();
+        Span<byte> span = content.AsSpan(fileOffset, blockSize);
+        Av1Decoder decoder = new();
 
         // Act
-        ObuReader.Read(ref reader, blockSize, decoder, isAnnexB);
+        decoder.Decode(span);
 
         // Assert
         Assert.True(decoder.SequenceHeaderDone);

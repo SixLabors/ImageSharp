@@ -7,21 +7,117 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuReader
 {
-    private static readonly int[] WienerTapsMid = new[] { 3, -7, 15 };
-    private static readonly int[] SgrprojXqdMid = new[] { -32, 31 };
+    /// <summary>
+    /// Decode all OBU's in a frame.
+    /// </summary>
+    public static void Read(ref Av1BitStreamReader reader, int dataSize, Av1DecoderHandle decoderHandle, bool isAnnexB)
+    {
+        bool frameDecodingFinished = false;
+        while (!frameDecodingFinished)
+        {
+            int lengthSize = 0;
+            int payloadSize = 0;
+            if (isAnnexB)
+            {
+                ReadObuSize(ref reader, out payloadSize, out lengthSize);
+            }
 
-    private static ObuHeader ReadObuHeader(Av1BitStreamReader reader)
+            ObuHeader header = ReadObuHeaderSize(ref reader, out lengthSize);
+            if (isAnnexB)
+            {
+                header.PayloadSize -= header.Size;
+                dataSize -= lengthSize;
+                lengthSize = 0;
+            }
+
+            payloadSize = header.PayloadSize;
+            dataSize -= header.Size + lengthSize;
+            if (isAnnexB && dataSize < payloadSize)
+            {
+                throw new InvalidImageContentException("Corrupt frame");
+            }
+
+            switch (header.Type)
+            {
+                case ObuType.SequenceHeader:
+                    ReadSequenceHeader(ref reader, decoderHandle.SequenceHeader);
+                    if (decoderHandle.SequenceHeader.ColorConfig.BitDepth == 12)
+                    {
+                        // TODO: Initialize 12 bit predictors
+                    }
+
+                    decoderHandle.SequenceHeaderDone = true;
+                    break;
+                case ObuType.FrameHeader:
+                case ObuType.RedundantFrameHeader:
+                case ObuType.Frame:
+                    if (header.Type != ObuType.Frame)
+                    {
+                        decoderHandle.ShowExistingFrame = false;
+                    }
+                    else if (header.Type != ObuType.FrameHeader)
+                    {
+                        Guard.IsFalse(decoderHandle.SeenFrameHeader, nameof(Av1DecoderHandle.SeenFrameHeader), "Frame header expected");
+                    }
+                    else
+                    {
+                        Guard.IsTrue(decoderHandle.SeenFrameHeader, nameof(Av1DecoderHandle.SeenFrameHeader), "Already decoded a frame header");
+                    }
+
+                    if (!decoderHandle.SeenFrameHeader)
+                    {
+                        decoderHandle.SeenFrameHeader = true;
+                        ReadFrameHeader(ref reader, decoderHandle.SequenceHeader, decoderHandle.FrameInfo, header, header.Type != ObuType.Frame);
+                    }
+
+                    if (header.Type != ObuType.Frame)
+                    {
+                        break; // For OBU_TILE_GROUP comes under OBU_FRAME
+                    }
+
+                    goto TILE_GROUP;
+                case ObuType.TileGroup:
+                    TILE_GROUP:
+                    if (!decoderHandle.SeenFrameHeader)
+                    {
+                        throw new InvalidImageContentException("Corrupt frame");
+                    }
+
+                    ReadTileGroup(ref reader, decoderHandle.SequenceHeader, decoderHandle.FrameInfo, decoderHandle.TileInfo, header, out frameDecodingFinished);
+                    if (frameDecodingFinished)
+                    {
+                        decoderHandle.SeenFrameHeader = false;
+                    }
+
+                    break;
+                case ObuType.TemporalDelimiter:
+                default:
+                    // Ignore unknown OBU types.
+                    // throw new InvalidImageContentException($"Unknown OBU header found: {header.Type.ToString()}");
+                    break;
+            }
+
+            dataSize -= payloadSize;
+            if (dataSize <= 0)
+            {
+                frameDecodingFinished = true;
+            }
+        }
+    }
+
+    private static ObuHeader ReadObuHeader(ref Av1BitStreamReader reader)
     {
         ObuHeader header = new();
-        if (!reader.ReadBoolean())
+        if (reader.ReadBoolean())
         {
             throw new ImageFormatException("Forbidden bit in header should be unset.");
         }
 
+        header.Size = 1;
         header.Type = (ObuType)reader.ReadLiteral(4);
         header.HasExtension = reader.ReadBoolean();
         header.HasSize = reader.ReadBoolean();
-        if (!reader.ReadBoolean())
+        if (reader.ReadBoolean())
         {
             throw new ImageFormatException("Reserved bit in header should be unset.");
         }
@@ -45,9 +141,9 @@ internal class ObuReader
         return header;
     }
 
-    private static void ReadObuSize(Av1BitStreamReader reader, out int obuSize)
+    private static void ReadObuSize(ref Av1BitStreamReader reader, out int obuSize, out int lengthSize)
     {
-        ulong rawSize = reader.ReadLittleEndianBytes128(out _);
+        ulong rawSize = reader.ReadLittleEndianBytes128(out lengthSize);
         if (rawSize > uint.MaxValue)
         {
             throw new ImageFormatException("OBU block too large.");
@@ -59,12 +155,13 @@ internal class ObuReader
     /// <summary>
     /// Read OBU header and size.
     /// </summary>
-    private static ObuHeader ReadObuHeaderSize(Av1BitStreamReader reader)
+    private static ObuHeader ReadObuHeaderSize(ref Av1BitStreamReader reader, out int lengthSize)
     {
-        ObuHeader header = ReadObuHeader(reader);
+        ObuHeader header = ReadObuHeader(ref reader);
+        lengthSize = 0;
         if (header.HasSize)
         {
-            ReadObuSize(reader, out int payloadSize);
+            ReadObuSize(ref reader, out int payloadSize, out lengthSize);
             header.PayloadSize = payloadSize;
         }
 
@@ -75,17 +172,17 @@ internal class ObuReader
     /// Check that the trailing bits start with a 1 and end with 0s.
     /// </summary>
     /// <remarks>Consumes a byte, if already byte aligned before the check.</remarks>
-    private static void ReadTrailingBits(Av1BitStreamReader reader)
+    private static void ReadTrailingBits(ref Av1BitStreamReader reader)
     {
         int bitsBeforeAlignment = 8 - (reader.BitPosition & 0x7);
         uint trailing = reader.ReadLiteral(bitsBeforeAlignment);
-        if (trailing != (1 << (bitsBeforeAlignment - 1)))
+        if (trailing != (1U << (bitsBeforeAlignment - 1)))
         {
             throw new ImageFormatException("Trailing bits not properly formatted.");
         }
     }
 
-    private static void AlignToByteBoundary(Av1BitStreamReader reader)
+    private static void AlignToByteBoundary(ref Av1BitStreamReader reader)
     {
         while ((reader.BitPosition & 0x7) > 0)
         {
@@ -111,9 +208,8 @@ internal class ObuReader
         _ => false,
     };
 
-    private static ObuSequenceHeader ReadSequenceHeader(Av1BitStreamReader reader)
+    private static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
-        ObuSequenceHeader sequenceHeader = new();
         sequenceHeader.SequenceProfile = (ObuSequenceProfile)reader.ReadLiteral(3);
         if (sequenceHeader.SequenceProfile > ObuConstants.MaxSequenceProfile)
         {
@@ -130,16 +226,19 @@ internal class ObuReader
         sequenceHeader.TimingInfo = null;
         sequenceHeader.DecoderModelInfoPresentFlag = false;
         sequenceHeader.InitialDisplayDelayPresentFlag = false;
-        sequenceHeader.OperatingPoint[0].OperatorIndex = 0;
-        sequenceHeader.OperatingPoint[0].SequenceLevelIndex = (int)reader.ReadLiteral(ObuConstants.LevelBits);
+        sequenceHeader.OperatingPoint = new ObuOperatingPoint[1];
+        ObuOperatingPoint operatingPoint = new();
+        sequenceHeader.OperatingPoint[0] = operatingPoint;
+        operatingPoint.OperatorIndex = 0;
+        operatingPoint.SequenceLevelIndex = (int)reader.ReadLiteral(ObuConstants.LevelBits);
         if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[0].SequenceLevelIndex))
         {
-            throw new ImageFormatException("Unknown sequnce level.");
+            throw new ImageFormatException("Invalid sequence level.");
         }
 
-        sequenceHeader.OperatingPoint[0].SequenceTier = 0;
-        sequenceHeader.OperatingPoint[0].IsDecoderModelPresent = false;
-        sequenceHeader.OperatingPoint[0].IsInitialDisplayDelayPresent = false;
+        operatingPoint.SequenceTier = 0;
+        operatingPoint.IsDecoderModelPresent = false;
+        operatingPoint.IsInitialDisplayDelayPresent = false;
 
         // Video related flags removed
 
@@ -172,18 +271,17 @@ internal class ObuReader
         sequenceHeader.EnableSuperResolution = reader.ReadBoolean();
         sequenceHeader.CdefLevel = (int)reader.ReadLiteral(1);
         sequenceHeader.EnableRestoration = reader.ReadBoolean();
-        sequenceHeader.ColorConfig = ReadColorConfig(reader, sequenceHeader);
+        sequenceHeader.ColorConfig = ReadColorConfig(ref reader, sequenceHeader);
         sequenceHeader.AreFilmGrainingParametersPresent = reader.ReadBoolean();
-        ReadTrailingBits(reader);
-        return sequenceHeader;
+        ReadTrailingBits(ref reader);
     }
 
-    private static ObuColorConfig ReadColorConfig(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
+    private static ObuColorConfig ReadColorConfig(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         ObuColorConfig colorConfig = new();
-        ReadBitDepth(reader, colorConfig, sequenceHeader);
+        ReadBitDepth(ref reader, colorConfig, sequenceHeader);
         colorConfig.Monochrome = false;
-        if (sequenceHeader.SequenceProfile == ObuSequenceProfile.High)
+        if (sequenceHeader.SequenceProfile != ObuSequenceProfile.High)
         {
             colorConfig.Monochrome = reader.ReadBoolean();
         }
@@ -224,21 +322,33 @@ internal class ObuReader
         else
         {
             colorConfig.ColorRange = reader.ReadBoolean();
-            if (sequenceHeader.SequenceProfile != ObuSequenceProfile.Main)
+            switch (sequenceHeader.SequenceProfile)
             {
-                if (colorConfig.BitDepth == 12)
-                {
-                    colorConfig.SubSamplingX = reader.ReadBoolean();
-                    if (colorConfig.SubSamplingX)
-                    {
-                        colorConfig.SubSamplingY = reader.ReadBoolean();
-                    }
-                }
-                else
-                {
+                case ObuSequenceProfile.Main:
                     colorConfig.SubSamplingX = true;
+                    colorConfig.SubSamplingY = true;
+                    break;
+                case ObuSequenceProfile.High:
+                    colorConfig.SubSamplingX = false;
                     colorConfig.SubSamplingY = false;
-                }
+                    break;
+                case ObuSequenceProfile.Professional:
+                default:
+                    if (colorConfig.BitDepth == 12)
+                    {
+                        colorConfig.SubSamplingX = reader.ReadBoolean();
+                        if (colorConfig.SubSamplingX)
+                        {
+                            colorConfig.SubSamplingY = reader.ReadBoolean();
+                        }
+                    }
+                    else
+                    {
+                        colorConfig.SubSamplingX = true;
+                        colorConfig.SubSamplingY = false;
+                    }
+
+                    break;
             }
 
             if (colorConfig.SubSamplingX && colorConfig.SubSamplingY)
@@ -251,7 +361,7 @@ internal class ObuReader
         return colorConfig;
     }
 
-    private static void ReadBitDepth(Av1BitStreamReader reader, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
+    private static void ReadBitDepth(ref Av1BitStreamReader reader, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
     {
         bool hasHighBitDepth = reader.ReadBoolean();
         if (sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional && hasHighBitDepth)
@@ -264,7 +374,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadSuperResolutionParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static void ReadSuperResolutionParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         bool useSuperResolution = false;
         if (sequenceHeader.EnableSuperResolution)
@@ -283,8 +393,9 @@ internal class ObuReader
 
         frameInfo.FrameSize.SuperResolutionUpscaledWidth = frameInfo.FrameSize.FrameWidth;
         frameInfo.FrameSize.FrameWidth =
-            (frameInfo.FrameSize.SuperResolutionUpscaledWidth * ObuConstants.ScaleNumerator) +
-            (frameInfo.FrameSize.SuperResolutionDenominator / 2);
+            ((frameInfo.FrameSize.SuperResolutionUpscaledWidth * ObuConstants.ScaleNumerator) +
+            (frameInfo.FrameSize.SuperResolutionDenominator / 2)) /
+            frameInfo.FrameSize.SuperResolutionDenominator;
 
         if (frameInfo.FrameSize.SuperResolutionDenominator != ObuConstants.ScaleNumerator)
         {
@@ -293,7 +404,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadRenderSize(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    private static void ReadRenderSize(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         bool renderSizeAndFrameSizeDifferent = reader.ReadBoolean();
         if (renderSizeAndFrameSizeDifferent)
@@ -308,7 +419,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadFrameSizeWithReferences(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
+    private static void ReadFrameSizeWithReferences(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
     {
         bool foundReference = false;
         for (int i = 0; i < ObuConstants.ReferencesPerFrame; i++)
@@ -323,17 +434,17 @@ internal class ObuReader
 
         if (!foundReference)
         {
-            ReadFrameSize(reader, sequenceHeader, frameInfo, frameSizeOverrideFlag);
-            ReadRenderSize(reader, frameInfo);
+            ReadFrameSize(ref reader, sequenceHeader, frameInfo, frameSizeOverrideFlag);
+            ReadRenderSize(ref reader, frameInfo);
         }
         else
         {
-            ReadSuperResolutionParameters(reader, sequenceHeader, frameInfo);
+            ReadSuperResolutionParameters(ref reader, sequenceHeader, frameInfo);
             ComputeImageSize(sequenceHeader, frameInfo);
         }
     }
 
-    private static void ReadFrameSize(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
+    private static void ReadFrameSize(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
     {
         if (frameSizeOverrideFlag)
         {
@@ -346,11 +457,11 @@ internal class ObuReader
             frameInfo.FrameSize.FrameHeight = sequenceHeader.MaxFrameHeight;
         }
 
-        ReadSuperResolutionParameters(reader, sequenceHeader, frameInfo);
+        ReadSuperResolutionParameters(ref reader, sequenceHeader, frameInfo);
         ComputeImageSize(sequenceHeader, frameInfo);
     }
 
-    private static ObuTileInfo ReadTileInfo(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static ObuTileInfo ReadTileInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         ObuTileInfo tileInfo = new();
         int superBlockColumnCount;
@@ -518,7 +629,7 @@ internal class ObuReader
         return tileInfo;
     }
 
-    private static void ReadUncompressedFrameHeader(Av1BitStreamReader reader, ObuHeader header, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private static void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         int idLength = 0;
         uint previousFrameId = 0;
@@ -562,7 +673,7 @@ internal class ObuReader
         {
             if (sequenceHeader.SequenceForceIntegerMotionVector == 1)
             {
-                frameInfo.ForeceIntegerMotionVector = reader.ReadBoolean();
+                frameInfo.ForceIntegerMotionVector = reader.ReadBoolean();
             }
             else
             {
@@ -571,12 +682,12 @@ internal class ObuReader
         }
         else
         {
-            frameInfo.ForeceIntegerMotionVector = false;
+            frameInfo.ForceIntegerMotionVector = false;
         }
 
         if (isIntraFrame)
         {
-            frameInfo.ForeceIntegerMotionVector = true;
+            frameInfo.ForceIntegerMotionVector = true;
         }
 
         bool havePreviousFrameId = !(frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame);
@@ -635,7 +746,12 @@ internal class ObuReader
             frameSizeOverrideFlag = reader.ReadBoolean();
         }
 
-        frameInfo.OrderHint = reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
+        frameInfo.OrderHint = 0;
+        if (sequenceHeader.OrderHintInfo.OrderHintBits > 0)
+        {
+            frameInfo.OrderHint = reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
+        }
+
         if (isIntraFrame || frameInfo.ErrorResilientMode)
         {
             frameInfo.PrimaryReferenceFrame = ObuConstants.PrimaryReferenceFrameNone;
@@ -651,7 +767,7 @@ internal class ObuReader
         frameInfo.AllowIntraBlockCopy = false;
         if (frameInfo.FrameType == ObuFrameType.SwitchFrame || (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame))
         {
-            frameInfo.RefreshFrameFlags = 0xffU;
+            frameInfo.RefreshFrameFlags = 0xFFU;
         }
         else
         {
@@ -680,8 +796,8 @@ internal class ObuReader
 
         if (isIntraFrame)
         {
-            ReadFrameSize(reader, sequenceHeader, frameInfo, frameSizeOverrideFlag);
-            ReadRenderSize(reader, frameInfo);
+            ReadFrameSize(ref reader, sequenceHeader, frameInfo, frameSizeOverrideFlag);
+            ReadRenderSize(ref reader, frameInfo);
             if (frameInfo.AllowScreenContentTools && frameInfo.FrameSize.RenderWidth != 0)
             {
                 if (frameInfo.FrameSize.FrameWidth == frameInfo.FrameSize.SuperResolutionUpscaledWidth)
@@ -706,15 +822,15 @@ internal class ObuReader
 
         if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
         {
-            // SetupPastIndependence();
+            SetupPastIndependence(frameInfo);
         }
 
         // GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
-        frameInfo.TilesInfo = ReadTileInfo(reader, sequenceHeader, frameInfo);
-        ReadQuantizationParameters(reader, frameInfo.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
-        ReadSegmentationParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadFrameDeltaQParameters(reader, frameInfo);
-        ReadFrameDeltaLoopFilterParameters(reader, frameInfo);
+        frameInfo.TilesInfo = ReadTileInfo(ref reader, sequenceHeader, frameInfo);
+        ReadQuantizationParameters(ref reader, frameInfo.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
+        ReadSegmentationParameters(ref reader, sequenceHeader, frameInfo, planesCount);
+        ReadFrameDeltaQParameters(ref reader, frameInfo);
+        ReadFrameDeltaLoopFilterParameters(ref reader, frameInfo);
 
         // SetupSegmentationDequantization();
         Av1MainParseContext mainParseContext = new();
@@ -758,21 +874,26 @@ internal class ObuReader
         }
 
         frameInfo.AllLossless = frameInfo.CodedLossless && frameInfo.FrameSize.FrameWidth == frameInfo.FrameSize.SuperResolutionUpscaledWidth;
-        ReadLoopFilterParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadCdefParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadLoopRestorationParameters(reader, sequenceHeader, frameInfo, planesCount);
-        ReadTransformMode(reader, frameInfo);
+        ReadLoopFilterParameters(ref reader, sequenceHeader, frameInfo, planesCount);
+        ReadCdefParameters(ref reader, sequenceHeader, frameInfo, planesCount);
+        ReadLoopRestorationParameters(ref reader, sequenceHeader, frameInfo, planesCount);
+        ReadTransformMode(ref reader, frameInfo);
 
-        frameInfo.ReferenceMode = ReadFrameReferenceMode(reader, isIntraFrame);
-        ReadSkipModeParameters(reader, sequenceHeader, frameInfo, isIntraFrame, frameInfo.ReferenceMode);
+        frameInfo.ReferenceMode = ReadFrameReferenceMode(ref reader, isIntraFrame);
+        ReadSkipModeParameters(ref reader, sequenceHeader, frameInfo, isIntraFrame, frameInfo.ReferenceMode);
         if (isIntraFrame || frameInfo.ErrorResilientMode || !sequenceHeader.EnableWarpedMotion)
         {
             frameInfo.AllowWarpedMotion = false;
         }
 
         frameInfo.ReducedTransformSet = reader.ReadBoolean();
-        ReadGlobalMotionParameters(reader, sequenceHeader, frameInfo, isIntraFrame);
-        frameInfo.FilmGrainParameters = ReadFilmGrainFilterParameters(reader, sequenceHeader, frameInfo);
+        ReadGlobalMotionParameters(ref reader, sequenceHeader, frameInfo, isIntraFrame);
+        frameInfo.FilmGrainParameters = ReadFilmGrainFilterParameters(ref reader, sequenceHeader, frameInfo);
+    }
+
+    private static void SetupPastIndependence(ObuFrameHeader frameInfo)
+    {
+        // TODO: Initialize the loop filter parameters.
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
@@ -792,24 +913,24 @@ internal class ObuReader
         }
     }
 
-    private static void ReadFrameHeader(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuHeader header, bool trailingBit)
+    private static void ReadFrameHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuHeader header, bool trailingBit)
     {
         int planeCount = sequenceHeader.ColorConfig.Monochrome ? 1 : 3;
         int startBitPosition = reader.BitPosition;
-        ReadUncompressedFrameHeader(reader, header, sequenceHeader, frameInfo, planeCount);
+        ReadUncompressedFrameHeader(ref reader, header, sequenceHeader, frameInfo, planeCount);
         if (trailingBit)
         {
-            ReadTrailingBits(reader);
+            ReadTrailingBits(ref reader);
         }
 
-        AlignToByteBoundary(reader);
+        AlignToByteBoundary(ref reader);
 
         int endPosition = reader.BitPosition;
         int headerBytes = (endPosition - startBitPosition) / 8;
         header.PayloadSize -= headerBytes;
     }
 
-    private static void ReadTileGroup(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo, ObuHeader header, out bool isLastTileGroup)
+    private static void ReadTileGroup(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo, ObuHeader header, out bool isLastTileGroup)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         int startBitPosition = reader.BitPosition;
@@ -834,7 +955,7 @@ internal class ObuReader
         }
 
         isLastTileGroup = (tileGroupEnd + 1) == tileCount;
-        AlignToByteBoundary(reader);
+        AlignToByteBoundary(ref reader);
         int endBitPosition = reader.BitPosition;
         int headerBytes = (endBitPosition - startBitPosition) / 8;
         header.PayloadSize -= headerBytes;
@@ -874,7 +995,7 @@ internal class ObuReader
         // FinishDecodeTiles(sequenceHeader, frameInfo, doCdef, doLoopRestoration);
     }
 
-    private static int ReadDeltaQ(Av1BitStreamReader reader)
+    private static int ReadDeltaQ(ref Av1BitStreamReader reader)
     {
         int deltaQ = 0;
         if (reader.ReadBoolean())
@@ -885,7 +1006,7 @@ internal class ObuReader
         return deltaQ;
     }
 
-    private static void ReadFrameDeltaQParameters(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    private static void ReadFrameDeltaQParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         frameInfo.DeltaQParameters.Resolution = 0;
         frameInfo.DeltaQParameters.IsPresent = false;
@@ -900,7 +1021,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadFrameDeltaLoopFilterParameters(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    private static void ReadFrameDeltaLoopFilterParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         frameInfo.DeltaLoopFilterParameters.IsPresent = false;
         frameInfo.DeltaLoopFilterParameters.Resolution = 0;
@@ -920,20 +1041,20 @@ internal class ObuReader
         }
     }
 
-    private static void ReadQuantizationParameters(Av1BitStreamReader reader, ObuQuantizationParameters quantParams, ObuColorConfig colorInfo, int planesCount)
+    private static void ReadQuantizationParameters(ref Av1BitStreamReader reader, ObuQuantizationParameters quantParams, ObuColorConfig colorInfo, int planesCount)
     {
         quantParams.BaseQIndex = (int)reader.ReadLiteral(8);
-        quantParams.DeltaQDc[(int)Av1Plane.Y] = ReadDeltaQ(reader);
+        quantParams.DeltaQDc[(int)Av1Plane.Y] = ReadDeltaQ(ref reader);
         quantParams.DeltaQAc[(int)Av1Plane.Y] = 0;
         if (planesCount > 1)
         {
             bool areUvDeltaDifferent = false;
-            quantParams.DeltaQDc[(int)Av1Plane.U] = ReadDeltaQ(reader);
-            quantParams.DeltaQAc[(int)Av1Plane.U] = ReadDeltaQ(reader);
+            quantParams.DeltaQDc[(int)Av1Plane.U] = ReadDeltaQ(ref reader);
+            quantParams.DeltaQAc[(int)Av1Plane.U] = ReadDeltaQ(ref reader);
             if (areUvDeltaDifferent)
             {
-                quantParams.DeltaQDc[(int)Av1Plane.V] = ReadDeltaQ(reader);
-                quantParams.DeltaQAc[(int)Av1Plane.V] = ReadDeltaQ(reader);
+                quantParams.DeltaQDc[(int)Av1Plane.V] = ReadDeltaQ(ref reader);
+                quantParams.DeltaQAc[(int)Av1Plane.V] = ReadDeltaQ(ref reader);
             }
             else
             {
@@ -971,7 +1092,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadSegmentationParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private static void ReadSegmentationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         frameInfo.SegmentationParameters.SegmentationEnabled = reader.ReadBoolean();
         if (!frameInfo.SegmentationParameters.SegmentationEnabled)
@@ -983,7 +1104,7 @@ internal class ObuReader
         // TODO: Parse more stuff.
     }
 
-    private static void ReadLoopFilterParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private static void ReadLoopFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy)
         {
@@ -995,7 +1116,7 @@ internal class ObuReader
         // TODO: Parse more stuff.
     }
 
-    private static void ReadTransformMode(Av1BitStreamReader reader, ObuFrameHeader frameInfo)
+    private static void ReadTransformMode(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         if (frameInfo.CodedLossless)
         {
@@ -1014,21 +1135,21 @@ internal class ObuReader
         }
     }
 
-    private static void ReadLoopRestorationParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private static void ReadLoopRestorationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         _ = planesCount;
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || !sequenceHeader.EnableRestoration)
         {
-            frameInfo.LoopRestorationParameters[0].FrameRestorationType = ObuRestorationType.RestoreNone;
-            frameInfo.LoopRestorationParameters[1].FrameRestorationType = ObuRestorationType.RestoreNone;
-            frameInfo.LoopRestorationParameters[2].FrameRestorationType = ObuRestorationType.RestoreNone;
+            frameInfo.LoopRestorationParameters[0] = new ObuLoopRestorationParameters();
+            frameInfo.LoopRestorationParameters[1] = new ObuLoopRestorationParameters();
+            frameInfo.LoopRestorationParameters[2] = new ObuLoopRestorationParameters();
             return;
         }
 
         // TODO: Parse more stuff.
     }
 
-    private static void ReadCdefParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private static void ReadCdefParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         _ = planesCount;
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || sequenceHeader.CdefLevel == 0)
@@ -1045,7 +1166,7 @@ internal class ObuReader
         // TODO: Parse more stuff.
     }
 
-    private static void ReadGlobalMotionParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame)
+    private static void ReadGlobalMotionParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame)
     {
         _ = reader;
         _ = sequenceHeader;
@@ -1058,7 +1179,7 @@ internal class ObuReader
         // TODO: Parse more stuff.
     }
 
-    private static ObuReferenceMode ReadFrameReferenceMode(Av1BitStreamReader reader, bool isIntraFrame)
+    private static ObuReferenceMode ReadFrameReferenceMode(ref Av1BitStreamReader reader, bool isIntraFrame)
     {
         if (isIntraFrame)
         {
@@ -1068,7 +1189,7 @@ internal class ObuReader
         return (ObuReferenceMode)reader.ReadLiteral(1);
     }
 
-    private static void ReadSkipModeParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame, ObuReferenceMode referenceSelect)
+    private static void ReadSkipModeParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame, ObuReferenceMode referenceSelect)
     {
         if (isIntraFrame || referenceSelect == ObuReferenceMode.ReferenceModeSelect || !sequenceHeader.OrderHintInfo.EnableOrderHint)
         {
@@ -1089,7 +1210,7 @@ internal class ObuReader
         }
     }
 
-    private static ObuFilmGrainParameters ReadFilmGrainFilterParameters(Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static ObuFilmGrainParameters ReadFilmGrainFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         ObuFilmGrainParameters grainParams = new();
         if (!sequenceHeader.AreFilmGrainingParametersPresent || (!frameInfo.ShowFrame && !frameInfo.ShowableFrame))

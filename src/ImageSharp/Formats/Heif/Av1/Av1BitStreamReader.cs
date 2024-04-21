@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -50,7 +48,7 @@ internal ref struct Av1BitStreamReader
 
     public uint ReadLiteral(int bitCount)
     {
-        DebugGuard.MustBeBetweenOrEqualTo(bitCount, 1, 32, nameof(bitCount));
+        DebugGuard.MustBeBetweenOrEqualTo(bitCount, 0, 32, nameof(bitCount));
 
         uint bits = (this.currentWord << this.bitOffset) >> (WordSize - bitCount);
         this.bitOffset += bitCount;
@@ -77,7 +75,7 @@ internal ref struct Av1BitStreamReader
     public ulong ReadLittleEndianBytes128(out int length)
     {
         // See section 4.10.5 of the AV1-Specification
-        DebugGuard.IsTrue((this.bitOffset & 0xF7) == 0, "Reading of Little Endian 128 value only allowed on byte alignment");
+        DebugGuard.IsTrue((this.bitOffset & 0x07) == 0, $"Reading of Little Endian 128 value only allowed on byte alignment (offset {this.BitPosition}).");
 
         ulong value = 0;
         length = 0;
@@ -122,7 +120,7 @@ internal ref struct Av1BitStreamReader
             return 0;
         }
 
-        int w = (int)(Av1Math.MostSignificantBit(n) + 1);
+        int w = (int)(Av1Math.FloorLog2(n) + 1);
         uint m = (uint)((1 << w) - n);
         uint v = this.ReadLiteral(w - 1);
         if (v < m)

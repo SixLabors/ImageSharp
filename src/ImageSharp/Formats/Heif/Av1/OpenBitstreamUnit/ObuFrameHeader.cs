@@ -77,8 +77,6 @@ internal class ObuFrameHeader
 
     internal bool DisableCdfUpdate { get; set; }
 
-    internal bool ForeceIntegerMotionVector { get; set; }
-
     internal uint CurrentFrameId { get; set; }
 
     internal uint[] ReferenceFrameIndex { get; set; } = new uint[ObuConstants.ReferenceFrameCount];

@@ -10,7 +10,7 @@ internal class ObuReader
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public static void Read(ref Av1BitStreamReader reader, int dataSize, Av1Decoder decoder, bool isAnnexB)
+    public static void Read(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB)
     {
         bool frameDecodingFinished = false;
         while (!frameDecodingFinished)
@@ -629,7 +629,7 @@ internal class ObuReader
         return tileInfo;
     }
 
-    private static void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, Av1Decoder decoder, ObuHeader header, int planesCount)
+    private static void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, int planesCount)
     {
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
         ObuFrameHeader frameInfo = decoder.FrameInfo;
@@ -915,7 +915,7 @@ internal class ObuReader
         }
     }
 
-    private static void ReadFrameHeader(ref Av1BitStreamReader reader, Av1Decoder decoder, ObuHeader header, bool trailingBit)
+    private static void ReadFrameHeader(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, bool trailingBit)
     {
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
         ObuFrameHeader frameInfo = decoder.FrameInfo;
@@ -934,7 +934,7 @@ internal class ObuReader
         header.PayloadSize -= headerBytes;
     }
 
-    private static void ReadTileGroup(ref Av1BitStreamReader reader, Av1Decoder decoder, ObuHeader header, out bool isLastTileGroup)
+    private static void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, out bool isLastTileGroup)
     {
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
         ObuFrameHeader frameInfo = decoder.FrameInfo;
@@ -991,7 +991,7 @@ internal class ObuReader
             }
 
             // TODO: Pass more info to the decoder.
-            decoder.DecodeTile(ref reader, tileNum);
+            decoder.DecodeTile(tileNum);
         }
 
         if (tileGroupEnd != tileCount - 1)
@@ -999,7 +999,7 @@ internal class ObuReader
             return;
         }
 
-        decoder.FinishDecodeTiles(ref reader, doCdef, doLoopRestoration);
+        decoder.FinishDecodeTiles(doCdef, doLoopRestoration);
     }
 
     private static int ReadDeltaQ(ref Av1BitStreamReader reader)

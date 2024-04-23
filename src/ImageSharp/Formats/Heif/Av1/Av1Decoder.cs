@@ -32,12 +32,12 @@ internal class Av1Decoder : IAv1TileDecoder
         ObuReader.Read(ref reader, buffer.Length, this, false);
     }
 
-    public void DecodeTile(ref Av1BitStreamReader reader, int tileNum)
+    public void DecodeTile(int tileNum)
     {
         // TODO: Implement
     }
 
-    public void FinishDecodeTiles(ref Av1BitStreamReader reader, bool doCdef, bool doLoopRestoration)
+    public void FinishDecodeTiles(bool doCdef, bool doLoopRestoration)
     {
         // TODO: Implement
     }

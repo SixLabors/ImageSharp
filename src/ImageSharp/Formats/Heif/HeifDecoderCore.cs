@@ -4,7 +4,8 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;

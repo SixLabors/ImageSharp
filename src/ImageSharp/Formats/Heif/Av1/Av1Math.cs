@@ -5,7 +5,26 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal static class Av1Math
 {
-    public static uint MostSignificantBit(uint value) => value >> 31;
+    public static int MostSignificantBit(uint value)
+    {
+        int log = 0;
+        int i;
+
+        Guard.IsTrue(value != 0, nameof(value), "Must have al least 1 bit set");
+
+        for (i = 4; i >= 0; --i)
+        {
+            int shift = 1 << i;
+            uint x = value >> shift;
+            if (x != 0)
+            {
+                value = x;
+                log += shift;
+            }
+        }
+
+        return log;
+    }
 
     public static uint Log2(uint n)
     {

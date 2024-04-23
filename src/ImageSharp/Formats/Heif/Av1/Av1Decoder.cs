@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal class Av1Decoder
+internal class Av1Decoder : IAv1TileDecoder
 {
     public Av1Decoder()
     {
@@ -32,20 +32,19 @@ internal class Av1Decoder
         ObuReader.Read(ref reader, buffer.Length, this, false);
     }
 
-    internal void DecodeTile(ref Av1BitStreamReader reader, int tileNum)
+    public void DecodeTile(ref Av1BitStreamReader reader, int tileNum)
     {
         // TODO: Implement
     }
 
-    internal void DecodeBlock(Av1BlockModeInfo blockMode, int rowIndex, int columnIndex)
+    public void FinishDecodeTiles(ref Av1BitStreamReader reader, bool doCdef, bool doLoopRestoration)
+    {
+        // TODO: Implement
+    }
+
+    private static void DecodeBlock(Av1BlockModeInfo blockMode, int rowIndex, int columnIndex)
     {
         int block4x4Width = blockMode.BlockSize.Get4x4WideCount();
         int block4x4Height = blockMode.BlockSize.Get4x4HighCount();
-
-    }
-
-    internal void FinishDecodeTiles(ref Av1BitStreamReader reader, bool doCdef, bool doLoopRestoration)
-    {
-        // TODO: Implement
     }
 }

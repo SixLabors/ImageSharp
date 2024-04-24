@@ -12,12 +12,6 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// </summary>
 public readonly struct CieLch : IColorProfile<CieLch, CieLab>
 {
-    /// <summary>
-    /// D50 standard illuminant.
-    /// Used when reference white is not specified explicitly.
-    /// </summary>
-    public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
-
     private static readonly Vector3 Min = new(0, -200, 0);
     private static readonly Vector3 Max = new(100, 200, 360);
 
@@ -165,5 +159,6 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     }
 
     /// <inheritdoc/>
-    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource()
+        => ChromaticAdaptionWhitePointSource.WhitePoint;
 }

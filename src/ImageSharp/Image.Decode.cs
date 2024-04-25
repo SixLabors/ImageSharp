@@ -99,7 +99,7 @@ public abstract partial class Image
             ImageFormatManager.ThrowInvalidDecoder(configuration.ImageFormatsManager);
         }
 
-        using (IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(headerSize))
+        using (IMemoryOwner<byte> memoryOwner = configuration.MemoryAllocator.Allocate<byte>(headerSize))
         {
             Memory<byte> headersBuffer = memoryOwner.Memory;
             long startPosition = stream.Position;

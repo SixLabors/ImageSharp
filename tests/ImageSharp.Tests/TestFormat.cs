@@ -229,7 +229,8 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             return this.testFormat.Sample<TPixel>();
         }
 
-        protected override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken) => this.Decode<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
+        protected override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+            => this.Decode<TestPixelForAgnosticDecode>(options, stream, cancellationToken);
     }
 
     public class TestDecoderOptions : ISpecializedDecoderOptions

@@ -51,7 +51,7 @@ internal static class ObuConstants
     /// </summary>
     public const uint PrimaryReferenceFrameNone = 7;
 
-    public const int PimaryReferenceBits = -1;
+    public const int PimaryReferenceBits = 3;
 
     /// <summary>
     /// Number of segments allowed in segmentation map.
@@ -79,4 +79,9 @@ internal static class ObuConstants
     /// Number of segmentation features.
     /// </summary>
     public const int SegmentationLevelMax = 8;
+
+    /// <summary>
+    /// Maximum size of a loop restoration tile.
+    /// </summary>
+    public const int RestorationMaxTileSize = 256;
 }

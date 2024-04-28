@@ -5,6 +5,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuSequenceHeader
 {
+    internal bool EnableFilterIntra { get; set; }
+
+    internal bool EnableCdef { get; set; }
+
     internal bool IsStillPicture { get; set; }
 
     internal bool IsReducedStillPictureHeader { get; set; }

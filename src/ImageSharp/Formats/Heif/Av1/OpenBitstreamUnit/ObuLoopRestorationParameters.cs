@@ -5,5 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuLoopRestorationParameters
 {
-    public ObuRestorationType FrameRestorationType { get; internal set; } = ObuRestorationType.RestoreNone;
+    internal int Size { get; set; }
+
+    internal ObuRestorationType Type { get; set; } = ObuRestorationType.None;
 }

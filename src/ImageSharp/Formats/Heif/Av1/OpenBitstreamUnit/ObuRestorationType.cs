@@ -3,7 +3,10 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-internal enum ObuRestorationType
+internal enum ObuRestorationType : uint
 {
-    RestoreNone
+    None = 0,
+    Switchable = 1,
+    Weiner = 2,
+    SgrProj = 3,
 }

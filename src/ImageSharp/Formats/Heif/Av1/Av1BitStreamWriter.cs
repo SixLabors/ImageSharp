@@ -63,4 +63,28 @@ internal ref struct Av1BitStreamWriter(Stream stream)
             this.bitOffset = 0;
         }
     }
+
+    public void WriteSignedFromUnsigned(int signedValue, int n)
+    {
+        // See section 4.10.6 of the AV1-Specification
+        uint value = unchecked((uint)signedValue);
+        this.WriteLiteral(value, n + 1);
+    }
+
+    public void WriteLittleEndianBytes128(uint value)
+    {
+        if (value < 128)
+        {
+            this.WriteLiteral(value, 8);
+        }
+        else if (value < 0x8000U)
+        {
+            this.WriteLiteral(value >> 7, 8);
+            this.WriteLiteral(value & 0x80, 8);
+        }
+        else
+        {
+            throw new NotImplementedException("No such large values yet.");
+        }
+    }
 }

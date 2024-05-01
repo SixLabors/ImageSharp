@@ -83,4 +83,186 @@ public class Av1BitsStreamTests
         uint actual = reader.ReadLiteral(bitCount);
         Assert.Equal(value, actual);
     }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void ReadLiteralRainbowArray(int bitCount)
+    {
+        uint[] values = Enumerable.Range(0, (1 << bitCount) - 1).Select(i => (uint)i).ToArray();
+        using MemoryStream stream = new(280);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteLiteral(values[i], bitCount);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        uint[] actuals = new uint[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            uint actual = reader.ReadLiteral(bitCount);
+            actuals[i] = actual;
+        }
+
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData(4, 6, 4, 9, 14)]
+    [InlineData(8, 42, 8, 189, 63)]
+    [InlineData(8, 52, 18, 255, 241)]
+    [InlineData(16, 4050, 16003, 503, 814)]
+    public void ReadWriteAsLiteralArray(int bitCount, uint val1, uint val2, uint val3, uint val4)
+    {
+        uint[] values = [val1, val2, val3, val4];
+        using MemoryStream stream = new(80);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteLiteral(values[i], bitCount);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        for (int i = 0; i < values.Length; i++)
+        {
+            uint actual = reader.ReadLiteral(bitCount);
+            Assert.NotEqual(0U, actual);
+            Assert.Equal(values[i], actual);
+        }
+    }
+
+    [Theory]
+
+    [InlineData(4, 0, 1, 2, 3)]
+    [InlineData(5, 0, 1, 2, 3)]
+    [InlineData(8, 0, 1, 2, 3)]
+    [InlineData(8, 4, 5, 6, 7)]
+    [InlineData(16, 15, 0, 5, 8)]
+    public void ReadWriteAsNonSymmetricArray(uint numberOfSymbols, uint val1, uint val2, uint val3, uint val4)
+    {
+        uint[] values = [val1, val2, val3, val4];
+        using MemoryStream stream = new(80);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteNonSymmetric(values[i], numberOfSymbols);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        uint[] actuals = new uint[4];
+        for (int i = 0; i < values.Length; i++)
+        {
+            ulong actual = reader.ReadNonSymmetric(numberOfSymbols);
+            actuals[i] = (uint)actual;
+            // Assert.NotEqual(0UL, actual);
+        }
+
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(7)]
+    [InlineData(8)]
+    public void ReadSignedRainbowArray(int bitCount)
+    {
+        int maxValue = (1 << (bitCount - 1)) - 1;
+        int[] values = Enumerable.Range(-maxValue, maxValue).ToArray();
+        using MemoryStream stream = new(280);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteSignedFromUnsigned(values[i], bitCount);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        int[] actuals = new int[values.Length];
+        for (int i = 0; i < values.Length; i++)
+        {
+            int actual = reader.ReadSignedFromUnsigned(bitCount);
+            actuals[i] = actual;
+        }
+
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData(5, 6, 4, -7, -2)]
+    [InlineData(7, 26, -8, -19, -26)]
+    [InlineData(8, 52, 127, -127, -21)]
+    [InlineData(16, -4050, -16003, -503, 8414)]
+    public void ReadWriteSignedArray(int bitCount, int val1, int val2, int val3, int val4)
+    {
+        int[] values = [val1, val2, val3, val4];
+        using MemoryStream stream = new(80);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteSignedFromUnsigned(values[i], bitCount);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        int[] actuals = new int[4];
+        for (int i = 0; i < values.Length; i++)
+        {
+            int actual = reader.ReadSignedFromUnsigned(bitCount);
+            actuals[i] = actual;
+            // Assert.NotEqual(0, actual);
+        }
+
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData(4, 6, 4, 9, 14)]
+    [InlineData(8, 42, 8, 189, 63)]
+    [InlineData(8, 52, 18, 255, 241)]
+    [InlineData(16, 4050, 16003, 503, 8414)]
+    public void ReadWriteLittleEndianBytes128Array(uint val0, uint val1, uint val2, uint val3, uint val4)
+    {
+        uint[] values = [val0, val1, val2, val3, val4];
+        using MemoryStream stream = new(80);
+        Av1BitStreamWriter writer = new(stream);
+        for (int i = 0; i < values.Length; i++)
+        {
+            writer.WriteLittleEndianBytes128(values[i]);
+        }
+
+        writer.Flush();
+
+        // Read the written value back.
+        Av1BitStreamReader reader = new(stream.GetBuffer());
+        uint[] actuals = new uint[5];
+        for (int i = 0; i < values.Length; i++)
+        {
+            ulong actual = reader.ReadLittleEndianBytes128(out int length);
+            actuals[i] = (uint)actual;
+            Assert.NotEqual(0UL, actual);
+        }
+
+        Assert.Equal(values, actuals);
+    }
 }

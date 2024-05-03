@@ -237,7 +237,7 @@ public class Av1BitsStreamTests
     }
 
     [Theory]
-    [InlineData(4, 6, 4, 9, 14)]
+    [InlineData(4, 6, 7, 9, 14)]
     [InlineData(8, 42, 8, 189, 63)]
     [InlineData(8, 52, 18, 255, 241)]
     [InlineData(16, 4050, 16003, 503, 8414)]

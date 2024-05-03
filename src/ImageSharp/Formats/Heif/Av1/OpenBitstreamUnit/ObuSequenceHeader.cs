@@ -5,71 +5,71 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuSequenceHeader
 {
-    internal bool EnableFilterIntra { get; set; }
+    public bool EnableFilterIntra { get; set; }
 
-    internal bool EnableCdef { get; set; }
+    public bool EnableCdef { get; set; }
 
-    internal bool IsStillPicture { get; set; }
+    public bool IsStillPicture { get; set; }
 
-    internal bool IsReducedStillPictureHeader { get; set; }
+    public bool IsReducedStillPictureHeader { get; set; }
 
-    internal ObuSequenceProfile SequenceProfile { get; set; }
+    public ObuSequenceProfile SequenceProfile { get; set; }
 
-    internal ObuOperatingPoint[] OperatingPoint { get; set; } = new ObuOperatingPoint[1];
+    public ObuOperatingPoint[] OperatingPoint { get; set; } = new ObuOperatingPoint[1];
 
-    internal bool InitialDisplayDelayPresentFlag { get; set; }
+    public bool InitialDisplayDelayPresentFlag { get; set; }
 
-    internal bool DecoderModelInfoPresentFlag { get; set; }
+    public bool DecoderModelInfoPresentFlag { get; set; }
 
-    internal object? TimingInfo { get; set; }
+    public object? TimingInfo { get; set; }
 
-    internal bool IsFrameIdNumbersPresent { get; set; }
+    public bool IsFrameIdNumbersPresent { get; set; }
 
-    internal int FrameWidthBits { get; set; }
+    public int FrameWidthBits { get; set; }
 
-    internal int FrameHeightBits { get; set; }
+    public int FrameHeightBits { get; set; }
 
-    internal int MaxFrameWidth { get; set; }
+    public int MaxFrameWidth { get; set; }
 
-    internal int MaxFrameHeight { get; set; }
+    public int MaxFrameHeight { get; set; }
 
-    internal bool Use128x128SuperBlock { get; set; }
+    public bool Use128x128SuperBlock { get; set; }
 
-    internal Av1BlockSize SuperBlockSize { get; set; }
+    public Av1BlockSize SuperBlockSize { get; set; }
 
-    internal int ModeInfoSize { get; set; }
+    public int ModeInfoSize { get; set; }
 
-    internal int SuperBlockSizeLog2 { get; set; }
+    public int SuperBlockSizeLog2 { get; set; }
 
-    internal int FilterIntraLevel { get; set; }
+    public int FilterIntraLevel { get; set; }
 
-    internal bool EnableIntraEdgeFilter { get; set; }
+    public bool EnableIntraEdgeFilter { get; set; }
 
-    internal ObuOrderHintInfo OrderHintInfo { get; set; } = new ObuOrderHintInfo();
+    public ObuOrderHintInfo OrderHintInfo { get; set; } = new ObuOrderHintInfo();
 
-    internal bool EnableInterIntraCompound { get; set; }
+    public bool EnableInterIntraCompound { get; set; }
 
-    internal bool EnableMaskedCompound { get; set; }
+    public bool EnableMaskedCompound { get; set; }
 
-    internal bool EnableWarpedMotion { get; set; }
+    public bool EnableWarpedMotion { get; set; }
 
-    internal bool EnableDualFilter { get; set; }
+    public bool EnableDualFilter { get; set; }
 
-    internal int SequenceForceIntegerMotionVector { get; set; }
+    public int SequenceForceIntegerMotionVector { get; set; }
 
-    internal int SequenceForceScreenContentTools { get; set; }
+    public int SequenceForceScreenContentTools { get; set; }
 
-    internal bool EnableSuperResolution { get; set; }
+    public bool EnableSuperResolution { get; set; }
 
-    internal int CdefLevel { get; set; }
+    public int CdefLevel { get; set; }
 
-    internal bool EnableRestoration { get; set; }
+    public bool EnableRestoration { get; set; }
 
-    internal ObuColorConfig ColorConfig { get; set; } = new ObuColorConfig();
+    public ObuColorConfig ColorConfig { get; set; } = new ObuColorConfig();
 
-    internal bool AreFilmGrainingParametersPresent { get; set; }
+    public bool AreFilmGrainingParametersPresent { get; set; }
 
-    internal int FrameIdLength { get; set; }
+    public int FrameIdLength { get; set; }
 
-    internal int DeltaFrameIdLength { get; set; }
+    public int DeltaFrameIdLength { get; set; }
 }

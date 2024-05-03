@@ -372,6 +372,10 @@ internal class ObuReader
         {
             colorConfig.BitDepth = hasHighBitDepth ? 10 : 8;
         }
+        else
+        {
+            colorConfig.BitDepth = 8;
+        }
     }
 
     private static void ReadSuperResolutionParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
@@ -1282,7 +1286,7 @@ internal class ObuReader
     private static bool IsValidSequenceLevel(int sequenceLevelIndex)
         => sequenceLevelIndex is < 24 or 31;
 
-    private static int TileLog2(int blockSize, int target)
+    public static int TileLog2(int blockSize, int target)
     {
         int k;
         for (k = 0; (blockSize << k) < target; k++)

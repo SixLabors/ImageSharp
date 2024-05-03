@@ -14,15 +14,20 @@ internal class ObuWriter
     {
         MemoryStream bufferStream = new(100);
         Av1BitStreamWriter writer = new(bufferStream);
+        WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, [], 0);
+
         WriteSequenceHeader(ref writer, decoder.SequenceHeader);
+        writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
 
         bufferStream.Position = 0;
         WriteFrameHeader(ref writer, decoder, true);
+        writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
 
         bufferStream.Position = 0;
         WriteTileGroup(ref writer, decoder.TileInfo);
+        writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), (int)bufferStream.Position);
     }
 
@@ -42,7 +47,7 @@ internal class ObuWriter
     {
         Av1BitStreamWriter writer = new(stream);
         WriteObuHeader(ref writer, type);
-        _ = writer.WriteLittleEndianBytes128(length);
+        writer.WriteLittleEndianBytes128((uint)length);
         stream.Write(payload, 0, length);
     }
 
@@ -96,7 +101,6 @@ internal class ObuWriter
         writer.WriteBoolean(sequenceHeader.EnableRestoration);
         WriteColorConfig(ref writer, sequenceHeader);
         writer.WriteBoolean(sequenceHeader.AreFilmGrainingParametersPresent);
-        WriteTrailingBits(ref writer);
     }
 
     private static void WriteColorConfig(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader)
@@ -214,9 +218,33 @@ internal class ObuWriter
         WriteSuperResolutionParameters(ref writer, sequenceHeader, frameInfo);
     }
 
-    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuTileInfo tileInfo)
+    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo)
     {
-        Guard.IsTrue(tileInfo.HasUniformTileSpacing, nameof(tileInfo.HasUniformTileSpacing), "NON uniform_tile_spacing_flag not supported yet.");
+        int superBlockColumnCount;
+        int superBlockRowCount;
+        int superBlockShift;
+        if (sequenceHeader.Use128x128SuperBlock)
+        {
+            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 31) >> 5;
+            superBlockRowCount = (frameInfo.ModeInfoRowCount + 31) >> 5;
+            superBlockShift = 5;
+        }
+        else
+        {
+            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 15) >> 4;
+            superBlockRowCount = (frameInfo.ModeInfoRowCount + 15) >> 4;
+            superBlockShift = 4;
+        }
+
+        int superBlockSize = superBlockShift + 2;
+        int maxTileAreaOfSuperBlock = ObuConstants.MaxTileArea >> (2 * superBlockSize);
+
+        tileInfo.MaxTileWidthSuperBlock = ObuConstants.MaxTileWidth >> superBlockSize;
+        tileInfo.MaxTileHeightSuperBlock = (ObuConstants.MaxTileArea / ObuConstants.MaxTileWidth) >> superBlockSize;
+        tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperBlock, superBlockColumnCount);
+        tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superBlockColumnCount, ObuConstants.MaxTileColumnCount));
+        tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superBlockRowCount, ObuConstants.MaxTileRowCount));
+        tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superBlockColumnCount * superBlockRowCount));
 
         writer.WriteBoolean(tileInfo.HasUniformTileSpacing);
         if (tileInfo.HasUniformTileSpacing)
@@ -243,7 +271,34 @@ internal class ObuWriter
         }
         else
         {
-            throw new NotImplementedException("NON uniform_tile_spacing_flag not supported yet.");
+            int startSuperBlock = 0;
+            int i = 0;
+            for (; startSuperBlock < superBlockColumnCount; i++)
+            {
+                uint widthInSuperBlocks = (uint)((tileInfo.TileColumnStartModeInfo[i] >> superBlockShift) - startSuperBlock);
+                uint maxWidth = (uint)Math.Min(superBlockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperBlock);
+                writer.WriteNonSymmetric(widthInSuperBlocks - 1, maxWidth);
+                startSuperBlock += (int)widthInSuperBlocks;
+            }
+
+            if (startSuperBlock != superBlockColumnCount)
+            {
+                throw new ImageFormatException("Super block tiles width does not add up to total width.");
+            }
+
+            startSuperBlock = 0;
+            for (i = 0; startSuperBlock < superBlockRowCount; i++)
+            {
+                uint heightInSuperBlocks = (uint)((tileInfo.TileRowStartModeInfo[i] >> superBlockShift) - startSuperBlock);
+                uint maxHeight = (uint)Math.Min(superBlockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperBlock);
+                writer.WriteNonSymmetric(heightInSuperBlocks - 1, maxHeight);
+                startSuperBlock += (int)heightInSuperBlocks;
+            }
+
+            if (startSuperBlock != superBlockRowCount)
+            {
+                throw new ImageFormatException("Super block tiles height does not add up to total height.");
+            }
         }
 
         if (tileInfo.TileColumnCountLog2 > 0 || tileInfo.TileRowCountLog2 > 0)
@@ -346,7 +401,7 @@ internal class ObuWriter
         }
 
         // GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
-        WriteTileInfo(ref writer, frameInfo.TilesInfo);
+        WriteTileInfo(ref writer, sequenceHeader, frameInfo, frameInfo.TilesInfo);
         WriteQuantizationParameters(ref writer, frameInfo.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
         WriteSegmentationParameters(ref writer, sequenceHeader, frameInfo, planesCount);
         WriteFrameDeltaQParameters(ref writer, frameInfo);

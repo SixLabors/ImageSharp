@@ -5,31 +5,31 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuColorConfig
 {
-    internal bool IsColorDescriptionPresent { get; set; }
+    public bool IsColorDescriptionPresent { get; set; }
 
-    internal int ChannelCount { get; set; }
+    public int ChannelCount { get; set; }
 
-    internal bool Monochrome { get; set; }
+    public bool Monochrome { get; set; }
 
-    internal ObuColorPrimaries ColorPrimaries { get; set; }
+    public ObuColorPrimaries ColorPrimaries { get; set; }
 
-    internal ObuTransferCharacteristics TransferCharacteristics { get; set; }
+    public ObuTransferCharacteristics TransferCharacteristics { get; set; }
 
-    internal ObuMatrixCoefficients MatrixCoefficients { get; set; }
+    public ObuMatrixCoefficients MatrixCoefficients { get; set; }
 
-    internal bool ColorRange { get; set; }
+    public bool ColorRange { get; set; }
 
-    internal bool SubSamplingX { get; set; }
+    public bool SubSamplingX { get; set; }
 
-    internal bool SubSamplingY { get; set; }
+    public bool SubSamplingY { get; set; }
 
-    internal bool HasSeparateUvDelta { get; set; }
+    public bool HasSeparateUvDelta { get; set; }
 
-    internal ObuChromoSamplePosition ChromaSamplePosition { get; set; }
+    public ObuChromoSamplePosition ChromaSamplePosition { get; set; }
 
-    internal int BitDepth { get; set; }
+    public int BitDepth { get; set; }
 
-    internal bool HasSeparateUvDeltaQ { get; set; }
+    public bool HasSeparateUvDeltaQ { get; set; }
 
     public Av1ColorFormat GetColorFormat()
     {

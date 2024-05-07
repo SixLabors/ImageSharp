@@ -112,7 +112,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
         }
 
         h *= 60;
-        if (h < 0.0)
+        if (h < 0f)
         {
             h += 360;
         }

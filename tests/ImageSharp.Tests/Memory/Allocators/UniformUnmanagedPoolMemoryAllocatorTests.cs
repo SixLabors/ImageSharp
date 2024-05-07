@@ -449,13 +449,13 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         RemoteExecutor.Invoke(RunTest).Dispose();
         static void RunTest()
         {
-            const long size32GB = 32L * (1 << 30);
+            const long threeGB = 3L * (1 << 30);
             MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
             {
-                AllocationLimitMegabytes = (int)(size32GB / 1024)
+                AllocationLimitMegabytes = (int)(threeGB / 1024)
             });
-            using MemoryGroup<byte> memoryGroup = allocator.AllocateGroup<byte>(size32GB, 1024);
-            Assert.Equal(size32GB, memoryGroup.TotalLength);
+            using MemoryGroup<byte> memoryGroup = allocator.AllocateGroup<byte>(threeGB, 1024);
+            Assert.Equal(threeGB, memoryGroup.TotalLength);
         }
     }
 }

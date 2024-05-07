@@ -443,15 +443,19 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
     }
 
-    [Fact]
+    [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
     public void MemoryAllocator_Create_SetHighLimit()
     {
-        const long size32GB = 32L * (1 << 30);
-        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+        RemoteExecutor.Invoke(RunTest).Dispose();
+        static void RunTest()
         {
-            AllocationLimitMegabytes = (int)(size32GB / 1024)
-        });
-        using MemoryGroup<byte> memoryGroup = allocator.AllocateGroup<byte>(size32GB, 1024);
-        Assert.Equal(size32GB, memoryGroup.TotalLength);
+            const long size32GB = 32L * (1 << 30);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            {
+                AllocationLimitMegabytes = (int)(size32GB / 1024)
+            });
+            using MemoryGroup<byte> memoryGroup = allocator.AllocateGroup<byte>(size32GB, 1024);
+            Assert.Equal(size32GB, memoryGroup.TotalLength);
+        }
     }
 }

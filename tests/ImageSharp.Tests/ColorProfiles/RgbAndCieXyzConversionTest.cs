@@ -4,7 +4,7 @@
 using SixLabors.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles;
 
-namespace SixLabors.ImageSharp.Tests.ColorProfiles.Conversion;
+namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
 /// <summary>
 /// Tests <see cref="CieXyz"/>-<see cref="Rgb"/> conversions.

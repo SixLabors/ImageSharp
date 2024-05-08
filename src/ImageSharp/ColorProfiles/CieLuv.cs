@@ -94,7 +94,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
             ? ((116 * Math.Pow(yr, e)) - 16d)
             : (CieConstants.Kappa * yr);
 
-        if (double.IsNaN(l))
+        if (double.IsNaN(l) || l == -0d)
         {
             l = 0;
         }
@@ -107,7 +107,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
             u = 0;
         }
 
-        if (double.IsNaN(v) || u == -0d)
+        if (double.IsNaN(v) || v == -0d)
         {
             v = 0;
         }
@@ -151,17 +151,17 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
         double x = (d - b) / (a - c);
         double z = (x * a) + b;
 
-        if (double.IsNaN(x))
+        if (double.IsNaN(x) || x == -0d)
         {
             x = 0;
         }
 
-        if (double.IsNaN(y))
+        if (double.IsNaN(y) || y == -0d)
         {
             y = 0;
         }
 
-        if (double.IsNaN(z))
+        if (double.IsNaN(z) || z == -0d)
         {
             z = 0;
         }

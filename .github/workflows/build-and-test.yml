@@ -22,7 +22,7 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners
             framework: net6.0
             sdk: 6.0.x
             sdk-preview: true
@@ -38,7 +38,7 @@ jobs:
             framework: net5.0
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners
             framework: net5.0
             runtime: -x64
             codecov: false
@@ -50,7 +50,7 @@ jobs:
             framework: netcoreapp3.1
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners
             framework: netcoreapp3.1
             runtime: -x64
             codecov: false

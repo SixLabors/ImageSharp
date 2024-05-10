@@ -6,19 +6,23 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Matrices used for transformation from <see cref="CieXyz"/> to <see cref="Lms"/>, defining the cone response domain.
+/// Provides matrices for chromatic adaptation, facilitating the adjustment of color values
+/// under different light sources to maintain color constancy. This class supports common
+/// adaptation transforms based on the von Kries coefficient law, which assumes independent
+/// scaling of the cone responses in the human eye. These matrices can be applied to convert
+/// color coordinates between different illuminants, ensuring consistent color appearance
+/// across various lighting conditions.
 /// </summary>
 /// <remarks>
-/// Matrix data obtained from:
-/// Two New Von Kries Based Chromatic Adaptation Transforms Found by Numerical Optimization
-/// S. Bianco, R. Schettini
-/// DISCo, Department of Informatics, Systems and Communication, University of Milan-Bicocca, viale Sarca 336, 20126 Milan, Italy
-/// https://web.stanford.edu/~sujason/ColorBalancing/Papers/Two%20New%20von%20Kries%20Based%20Chromatic%20Adaptation.pdf
+/// Supported adaptation matrices include the Bradford, von Kries, and Sharp transforms.
+/// These matrices are typically used in conjunction with color space conversions, such as from XYZ
+/// to RGB, to achieve accurate color rendition in digital imaging applications.
 /// </remarks>
-public static class LmsAdaptationMatrix
+
+public static class KnownChromaticAdaptationMatrices
 {
     /// <summary>
-    /// Von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez adjusted for D65)
+    /// von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez adjusted for D65)
     /// </summary>
     public static readonly Matrix4x4 VonKriesHPEAdjusted
         = Matrix4x4.Transpose(new Matrix4x4
@@ -36,7 +40,7 @@ public static class LmsAdaptationMatrix
         });
 
     /// <summary>
-    /// Von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez for equal energy)
+    /// von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez for equal energy)
     /// </summary>
     public static readonly Matrix4x4 VonKriesHPE
         = Matrix4x4.Transpose(new Matrix4x4

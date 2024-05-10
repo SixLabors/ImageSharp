@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
@@ -10,7 +10,7 @@ namespace SixLabors.ColorProfiles;
 /// <summary>
 /// Chromaticity coordinates based on: <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
 /// </summary>
-public static class RgbWorkingSpaces
+public static class KnownRgbWorkingSpaces
 {
     /// <summary>
     /// sRgb working space.

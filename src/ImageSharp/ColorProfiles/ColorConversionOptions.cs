@@ -18,7 +18,7 @@ public class ColorConversionOptions
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
     /// </summary>
-    public ColorConversionOptions() => this.AdaptationMatrix = LmsAdaptationMatrix.Bradford;
+    public ColorConversionOptions() => this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
 
     /// <summary>
     /// Gets the memory allocator.
@@ -38,15 +38,16 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source working space used for companding in conversions from/to XYZ color space.
     /// </summary>
-    public RgbWorkingSpace RgbWorkingSpace { get; init; } = RgbWorkingSpaces.SRgb;
+    public RgbWorkingSpace RgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
     /// Gets the destination working space used for companding in conversions from/to XYZ color space.
     /// </summary>
-    public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = RgbWorkingSpaces.SRgb;
+    public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.
+    /// <see cref="KnownChromaticAdaptationMatrices"/> for further information. Default is Bradford.
     /// </summary>
     public Matrix4x4 AdaptationMatrix
     {

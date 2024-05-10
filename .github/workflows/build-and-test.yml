@@ -24,7 +24,7 @@ jobs:
             sdk: 8.0.x
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
             framework: net8.0
             sdk: 8.0.x
             runtime: -x64

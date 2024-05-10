@@ -49,7 +49,7 @@ public abstract class MemoryAllocator
         UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(options.MaximumPoolSizeMegabytes);
         if (options.AllocationLimitMegabytes.HasValue)
         {
-            allocator.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024 * 1024;
+            allocator.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
             allocator.SingleBufferAllocationLimitBytes = (int)Math.Min(allocator.SingleBufferAllocationLimitBytes, allocator.MemoryGroupAllocationLimitBytes);
         }
 

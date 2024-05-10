@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// </summary>
 /// <remarks>
 /// Matrix data obtained from:
-/// Two New von Kries Based Chromatic Adaptation Transforms Found by Numerical Optimization
+/// Two New Von Kries Based Chromatic Adaptation Transforms Found by Numerical Optimization
 /// S. Bianco, R. Schettini
 /// DISCo, Department of Informatics, Systems and Communication, University of Milan-Bicocca, viale Sarca 336, 20126 Milan, Italy
 /// https://web.stanford.edu/~sujason/ColorBalancing/Papers/Two%20New%20von%20Kries%20Based%20Chromatic%20Adaptation.pdf

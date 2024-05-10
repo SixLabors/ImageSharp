@@ -15,7 +15,7 @@ public class CmykAndYCbCrConversionTests
     [Theory]
     [InlineData(0, 0, 0, 0, 255, 128, 128)]
     [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 136.5134, 69.90555, 114.9948)]
-    public void Convert_Cmyk_to_YCbCr(float c, float m, float y, float k, float y2, float cb, float cr)
+    public void Convert_Cmyk_To_YCbCr(float c, float m, float y, float k, float y2, float cb, float cr)
     {
         // Arrange
         Cmyk input = new(c, m, y, k);
@@ -43,7 +43,7 @@ public class CmykAndYCbCrConversionTests
     [Theory]
     [InlineData(255, 128, 128, 0, 0, 0, 5.960464E-08)]
     [InlineData(136.5134, 69.90555, 114.9948, 0.2891567, 0, 0.7951807, 0.3490196)]
-    public void Convert_YCbCr_to_Cmyk(float y2, float cb, float cr, float c, float m, float y, float k)
+    public void Convert_YCbCr_To_Cmyk(float y2, float cb, float cr, float c, float m, float y, float k)
     {
         // Arrange
         YCbCr input = new(y2, cb, cr);

@@ -47,11 +47,6 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     public readonly float V { get; }
 
     /// <summary>
-    /// Gets the reference white point of this color
-    /// </summary>
-    public readonly CieXyz WhitePoint { get; }
-
-    /// <summary>
     /// Compares two <see cref="CieLuv"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="CieLuv"/> on the left side of the operand.</param>
@@ -185,7 +180,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
         => ChromaticAdaptionWhitePointSource.WhitePoint;
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.L, this.U, this.V, this.WhitePoint);
+    public override int GetHashCode() => HashCode.Combine(this.L, this.U, this.V);
 
     /// <inheritdoc/>
     public override string ToString() => FormattableString.Invariant($"CieLuv({this.L:#0.##}, {this.U:#0.##}, {this.V:#0.##})");
@@ -198,8 +193,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     public bool Equals(CieLuv other)
         => this.L.Equals(other.L)
         && this.U.Equals(other.U)
-        && this.V.Equals(other.V)
-        && this.WhitePoint.Equals(other.WhitePoint);
+        && this.V.Equals(other.V);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double ComputeU(in CieXyz source)

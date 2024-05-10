@@ -111,10 +111,10 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
             h = 4 + ((r - g) / chroma);
         }
 
-        h *= 60;
-        if (h < 0f)
+        h *= 60F;
+        if (h < -Constants.Epsilon)
         {
-            h += 360;
+            h += 360F;
         }
 
         s = chroma / v;

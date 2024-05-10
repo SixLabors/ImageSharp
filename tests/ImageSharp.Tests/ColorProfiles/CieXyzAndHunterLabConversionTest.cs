@@ -6,30 +6,34 @@ using SixLabors.ImageSharp.ColorProfiles;
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
 /// <summary>
-/// Tests <see cref="CieXyy"/>-<see cref="HunterLab"/> conversions.
+/// Tests <see cref="CieXyz"/>-<see cref="HunterLab"/> conversions.
 /// </summary>
-public class CieXyyAndHunterLabConversionTests
+/// <remarks>
+/// Test data generated using:
+/// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
+/// </remarks>
+public class CieXyzAndHunterLabConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002f);
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
-    [InlineData(0.360555, 0.936901, 0.1001514, 31.6467056, -33.00599, 25.67032)]
-    public void Convert_CieXyy_To_HunterLab(float x, float y, float yl, float l, float a, float b)
+    [InlineData(0.360555, 0.936901, 0.1001514, 96.79365, -100.951096, 49.35507)]
+    public void Convert_Xyz_To_HunterLab(float x, float y, float z, float l, float a, float b)
     {
         // Arrange
-        CieXyy input = new(x, y, yl);
+        CieXyz input = new(x, y, z);
         HunterLab expected = new(l, a, b);
         ColorProfileConverter converter = new();
 
-        Span<CieXyy> inputSpan = new CieXyy[5];
+        Span<CieXyz> inputSpan = new CieXyz[5];
         inputSpan.Fill(input);
 
         Span<HunterLab> actualSpan = new HunterLab[5];
 
         // Act
-        HunterLab actual = converter.Convert<CieXyy, HunterLab>(input);
-        converter.Convert<CieXyy, HunterLab>(inputSpan, actualSpan);
+        HunterLab actual = converter.Convert<CieXyz, HunterLab>(input);
+        converter.Convert<CieXyz, HunterLab>(inputSpan, actualSpan);
 
         // Assert
         Assert.Equal(expected, actual, Comparer);
@@ -42,22 +46,22 @@ public class CieXyyAndHunterLabConversionTests
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
-    [InlineData(31.6467056, -33.00599, 25.67032, 0.360555, 0.936901, 0.1001514)]
-    public void Convert_HunterLab_To_CieXyy(float l, float a, float b, float x, float y, float yl)
+    [InlineData(31.6467056, -33.00599, 25.67032, 0.0385420471, 0.10015139, -0.0317969956)]
+    public void Convert_HunterLab_To_Xyz(float l, float a, float b, float x, float y, float z)
     {
         // Arrange
         HunterLab input = new(l, a, b);
-        CieXyy expected = new(x, y, yl);
+        CieXyz expected = new(x, y, z);
         ColorProfileConverter converter = new();
 
         Span<HunterLab> inputSpan = new HunterLab[5];
         inputSpan.Fill(input);
 
-        Span<CieXyy> actualSpan = new CieXyy[5];
+        Span<CieXyz> actualSpan = new CieXyz[5];
 
         // Act
-        CieXyy actual = converter.Convert<HunterLab, CieXyy>(input);
-        converter.Convert<HunterLab, CieXyy>(inputSpan, actualSpan);
+        CieXyz actual = converter.Convert<HunterLab, CieXyz>(input);
+        converter.Convert<HunterLab, CieXyz>(inputSpan, actualSpan);
 
         // Assert
         Assert.Equal(expected, actual, Comparer);

@@ -6,30 +6,30 @@ using SixLabors.ImageSharp.ColorProfiles;
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
 /// <summary>
-/// Tests <see cref="CieXyy"/>-<see cref="Hsv"/> conversions.
+/// Tests <see cref="CieXyz"/>-<see cref="Hsv"/> conversions.
 /// </summary>
-public class CieXyyAndHsvConversionTests
+public class CieXyzAndHsvConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
-    [InlineData(0.360555, 0.936901, 0.1001514, 120, 1, 0.42770)]
-    public void Convert_CieXyy_To_Hsv(float x, float y, float yl, float h, float s, float v)
+    [InlineData(0.360555, 0.936901, 0.1001514, 120, 1, 0.9999999)]
+    public void Convert_CieXyz_to_Hsv(float x, float y, float yl, float h, float s, float v)
     {
         // Arrange
-        CieXyy input = new(x, y, yl);
+        CieXyz input = new(x, y, yl);
         Hsv expected = new(h, s, v);
         ColorProfileConverter converter = new();
 
-        Span<CieXyy> inputSpan = new CieXyy[5];
+        Span<CieXyz> inputSpan = new CieXyz[5];
         inputSpan.Fill(input);
 
         Span<Hsv> actualSpan = new Hsv[5];
 
         // Act
-        Hsv actual = converter.Convert<CieXyy, Hsv>(input);
-        converter.Convert<CieXyy, Hsv>(inputSpan, actualSpan);
+        Hsv actual = converter.Convert<CieXyz, Hsv>(input);
+        converter.Convert<CieXyz, Hsv>(inputSpan, actualSpan);
 
         // Assert
         Assert.Equal(expected, actual, Comparer);
@@ -42,22 +42,22 @@ public class CieXyyAndHsvConversionTests
 
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
-    [InlineData(120, 1, 0.42770, 0.32114, 0.59787, 0.10976)]
-    public void Convert_Hsv_To_CieXyy(float h, float s, float v, float x, float y, float yl)
+    [InlineData(120, 1, 0.9999999, 0.3850648, 0.7168785, 0.09710446)]
+    public void Convert_Hsv_to_CieXyz(float h, float s, float v, float x, float y, float yl)
     {
         // Arrange
         Hsv input = new(h, s, v);
-        CieXyy expected = new(x, y, yl);
+        CieXyz expected = new(x, y, yl);
         ColorProfileConverter converter = new();
 
         Span<Hsv> inputSpan = new Hsv[5];
         inputSpan.Fill(input);
 
-        Span<CieXyy> actualSpan = new CieXyy[5];
+        Span<CieXyz> actualSpan = new CieXyz[5];
 
         // Act
-        CieXyy actual = converter.Convert<Hsv, CieXyy>(input);
-        converter.Convert<Hsv, CieXyy>(inputSpan, actualSpan);
+        CieXyz actual = converter.Convert<Hsv, CieXyz>(input);
+        converter.Convert<Hsv, CieXyz>(inputSpan, actualSpan);
 
         // Assert
         Assert.Equal(expected, actual, Comparer);

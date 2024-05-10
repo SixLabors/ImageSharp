@@ -114,7 +114,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
         }
 
         h *= 60F;
-        if (h < 0F)
+        if (h < -Constants.Epsilon)
         {
             h += 360F;
         }

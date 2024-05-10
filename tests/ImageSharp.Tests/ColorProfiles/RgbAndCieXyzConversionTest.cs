@@ -24,7 +24,7 @@ public class RgbAndCieXyzConversionTest
     [InlineData(0.00000, 0.00000, 0.82521, 0, 0.181415, 1)]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(0.297676, 0.267854, 0.045504, 0.720315, 0.509999, 0.168112)]
-    public void Convert_XYZ_D50_to_SRGB(float x, float y, float z, float r, float g, float b)
+    public void Convert_XYZ_D50_To_SRGB(float x, float y, float z, float r, float g, float b)
     {
         // Arrange
         CieXyz input = new(x, y, z);
@@ -57,7 +57,7 @@ public class RgbAndCieXyzConversionTest
     [InlineData(0, 0, 1.088830, 0, 0.235458, 1)]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(0.297676, 0.267854, 0.045504, 0.754903, 0.501961, 0.099998)]
-    public void Convert_XYZ_D65_to_SRGB(float x, float y, float z, float r, float g, float b)
+    public void Convert_XYZ_D65_To_SRGB(float x, float y, float z, float r, float g, float b)
     {
         // Arrange
         CieXyz input = new(x, y, z);
@@ -90,7 +90,7 @@ public class RgbAndCieXyzConversionTest
     [InlineData(0, 1, 0, 0.385065, 0.716879, 0.0971045)]
     [InlineData(0, 0, 1, 0.143080, 0.060617, 0.714173)]
     [InlineData(0.754902, 0.501961, 0.100000, 0.315757, 0.273323, 0.035506)]
-    public void Convert_SRGB_to_XYZ_D50(float r, float g, float b, float x, float y, float z)
+    public void Convert_SRGB_To_XYZ_D50(float r, float g, float b, float x, float y, float z)
     {
         // Arrange
         Rgb input = new(r, g, b);
@@ -123,7 +123,7 @@ public class RgbAndCieXyzConversionTest
     [InlineData(0, 1, 0, 0.357576, 0.715152, 0.119192)]
     [InlineData(0, 0, 1, 0.1804375, 0.072175, 0.950304)]
     [InlineData(0.754902, 0.501961, 0.100000, 0.297676, 0.267854, 0.045504)]
-    public void Convert_SRGB_to_XYZ_D65(float r, float g, float b, float x, float y, float z)
+    public void Convert_SRGB_To_XYZ_D65(float r, float g, float b, float x, float y, float z)
     {
         // Arrange
         Rgb input = new(r, g, b);

@@ -25,7 +25,7 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
             framework: net7.0
             sdk: 7.0.x
             sdk-preview: true
@@ -48,7 +48,7 @@ jobs:
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: macos-latest
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64

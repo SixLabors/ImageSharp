@@ -181,7 +181,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float ComputeKa(in CieXyz whitePoint)
     {
-        if (whitePoint.Equals(Illuminants.C))
+        if (whitePoint.Equals(KnownIlluminants.C))
         {
             return 175F;
         }
@@ -192,7 +192,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float ComputeKb(in CieXyz whitePoint)
     {
-        if (whitePoint == Illuminants.C)
+        if (whitePoint == KnownIlluminants.C)
         {
             return 70F;
         }

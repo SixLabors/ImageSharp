@@ -28,12 +28,12 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source white point used for chromatic adaptation in conversions from/to XYZ color space.
     /// </summary>
-    public CieXyz WhitePoint { get; init; } = Illuminants.D50;
+    public CieXyz WhitePoint { get; init; } = KnownIlluminants.D50;
 
     /// <summary>
     /// Gets the destination white point used for chromatic adaptation in conversions from/to XYZ color space.
     /// </summary>
-    public CieXyz TargetWhitePoint { get; init; } = Illuminants.D50;
+    public CieXyz TargetWhitePoint { get; init; } = KnownIlluminants.D50;
 
     /// <summary>
     /// Gets the source working space used for companding in conversions from/to XYZ color space.

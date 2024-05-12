@@ -16,7 +16,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// D50 standard illuminant.
     /// Used when reference white is not specified explicitly.
     /// </summary>
-    public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
+    public static readonly CieXyz DefaultWhitePoint = KnownIlluminants.D50;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CieLab"/> struct.

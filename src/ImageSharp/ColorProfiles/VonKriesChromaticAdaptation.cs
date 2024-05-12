@@ -19,34 +19,24 @@ public static class VonKriesChromaticAdaptation
     /// <summary>
     /// Performs a linear transformation of a source color in to the destination color.
     /// </summary>
-    /// <typeparam name="TFrom">The type of color profile to convert from.</typeparam>
-    /// <typeparam name="TTo">The type of color profile to convert to.</typeparam>
     /// <remarks>Doesn't crop the resulting color space coordinates (e.g. allows negative values for XYZ coordinates).</remarks>
-    /// <param name="options">The color profile conversion options.</param>
     /// <param name="source">The source color.</param>
+    /// <param name="whitePoints">The conversion white points.</param>
+    /// <param name="matrix">The chromatic adaptation matrix.</param>
     /// <returns>The <see cref="CieXyz"/></returns>
-    public static CieXyz Transform<TFrom, TTo>(ColorConversionOptions options, in CieXyz source)
-        where TFrom : struct, IColorProfile
-        where TTo : struct, IColorProfile
+    public static CieXyz Transform(in CieXyz source, (CieXyz From, CieXyz To) whitePoints, Matrix4x4 matrix)
     {
-        CieXyz sourceWhitePoint = TFrom.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
-            ? options.WhitePoint
-            : options.RgbWorkingSpace.WhitePoint;
+        CieXyz from = whitePoints.From;
+        CieXyz to = whitePoints.To;
 
-        CieXyz targetWhitePoint = TTo.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
-            ? options.TargetWhitePoint
-            : options.TargetRgbWorkingSpace.WhitePoint;
-
-        if (sourceWhitePoint.Equals(targetWhitePoint))
+        if (from.Equals(to))
         {
             return new(source.X, source.Y, source.Z);
         }
 
-        Matrix4x4 matrix = options.AdaptationMatrix;
-
         Vector3 sourceColorLms = Vector3.Transform(source.ToVector3(), matrix);
-        Vector3 sourceWhitePointLms = Vector3.Transform(sourceWhitePoint.ToVector3(), matrix);
-        Vector3 targetWhitePointLms = Vector3.Transform(targetWhitePoint.ToVector3(), matrix);
+        Vector3 sourceWhitePointLms = Vector3.Transform(from.ToVector3(), matrix);
+        Vector3 targetWhitePointLms = Vector3.Transform(to.ToVector3(), matrix);
 
         Vector3 vector = targetWhitePointLms / sourceWhitePointLms;
         Vector3 targetColorLms = Vector3.Multiply(vector, sourceColorLms);
@@ -58,41 +48,36 @@ public static class VonKriesChromaticAdaptation
     /// <summary>
     /// Performs a bulk linear transformation of a source color in to the destination color.
     /// </summary>
-    /// <typeparam name="TFrom">The type of color profile to convert from.</typeparam>
-    /// <typeparam name="TTo">The type of color profile to convert to.</typeparam>
     /// <remarks>Doesn't crop the resulting color space coordinates (e. g. allows negative values for XYZ coordinates).</remarks>
-    /// <param name="options">The color profile conversion options.</param>
     /// <param name="source">The span to the source colors.</param>
     /// <param name="destination">The span to the destination colors.</param>
-    public static void Transform<TFrom, TTo>(ColorConversionOptions options, ReadOnlySpan<CieXyz> source, Span<CieXyz> destination)
-        where TFrom : struct, IColorProfile
-        where TTo : struct, IColorProfile
+    /// <param name="whitePoints">The conversion white points.</param>
+    /// <param name="matrix">The chromatic adaptation matrix.</param>
+    public static void Transform(
+        ReadOnlySpan<CieXyz> source,
+        Span<CieXyz> destination,
+        (CieXyz From, CieXyz To) whitePoints,
+        Matrix4x4 matrix)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
         int count = source.Length;
 
-        CieXyz sourceWhitePoint = TFrom.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
-            ? options.WhitePoint
-            : options.RgbWorkingSpace.WhitePoint;
+        CieXyz from = whitePoints.From;
+        CieXyz to = whitePoints.To;
 
-        CieXyz targetWhitePoint = TTo.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
-            ? options.TargetWhitePoint
-            : options.TargetRgbWorkingSpace.WhitePoint;
-
-        if (sourceWhitePoint.Equals(targetWhitePoint))
+        if (from.Equals(to))
         {
             source.CopyTo(destination[..count]);
             return;
         }
 
-        Matrix4x4 matrix = options.AdaptationMatrix;
         Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix);
 
         ref CieXyz sourceBase = ref MemoryMarshal.GetReference(source);
         ref CieXyz destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        Vector3 sourceWhitePointLms = Vector3.Transform(sourceWhitePoint.ToVector3(), matrix);
-        Vector3 targetWhitePointLms = Vector3.Transform(targetWhitePoint.ToVector3(), matrix);
+        Vector3 sourceWhitePointLms = Vector3.Transform(from.ToVector3(), matrix);
+        Vector3 targetWhitePointLms = Vector3.Transform(to.ToVector3(), matrix);
 
         Vector3 vector = targetWhitePointLms / sourceWhitePointLms;
 

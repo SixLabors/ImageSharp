@@ -27,4 +27,19 @@ public class ColorProfileConverter
     /// Gets the color profile conversion options.
     /// </summary>
     public ColorConversionOptions Options { get; }
+
+    internal (CieXyz From, CieXyz To) GetChromaticAdaptionWhitePoints<TFrom, TTo>()
+               where TFrom : struct, IColorProfile
+               where TTo : struct, IColorProfile
+    {
+        CieXyz sourceWhitePoint = TFrom.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
+            ? this.Options.WhitePoint
+            : this.Options.RgbWorkingSpace.WhitePoint;
+
+        CieXyz targetWhitePoint = TTo.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
+            ? this.Options.TargetWhitePoint
+            : this.Options.TargetRgbWorkingSpace.WhitePoint;
+
+        return (sourceWhitePoint, targetWhitePoint);
+    }
 }

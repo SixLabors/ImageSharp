@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -21,7 +21,8 @@ internal static class ColorProfileConverterExtensionsRgbCieXyz
         CieXyz pcsTo = pcsFrom.ToProfileConnectingSpace(options);
 
         // Adapt to target white point
-        pcsTo = VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, in pcsTo);
+        (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
+        pcsTo = VonKriesChromaticAdaptation.Transform(in pcsTo, whitePoints, options.AdaptationMatrix);
 
         // Convert to output from PCS
         return TTo.FromProfileConnectingSpace(options, pcsTo);
@@ -44,7 +45,8 @@ internal static class ColorProfileConverterExtensionsRgbCieXyz
         Rgb.ToProfileConnectionSpace(options, pcsFrom, pcsTo);
 
         // Adapt to target white point
-        VonKriesChromaticAdaptation.Transform<TFrom, TTo>(options, pcsTo, pcsTo);
+        (CieXyz From, CieXyz To) whitePoints = converter.GetChromaticAdaptionWhitePoints<TFrom, TTo>();
+        VonKriesChromaticAdaptation.Transform(pcsTo, pcsTo, whitePoints, options.AdaptationMatrix);
 
         // Convert to output from PCS
         TTo.FromProfileConnectionSpace(options, pcsTo, destination);

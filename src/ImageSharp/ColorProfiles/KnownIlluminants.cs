@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// <br />
 /// Descriptions taken from: http://en.wikipedia.org/wiki/Standard_illuminant
 /// </remarks>
-public static class Illuminants
+public static class KnownIlluminants
 {
     /// <summary>
     /// Incandescent / Tungsten

@@ -21,6 +21,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Rgb(float r, float g, float b)
     {
+        // Not clamping as this space can exceed "usual" ranges
         this.R = r;
         this.G = g;
         this.B = b;
@@ -31,7 +32,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// </summary>
     /// <param name="source">The vector representing the r, g, b components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Rgb(Vector3 source)
+    public Rgb(Vector3 source)
     {
         this.R = source.X;
         this.G = source.Y;
@@ -149,20 +150,32 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
 
     /// <summary>
-    /// Initializes the pixel instance from a generic scaled <see cref="Vector3"/>.
+    /// Initializes the color instance from a generic scaled <see cref="Vector3"/>.
     /// </summary>
-    /// <param name="source">The vector to load the pixel from.</param>
+    /// <param name="source">The vector to load the color from.</param>
     /// <returns>The <see cref="Rgb"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb FromScaledVector3(Vector3 source) => new(source);
+    public static Rgb FromScaledVector3(Vector3 source) => new(Vector3.Clamp(source, Vector3.Zero, Vector3.One));
 
     /// <summary>
-    /// Initializes the pixel instance from a generic scaled <see cref="Vector4"/>.
+    /// Initializes the color instance from a generic scaled <see cref="Vector4"/>.
     /// </summary>
-    /// <param name="source">The vector to load the pixel from.</param>
+    /// <param name="source">The vector to load the color from.</param>
     /// <returns>The <see cref="Rgb"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb FromScaledVector4(Vector4 source) => new(source.X, source.Y, source.Z);
+    public static Rgb FromScaledVector4(Vector4 source)
+    {
+        source = Vector4.Clamp(source, Vector4.Zero, Vector4.One);
+        return new(source.X, source.Y, source.Z);
+    }
+
+    /// <summary>
+    /// Initializes the color instance for a source clamped between <value>0</value> and <value>1</value>
+    /// </summary>
+    /// <param name="source">The source to load the color from.</param>
+    /// <returns>The <see cref="Rgb"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb Clamp(Rgb source) => new(Vector3.Clamp(new(source.R, source.G, source.B), Vector3.Zero, Vector3.One));
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector3"/> representation
@@ -171,7 +184,15 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// </summary>
     /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToScaledVector3() => new(this.R, this.G, this.B);
+    public Vector3 ToScaledVector3() => Clamp(this).ToVector3();
+
+    /// <summary>
+    /// Expands the color into a generic <see cref="Vector3"/> representation.
+    /// The vector components are typically expanded in least to greatest significance order.
+    /// </summary>
+    /// <returns>The <see cref="Vector3"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector3 ToVector3() => new(this.R, this.G, this.B);
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
@@ -180,7 +201,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToScaledVector4() => new(this.R, this.G, this.B, 1f);
+    public Vector4 ToScaledVector4() => new(this.ToScaledVector3(), 1f);
 
     private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
     {

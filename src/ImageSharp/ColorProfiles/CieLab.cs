@@ -26,8 +26,11 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// <param name="b">The b (blue - yellow) component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLab(float l, float a, float b)
-        : this(new Vector3(l, a, b))
     {
+        // Not clamping as documentation about this space only indicates "usual" ranges
+        this.L = l;
+        this.A = a;
+        this.B = b;
     }
 
     /// <summary>
@@ -38,7 +41,6 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     public CieLab(Vector3 vector)
         : this()
     {
-        // Not clamping as documentation about this space only indicates "usual" ranges
         this.L = vector.X;
         this.A = vector.Y;
         this.B = vector.Z;

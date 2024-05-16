@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -20,8 +21,11 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieXyz(float x, float y, float z)
-        : this(new Vector3(x, y, z))
     {
+        // Not clamping as documentation about this space only indicates "usual" ranges
+        this.X = x;
+        this.Y = y;
+        this.Z = z;
     }
 
     /// <summary>
@@ -31,7 +35,6 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     public CieXyz(Vector3 vector)
         : this()
     {
-        // Not clamping as documentation about this space only indicates "usual" ranges
         this.X = vector.X;
         this.Y = vector.Y;
         this.Z = vector.Z;

@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.ColorProfiles;
 
-namespace SixLabors.ImageSharp.Tests.ColorProfiles.Conversion;
+namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
 /// <summary>
 /// Tests <see cref="Rgb"/>-<see cref="Hsl"/> conversions.

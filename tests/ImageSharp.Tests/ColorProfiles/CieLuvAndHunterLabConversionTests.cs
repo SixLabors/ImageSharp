@@ -15,7 +15,7 @@ public class CieLuvAndHunterLabConversionTests
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(36.0555, 93.6901, 10.01514, 30.59289, 48.55542, 9.80487)]
-    public void Convert_CieLuv_to_HunterLab(float l, float u, float v, float l2, float a, float b)
+    public void Convert_CieLuv_To_HunterLab(float l, float u, float v, float l2, float a, float b)
     {
         // Arrange
         CieLuv input = new(l, u, v);
@@ -44,7 +44,7 @@ public class CieLuvAndHunterLabConversionTests
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
     [InlineData(30.59289, 48.55542, 9.80487, 36.0555, 93.6901, 10.01514)]
-    public void Convert_HunterLab_to_CieLuv(float l2, float a, float b, float l, float u, float v)
+    public void Convert_HunterLab_To_CieLuv(float l2, float a, float b, float l, float u, float v)
     {
         // Arrange
         HunterLab input = new(l2, a, b);

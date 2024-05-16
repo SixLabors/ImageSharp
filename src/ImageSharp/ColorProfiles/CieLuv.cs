@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -26,6 +27,19 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
         this.L = l;
         this.U = u;
         this.V = v;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CieLuv"/> struct.
+    /// </summary>
+    /// <param name="vector">The vector representing the l, u, v components.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public CieLuv(Vector3 vector)
+        : this()
+    {
+        this.L = vector.X;
+        this.U = vector.Y;
+        this.V = vector.Z;
     }
 
     /// <summary>

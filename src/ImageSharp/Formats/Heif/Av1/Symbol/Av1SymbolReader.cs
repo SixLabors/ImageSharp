@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal ref struct Av1SymbolReader
@@ -145,7 +143,7 @@ internal ref struct Av1SymbolReader
         while (c < v);
 
         DebugGuard.MustBeLessThan(v, u, nameof(v));
-        DebugGuard.MustBeLessThan(u, r, nameof(u));
+        DebugGuard.MustBeLessThanOrEqualTo(u, r, nameof(u));
         r = u - v;
         dif -= v << (DecoderWindowsSize - 16);
         this.Normalize(dif, r);
@@ -189,7 +187,7 @@ internal ref struct Av1SymbolReader
            is incremented by 8, so the total number of consumed bits (the return
            value of od_ec_dec_tell) does not change.*/
             DebugGuard.MustBeLessThan(s, DecoderWindowsSize - 8, nameof(s));
-            dif ^= (uint)this.buffer[0] << s;
+            dif ^= (uint)this.buffer[position] << s;
             cnt += 8;
         }
 

@@ -1,20 +1,29 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
+using System.Buffers;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
-internal class Av1SymbolWriter
+internal class Av1SymbolWriter : IDisposable
 {
     private uint low;
     private uint rng = 0x8000U;
 
     // Count is initialized to -9 so that it crosses zero after we've accumulated one byte + one carry bit.
     private int cnt = -9;
-    private readonly Stream stream;
+    private readonly Configuration configuration;
+    private readonly AutoExpandingMemory<ushort> memory;
+    private int position;
 
-    public Av1SymbolWriter(Stream stream) => this.stream = stream;
+    public Av1SymbolWriter(Configuration configuration, int initialSize)
+    {
+        this.configuration = configuration;
+        this.memory = new AutoExpandingMemory<ushort>(configuration, (initialSize + 1) >> 1);
+    }
+
+    public void Dispose() => this.memory.Dispose();
 
     public void WriteSymbol(int symbol, uint[] probabilities, int numberOfSymbols)
     {
@@ -36,28 +45,25 @@ internal class Av1SymbolWriter
         }
     }
 
-    public void Exit()
+    public IMemoryOwner<byte> Exit()
     {
-        uint m;
-        uint e;
-        uint l;
-        int c;
-        int s;
-
         // We output the minimum number of bits that ensures that the symbols encoded
         // thus far will be decoded correctly regardless of the bits that follow.
-        l = this.low;
-        c = this.cnt;
-        s = 10;
-        m = 0x3FFFU;
-        e = ((l + m) & ~m) | (m + 1);
+        uint l = this.low;
+        int c = this.cnt;
+        int pos = this.position;
+        int s = 10;
+        uint m = 0x3FFFU;
+        uint e = ((l + m) & ~m) | (m + 1);
         s += c;
+        Span<ushort> buffer = this.memory.GetSpan(this.position + ((s + 7) >> 3));
         if (s > 0)
         {
             uint n = (1U << (c + 16)) - 1;
             do
             {
-                this.stream.WriteByte((byte)(e >> (c + 16)));
+                buffer[pos] = (ushort)(e >> (c + 16));
+                pos++;
                 e &= n;
                 s -= 8;
                 c -= 8;
@@ -65,6 +71,22 @@ internal class Av1SymbolWriter
             }
             while (s > 0);
         }
+
+        c = Math.Max((s + 7) >> 3, 0);
+        IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos + c);
+
+        // Perform carry propagation.
+        Span<byte> outputSlice = output.GetSpan()[(output.Length() - pos)..];
+        c = 0;
+        while (pos > 0)
+        {
+            pos--;
+            c = buffer[pos] + c;
+            outputSlice[pos] = (byte)c;
+            c >>= 8;
+        }
+
+        return output;
     }
 
     /// <summary>
@@ -115,13 +137,13 @@ internal class Av1SymbolWriter
 
     private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {
+        const int totalShift = 7 - Av1SymbolReader.ProbabilityShift - Av1SymbolReader.CdfShift;
         uint l = this.low;
         uint r = this.rng;
-        int totalShift = 7 - Av1SymbolReader.ProbabilityShift - Av1SymbolReader.CdfShift;
         DebugGuard.MustBeLessThanOrEqualTo(32768U, r, nameof(r));
         DebugGuard.MustBeLessThanOrEqualTo(highFrequency, lowFrequency, nameof(highFrequency));
         DebugGuard.MustBeLessThanOrEqualTo(lowFrequency, 32768U, nameof(lowFrequency));
-        DebugGuard.MustBeGreaterThanOrEqualTo(totalShift, 0, string.Empty);
+        DebugGuard.MustBeGreaterThanOrEqualTo(totalShift, 0, nameof(totalShift));
         int n = numberOfSymbols - 1;
         if (lowFrequency < Av1SymbolReader.CdfProbabilityTop)
         {
@@ -130,14 +152,14 @@ internal class Av1SymbolWriter
             u = (uint)((((r >> 8) * (lowFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
                 (Av1SymbolReader.ProbabilityMinimum * (n - (symbol - 1))));
             v = (uint)((((r >> 8) * (highFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
-                (Av1SymbolReader.ProbabilityMinimum * (n - (symbol + 0))));
+                (Av1SymbolReader.ProbabilityMinimum * (n - symbol)));
             l += r - u;
             r = u - v;
         }
         else
         {
             r -= (uint)((((r >> 8) * (highFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
-                (Av1SymbolReader.ProbabilityMinimum * (n - (symbol + 0))));
+                (Av1SymbolReader.ProbabilityMinimum * (n - symbol)));
         }
 
         this.Normalize(l, r);
@@ -167,18 +189,21 @@ internal class Av1SymbolWriter
         if (s >= 0)
         {
             uint m;
+            Span<ushort> buffer = this.memory.GetSpan(this.position + 2);
 
             c += 16;
             m = (1U << c) - 1;
             if (s >= 8)
             {
-                this.stream.WriteByte((byte)(low >> c));
+                buffer[this.position] = (ushort)(low >> c);
+                this.position++;
                 low &= m;
                 c -= 8;
                 m >>= 8;
             }
 
-            this.stream.WriteByte((byte)(low >> c));
+            buffer[this.position] = (ushort)(low >> c);
+            this.position++;
             s = c + d - 24;
             low &= m;
         }

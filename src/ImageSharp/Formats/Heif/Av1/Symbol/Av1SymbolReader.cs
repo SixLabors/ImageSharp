@@ -226,16 +226,18 @@ internal ref struct Av1SymbolReader
         for (int i = 0; i < numberOfSymbols - 1; i++)
         {
             tmp = (i == value) ? 0 : tmp;
-            if (tmp < probabilities[i])
+            uint p = probabilities[i];
+            if (tmp < p)
             {
-                probabilities[i] -= (ushort)((probabilities[i] - tmp) >> rate);
+                probabilities[i] -= (ushort)((p - tmp) >> rate);
             }
             else
             {
-                probabilities[i] += (ushort)((tmp - probabilities[i]) >> rate);
+                probabilities[i] += (ushort)((tmp - p) >> rate);
             }
         }
 
-        probabilities[numberOfSymbols] = Math.Min(probabilities[numberOfSymbols]++, 32);
+        uint rate32 = probabilities[numberOfSymbols] < 32 ? 1U : 0U;
+        probabilities[numberOfSymbols] += rate32;
     }
 }

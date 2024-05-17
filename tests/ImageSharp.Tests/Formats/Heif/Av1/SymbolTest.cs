@@ -185,7 +185,7 @@ public class SymbolTest
         Assert.Equal(expectedValues, values);
     }
 
-    //[Fact]
+    [Fact]
     public void RoundTripUseIntraBlockCopy()
     {
         // Assign
@@ -203,9 +203,9 @@ public class SymbolTest
             encoder.WriteUseIntraBlockCopySymbol(writer, value);
         }
 
-        writer.Exit();
+        using IMemoryOwner<byte> encoded = writer.Exit();
 
-        Av1SymbolReader reader = new(output.ToArray());
+        Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadUseIntraBlockCopySymbol(ref reader);

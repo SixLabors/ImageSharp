@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -180,13 +181,13 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     }
 
     /// <summary>
-    /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+    /// Allows the implicit conversion of an instance of <see cref="Rgb"/> to a
     /// <see cref="Rgba32"/>.
     /// </summary>
-    /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+    /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgba32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgba32(ColorSpaces.Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1F));
+    public static implicit operator Rgba32(Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgba32"/> objects for equality.

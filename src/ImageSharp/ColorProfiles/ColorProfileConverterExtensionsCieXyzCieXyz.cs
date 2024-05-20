@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 internal static class ColorProfileConverterExtensionsCieXyzCieXyz
 {
-    public static TTo Convert<TFrom, TTo>(this ColorProfileConverter converter, TFrom source)
+    public static TTo Convert<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom, CieXyz>
         where TTo : struct, IColorProfile<TTo, CieXyz>
     {
@@ -22,7 +22,7 @@ internal static class ColorProfileConverterExtensionsCieXyzCieXyz
         pcsFrom = VonKriesChromaticAdaptation.Transform(in pcsFrom, whitePoints, options.AdaptationMatrix);
 
         // Convert to output from PCS
-        return TTo.FromProfileConnectingSpace(options, pcsFrom);
+        return TTo.FromProfileConnectingSpace(options, in pcsFrom);
     }
 
     public static void Convert<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)

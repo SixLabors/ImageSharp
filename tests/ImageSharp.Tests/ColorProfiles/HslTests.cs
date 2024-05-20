@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 

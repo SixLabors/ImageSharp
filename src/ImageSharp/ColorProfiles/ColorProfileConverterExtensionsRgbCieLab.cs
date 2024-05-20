@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 internal static class ColorProfileConverterExtensionsRgbCieLab
 {
-    public static TTo Convert<TFrom, TTo>(this ColorProfileConverter converter, TFrom source)
+    public static TTo Convert<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom, Rgb>
         where TTo : struct, IColorProfile<TTo, CieLab>
     {
@@ -26,7 +26,7 @@ internal static class ColorProfileConverterExtensionsRgbCieLab
         CieLab pcsTo = CieLab.FromProfileConnectingSpace(options, in pcsFromB);
 
         // Convert to output from PCS
-        return TTo.FromProfileConnectingSpace(options, pcsTo);
+        return TTo.FromProfileConnectingSpace(options, in pcsTo);
     }
 
     public static void Convert<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)

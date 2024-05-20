@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Memory;
 

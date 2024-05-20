@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// These matrices are typically used in conjunction with color space conversions, such as from XYZ
 /// to RGB, to achieve accurate color rendition in digital imaging applications.
 /// </remarks>
-
 public static class KnownChromaticAdaptationMatrices
 {
     /// <summary>

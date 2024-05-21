@@ -238,6 +238,82 @@ internal class HuffmanScanEncoder
     }
 
     /// <summary>
+    /// Encodes the DC coefficients for a given component's blocks in a scan.
+    /// </summary>
+    /// <param name="component">The component whose DC coefficients need to be encoded.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void EncodeDcScan(Component component, CancellationToken cancellationToken)
+    {
+        int h = component.HeightInBlocks;
+        int w = component.WidthInBlocks;
+
+        ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+
+        for (int i = 0; i < h; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
+            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+            for (nuint k = 0; k < (uint)w; k++)
+            {
+                this.WriteDc(
+                    component,
+                    ref Unsafe.Add(ref blockRef, k),
+                    ref dcHuffmanTable);
+
+
+                if (this.IsStreamFlushNeeded)
+                {
+                    this.FlushToStream();
+                }
+            }
+        }
+
+        this.FlushRemainingBytes();
+    }
+
+    /// <summary>
+    /// Encodes the AC coefficients for a specified range of blocks in a component's scan.
+    /// </summary>
+    /// <param name="component">The component whose AC coefficients need to be encoded.</param>
+    /// <param name="start">The starting index of the AC coefficient range to encode.</param>
+    /// <param name="end">The ending index of the AC coefficient range to encode.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    public void EncodeAcScan(Component component, nint start, nint end, CancellationToken cancellationToken)
+    {
+        int h = component.HeightInBlocks;
+        int w = component.WidthInBlocks;
+
+        ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
+
+        for (int i = 0; i < h; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Span<Block8x8> blockSpan = component.SpectralBlocks.DangerousGetRowSpan(y: i);
+            ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
+
+            for (nuint k = 0; k < (uint)w; k++)
+            {
+                this.WriteAcBlock(
+                    ref Unsafe.Add(ref blockRef, k),
+                    start,
+                    end,
+                    ref acHuffmanTable);
+
+                if (this.IsStreamFlushNeeded)
+                {
+                    this.FlushToStream();
+                }
+            }
+        }
+
+        this.FlushRemainingBytes();
+    }
+
+    /// <summary>
     /// Encodes scan in baseline interleaved mode for any amount of component with arbitrary sampling factors.
     /// </summary>
     /// <param name="frame">Frame to encode.</param>
@@ -371,16 +447,64 @@ internal class HuffmanScanEncoder
         this.FlushRemainingBytes();
     }
 
+    private void WriteDc(
+        Component component,
+        ref Block8x8 block,
+        ref HuffmanLut dcTable)
+    {
+        // Emit the DC delta.
+        int dc = block[0];
+        this.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
+        component.DcPredictor = dc;
+    }
+
+    private void WriteAcBlock(
+        ref Block8x8 block,
+        nint start,
+        nint end,
+        ref HuffmanLut acTable)
+    {
+        // Emit the AC components.
+        int[] acHuffTable = acTable.Values;
+
+        int runLength = 0;
+        ref short blockRef = ref Unsafe.As<Block8x8, short>(ref block);
+        for (nint zig = start; zig < end; zig++)
+        {
+            const int zeroRun1 = 1 << 4;
+            const int zeroRun16 = 16 << 4;
+
+            int ac = Unsafe.Add(ref blockRef, zig);
+            if (ac == 0)
+            {
+                runLength += zeroRun1;
+            }
+            else
+            {
+                while (runLength >= zeroRun16)
+                {
+                    this.EmitHuff(acHuffTable, 0xf0);
+                    runLength -= zeroRun16;
+                }
+
+                this.EmitHuffRLE(acHuffTable, runLength, ac);
+                runLength = 0;
+            }
+        }
+
+        if (runLength > 0)
+        {
+            this.EmitHuff(acHuffTable, 0x00);
+        }
+    }
+
     private void WriteBlock(
         Component component,
         ref Block8x8 block,
         ref HuffmanLut dcTable,
         ref HuffmanLut acTable)
     {
-        // Emit the DC delta.
-        int dc = block[0];
-        this.EmitHuffRLE(dcTable.Values, 0, dc - component.DcPredictor);
-        component.DcPredictor = dc;
+        this.WriteDc(component, ref block, ref dcTable);
 
         // Emit the AC components.
         int[] acHuffTable = acTable.Values;

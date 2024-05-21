@@ -14,6 +14,11 @@ public sealed class JpegEncoder : ImageEncoder
     private int? quality;
 
     /// <summary>
+    /// Backing field for <see cref="ProgressiveScans"/>
+    /// </summary>
+    private int progressiveScans = 4;
+
+    /// <summary>
     /// Gets the quality, that will be used to encode the image. Quality
     /// index must be between 1 and 100 (compression from max to min).
     /// Defaults to <value>75</value>.
@@ -30,6 +35,34 @@ public sealed class JpegEncoder : ImageEncoder
             }
 
             this.quality = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether progressive encoding is used.
+    /// </summary>
+    public bool Progressive { get; init; }
+
+    /// <summary>
+    /// Gets number of scans per component for progressive encoding.
+    /// Defaults to <value>4</value>.
+    /// </summary>
+    /// <remarks>
+    /// Number of scans must be between 2 and 64.
+    /// There is at least one scan for the DC coefficients and one for the remaining 63 AC coefficients.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Progressive scans must be in [2..64] range.</exception>
+    public int ProgressiveScans
+    {
+        get => this.progressiveScans;
+        init
+        {
+            if (value is < 2 or > 64)
+            {
+                throw new ArgumentException("Progressive scans must be in [2..64] range.");
+            }
+
+            this.progressiveScans = value;
         }
     }
 

@@ -44,7 +44,7 @@ public readonly struct PixelComponentInfo
     {
         if (precision.Length != count || precision.Length > 16)
         {
-            throw new ArgumentException($"Count must match the length of precision array and cannot exceed 16.");
+            throw new ArgumentOutOfRangeException(nameof(count), $"Count {count} must match the length of precision array and cannot exceed 16.");
         }
 
         long precisionData1 = 0;
@@ -55,7 +55,7 @@ public readonly struct PixelComponentInfo
             int p = precision[i];
             if (p is < 0 or > 255)
             {
-                throw new ArgumentException("Precision must be between 0 and 255.");
+                throw new ArgumentOutOfRangeException(nameof(precision), $"Precision {precision.Length} must be between 0 and 255.");
             }
 
             if (i < 8)

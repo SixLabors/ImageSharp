@@ -3,7 +3,10 @@
 
 namespace SixLabors.ImageSharp.Formats;
 
-internal class AnimatedImageFrameMetadata
+/// <summary>
+/// A metadata format designed to allow conversion between different image format frames.
+/// </summary>
+public class FormatConnectingFrameMetadata
 {
     /// <summary>
     /// Gets or sets the frame color table.

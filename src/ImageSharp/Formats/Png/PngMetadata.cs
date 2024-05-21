@@ -77,7 +77,7 @@ public class PngMetadata : IDeepCloneable
     /// Gets or sets the collection of text data stored within the iTXt, tEXt, and zTXt chunks.
     /// Used for conveying textual information associated with the image.
     /// </summary>
-    public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
+    public IList<PngTextData> TextData { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the number of times to loop this APNG.  0 indicates infinite looping.
@@ -96,7 +96,7 @@ public class PngMetadata : IDeepCloneable
     {
         // Should the conversion be from a format that uses a 24bit palette entries (gif)
         // we need to clone and adjust the color table to allow for transparency.
-        Color[]? colorTable = metadata.ColorTable.HasValue ? metadata.ColorTable.Value.ToArray() : null;
+        Color[]? colorTable = metadata.ColorTable?.ToArray();
         if (colorTable != null)
         {
             for (int i = 0; i < colorTable.Length; i++)

@@ -13,10 +13,7 @@ public class JpegMetadata : IDeepCloneable
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
     /// </summary>
-    public JpegMetadata()
-    {
-        this.Comments = new List<JpegComData>();
-    }
+    public JpegMetadata() => this.Comments = new List<JpegComData>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
@@ -36,7 +33,7 @@ public class JpegMetadata : IDeepCloneable
     /// </summary>
     /// <remarks>
     /// This value might not be accurate if it was calculated during jpeg decoding
-    /// with non-complient ITU quantization tables.
+    /// with non-compliant ITU quantization tables.
     /// </remarks>
     internal int? LuminanceQuality { get; set; }
 
@@ -45,7 +42,7 @@ public class JpegMetadata : IDeepCloneable
     /// </summary>
     /// <remarks>
     /// This value might not be accurate if it was calculated during jpeg decoding
-    /// with non-complient ITU quantization tables.
+    /// with non-compliant ITU quantization tables.
     /// </remarks>
     internal int? ChrominanceQuality { get; set; }
 
@@ -69,15 +66,8 @@ public class JpegMetadata : IDeepCloneable
 
                 return this.LuminanceQuality.Value;
             }
-            else
-            {
-                if (this.ChrominanceQuality.HasValue)
-                {
-                    return this.ChrominanceQuality.Value;
-                }
 
-                return Quantization.DefaultQualityFactor;
-            }
+            return this.ChrominanceQuality ?? Quantization.DefaultQualityFactor;
         }
     }
 

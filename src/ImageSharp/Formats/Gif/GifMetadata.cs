@@ -67,7 +67,7 @@ public class GifMetadata : IDeepCloneable
     /// Gets or sets the collection of comments about the graphics, credits, descriptions or any
     /// other type of non-control and non-graphic data.
     /// </summary>
-    public IList<string> Comments { get; set; } = new List<string>();
+    public IList<string> Comments { get; set; } = [];
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new GifMetadata(this);

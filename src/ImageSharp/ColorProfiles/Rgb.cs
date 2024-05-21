@@ -43,19 +43,19 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// Gets the red component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float R { get; }
+    public float R { get; }
 
     /// <summary>
     /// Gets the green component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float G { get; }
+    public float G { get; }
 
     /// <summary>
     /// Gets the blue component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float B { get; }
+    public float B { get; }
 
     /// <summary>
     /// Compares two <see cref="Rgb"/> objects for equality.
@@ -91,9 +91,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Rgb other)
-        => this.R.Equals(other.R)
-        && this.G.Equals(other.G)
-        && this.B.Equals(other.B);
+        => new Vector3(this.R, this.G, this.B) == new Vector3(other.R, other.G, other.B);
 
     /// <inheritdoc/>
     public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

@@ -45,19 +45,19 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// Gets the Y luminance component.
     /// <remarks>A value ranging between 0 and 255.</remarks>
     /// </summary>
-    public readonly float Y { get; }
+    public float Y { get; }
 
     /// <summary>
     /// Gets the Cb chroma component.
     /// <remarks>A value ranging between 0 and 255.</remarks>
     /// </summary>
-    public readonly float Cb { get; }
+    public float Cb { get; }
 
     /// <summary>
     /// Gets the Cr chroma component.
     /// <remarks>A value ranging between 0 and 255.</remarks>
     /// </summary>
-    public readonly float Cr { get; }
+    public float Cr { get; }
 
     /// <summary>
     /// Compares two <see cref="YCbCr"/> objects for equality.
@@ -152,7 +152,5 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(YCbCr other)
-        => this.Y.Equals(other.Y)
-        && this.Cb.Equals(other.Cb)
-        && this.Cr.Equals(other.Cr);
+        => new Vector3(this.Y, this.Cb, this.Cr) == new Vector3(other.Y, other.Cb, other.Cr);
 }

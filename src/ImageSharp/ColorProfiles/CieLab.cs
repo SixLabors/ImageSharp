@@ -13,12 +13,6 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 {
     /// <summary>
-    /// D50 standard illuminant.
-    /// Used when reference white is not specified explicitly.
-    /// </summary>
-    public static readonly CieXyz DefaultWhitePoint = KnownIlluminants.D50;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="CieLab"/> struct.
     /// </summary>
     /// <param name="l">The lightness dimension.</param>
@@ -50,19 +44,19 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// Gets the lightness dimension.
     /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the a color component.
     /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
     /// </summary>
-    public readonly float A { get; }
+    public float A { get; }
 
     /// <summary>
     /// Gets the b color component.
     /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
     /// </summary>
-    public readonly float B { get; }
+    public float B { get; }
 
     /// <summary>
     /// Compares two <see cref="CieLab"/> objects for equality.
@@ -97,10 +91,8 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(CieLab other) =>
-        this.L.Equals(other.L)
-        && this.A.Equals(other.A)
-        && this.B.Equals(other.B);
+    public bool Equals(CieLab other)
+        => new Vector3(this.L, this.A, this.B) == new Vector3(other.L, other.A, other.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

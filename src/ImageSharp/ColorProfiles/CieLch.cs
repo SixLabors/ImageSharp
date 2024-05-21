@@ -44,19 +44,19 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// Gets the lightness dimension.
     /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the a chroma component.
     /// <remarks>A value ranging from 0 to 200.</remarks>
     /// </summary>
-    public readonly float C { get; }
+    public float C { get; }
 
     /// <summary>
     /// Gets the h° hue component in degrees.
     /// <remarks>A value ranging from 0 to 360.</remarks>
     /// </summary>
-    public readonly float H { get; }
+    public float H { get; }
 
     /// <summary>
     /// Compares two <see cref="CieLch"/> objects for equality.
@@ -94,9 +94,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieLch other)
-        => this.L.Equals(other.L)
-        && this.C.Equals(other.C)
-        && this.H.Equals(other.H);
+        => new Vector3(this.L, this.C, this.H) == new Vector3(other.L, other.C, other.H);
 
     /// <inheritdoc/>
     public static CieLch FromProfileConnectingSpace(ColorConversionOptions options, in CieLab source)

@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -99,9 +98,7 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieXyz other)
-        => this.X.Equals(other.X)
-        && this.Y.Equals(other.Y)
-        && this.Z.Equals(other.Z);
+        => new Vector3(this.X, this.Y, this.Z) == new Vector3(other.X, other.Y, other.Z);
 
     /// <inheritdoc/>
     public static CieXyz FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

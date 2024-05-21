@@ -43,19 +43,19 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// Gets the hue component.
     /// <remarks>A value ranging between 0 and 360.</remarks>
     /// </summary>
-    public readonly float H { get; }
+    public float H { get; }
 
     /// <summary>
     /// Gets the saturation component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float S { get; }
+    public float S { get; }
 
     /// <summary>
     /// Gets the lightness component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Compares two <see cref="Hsl"/> objects for equality.
@@ -200,9 +200,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Hsl other)
-        => this.H.Equals(other.H)
-        && this.S.Equals(other.S)
-        && this.L.Equals(other.L);
+        => new Vector3(this.H, this.S, this.L) == new Vector3(other.H, other.S, other.L);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float GetColorComponent(float first, float second, float third)

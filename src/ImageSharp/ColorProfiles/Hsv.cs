@@ -43,19 +43,19 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// Gets the hue component.
     /// <remarks>A value ranging between 0 and 360.</remarks>
     /// </summary>
-    public readonly float H { get; }
+    public float H { get; }
 
     /// <summary>
     /// Gets the saturation component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float S { get; }
+    public float S { get; }
 
     /// <summary>
     /// Gets the value (brightness) component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float V { get; }
+    public float V { get; }
 
     /// <summary>
     /// Compares two <see cref="Hsv"/> objects for equality.
@@ -223,7 +223,5 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Hsv other)
-        => this.H.Equals(other.H)
-        && this.S.Equals(other.S)
-        && this.V.Equals(other.V);
+        => new Vector3(this.H, this.S, this.V) == new Vector3(other.H, other.S, other.V);
 }

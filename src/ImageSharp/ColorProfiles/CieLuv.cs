@@ -46,19 +46,19 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// Gets the lightness dimension
     /// <remarks>A value usually ranging between 0 and 100.</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the blue-yellow chromaticity coordinate of the given white point.
     /// <remarks>A value usually ranging between -100 and 100.</remarks>
     /// </summary>
-    public readonly float U { get; }
+    public float U { get; }
 
     /// <summary>
     /// Gets the red-green chromaticity coordinate of the given white point.
     /// <remarks>A value usually ranging between -100 and 100.</remarks>
     /// </summary>
-    public readonly float V { get; }
+    public float V { get; }
 
     /// <summary>
     /// Compares two <see cref="CieLuv"/> objects for equality.
@@ -205,9 +205,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieLuv other)
-        => this.L.Equals(other.L)
-        && this.U.Equals(other.U)
-        && this.V.Equals(other.V);
+        => new Vector3(this.L, this.U, this.V) == new Vector3(other.L, other.U, other.V);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double ComputeU(in CieXyz source)

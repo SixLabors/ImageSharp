@@ -16,8 +16,10 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
     /// <param name="s">S represents the responsivity at short wavelengths.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Lms(float l, float m, float s)
-        : this(new Vector3(l, m, s))
     {
+        this.L = l;
+        this.M = m;
+        this.S = s;
     }
 
     /// <summary>
@@ -37,19 +39,19 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
     /// Gets the L long component.
     /// <remarks>A value usually ranging between -1 and 1.</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the M medium component.
     /// <remarks>A value usually ranging between -1 and 1.</remarks>
     /// </summary>
-    public readonly float M { get; }
+    public float M { get; }
 
     /// <summary>
     /// Gets the S short component.
     /// <remarks>A value usually ranging between -1 and 1.</remarks>
     /// </summary>
-    public readonly float S { get; }
+    public float S { get; }
 
     /// <summary>
     /// Compares two <see cref="Lms"/> objects for equality.
@@ -92,9 +94,7 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Lms other)
-        => this.L.Equals(other.L)
-        && this.M.Equals(other.M)
-        && this.S.Equals(other.S);
+        => new Vector3(this.L, this.M, this.S) == new Vector3(other.L, other.M, other.S);
 
     /// <inheritdoc/>
     public static Lms FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

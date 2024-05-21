@@ -45,25 +45,25 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// Gets the cyan color component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float C { get; }
+    public float C { get; }
 
     /// <summary>
     /// Gets the magenta color component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float M { get; }
+    public float M { get; }
 
     /// <summary>
     /// Gets the yellow color component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float Y { get; }
+    public float Y { get; }
 
     /// <summary>
     /// Gets the keyline black color component.
     /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float K { get; }
+    public float K { get; }
 
     /// <summary>
     /// Compares two <see cref="Cmyk"/> objects for equality.
@@ -157,8 +157,5 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Cmyk other)
-        => this.C.Equals(other.C)
-        && this.M.Equals(other.M)
-        && this.Y.Equals(other.Y)
-        && this.K.Equals(other.K);
+        => new Vector4(this.C, this.M, this.Y, this.K) == new Vector4(other.C, other.M, other.Y, other.K);
 }

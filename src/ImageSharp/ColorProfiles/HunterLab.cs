@@ -20,8 +20,10 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     /// <param name="b">The b (blue - yellow) component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public HunterLab(float l, float a, float b)
-        : this(new Vector3(l, a, b))
     {
+        this.L = l;
+        this.A = a;
+        this.B = b;
     }
 
     /// <summary>
@@ -41,24 +43,19 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     /// Gets the lightness dimension.
     /// <remarks>A value usually ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the a color component.
     /// <remarks>A value usually ranging from -100 to 100. Negative is green, positive magenta.</remarks>
     /// </summary>
-    public readonly float A { get; }
+    public float A { get; }
 
     /// <summary>
     /// Gets the b color component.
     /// <remarks>A value usually ranging from -100 to 100. Negative is blue, positive is yellow</remarks>
     /// </summary>
-    public readonly float B { get; }
-
-    /// <summary>
-    /// Gets the reference white point of this color.
-    /// </summary>
-    public readonly CieXyz WhitePoint { get; }
+    public float B { get; }
 
     /// <summary>
     /// Compares two <see cref="HunterLab"/> objects for equality.
@@ -162,7 +159,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B, this.WhitePoint);
+    public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B);
 
     /// <inheritdoc/>
     public override string ToString() => FormattableString.Invariant($"HunterLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");
@@ -173,10 +170,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(HunterLab other)
-        => this.L.Equals(other.L)
-        && this.A.Equals(other.A)
-        && this.B.Equals(other.B)
-        && this.WhitePoint.Equals(other.WhitePoint);
+        => new Vector3(this.L, this.A, this.B) == new Vector3(other.L, other.A, other.B);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float ComputeKa(in CieXyz whitePoint)

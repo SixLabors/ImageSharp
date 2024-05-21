@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
@@ -29,7 +30,7 @@ public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromatici
     /// <remarks>
     /// Ranges usually from 0 to 1.
     /// </remarks>
-    public readonly float X { get; }
+    public float X { get; }
 
     /// <summary>
     /// Gets the chromaticity Y-coordinate
@@ -37,7 +38,7 @@ public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromatici
     /// <remarks>
     /// Ranges usually from 0 to 1.
     /// </remarks>
-    public readonly float Y { get; }
+    public float Y { get; }
 
     /// <summary>
     /// Compares two <see cref="CieXyChromaticityCoordinates"/> objects for equality.
@@ -79,5 +80,5 @@ public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromatici
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool Equals(CieXyChromaticityCoordinates other)
-        => this.X.Equals(other.X) && this.Y.Equals(other.Y);
+        => new Vector2(this.X, this.Y) == new Vector2(other.X, other.Y);
 }

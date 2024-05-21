@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -15,57 +15,57 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public static class KnownIlluminants
 {
     /// <summary>
-    /// Incandescent / Tungsten
+    /// Gets the Incandescent / Tungsten illuminant.
     /// </summary>
-    public static readonly CieXyz A = new(1.09850F, 1F, 0.35585F);
+    public static CieXyz A { get; } = new(1.09850F, 1F, 0.35585F);
 
     /// <summary>
-    /// Direct sunlight at noon (obsoleteF)
+    /// Gets the Direct sunlight at noon (obsoleteF) illuminant.
     /// </summary>
-    public static readonly CieXyz B = new(0.99072F, 1F, 0.85223F);
+    public static CieXyz B { get; } = new(0.99072F, 1F, 0.85223F);
 
     /// <summary>
-    /// Average / North sky Daylight (obsoleteF)
+    /// Gets the Average / North sky Daylight (obsoleteF) illuminant.
     /// </summary>
-    public static readonly CieXyz C = new(0.98074F, 1F, 1.18232F);
+    public static CieXyz C { get; } = new(0.98074F, 1F, 1.18232F);
 
     /// <summary>
-    /// Horizon Light. ICC profile PCS
+    /// Gets the Horizon Light. ICC profile PCS illuminant.
     /// </summary>
-    public static readonly CieXyz D50 = new(0.96422F, 1F, 0.82521F);
+    public static CieXyz D50 { get; } = new(0.96422F, 1F, 0.82521F);
 
     /// <summary>
-    /// Mid-morning / Mid-afternoon Daylight
+    /// Gets the Mid-morning / Mid-afternoon Daylight illuminant.
     /// </summary>
-    public static readonly CieXyz D55 = new(0.95682F, 1F, 0.92149F);
+    public static CieXyz D55 { get; } = new(0.95682F, 1F, 0.92149F);
 
     /// <summary>
-    /// Noon Daylight: TelevisionF, sRGB color space
+    /// Gets the Noon Daylight: TelevisionF, sRGB color space illuminant.
     /// </summary>
-    public static readonly CieXyz D65 = new(0.95047F, 1F, 1.08883F);
+    public static CieXyz D65 { get; } = new(0.95047F, 1F, 1.08883F);
 
     /// <summary>
-    /// North sky Daylight
+    /// Gets the North sky Daylight illuminant.
     /// </summary>
-    public static readonly CieXyz D75 = new(0.94972F, 1F, 1.22638F);
+    public static CieXyz D75 { get; } = new(0.94972F, 1F, 1.22638F);
 
     /// <summary>
-    /// Equal energy
+    /// Gets the Equal energy illuminant.
     /// </summary>
-    public static readonly CieXyz E = new(1F, 1F, 1F);
+    public static CieXyz E { get; } = new(1F, 1F, 1F);
 
     /// <summary>
-    /// Cool White Fluorescent
+    /// Gets the Cool White Fluorescent illuminant.
     /// </summary>
-    public static readonly CieXyz F2 = new(0.99186F, 1F, 0.67393F);
+    public static CieXyz F2 { get; } = new(0.99186F, 1F, 0.67393F);
 
     /// <summary>
-    /// D65 simulatorF, Daylight simulator
+    /// Gets the D65 simulatorF, Daylight simulator illuminant.
     /// </summary>
-    public static readonly CieXyz F7 = new(0.95041F, 1F, 1.08747F);
+    public static CieXyz F7 { get; } = new(0.95041F, 1F, 1.08747F);
 
     /// <summary>
-    /// Philips TL84F, Ultralume 40
+    /// Gets the Philips TL84F, Ultralume 40 illuminant.
     /// </summary>
-    public static readonly CieXyz F11 = new(1.00962F, 1F, 0.64350F);
+    public static CieXyz F11 { get; } = new(1.00962F, 1F, 0.64350F);
 }

@@ -45,24 +45,19 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// Gets the lightness dimension.
     /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
     /// </summary>
-    public readonly float L { get; }
+    public float L { get; }
 
     /// <summary>
     /// Gets the a chroma component.
     /// <remarks>A value ranging from 0 to 200.</remarks>
     /// </summary>
-    public readonly float C { get; }
+    public float C { get; }
 
     /// <summary>
     /// Gets the h° hue component in degrees.
     /// <remarks>A value ranging from 0 to 360.</remarks>
     /// </summary>
-    public readonly float H { get; }
-
-    /// <summary>
-    /// Gets the reference white point of this color
-    /// </summary>
-    public readonly CieXyz WhitePoint { get; }
+    public float H { get; }
 
     /// <summary>
     /// Compares two <see cref="CieLchuv"/> objects for equality.
@@ -151,7 +146,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => HashCode.Combine(this.L, this.C, this.H, this.WhitePoint);
+        => HashCode.Combine(this.L, this.C, this.H);
 
     /// <inheritdoc/>
     public override string ToString()
@@ -164,10 +159,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieLchuv other)
-        => this.L.Equals(other.L)
-        && this.C.Equals(other.C)
-        && this.H.Equals(other.H)
-        && this.WhitePoint.Equals(other.WhitePoint);
+        => new Vector3(this.L, this.C, this.H) == new Vector3(other.L, other.C, other.H);
 
     /// <summary>
     /// Computes the saturation of the color (chroma normalized by lightness)

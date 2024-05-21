@@ -45,19 +45,19 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// Gets the X chrominance component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float X { get; }
+    public float X { get; }
 
     /// <summary>
     /// Gets the Y chrominance component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float Y { get; }
+    public float Y { get; }
 
     /// <summary>
     /// Gets the Y luminance component.
     /// <remarks>A value usually ranging between 0 and 1.</remarks>
     /// </summary>
-    public readonly float Yl { get; }
+    public float Yl { get; }
 
     /// <summary>
     /// Compares two <see cref="CieXyy"/> objects for equality.
@@ -150,7 +150,5 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieXyy other)
-        => this.X.Equals(other.X)
-        && this.Y.Equals(other.Y)
-        && this.Yl.Equals(other.Yl);
+        => new Vector3(this.X, this.Y, this.Yl) == new Vector3(other.X, other.Y, other.Yl);
 }

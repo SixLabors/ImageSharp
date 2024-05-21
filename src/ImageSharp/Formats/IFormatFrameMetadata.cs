@@ -19,7 +19,7 @@ public interface IFormatFrameMetadata : IDeepCloneable
 /// An interface that provides metadata for a specific image format frames.
 /// </summary>
 /// <typeparam name="TSelf">The metadata type implementing this interface.</typeparam>
-public interface IFormatFrameMetadata<TSelf> : IFormatMetadata, IDeepCloneable<TSelf>
+public interface IFormatFrameMetadata<TSelf> : IFormatFrameMetadata, IDeepCloneable<TSelf>
     where TSelf : class, IFormatFrameMetadata, new()
 {
     /// <summary>

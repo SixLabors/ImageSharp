@@ -141,6 +141,13 @@ public class PixelColorTypeTests
     }
 
     [Fact]
+    public void PixelColorType_Indexed_ShouldBeSet()
+    {
+        const PixelColorType colorType = PixelColorType.Indexed;
+        Assert.True(colorType.HasFlag(PixelColorType.Indexed));
+    }
+
+    [Fact]
     public void PixelColorType_Other_ShouldBeSet()
     {
         const PixelColorType colorType = PixelColorType.Other;
@@ -166,6 +173,7 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Magenta));
         Assert.False(colorType.HasFlag(PixelColorType.Yellow));
         Assert.False(colorType.HasFlag(PixelColorType.Key));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
         Assert.False(colorType.HasFlag(PixelColorType.Other));
     }
 
@@ -181,6 +189,7 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Magenta));
         Assert.False(colorType.HasFlag(PixelColorType.Yellow));
         Assert.False(colorType.HasFlag(PixelColorType.Key));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
         Assert.False(colorType.HasFlag(PixelColorType.Other));
     }
 
@@ -197,6 +206,7 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Magenta));
         Assert.False(colorType.HasFlag(PixelColorType.Yellow));
         Assert.False(colorType.HasFlag(PixelColorType.Key));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
         Assert.False(colorType.HasFlag(PixelColorType.Other));
     }
 
@@ -212,6 +222,7 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Luminance));
         Assert.False(colorType.HasFlag(PixelColorType.ChrominanceBlue));
         Assert.False(colorType.HasFlag(PixelColorType.ChrominanceRed));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
         Assert.False(colorType.HasFlag(PixelColorType.Other));
     }
 
@@ -227,6 +238,31 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Cyan));
         Assert.False(colorType.HasFlag(PixelColorType.Magenta));
         Assert.False(colorType.HasFlag(PixelColorType.Yellow));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
+        Assert.False(colorType.HasFlag(PixelColorType.Other));
+    }
+
+    [Fact]
+    public void PixelColorType_Indexed_ShouldNotContainOtherFlags()
+    {
+        const PixelColorType colorType = PixelColorType.Indexed;
+        Assert.False(colorType.HasFlag(PixelColorType.Red));
+        Assert.False(colorType.HasFlag(PixelColorType.Green));
+        Assert.False(colorType.HasFlag(PixelColorType.Blue));
+        Assert.False(colorType.HasFlag(PixelColorType.Alpha));
+        Assert.False(colorType.HasFlag(PixelColorType.Grayscale));
+        Assert.False(colorType.HasFlag(PixelColorType.RGB));
+        Assert.False(colorType.HasFlag(PixelColorType.BGR));
+        Assert.False(colorType.HasFlag(PixelColorType.Luminance));
+        Assert.False(colorType.HasFlag(PixelColorType.ChrominanceBlue));
+        Assert.False(colorType.HasFlag(PixelColorType.ChrominanceRed));
+        Assert.False(colorType.HasFlag(PixelColorType.YCbCr));
+        Assert.False(colorType.HasFlag(PixelColorType.Cyan));
+        Assert.False(colorType.HasFlag(PixelColorType.Magenta));
+        Assert.False(colorType.HasFlag(PixelColorType.Yellow));
+        Assert.False(colorType.HasFlag(PixelColorType.Key));
+        Assert.False(colorType.HasFlag(PixelColorType.CMYK));
+        Assert.False(colorType.HasFlag(PixelColorType.YCCK));
         Assert.False(colorType.HasFlag(PixelColorType.Other));
     }
 
@@ -251,5 +287,6 @@ public class PixelColorTypeTests
         Assert.False(colorType.HasFlag(PixelColorType.Key));
         Assert.False(colorType.HasFlag(PixelColorType.CMYK));
         Assert.False(colorType.HasFlag(PixelColorType.YCCK));
+        Assert.False(colorType.HasFlag(PixelColorType.Indexed));
     }
 }

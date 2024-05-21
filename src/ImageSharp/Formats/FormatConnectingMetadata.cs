@@ -34,7 +34,7 @@ public class FormatConnectingMetadata
     /// <remarks>
     /// Defaults to <see cref="FrameColorTableMode.Global"/>.
     /// </remarks>
-    public FrameColorTableMode ColorTableMode { get; init; }
+    public FrameColorTableMode ColorTableMode { get; init; } = FrameColorTableMode.Global;
 
     /// <summary>
     /// Gets the default background color of the canvas when animating.

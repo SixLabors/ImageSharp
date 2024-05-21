@@ -41,6 +41,17 @@ public readonly struct PixelComponentInfo
     /// <exception cref="ArgumentOutOfRangeException">The component precision and index cannot exceed the component range.</exception>
     public static PixelComponentInfo Create<TPixel>(int count, params int[] precision)
         where TPixel : unmanaged, IPixel<TPixel>
+        => Create(count, Unsafe.SizeOf<TPixel>() * 8, precision);
+
+    /// <summary>
+    /// Creates a new <see cref="PixelComponentInfo"/> instance.
+    /// </summary>
+    /// <param name="count">The number of components within the pixel format.</param>
+    /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+    /// <param name="precision">The precision in bits of each component.</param>
+    /// <returns>The <see cref="PixelComponentInfo"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The component precision and index cannot exceed the component range.</exception>
+    public static PixelComponentInfo Create(int count, int bitsPerPixel, params int[] precision)
     {
         if (precision.Length != count || precision.Length > 16)
         {
@@ -70,7 +81,7 @@ public readonly struct PixelComponentInfo
             sum += p;
         }
 
-        return new PixelComponentInfo(count, (Unsafe.SizeOf<TPixel>() * 8) - sum, precisionData1, precisionData2);
+        return new PixelComponentInfo(count, bitsPerPixel - sum, precisionData1, precisionData2);
     }
 
     /// <summary>

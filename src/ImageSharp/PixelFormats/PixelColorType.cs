@@ -100,7 +100,12 @@ public enum PixelColorType
     YCCK = Luminance | ChrominanceBlue | ChrominanceRed | Key,
 
     /// <summary>
+    /// Indicates that the color is indexed using a palette.
+    /// </summary>
+    Indexed = 1 << 14,
+
+    /// <summary>
     /// Indicates that the color is of a type not specified in this enum.
     /// </summary>
-    Other = 1 << 14
+    Other = 1 << 15
 }

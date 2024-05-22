@@ -252,15 +252,14 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
 
         // Use transposed Rows/Columns
-        // TODO: Is there a built in method for this multiplication?
         return new Matrix4x4
         {
             M11 = vector.X * mXr,
             M21 = vector.Y * mXg,
             M31 = vector.Z * mXb,
-            M12 = vector.X * 1,
-            M22 = vector.Y * 1,
-            M32 = vector.Z * 1,
+            M12 = vector.X,
+            M22 = vector.Y,
+            M32 = vector.Z,
             M13 = vector.X * mZr,
             M23 = vector.Y * mZg,
             M33 = vector.Z * mZb,

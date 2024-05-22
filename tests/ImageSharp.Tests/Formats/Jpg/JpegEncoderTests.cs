@@ -14,13 +14,6 @@ public partial class JpegEncoderTests
 {
     private static JpegEncoder JpegEncoder => new();
 
-    private static readonly TheoryData<int> TestQualities = new()
-    {
-        40,
-        80,
-        100,
-    };
-
     public static readonly TheoryData<JpegEncodingColor, int, float> NonSubsampledEncodingSetups = new()
     {
         { JpegEncodingColor.Rgb, 100, 0.0238f / 100 },
@@ -158,6 +151,31 @@ public partial class JpegEncoderTests
 
         provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
         TestJpegEncoderCore(provider, colorType, 100, comparer);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(NonSubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(SubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
+    [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
+    public void EncodeProgressive_DefaultNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        JpegEncoder encoder = new()
+        {
+            Quality = quality,
+            ColorType = colorType,
+            Progressive = true
+        };
+        string info = $"{colorType}-Q{quality}";
+
+        ImageComparer comparer = new TolerantImageComparer(tolerance);
+
+        // Does DebugSave & load reference CompareToReferenceInput():
+        image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
     }
 
     [Theory]

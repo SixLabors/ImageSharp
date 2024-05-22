@@ -263,7 +263,6 @@ internal class HuffmanScanEncoder
                     ref Unsafe.Add(ref blockRef, k),
                     ref dcHuffmanTable);
 
-
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
@@ -492,6 +491,7 @@ internal class HuffmanScanEncoder
             }
         }
 
+        // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
         if (runLength > 0)
         {
             this.EmitHuff(acHuffTable, 0x00);
@@ -505,44 +505,7 @@ internal class HuffmanScanEncoder
         ref HuffmanLut acTable)
     {
         this.WriteDc(component, ref block, ref dcTable);
-
-        // Emit the AC components.
-        int[] acHuffTable = acTable.Values;
-
-        nint lastValuableIndex = block.GetLastNonZeroIndex();
-
-        int runLength = 0;
-        ref short blockRef = ref Unsafe.As<Block8x8, short>(ref block);
-        for (nint zig = 1; zig <= lastValuableIndex; zig++)
-        {
-            const int zeroRun1 = 1 << 4;
-            const int zeroRun16 = 16 << 4;
-
-            int ac = Unsafe.Add(ref blockRef, zig);
-            if (ac == 0)
-            {
-                runLength += zeroRun1;
-            }
-            else
-            {
-                while (runLength >= zeroRun16)
-                {
-                    this.EmitHuff(acHuffTable, 0xf0);
-                    runLength -= zeroRun16;
-                }
-
-                this.EmitHuffRLE(acHuffTable, runLength, ac);
-                runLength = 0;
-            }
-        }
-
-        // if mcu block contains trailing zeros - we must write end of block (EOB) value indicating that current block is over
-        // this can be done for any number of trailing zeros, even when all 63 ac values are zero
-        // (Block8x8F.Size - 1) == 63 - last index of the mcu elements
-        if (lastValuableIndex != Block8x8F.Size - 1)
-        {
-            this.EmitHuff(acHuffTable, 0x00);
-        }
+        this.WriteAcBlock(ref block, 1, 64, ref acTable);
     }
 
     /// <summary>

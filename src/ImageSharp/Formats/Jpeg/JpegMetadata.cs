@@ -2,18 +2,19 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
 /// <summary>
 /// Provides Jpeg specific metadata information for the image.
 /// </summary>
-public class JpegMetadata : IDeepCloneable
+public class JpegMetadata : IFormatMetadata<JpegMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
     /// </summary>
-    public JpegMetadata() => this.Comments = new List<JpegComData>();
+    public JpegMetadata() => this.Comments = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
@@ -99,5 +100,94 @@ public class JpegMetadata : IDeepCloneable
     public IList<JpegComData> Comments { get; }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new JpegMetadata(this);
+    public static JpegMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        JpegEncodingColor color;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.YCbCr;
+        switch (colorType)
+        {
+            case PixelColorType.Luminance:
+                color = JpegEncodingColor.Luminance;
+                break;
+            case PixelColorType.CMYK:
+                color = JpegEncodingColor.Cmyk;
+                break;
+            case PixelColorType.YCCK:
+                color = JpegEncodingColor.Ycck;
+                break;
+            default:
+                if (colorType.HasFlag(PixelColorType.RGB) || colorType.HasFlag(PixelColorType.BGR))
+                {
+                    color = JpegEncodingColor.Rgb;
+                }
+                else
+                {
+                    color = metadata.Quality <= Quantization.DefaultQualityFactor
+                        ? JpegEncodingColor.YCbCrRatio420
+                        : JpegEncodingColor.YCbCrRatio444;
+                }
+
+                break;
+        }
+
+        return new JpegMetadata
+        {
+            ColorType = color,
+            ChrominanceQuality = metadata.Quality,
+            LuminanceQuality = metadata.Quality,
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    {
+        int bpp;
+        PixelColorType colorType;
+        PixelComponentInfo info;
+        switch (this.ColorType)
+        {
+            case JpegEncodingColor.Luminance:
+                bpp = 8;
+                colorType = PixelColorType.Luminance;
+                info = PixelComponentInfo.Create(1, bpp, 8);
+                break;
+            case JpegEncodingColor.Cmyk:
+                bpp = 32;
+                colorType = PixelColorType.CMYK;
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                break;
+            case JpegEncodingColor.Ycck:
+                bpp = 32;
+                colorType = PixelColorType.YCCK;
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                break;
+            case JpegEncodingColor.Rgb:
+                bpp = 24;
+                colorType = PixelColorType.RGB;
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                break;
+            default:
+                bpp = 24;
+                colorType = PixelColorType.YCbCr;
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                break;
+        }
+
+        return new FormatConnectingMetadata
+        {
+            PixelTypeInfo = new PixelTypeInfo(bpp)
+            {
+                AlphaRepresentation = PixelAlphaRepresentation.None,
+                ColorType = colorType,
+                ComponentInfo = info,
+            },
+            Quality = this.Quality,
+        };
+    }
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public JpegMetadata DeepClone() => new(this);
 }

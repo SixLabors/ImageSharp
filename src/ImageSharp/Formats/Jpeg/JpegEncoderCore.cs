@@ -108,14 +108,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         // Write scans with actual pixel data
         using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
-        if (this.encoder.Progressive)
-        {
-            this.WriteProgressiveScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
-        }
-        else
-        {
-            this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
-        }
+        this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
 
         // Write the End Of Image marker.
         this.WriteEndOfImageMarker(buffer);
@@ -690,7 +683,14 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (frame.Components.Length == 1)
+        if (this.encoder.Progressive)
+        {
+            frame.AllocateComponents(fullScan: true);
+            spectralConverter.ConvertFull();
+
+            this.WriteProgressiveScans<TPixel>(frame, frameConfig, encoder, buffer, cancellationToken);
+        }
+        else if (frame.Components.Length == 1)
         {
             frame.AllocateComponents(fullScan: false);
 
@@ -724,22 +724,17 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="frame">The current frame.</param>
     /// <param name="frameConfig">The frame configuration.</param>
-    /// <param name="spectralConverter">The spectral converter.</param>
     /// <param name="encoder">The scan encoder.</param>
     /// <param name="buffer">Temporary buffer.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void WriteProgressiveScans<TPixel>(
         JpegFrame frame,
         JpegFrameConfig frameConfig,
-        SpectralConverter<TPixel> spectralConverter,
         HuffmanScanEncoder encoder,
         Span<byte> buffer,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        frame.AllocateComponents(fullScan: true);
-        spectralConverter.ConvertFull();
-
         Span<JpegComponentConfig> components = frameConfig.Components;
 
         // Phase 1: DC scan

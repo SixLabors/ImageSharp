@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents an CIE XYZ 1931 color
 /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
 {
     /// <summary>
@@ -87,20 +89,6 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     public Vector3 ToVector3() => new(this.X, this.Y, this.Z);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.X, this.Y, this.Z);
-
-    /// <inheritdoc/>
-    public override string ToString() => FormattableString.Invariant($"CieXyz({this.X:#0.##}, {this.Y:#0.##}, {this.Z:#0.##})");
-
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is CieXyz other && this.Equals(other);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(CieXyz other)
-        => new Vector3(this.X, this.Y, this.Z) == new Vector3(other.X, other.Y, other.Z);
-
-    /// <inheritdoc/>
     public static CieXyz FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
         => new(source.X, source.Y, source.Z);
 
@@ -124,4 +112,20 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
 
     /// <inheritdoc/>
     public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(this.X, this.Y, this.Z);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"CieXyz({this.X:#0.##}, {this.Y:#0.##}, {this.Z:#0.##})");
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is CieXyz other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(CieXyz other)
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieXyz, Vector3>(ref Unsafe.AsRef(in this));
 }

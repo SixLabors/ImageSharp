@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents an Hunter LAB color.
 /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
 {
     /// <summary>
@@ -170,7 +172,9 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(HunterLab other)
-        => new Vector3(this.L, this.A, this.B) == new Vector3(other.L, other.A, other.B);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<HunterLab, Vector3>(ref Unsafe.AsRef(in this));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float ComputeKa(in CieXyz whitePoint)

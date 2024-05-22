@@ -3,12 +3,14 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
 {
     private static readonly Vector4 Min = Vector4.Zero;
@@ -157,5 +159,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Cmyk other)
-        => new Vector4(this.C, this.M, this.Y, this.K) == new Vector4(other.C, other.M, other.Y, other.K);
+        => this.AsVector4Unsafe() == other.AsVector4Unsafe();
+
+    private Vector4 AsVector4Unsafe() => Unsafe.As<Cmyk, Vector4>(ref Unsafe.AsRef(in this));
 }

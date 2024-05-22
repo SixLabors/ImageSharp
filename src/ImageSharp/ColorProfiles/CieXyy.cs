@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents an CIE xyY 1931 color
 /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#CIE_xy_chromaticity_diagram_and_the_CIE_xyY_color_space"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
 {
     /// <summary>
@@ -150,5 +152,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieXyy other)
-        => new Vector3(this.X, this.Y, this.Yl) == new Vector3(other.X, other.Y, other.Yl);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieXyy, Vector3>(ref Unsafe.AsRef(in this));
 }

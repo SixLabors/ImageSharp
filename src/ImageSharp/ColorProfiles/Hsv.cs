@@ -3,12 +3,14 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 {
     private static readonly Vector3 Min = Vector3.Zero;
@@ -223,5 +225,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Hsv other)
-        => new Vector3(this.H, this.S, this.V) == new Vector3(other.H, other.S, other.V);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<Hsv, Vector3>(ref Unsafe.AsRef(in this));
 }

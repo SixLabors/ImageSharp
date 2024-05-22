@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
 /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieLch : IColorProfile<CieLch, CieLab>
 {
     private static readonly Vector3 Min = new(0, -200, 0);
@@ -81,22 +83,6 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     public static bool operator !=(CieLch left, CieLch right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public override int GetHashCode()
-        => HashCode.Combine(this.L, this.C, this.H);
-
-    /// <inheritdoc/>
-    public override string ToString() => FormattableString.Invariant($"CieLch({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})");
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj) => obj is CieLch other && this.Equals(other);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(CieLch other)
-        => new Vector3(this.L, this.C, this.H) == new Vector3(other.L, other.C, other.H);
-
-    /// <inheritdoc/>
     public static CieLch FromProfileConnectingSpace(ColorConversionOptions options, in CieLab source)
     {
         // Conversion algorithm described here:
@@ -159,4 +145,22 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// <inheritdoc/>
     public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource()
         => ChromaticAdaptionWhitePointSource.WhitePoint;
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(this.L, this.C, this.H);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"CieLch({this.L:#0.##}, {this.C:#0.##}, {this.H:#0.##})");
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override bool Equals(object? obj) => obj is CieLch other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(CieLch other)
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieLch, Vector3>(ref Unsafe.AsRef(in this));
 }

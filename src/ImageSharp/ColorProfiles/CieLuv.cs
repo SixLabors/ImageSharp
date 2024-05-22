@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -12,6 +13,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// attempted perceptual uniformity
 /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
 {
     /// <summary>
@@ -205,7 +207,9 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieLuv other)
-        => new Vector3(this.L, this.U, this.V) == new Vector3(other.L, other.U, other.V);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieLuv, Vector3>(ref Unsafe.AsRef(in this));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double ComputeU(in CieXyz source)

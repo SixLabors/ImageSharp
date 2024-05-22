@@ -3,10 +3,17 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
-internal readonly struct Lms : IColorProfile<Lms, CieXyz>
+/// <summary>
+/// LMS is a color space represented by the response of the three types of cones of the human eye,
+/// named after their responsivity (sensitivity) at long, medium and short wavelengths.
+/// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct Lms : IColorProfile<Lms, CieXyz>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="Lms"/> struct.
@@ -83,20 +90,6 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
     public Vector3 ToVector3() => new(this.L, this.M, this.S);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.L, this.M, this.S);
-
-    /// <inheritdoc/>
-    public override string ToString() => FormattableString.Invariant($"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})");
-
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is Lms other && this.Equals(other);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Lms other)
-        => new Vector3(this.L, this.M, this.S) == new Vector3(other.L, other.M, other.S);
-
-    /// <inheritdoc/>
     public static Lms FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
         Vector3 vector = Vector3.Transform(source.ToVector3(), options.AdaptationMatrix);
@@ -136,4 +129,20 @@ internal readonly struct Lms : IColorProfile<Lms, CieXyz>
 
     /// <inheritdoc/>
     public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.WhitePoint;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(this.L, this.M, this.S);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"Lms({this.L:#0.##}, {this.M:#0.##}, {this.S:#0.##})");
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is Lms other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(Lms other)
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<Lms, Vector3>(ref Unsafe.AsRef(in this));
 }

@@ -3,12 +3,14 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// Represents a Hsl (hue, saturation, lightness) color.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Hsl : IColorProfile<Hsl, Rgb>
 {
     private static readonly Vector3 Min = Vector3.Zero;
@@ -200,7 +202,9 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Hsl other)
-        => new Vector3(this.H, this.S, this.L) == new Vector3(other.H, other.S, other.L);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<Hsl, Vector3>(ref Unsafe.AsRef(in this));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float GetColorComponent(float first, float second, float third)

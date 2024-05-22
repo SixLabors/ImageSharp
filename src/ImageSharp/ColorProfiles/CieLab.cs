@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents a CIE L*a*b* 1976 color.
 /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
 {
     /// <summary>
@@ -79,20 +81,6 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieLab left, CieLab right) => !left.Equals(right);
-
-    /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B);
-
-    /// <inheritdoc/>
-    public override string ToString() => FormattableString.Invariant($"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");
-
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is CieLab other && this.Equals(other);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(CieLab other)
-        => new Vector3(this.L, this.A, this.B) == new Vector3(other.L, other.A, other.B);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -171,4 +159,20 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// <inheritdoc/>
     public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource()
         => ChromaticAdaptionWhitePointSource.WhitePoint;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(this.L, this.A, this.B);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"CieLab({this.L:#0.##}, {this.A:#0.##}, {this.B:#0.##})");
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is CieLab other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(CieLab other)
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieLab, Vector3>(ref Unsafe.AsRef(in this));
 }

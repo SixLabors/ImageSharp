@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// Represents the CIE L*C*h°, cylindrical form of the CIE L*u*v* 1976 color.
 /// <see href="https://en.wikipedia.org/wiki/CIELAB_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
 {
     private static readonly Vector3 Min = new(0, -200, 0);
@@ -159,25 +161,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(CieLchuv other)
-        => new Vector3(this.L, this.C, this.H) == new Vector3(other.L, other.C, other.H);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
-    /// <summary>
-    /// Computes the saturation of the color (chroma normalized by lightness)
-    /// </summary>
-    /// <remarks>
-    /// A value ranging from 0 to 100.
-    /// </remarks>
-    /// <returns>The <see cref="float"/></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float Saturation()
-    {
-        float result = 100 * (this.C / this.L);
-
-        if (float.IsNaN(result))
-        {
-            return 0;
-        }
-
-        return result;
-    }
+    private Vector3 AsVector3Unsafe() => Unsafe.As<CieLchuv, Vector3>(ref Unsafe.AsRef(in this));
 }

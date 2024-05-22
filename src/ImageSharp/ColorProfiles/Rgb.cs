@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -10,6 +11,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// <summary>
 /// Represents an RGB (red, green, blue) color profile.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 {
     /// <summary>
@@ -78,20 +80,6 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgb left, Rgb right) => !left.Equals(right);
-
-    /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
-
-    /// <inheritdoc/>
-    public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
-
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is Rgb other && this.Equals(other);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Rgb other)
-        => new Vector3(this.R, this.G, this.B) == new Vector3(other.R, other.G, other.B);
 
     /// <inheritdoc/>
     public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
@@ -200,6 +188,22 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <returns>The <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 ToScaledVector4() => new(this.ToScaledVector3(), 1f);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+
+    /// <inheritdoc/>
+    public override string ToString() => FormattableString.Invariant($"Rgb({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##})");
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is Rgb other && this.Equals(other);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(Rgb other)
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
 
     private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
     {

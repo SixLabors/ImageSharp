@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -11,6 +12,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
 /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 {
     private static readonly Vector3 Min = Vector3.Zero;
@@ -152,5 +154,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(YCbCr other)
-        => new Vector3(this.Y, this.Cb, this.Cr) == new Vector3(other.Y, other.Cb, other.Cr);
+        => this.AsVector3Unsafe() == other.AsVector3Unsafe();
+
+    private Vector3 AsVector3Unsafe() => Unsafe.As<YCbCr, Vector3>(ref Unsafe.AsRef(in this));
 }

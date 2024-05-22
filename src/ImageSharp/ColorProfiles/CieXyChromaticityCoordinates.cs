@@ -3,13 +3,14 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
-// ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// Represents the coordinates of CIEXY chromaticity space.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>
 {
     /// <summary>
@@ -80,5 +81,7 @@ public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromatici
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool Equals(CieXyChromaticityCoordinates other)
-        => new Vector2(this.X, this.Y) == new Vector2(other.X, other.Y);
+        => this.AsVector2Unsafe() == other.AsVector2Unsafe();
+
+    private Vector2 AsVector2Unsafe() => Unsafe.As<CieXyChromaticityCoordinates, Vector2>(ref Unsafe.AsRef(in this));
 }

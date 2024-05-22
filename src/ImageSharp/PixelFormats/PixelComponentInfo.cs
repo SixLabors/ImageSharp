@@ -53,7 +53,7 @@ public readonly struct PixelComponentInfo
     /// <exception cref="ArgumentOutOfRangeException">The component precision and index cannot exceed the component range.</exception>
     public static PixelComponentInfo Create(int count, int bitsPerPixel, params int[] precision)
     {
-        if (precision.Length != count || precision.Length > 16)
+        if (precision.Length < count || precision.Length > 16)
         {
             throw new ArgumentOutOfRangeException(nameof(count), $"Count {count} must match the length of precision array and cannot exceed 16.");
         }

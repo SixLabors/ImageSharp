@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Provides Gif specific metadata information for the image.
 /// </summary>
-public class GifMetadata : IDeepCloneable
+public class GifMetadata : IFormatMetadata<GifMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GifMetadata"/> class.
@@ -49,7 +49,7 @@ public class GifMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the color table mode.
     /// </summary>
-    public GifColorTableMode ColorTableMode { get; set; }
+    public FrameColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
     /// Gets or sets the global color table, if any.
@@ -68,9 +68,6 @@ public class GifMetadata : IDeepCloneable
     /// other type of non-control and non-graphic data.
     /// </summary>
     public IList<string> Comments { get; set; } = [];
-
-    /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new GifMetadata(this);
 
     internal static GifMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
     {
@@ -92,9 +89,64 @@ public class GifMetadata : IDeepCloneable
         return new()
         {
             GlobalColorTable = metadata.ColorTable,
-            ColorTableMode = metadata.ColorTableMode == FrameColorTableMode.Global ? GifColorTableMode.Global : GifColorTableMode.Local,
+            ColorTableMode = metadata.ColorTableMode,
             RepeatCount = metadata.RepeatCount,
             BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
         };
     }
+
+    /// <inheritdoc/>
+    public static GifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        int index = 0;
+        Color background = metadata.BackgroundColor;
+        if (metadata.ColorTable.HasValue)
+        {
+            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                if (background == colorTable[i])
+                {
+                    index = i;
+                    break;
+                }
+            }
+        }
+
+        return new()
+        {
+            GlobalColorTable = metadata.ColorTable,
+            ColorTableMode = metadata.ColorTableMode,
+            RepeatCount = metadata.RepeatCount,
+            BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    {
+        Color color = this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
+            ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
+            : Color.Transparent;
+
+        return new()
+        {
+            AnimateRootFrame = true,
+            BackgroundColor = color,
+            ColorTable = this.GlobalColorTable,
+            ColorTableMode = this.ColorTableMode,
+            PixelTypeInfo = new PixelTypeInfo(24)
+            {
+                ColorType = PixelColorType.Indexed,
+                ComponentInfo = PixelComponentInfo.Create(3, 24, 8, 8, 8),
+            },
+            RepeatCount = this.RepeatCount,
+        };
+    }
+
+    /// <inheritdoc/>
+    public IDeepCloneable DeepClone() => ((IDeepCloneable<GifMetadata>)this).DeepClone();
+
+    /// <inheritdoc/>
+    GifMetadata IDeepCloneable<GifMetadata>.DeepClone() => new(this);
 }

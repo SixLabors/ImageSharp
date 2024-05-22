@@ -70,7 +70,7 @@ public static partial class MetadataExtensions
         return new()
         {
             ColorTable = source.GlobalColorTable,
-            ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
+            ColorTableMode = source.ColorTableMode,
             RepeatCount = source.RepeatCount,
             BackgroundColor = background,
         };
@@ -83,12 +83,12 @@ public static partial class MetadataExtensions
         bool blendSource = source.DisposalMethod == GifDisposalMethod.RestoreToBackground || (source.LocalColorTable?.Length == 256 && !source.HasTransparency);
 
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
-        blendSource |= source.ColorTableMode == GifColorTableMode.Global && !source.HasTransparency;
+        blendSource |= source.ColorTableMode == FrameColorTableMode.Global && !source.HasTransparency;
 
         return new()
         {
             ColorTable = source.LocalColorTable,
-            ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
+            ColorTableMode = source.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(source.FrameDelay * 10),
             DisposalMode = GetMode(source.DisposalMethod),
             BlendMode = blendSource ? FrameBlendMode.Source : FrameBlendMode.Over,

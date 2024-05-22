@@ -696,14 +696,14 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Global;
+            gifMeta.ColorTableMode = FrameColorTableMode.Global;
         }
 
         if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Local;
+            gifMeta.ColorTableMode = FrameColorTableMode.Local;
 
             Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
             ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
@@ -766,8 +766,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         this.metadata = meta;
         this.gifMetadata = meta.GetGifMetadata();
         this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
-        ? GifColorTableMode.Global
-        : GifColorTableMode.Local;
+            ? FrameColorTableMode.Global
+            : FrameColorTableMode.Local;
 
         if (this.logicalScreenDescriptor.GlobalColorTableFlag)
         {

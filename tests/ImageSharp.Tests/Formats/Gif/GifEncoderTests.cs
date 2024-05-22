@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -113,7 +114,7 @@ public class GifEncoderTests
         using Image<TPixel> image = provider.GetImage();
         GifEncoder encoder = new()
         {
-            ColorTableMode = GifColorTableMode.Global,
+            ColorTableMode = FrameColorTableMode.Global,
             Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
         };
 
@@ -122,7 +123,7 @@ public class GifEncoderTests
 
         encoder = new()
         {
-            ColorTableMode = GifColorTableMode.Local,
+            ColorTableMode = FrameColorTableMode.Local,
             Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),
         };
 
@@ -148,7 +149,7 @@ public class GifEncoderTests
 
         GifEncoder encoder = new()
         {
-            ColorTableMode = GifColorTableMode.Global,
+            ColorTableMode = FrameColorTableMode.Global,
             PixelSamplingStrategy = new DefaultPixelSamplingStrategy(maxPixels, scanRatio)
         };
 
@@ -175,10 +176,10 @@ public class GifEncoderTests
         Image<Rgba32> image = Image.Load<Rgba32>(inStream);
         GifMetadata metaData = image.Metadata.GetGifMetadata();
         GifFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetGifMetadata();
-        GifColorTableMode colorMode = metaData.ColorTableMode;
+        FrameColorTableMode colorMode = metaData.ColorTableMode;
 
         int maxColors;
-        if (colorMode == GifColorTableMode.Global)
+        if (colorMode == FrameColorTableMode.Global)
         {
             maxColors = metaData.GlobalColorTable.Value.Length;
         }
@@ -204,7 +205,7 @@ public class GifEncoderTests
 
         // Gifiddle and Cyotek GifInfo say this image has 64 colors.
         colorMode = cloneMetadata.ColorTableMode;
-        if (colorMode == GifColorTableMode.Global)
+        if (colorMode == FrameColorTableMode.Global)
         {
             maxColors = metaData.GlobalColorTable.Value.Length;
         }
@@ -220,7 +221,7 @@ public class GifEncoderTests
             GifFrameMetadata iMeta = image.Frames[i].Metadata.GetGifMetadata();
             GifFrameMetadata cMeta = clone.Frames[i].Metadata.GetGifMetadata();
 
-            if (iMeta.ColorTableMode == GifColorTableMode.Local)
+            if (iMeta.ColorTableMode == FrameColorTableMode.Local)
             {
                 Assert.Equal(iMeta.LocalColorTable.Value.Length, cMeta.LocalColorTable.Value.Length);
             }

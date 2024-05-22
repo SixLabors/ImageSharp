@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -315,7 +316,7 @@ public abstract partial class ImageFrameCollectionTests
             Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
             Assert.Equal(aData.FrameDelay, bData.FrameDelay);
 
-            if (aData.ColorTableMode == GifColorTableMode.Local && bData.ColorTableMode == GifColorTableMode.Local)
+            if (aData.ColorTableMode == FrameColorTableMode.Local && bData.ColorTableMode == FrameColorTableMode.Local)
             {
                 Assert.Equal(aData.LocalColorTable.Value.Length, bData.LocalColorTable.Value.Length);
             }

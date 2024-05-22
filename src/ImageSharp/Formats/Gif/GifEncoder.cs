@@ -11,7 +11,7 @@ public sealed class GifEncoder : QuantizingImageEncoder
     /// <summary>
     /// Gets the color table mode: Global or local.
     /// </summary>
-    public GifColorTableMode? ColorTableMode { get; init; }
+    public FrameColorTableMode? ColorTableMode { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

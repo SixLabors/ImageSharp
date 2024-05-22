@@ -49,7 +49,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     /// <summary>
     /// The color table mode: Global or local.
     /// </summary>
-    private GifColorTableMode? colorTableMode;
+    private FrameColorTableMode? colorTableMode;
 
     /// <summary>
     /// The pixel sampling strategy for global quantization.
@@ -87,7 +87,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         GifMetadata gifMetadata = GetGifMetadata(image);
         this.colorTableMode ??= gifMetadata.ColorTableMode;
-        bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
+        bool useGlobalTable = this.colorTableMode == FrameColorTableMode.Global;
 
         // Quantize the first image frame returning a palette.
         IndexedImageFrame<TPixel>? quantized = null;
@@ -99,7 +99,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         if (this.quantizer is null)
         {
             // Is this a gif with color information. If so use that, otherwise use octree.
-            if (gifMetadata.ColorTableMode == GifColorTableMode.Global && gifMetadata.GlobalColorTable?.Length > 0)
+            if (gifMetadata.ColorTableMode == FrameColorTableMode.Global && gifMetadata.GlobalColorTable?.Length > 0)
             {
                 // We avoid dithering by default to preserve the original colors.
                 int transparencyIndex = GetTransparentIndex(quantized, frameMetadata);
@@ -221,7 +221,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
         }
 
-        if (metadata?.ColorTableMode == GifColorTableMode.Global && transparencyIndex > -1)
+        if (metadata?.ColorTableMode == FrameColorTableMode.Global && transparencyIndex > -1)
         {
             metadata.HasTransparency = true;
             metadata.TransparencyIndex = ClampIndex(transparencyIndex);
@@ -258,7 +258,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
             ImageFrame<TPixel> currentFrame = image.Frames[i];
             ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
             GifFrameMetadata gifMetadata = GetGifFrameMetadata(currentFrame, globalTransparencyIndex);
-            bool useLocal = this.colorTableMode == GifColorTableMode.Local || (gifMetadata.ColorTableMode == GifColorTableMode.Local);
+            bool useLocal = this.colorTableMode == FrameColorTableMode.Local || (gifMetadata.ColorTableMode == FrameColorTableMode.Local);
 
             if (!useLocal && !hasPaletteQuantizer && i > 0)
             {
@@ -301,7 +301,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
 
         Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
         Rectangle interest = indices.FullRectangle();
-        bool useLocal = this.colorTableMode == GifColorTableMode.Local || (metadata.ColorTableMode == GifColorTableMode.Local);
+        bool useLocal = this.colorTableMode == FrameColorTableMode.Local || (metadata.ColorTableMode == FrameColorTableMode.Local);
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
         this.WriteImageDescriptor(interest, useLocal, bitDepth, stream);

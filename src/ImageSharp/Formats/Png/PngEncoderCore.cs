@@ -1680,14 +1680,14 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             return info.ColorType switch
             {
-                PixelColorType.Grayscale => PngColorType.Grayscale,
+                PixelColorType.Luminance => PngColorType.Grayscale,
                 _ => PngColorType.Rgb,
             };
         }
 
         return info.ColorType switch
         {
-            PixelColorType.Grayscale | PixelColorType.Alpha or PixelColorType.Alpha => PngColorType.GrayscaleWithAlpha,
+            PixelColorType.Luminance | PixelColorType.Alpha or PixelColorType.Alpha => PngColorType.GrayscaleWithAlpha,
             _ => PngColorType.RgbWithAlpha,
         };
     }

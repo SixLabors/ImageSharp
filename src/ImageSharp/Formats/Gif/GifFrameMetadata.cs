@@ -40,7 +40,7 @@ public class GifFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the color table mode.
     /// </summary>
-    public GifColorTableMode ColorTableMode { get; set; }
+    public FrameColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
     /// Gets or sets the local color table, if any.
@@ -101,7 +101,7 @@ public class GifFrameMetadata : IDeepCloneable
         return new()
         {
             LocalColorTable = metadata.ColorTable,
-            ColorTableMode = metadata.ColorTableMode == FrameColorTableMode.Global ? GifColorTableMode.Global : GifColorTableMode.Local,
+            ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
             DisposalMethod = GetMode(metadata.DisposalMode),
             HasTransparency = hasTransparency,

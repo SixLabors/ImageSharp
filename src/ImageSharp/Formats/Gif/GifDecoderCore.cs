@@ -517,7 +517,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
         else
         {
-            if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToPrevious)
+            if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
             {
                 prevFrame = previousFrame;
             }
@@ -624,7 +624,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-        if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToBackground)
+        if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToBackground)
         {
             this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
         }

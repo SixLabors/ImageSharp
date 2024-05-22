@@ -183,14 +183,14 @@ public class GifMetadataTests
     }
 
     [Theory]
-    [InlineData(TestImages.Gif.Cheers, 93, FrameColorTableMode.Global, 256, 4, GifDisposalMethod.NotDispose)]
+    [InlineData(TestImages.Gif.Cheers, 93, FrameColorTableMode.Global, 256, 4, FrameDisposalMode.DoNotDispose)]
     public void Identify_Frames(
         string imagePath,
         int framesCount,
         FrameColorTableMode colorTableMode,
         int globalColorTableLength,
         int frameDelay,
-        GifDisposalMethod disposalMethod)
+        FrameDisposalMode disposalMethod)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);

@@ -521,14 +521,14 @@ public partial class PngEncoderTests
 
             switch (gifF.DisposalMethod)
             {
-                case GifDisposalMethod.RestoreToBackground:
+                case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
                     break;
-                case GifDisposalMethod.RestoreToPrevious:
+                case FrameDisposalMode.RestoreToPrevious:
                     Assert.Equal(PngDisposalMethod.RestoreToPrevious, pngF.DisposalMethod);
                     break;
-                case GifDisposalMethod.Unspecified:
-                case GifDisposalMethod.NotDispose:
+                case FrameDisposalMode.Unspecified:
+                case FrameDisposalMode.DoNotDispose:
                 default:
                     Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
                     break;

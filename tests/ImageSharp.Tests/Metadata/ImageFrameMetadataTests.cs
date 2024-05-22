@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -21,7 +22,7 @@ public class ImageFrameMetadataTests
     {
         const int frameDelay = 42;
         const int colorTableLength = 128;
-        const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
+        const FrameDisposalMode disposalMethod = FrameDisposalMode.RestoreToBackground;
 
         ImageFrameMetadata metaData = new();
         GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();

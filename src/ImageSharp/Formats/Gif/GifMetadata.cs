@@ -145,8 +145,8 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => ((IDeepCloneable<GifMetadata>)this).DeepClone();
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
-    GifMetadata IDeepCloneable<GifMetadata>.DeepClone() => new(this);
+    public GifMetadata DeepClone() => new(this);
 }

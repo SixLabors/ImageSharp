@@ -235,7 +235,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         Image<TPixel> image,
         ReadOnlyMemory<TPixel> globalPalette,
         int globalTransparencyIndex,
-        GifDisposalMethod previousDisposalMethod)
+        FrameDisposalMode previousDisposalMode)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (image.Frames.Count == 1)
@@ -279,10 +279,10 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 useLocal,
                 gifMetadata,
                 paletteQuantizer,
-                previousDisposalMethod);
+                previousDisposalMode);
 
             previousFrame = currentFrame;
-            previousDisposalMethod = gifMetadata.DisposalMethod;
+            previousDisposalMode = gifMetadata.DisposalMethod;
         }
 
         if (hasPaletteQuantizer)
@@ -323,14 +323,14 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         bool useLocal,
         GifFrameMetadata metadata,
         PaletteQuantizer<TPixel> globalPaletteQuantizer,
-        GifDisposalMethod previousDisposal)
+        FrameDisposalMode previousDisposalMode)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Capture any explicit transparency index from the metadata.
         // We use it to determine the value to use to replace duplicate pixels.
         int transparencyIndex = metadata.HasTransparency ? metadata.TransparencyIndex : -1;
 
-        ImageFrame<TPixel>? previous = previousDisposal == GifDisposalMethod.RestoreToBackground ? null : previousFrame;
+        ImageFrame<TPixel>? previous = previousDisposalMode == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
 
         // Deduplicate and quantize the frame capturing only required parts.
         (bool difference, Rectangle bounds) =
@@ -664,7 +664,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         bool hasTransparency = metadata.HasTransparency;
 
         byte packedValue = GifGraphicControlExtension.GetPackedValue(
-            disposalMethod: metadata.DisposalMethod,
+            disposalMode: metadata.DisposalMethod,
             transparencyFlag: hasTransparency);
 
         GifGraphicControlExtension extension = new(

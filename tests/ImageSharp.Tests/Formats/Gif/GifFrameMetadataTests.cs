@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif;
@@ -14,14 +15,14 @@ public class GifFrameMetadataTests
         GifFrameMetadata meta = new()
         {
             FrameDelay = 1,
-            DisposalMethod = GifDisposalMethod.RestoreToBackground,
+            DisposalMethod = FrameDisposalMode.RestoreToBackground,
             LocalColorTable = new[] { Color.Black, Color.White }
         };
 
         GifFrameMetadata clone = (GifFrameMetadata)meta.DeepClone();
 
         clone.FrameDelay = 2;
-        clone.DisposalMethod = GifDisposalMethod.RestoreToPrevious;
+        clone.DisposalMethod = FrameDisposalMode.RestoreToPrevious;
         clone.LocalColorTable = new[] { Color.Black };
 
         Assert.False(meta.FrameDelay.Equals(clone.FrameDelay));

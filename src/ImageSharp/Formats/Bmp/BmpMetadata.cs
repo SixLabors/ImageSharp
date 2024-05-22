@@ -138,8 +138,8 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
         => new();
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => ((IDeepCloneable<BmpMetadata>)this).DeepClone();
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
-    BmpMetadata IDeepCloneable<BmpMetadata>.DeepClone() => new(this);
+    public BmpMetadata DeepClone() => new(this);
 }

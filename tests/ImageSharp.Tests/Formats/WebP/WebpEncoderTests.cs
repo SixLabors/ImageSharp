@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -96,12 +97,12 @@ public class WebpEncoderTests
 
             switch (gifF.DisposalMethod)
             {
-                case GifDisposalMethod.RestoreToBackground:
+                case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(WebpDisposalMethod.RestoreToBackground, webpF.DisposalMethod);
                     break;
-                case GifDisposalMethod.RestoreToPrevious:
-                case GifDisposalMethod.Unspecified:
-                case GifDisposalMethod.NotDispose:
+                case FrameDisposalMode.RestoreToPrevious:
+                case FrameDisposalMode.Unspecified:
+                case FrameDisposalMode.DoNotDispose:
                 default:
                     Assert.Equal(WebpDisposalMethod.DoNotDispose, webpF.DisposalMethod);
                     break;

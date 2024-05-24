@@ -313,7 +313,7 @@ public abstract partial class ImageFrameCollectionTests
             GifFrameMetadata aData = a.Metadata.GetGifMetadata();
             GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 
-            Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
+            Assert.Equal(aData.DisposalMode, bData.DisposalMode);
             Assert.Equal(aData.FrameDelay, bData.FrameDelay);
 
             if (aData.ColorTableMode == FrameColorTableMode.Local && bData.ColorTableMode == FrameColorTableMode.Local)

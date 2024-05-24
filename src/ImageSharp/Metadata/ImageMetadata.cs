@@ -33,7 +33,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// </summary>
     public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
-    private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
+    private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = [];
     private double horizontalResolution;
     private double verticalResolution;
 

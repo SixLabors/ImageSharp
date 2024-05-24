@@ -246,7 +246,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 cancellationToken);
 
                             // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
-                            if (currentFrameControl.Value.DisposeOperation != PngDisposalMethod.RestoreToPrevious)
+                            if (currentFrameControl.Value.DisposalMode != FrameDisposalMode.RestoreToPrevious)
                             {
                                 previousFrame = currentFrame;
                                 previousFrameControl = currentFrameControl;
@@ -659,12 +659,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
         // So, if restoring to before first frame, clear entire area. Same if first frame (previousFrameControl null).
-        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
+        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToPrevious))
         {
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
             pixelRegion.Clear();
         }
-        else if (previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToBackground)
+        else if (previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToBackground)
         {
             Rectangle restoreArea = previousFrameControl.Value.Bounds;
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
@@ -794,8 +794,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int height = (int)frameControl.YMax;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -887,8 +887,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -1013,7 +1013,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
 
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1126,7 +1126,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1460,7 +1460,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         byte colorPrimaries = data[0];
         byte transferFunction = data[1];
         byte matrixCoefficients = data[2];
-        bool? fullRange = data[3] == 1 ? true : data[3] == 0 ? false : null;
+        bool? fullRange;
+        if (data[3] == 1)
+        {
+            fullRange = true;
+        }
+        else if (data[3] == 0)
+        {
+            fullRange = false;
+        }
+        else
+        {
+            fullRange = null;
+        }
+
         metadata.CicpProfile = new CicpProfile(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
     }
 
@@ -1492,7 +1505,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
         // This doesn't actually allocate.
-        ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+        ReadOnlySpan<byte> exifHeader = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
 
         if (dataLength < exifHeader.Length)
         {
@@ -1603,7 +1616,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> destUncompressedData = destBuffer.GetSpan();
             if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
             {
-                uncompressedBytesArray = Array.Empty<byte>();
+                uncompressedBytesArray = [];
                 return false;
             }
 
@@ -1612,7 +1625,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 if (memoryStreamOutput.Length > maxLength)
                 {
-                    uncompressedBytesArray = Array.Empty<byte>();
+                    uncompressedBytesArray = [];
                     return false;
                 }
 
@@ -1979,7 +1992,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         if (length == 0)
         {
-            return new BasicArrayBuffer<byte>(Array.Empty<byte>());
+            return new BasicArrayBuffer<byte>([]);
         }
 
         // We rent the buffer here to return it afterwards in Decode()

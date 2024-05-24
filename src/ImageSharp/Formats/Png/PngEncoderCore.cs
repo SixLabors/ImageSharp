@@ -212,7 +212,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             // Write the first animated frame.
             currentFrame = image.Frames[currentFrameIndex];
             PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
-            PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+            FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
             uint sequenceNumber = 1;
             if (pngMetadata.AnimateRootFrame)
@@ -237,12 +237,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
             for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
-                ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
+                ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                 currentFrame = image.Frames[currentFrameIndex];
                 ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
                 frameMetadata = GetPngFrameMetadata(currentFrame);
-                bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
+                bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
 
                 (bool difference, Rectangle bounds) =
                     AnimationUtilities.DeDuplicatePixels(
@@ -268,7 +268,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
 
                 previousFrame = currentFrame;
-                previousDisposal = frameMetadata.DisposalMethod;
+                previousDisposal = frameMetadata.DisposalMode;
             }
         }
 
@@ -293,7 +293,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
         {
-            return (PngMetadata)png.DeepClone();
+            return png.DeepClone();
         }
 
         if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
@@ -317,7 +317,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
         {
-            return (PngFrameMetadata)png.DeepClone();
+            return png.DeepClone();
         }
 
         if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
@@ -881,6 +881,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// </summary>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="metaData">The image meta data.</param>
+    /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
         if (metaData.CicpProfile is null)
@@ -1125,8 +1126,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             yOffset: (uint)bounds.Top,
             delayNumerator: (ushort)frameMetadata.FrameDelay.Numerator,
             delayDenominator: (ushort)frameMetadata.FrameDelay.Denominator,
-            disposeOperation: frameMetadata.DisposalMethod,
-            blendOperation: frameMetadata.BlendMethod);
+            disposalMode: frameMetadata.DisposalMode,
+            blendMode: frameMetadata.BlendMode);
 
         fcTL.WriteTo(this.chunkDataBuffer.Span);
 

@@ -171,7 +171,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         // Capture the global palette for reuse on subsequent frames and cleanup the quantized frame.
         TPixel[] globalPalette = image.Frames.Count == 1 ? [] : quantized.Palette.ToArray();
 
-        this.EncodeAdditionalFrames(stream, image, globalPalette, derivedTransparencyIndex, frameMetadata.DisposalMethod);
+        this.EncodeAdditionalFrames(stream, image, globalPalette, derivedTransparencyIndex, frameMetadata.DisposalMode);
 
         stream.WriteByte(GifConstants.EndIntroducer);
 
@@ -183,7 +183,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
     {
         if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
         {
-            return (GifMetadata)gif.DeepClone();
+            return gif.DeepClone();
         }
 
         if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
@@ -208,7 +208,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         GifFrameMetadata? metadata = null;
         if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
         {
-            metadata = (GifFrameMetadata)gif.DeepClone();
+            metadata = gif.DeepClone();
         }
         else if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
         {
@@ -282,7 +282,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
                 previousDisposalMode);
 
             previousFrame = currentFrame;
-            previousDisposalMode = gifMetadata.DisposalMethod;
+            previousDisposalMode = gifMetadata.DisposalMode;
         }
 
         if (hasPaletteQuantizer)
@@ -664,7 +664,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         bool hasTransparency = metadata.HasTransparency;
 
         byte packedValue = GifGraphicControlExtension.GetPackedValue(
-            disposalMode: metadata.DisposalMethod,
+            disposalMode: metadata.DisposalMode,
             transparencyFlag: hasTransparency);
 
         GifGraphicControlExtension extension = new(

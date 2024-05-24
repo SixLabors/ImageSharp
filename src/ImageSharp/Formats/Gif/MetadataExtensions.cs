@@ -80,7 +80,7 @@ public static partial class MetadataExtensions
     {
         // For most scenarios we would consider the blend method to be 'Over' however if a frame has a disposal method of 'RestoreToBackground' or
         // has a local palette with 256 colors and is not transparent we should use 'Source'.
-        bool blendSource = source.DisposalMethod == FrameDisposalMode.RestoreToBackground || (source.LocalColorTable?.Length == 256 && !source.HasTransparency);
+        bool blendSource = source.DisposalMode == FrameDisposalMode.RestoreToBackground || (source.LocalColorTable?.Length == 256 && !source.HasTransparency);
 
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
         blendSource |= source.ColorTableMode == FrameColorTableMode.Global && !source.HasTransparency;
@@ -90,7 +90,7 @@ public static partial class MetadataExtensions
             ColorTable = source.LocalColorTable,
             ColorTableMode = source.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(source.FrameDelay * 10),
-            DisposalMode = source.DisposalMethod,
+            DisposalMode = source.DisposalMode,
             BlendMode = blendSource ? FrameBlendMode.Source : FrameBlendMode.Over,
         };
     }

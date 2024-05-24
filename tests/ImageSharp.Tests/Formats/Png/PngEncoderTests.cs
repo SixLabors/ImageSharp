@@ -479,8 +479,8 @@ public partial class PngEncoderTests
             PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngMetadata();
 
             Assert.Equal(originalFrameMetadata.FrameDelay, outputFrameMetadata.FrameDelay);
-            Assert.Equal(originalFrameMetadata.BlendMethod, outputFrameMetadata.BlendMethod);
-            Assert.Equal(originalFrameMetadata.DisposalMethod, outputFrameMetadata.DisposalMethod);
+            Assert.Equal(originalFrameMetadata.BlendMode, outputFrameMetadata.BlendMode);
+            Assert.Equal(originalFrameMetadata.DisposalMode, outputFrameMetadata.DisposalMode);
         }
     }
 
@@ -519,18 +519,18 @@ public partial class PngEncoderTests
 
             Assert.Equal(gifF.FrameDelay, (int)(pngF.FrameDelay.ToDouble() * 100));
 
-            switch (gifF.DisposalMethod)
+            switch (gifF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
-                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
                     break;
                 case FrameDisposalMode.RestoreToPrevious:
-                    Assert.Equal(PngDisposalMethod.RestoreToPrevious, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToPrevious, pngF.DisposalMode);
                     break;
                 case FrameDisposalMode.Unspecified:
                 case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;
             }
         }
@@ -570,22 +570,22 @@ public partial class PngEncoderTests
             switch (webpF.BlendMethod)
             {
                 case WebpBlendMethod.Source:
-                    Assert.Equal(PngBlendMethod.Source, pngF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
                     break;
                 case WebpBlendMethod.Over:
                 default:
-                    Assert.Equal(PngBlendMethod.Over, pngF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Over, pngF.BlendMode);
                     break;
             }
 
             switch (webpF.DisposalMethod)
             {
                 case WebpDisposalMethod.RestoreToBackground:
-                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
                     break;
                 case WebpDisposalMethod.DoNotDispose:
                 default:
-                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;
             }
         }

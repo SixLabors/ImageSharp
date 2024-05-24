@@ -15,18 +15,18 @@ public class GifFrameMetadataTests
         GifFrameMetadata meta = new()
         {
             FrameDelay = 1,
-            DisposalMethod = FrameDisposalMode.RestoreToBackground,
+            DisposalMode = FrameDisposalMode.RestoreToBackground,
             LocalColorTable = new[] { Color.Black, Color.White }
         };
 
         GifFrameMetadata clone = (GifFrameMetadata)meta.DeepClone();
 
         clone.FrameDelay = 2;
-        clone.DisposalMethod = FrameDisposalMode.RestoreToPrevious;
+        clone.DisposalMode = FrameDisposalMode.RestoreToPrevious;
         clone.LocalColorTable = new[] { Color.Black };
 
         Assert.False(meta.FrameDelay.Equals(clone.FrameDelay));
-        Assert.False(meta.DisposalMethod.Equals(clone.DisposalMethod));
+        Assert.False(meta.DisposalMode.Equals(clone.DisposalMode));
         Assert.False(meta.LocalColorTable.Value.Length == clone.LocalColorTable.Value.Length);
         Assert.Equal(1, clone.LocalColorTable.Value.Length);
     }

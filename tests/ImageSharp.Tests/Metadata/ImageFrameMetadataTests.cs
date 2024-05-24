@@ -28,14 +28,14 @@ public class ImageFrameMetadataTests
         GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();
         gifFrameMetadata.FrameDelay = frameDelay;
         gifFrameMetadata.LocalColorTable = Enumerable.Repeat(Color.HotPink, colorTableLength).ToArray();
-        gifFrameMetadata.DisposalMethod = disposalMethod;
+        gifFrameMetadata.DisposalMode = disposalMethod;
 
         ImageFrameMetadata clone = new(metaData);
         GifFrameMetadata cloneGifFrameMetadata = clone.GetGifMetadata();
 
         Assert.Equal(frameDelay, cloneGifFrameMetadata.FrameDelay);
         Assert.Equal(colorTableLength, cloneGifFrameMetadata.LocalColorTable.Value.Length);
-        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMethod);
+        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMode);
     }
 
     [Fact]

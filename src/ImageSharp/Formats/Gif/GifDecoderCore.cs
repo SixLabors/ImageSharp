@@ -719,7 +719,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             gifMeta.HasTransparency = this.graphicsControlExtension.TransparencyFlag;
             gifMeta.TransparencyIndex = this.graphicsControlExtension.TransparencyIndex;
             gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
-            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+            gifMeta.DisposalMode = this.graphicsControlExtension.DisposalMethod;
         }
     }
 

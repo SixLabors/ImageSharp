@@ -45,54 +45,59 @@ public enum PixelColorType
     Luminance = 1 << 5,
 
     /// <summary>
+    /// Indicates that the color is in binary (black and white) format.
+    /// </summary>
+    Binary = 1 << 6,
+
+    /// <summary>
     /// Indicates that the color is indexed using a palette.
     /// </summary>
-    Indexed = 1 << 6,
+    Indexed = 1 << 7,
 
     /// <summary>
     /// Indicates that the color is in RGB (Red, Green, Blue) format.
     /// </summary>
-    RGB = Red | Green | Blue | (1 << 7),
+    RGB = Red | Green | Blue | (1 << 8),
 
     /// <summary>
     /// Indicates that the color is in BGR (Blue, Green, Red) format.
     /// </summary>
-    BGR = Blue | Green | Red | (1 << 8),
+    BGR = Blue | Green | Red | (1 << 9),
 
     /// <summary>
-    /// Represents the Chrominance Blue component in YCbCr.
+    /// Represents the Chrominance Blue component.
     /// </summary>
-    ChrominanceBlue = 1 << 9,
+    ChrominanceBlue = 1 << 10,
 
     /// <summary>
-    /// Represents the Chrominance Red component in YCbCr.
+    /// Represents the Chrominance Red component.
     /// </summary>
-    ChrominanceRed = 1 << 10,
+    ChrominanceRed = 1 << 11,
 
     /// <summary>
     /// Indicates that the color is in YCbCr (Luminance, Chrominance Blue, Chrominance Red) format.
     /// </summary>
-    YCbCr = Luminance | ChrominanceBlue | ChrominanceRed,
+    YCbCr = Luminance | ChrominanceBlue | ChrominanceRed | (1 << 12),
 
     /// <summary>
     /// Represents the Cyan component in CMYK.
     /// </summary>
-    Cyan = 1 << 11,
+    Cyan = 1 << 13,
 
     /// <summary>
     /// Represents the Magenta component in CMYK.
     /// </summary>
-    Magenta = 1 << 12,
+    Magenta = 1 << 14,
 
     /// <summary>
     /// Represents the Yellow component in CMYK.
     /// </summary>
-    Yellow = 1 << 13,
+    Yellow = 1 << 15,
 
     /// <summary>
     /// Represents the Key (black) component in CMYK and YCCK.
     /// </summary>
-    Key = 1 << 14,
+    Key = 1 << 16,
 
     /// <summary>
     /// Indicates that the color is in CMYK (Cyan, Magenta, Yellow, Key) format.
@@ -107,5 +112,5 @@ public enum PixelColorType
     /// <summary>
     /// Indicates that the color is of a type not specified in this enum.
     /// </summary>
-    Other = 1 << 16
+    Other = 1 << 17
 }

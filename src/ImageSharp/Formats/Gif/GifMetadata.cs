@@ -129,16 +129,20 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
             : Color.Transparent;
 
+        int bpp = this.GlobalColorTable.HasValue
+            ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
+            : 8;
+
         return new()
         {
             AnimateRootFrame = true,
             BackgroundColor = color,
             ColorTable = this.GlobalColorTable,
             ColorTableMode = this.ColorTableMode,
-            PixelTypeInfo = new PixelTypeInfo(24)
+            PixelTypeInfo = new PixelTypeInfo(bpp)
             {
                 ColorType = PixelColorType.Indexed,
-                ComponentInfo = PixelComponentInfo.Create(3, 24, 8, 8, 8),
+                ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),
             },
             RepeatCount = this.RepeatCount,
         };

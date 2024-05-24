@@ -212,6 +212,6 @@ public class GifMetadataTests
         }
 
         Assert.Equal(frameDelay, gifFrameMetadata.FrameDelay);
-        Assert.Equal(disposalMethod, gifFrameMetadata.DisposalMethod);
+        Assert.Equal(disposalMethod, gifFrameMetadata.DisposalMode);
     }
 }

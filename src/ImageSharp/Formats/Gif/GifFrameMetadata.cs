@@ -26,7 +26,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     {
         this.ColorTableMode = other.ColorTableMode;
         this.FrameDelay = other.FrameDelay;
-        this.DisposalMethod = other.DisposalMethod;
+        this.DisposalMode = other.DisposalMode;
 
         if (other.LocalColorTable?.Length > 0)
         {
@@ -73,7 +73,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     /// Primarily used in Gif animation, this field indicates the way in which the graphic is to
     /// be treated after being displayed.
     /// </summary>
-    public FrameDisposalMode DisposalMethod { get; set; }
+    public FrameDisposalMode DisposalMode { get; set; }
 
     /// <inheritdoc />
     public static GifFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
@@ -100,7 +100,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
             LocalColorTable = metadata.ColorTable,
             ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
-            DisposalMethod = metadata.DisposalMode,
+            DisposalMode = metadata.DisposalMode,
             HasTransparency = hasTransparency,
             TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
         };
@@ -109,10 +109,9 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     /// <inheritdoc />
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
     {
-        // throw new NotImplementedException();
         // For most scenarios we would consider the blend method to be 'Over' however if a frame has a disposal method of 'RestoreToBackground' or
         // has a local palette with 256 colors and is not transparent we should use 'Source'.
-        bool blendSource = this.DisposalMethod == FrameDisposalMode.RestoreToBackground || (this.LocalColorTable?.Length == 256 && !this.HasTransparency);
+        bool blendSource = this.DisposalMode == FrameDisposalMode.RestoreToBackground || (this.LocalColorTable?.Length == 256 && !this.HasTransparency);
 
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
         blendSource |= this.ColorTableMode == FrameColorTableMode.Global && !this.HasTransparency;
@@ -122,7 +121,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
             ColorTable = this.LocalColorTable,
             ColorTableMode = this.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),
-            DisposalMode = this.DisposalMethod,
+            DisposalMode = this.DisposalMode,
             BlendMode = blendSource ? FrameBlendMode.Source : FrameBlendMode.Over,
         };
     }
@@ -158,7 +157,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
             LocalColorTable = metadata.ColorTable,
             ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
-            DisposalMethod = metadata.DisposalMode,
+            DisposalMode = metadata.DisposalMode,
             HasTransparency = hasTransparency,
             TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
         };

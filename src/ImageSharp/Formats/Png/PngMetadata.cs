@@ -2,13 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png.Chunks;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
 /// Provides Png specific metadata information for the image.
 /// </summary>
-public class PngMetadata : IDeepCloneable
+public class PngMetadata : IFormatMetadata<PngMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PngMetadata"/> class.
@@ -89,9 +90,6 @@ public class PngMetadata : IDeepCloneable
     /// </summary>
     public bool AnimateRootFrame { get; set; } = true;
 
-    /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new PngMetadata(this);
-
     internal static PngMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
     {
         // Should the conversion be from a format that uses a 24bit palette entries (gif)
@@ -121,4 +119,161 @@ public class PngMetadata : IDeepCloneable
             RepeatCount = metadata.RepeatCount,
         };
     }
+
+    /// <inheritdoc/>
+    public static PngMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        // Should the conversion be from a format that uses a 24bit palette entries (gif)
+        // we need to clone and adjust the color table to allow for transparency.
+        Color[]? colorTable = metadata.ColorTable?.ToArray();
+        if (colorTable != null)
+        {
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                ref Color c = ref colorTable[i];
+                if (c == metadata.BackgroundColor)
+                {
+                    // Png treats background as fully empty
+                    c = Color.Transparent;
+                    break;
+                }
+            }
+        }
+
+        PngColorType color;
+        PixelColorType colorType =
+            metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB | PixelColorType.Alpha;
+
+        switch (colorType)
+        {
+            case PixelColorType.Binary:
+            case PixelColorType.Indexed:
+                color = PngColorType.Palette;
+                break;
+            case PixelColorType.Luminance:
+                color = PngColorType.Grayscale;
+                break;
+            case PixelColorType.RGB:
+            case PixelColorType.BGR:
+                color = PngColorType.Rgb;
+                break;
+            default:
+                if (colorType.HasFlag(PixelColorType.Luminance))
+                {
+                    color = PngColorType.GrayscaleWithAlpha;
+                    break;
+                }
+
+                color = PngColorType.RgbWithAlpha;
+                break;
+        }
+
+        // PNG uses bits per component not per pixel.
+        int bpc = metadata.PixelTypeInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 8;
+        PngBitDepth bitDepth = bpc switch
+        {
+            1 => PngBitDepth.Bit1,
+            2 => PngBitDepth.Bit2,
+            4 => PngBitDepth.Bit4,
+            _ => (bpc <= 8) ? PngBitDepth.Bit8 : PngBitDepth.Bit16,
+        };
+        return new()
+        {
+            ColorType = color,
+            BitDepth = bitDepth,
+            ColorTable = colorTable,
+            RepeatCount = metadata.RepeatCount,
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    {
+        int bpp;
+        PixelColorType colorType;
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+        PixelComponentInfo info;
+        switch (this.ColorType)
+        {
+            case PngColorType.Palette:
+                bpp = this.ColorTable.HasValue
+                    ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.ColorTable.Value.Length), 1, 8)
+                    : 8;
+
+                colorType = PixelColorType.Indexed;
+                info = PixelComponentInfo.Create(1, bpp, bpp);
+                break;
+
+            case PngColorType.Grayscale:
+                bpp = 8;
+                colorType = PixelColorType.Luminance;
+                info = PixelComponentInfo.Create(1, bpp, 8);
+                break;
+
+            case PngColorType.GrayscaleWithAlpha:
+
+                alpha = PixelAlphaRepresentation.Unassociated;
+                if (this.BitDepth == PngBitDepth.Bit16)
+                {
+                    bpp = 32;
+                    colorType = PixelColorType.Luminance | PixelColorType.Alpha;
+                    info = PixelComponentInfo.Create(2, bpp, 16, 16);
+                    break;
+                }
+
+                bpp = 16;
+                colorType = PixelColorType.Luminance | PixelColorType.Alpha;
+                info = PixelComponentInfo.Create(2, bpp, 8, 8);
+                break;
+
+            case PngColorType.Rgb:
+                if (this.BitDepth == PngBitDepth.Bit16)
+                {
+                    bpp = 24;
+                    colorType = PixelColorType.RGB;
+                    info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                    break;
+                }
+
+                bpp = 48;
+                colorType = PixelColorType.RGB;
+                info = PixelComponentInfo.Create(3, bpp, 16, 16, 16);
+                break;
+
+            default:
+
+                alpha = PixelAlphaRepresentation.Unassociated;
+                if (this.BitDepth == PngBitDepth.Bit16)
+                {
+                    bpp = 64;
+                    colorType = PixelColorType.RGB | PixelColorType.Alpha;
+                    info = PixelComponentInfo.Create(4, bpp, 16, 16, 16, 16);
+                    break;
+                }
+
+                bpp = 32;
+                colorType = PixelColorType.RGB | PixelColorType.Alpha;
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                break;
+        }
+
+        return new()
+        {
+            ColorTable = this.ColorTable,
+            ColorTableMode = FrameColorTableMode.Global,
+            PixelTypeInfo = new PixelTypeInfo(bpp)
+            {
+                AlphaRepresentation = alpha,
+                ColorType = colorType,
+                ComponentInfo = info,
+            },
+            RepeatCount = (ushort)Numerics.Clamp(this.RepeatCount, 0, ushort.MaxValue),
+        };
+    }
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public PngMetadata DeepClone() => new(this);
 }

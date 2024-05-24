@@ -69,16 +69,16 @@ public static partial class MetadataExtensions
         {
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(delay * 1000),
-            DisposalMode = GetMode(source.DisposalMethod),
-            BlendMode = source.BlendMethod == PngBlendMethod.Source ? FrameBlendMode.Source : FrameBlendMode.Over,
+            DisposalMode = GetMode(source.DisposalMode),
+            BlendMode = source.BlendMode,
         };
     }
 
-    private static FrameDisposalMode GetMode(PngDisposalMethod method) => method switch
+    private static FrameDisposalMode GetMode(FrameDisposalMode method) => method switch
     {
-        PngDisposalMethod.DoNotDispose => FrameDisposalMode.DoNotDispose,
-        PngDisposalMethod.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
-        PngDisposalMethod.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
-        _ => FrameDisposalMode.Unspecified,
+        FrameDisposalMode.DoNotDispose => FrameDisposalMode.DoNotDispose,
+        FrameDisposalMode.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
+        FrameDisposalMode.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
+        _ => FrameDisposalMode.DoNotDispose,
     };
 }

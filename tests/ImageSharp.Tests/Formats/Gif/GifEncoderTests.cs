@@ -306,14 +306,14 @@ public class GifEncoderTests
 
             Assert.Equal((int)(pngF.FrameDelay.ToDouble() * 100), gifF.FrameDelay);
 
-            switch (pngF.DisposalMethod)
+            switch (pngF.DisposalMode)
             {
-                case PngDisposalMethod.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMethod);
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMode);
                     break;
-                case PngDisposalMethod.DoNotDispose:
+                case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
                     break;
             }
         }
@@ -359,11 +359,11 @@ public class GifEncoderTests
             switch (webpF.DisposalMethod)
             {
                 case WebpDisposalMethod.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMode);
                     break;
                 case WebpDisposalMethod.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
                     break;
             }
         }

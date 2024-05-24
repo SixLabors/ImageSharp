@@ -95,7 +95,7 @@ public class WebpEncoderTests
 
             Assert.Equal(gifF.FrameDelay, (int)(webpF.FrameDelay / 10));
 
-            switch (gifF.DisposalMethod)
+            switch (gifF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(WebpDisposalMethod.RestoreToBackground, webpF.DisposalMethod);
@@ -144,23 +144,23 @@ public class WebpEncoderTests
 
             Assert.Equal((uint)(pngF.FrameDelay.ToDouble() * 1000), webpF.FrameDelay);
 
-            switch (pngF.BlendMethod)
+            switch (pngF.BlendMode)
             {
-                case PngBlendMethod.Source:
+                case FrameBlendMode.Source:
                     Assert.Equal(WebpBlendMethod.Source, webpF.BlendMethod);
                     break;
-                case PngBlendMethod.Over:
+                case FrameBlendMode.Over:
                 default:
                     Assert.Equal(WebpBlendMethod.Over, webpF.BlendMethod);
                     break;
             }
 
-            switch (pngF.DisposalMethod)
+            switch (pngF.DisposalMode)
             {
-                case PngDisposalMethod.RestoreToBackground:
+                case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(WebpDisposalMethod.RestoreToBackground, webpF.DisposalMethod);
                     break;
-                case PngDisposalMethod.DoNotDispose:
+                case FrameDisposalMode.DoNotDispose:
                 default:
                     Assert.Equal(WebpDisposalMethod.DoNotDispose, webpF.DisposalMethod);
                     break;

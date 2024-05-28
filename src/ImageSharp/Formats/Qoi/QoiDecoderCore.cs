@@ -49,13 +49,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
         this.ProcessHeader(stream);
 
         // Create Image object
-        ImageMetadata metadata = new()
-        {
-            DecodedImageFormat = QoiFormat.Instance,
-            HorizontalResolution = this.header.Width,
-            VerticalResolution = this.header.Height,
-            ResolutionUnits = PixelResolutionUnit.AspectRatio
-        };
+        ImageMetadata metadata = new();
         QoiMetadata qoiMetadata = metadata.GetQoiMetadata();
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;

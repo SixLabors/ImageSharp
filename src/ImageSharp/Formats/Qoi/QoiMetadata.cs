@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
 /// <summary>
 /// Provides Qoi specific metadata information for the image.
 /// </summary>
-public class QoiMetadata : IDeepCloneable
+public class QoiMetadata : IFormatMetadata<QoiMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="QoiMetadata"/> class.
@@ -36,5 +38,55 @@ public class QoiMetadata : IDeepCloneable
     public QoiColorSpace ColorSpace { get; set; }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new QoiMetadata(this);
+    public static QoiMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        PixelColorType color = metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB;
+
+        if (color.HasFlag(PixelColorType.Alpha))
+        {
+            return new QoiMetadata { Channels = QoiChannels.Rgba };
+        }
+
+        return new QoiMetadata { Channels = QoiChannels.Rgb };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    {
+        int bpp;
+        PixelColorType colorType;
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+        PixelComponentInfo info;
+
+        switch (this.Channels)
+        {
+            case QoiChannels.Rgb:
+                bpp = 24;
+                colorType = PixelColorType.RGB;
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                break;
+            default:
+                bpp = 32;
+                colorType = PixelColorType.RGB | PixelColorType.Alpha;
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                alpha = PixelAlphaRepresentation.Unassociated;
+                break;
+        }
+
+        return new()
+        {
+            PixelTypeInfo = new PixelTypeInfo(bpp)
+            {
+                AlphaRepresentation = alpha,
+                ColorType = colorType,
+                ComponentInfo = info,
+            }
+        };
+    }
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public QoiMetadata DeepClone() => new(this);
 }

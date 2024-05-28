@@ -9,7 +9,13 @@ internal class ObuSegmentationParameters
 
     public bool[,] FeatureEnabled { get; internal set; } = new bool[ObuConstants.MaxSegmentCount, ObuConstants.SegmentationLevelMax];
 
-    public bool SegmentationEnabled { get; internal set; }
+    public bool Enabled { get; internal set; }
 
     public int[,] FeatureData { get; internal set; } = new int[ObuConstants.MaxSegmentCount, ObuConstants.SegmentationLevelMax];
+
+    public bool SegmentIdPrecedesSkip { get; internal set; }
+
+    public int LastActiveSegmentId { get; internal set; }
+
+    internal bool IsFeatureActive(ObuSegmentationFeature feature) => false;
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -170,5 +171,15 @@ internal ref struct Av1BitStreamReader
         this.wordPosition++;
         uint temp = this.data[this.wordPosition];
         this.nextWord = (temp << 24) | ((temp & 0x0000ff00U) << 8) | ((temp & 0x00ff0000U) >> 8) | (temp >> 24);
+    }
+
+    public Span<byte> GetSymbolReader(int tileDataSize)
+    {
+        DebugGuard.IsTrue((this.bitOffset & (WordSize - 1)) == 0, "Symbol reading needs to start on byte boundary.");
+
+        // TODO: Pass exact byte iso Word start.
+        Span<uint> span = this.data.Slice(this.bitOffset >> WordSize, tileDataSize);
+        this.bitOffset += tileDataSize << 8;
+        return MemoryMarshal.Cast<uint, byte>(span);
     }
 }

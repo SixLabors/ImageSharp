@@ -25,14 +25,14 @@ internal class Av1SymbolWriter : IDisposable
 
     public void Dispose() => this.memory.Dispose();
 
-    public void WriteSymbol(int symbol, uint[] probabilities, int numberOfSymbols)
+    public void WriteSymbol(int symbol, Av1Distribution distribution, int numberOfSymbols)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(symbol, 0, nameof(symbol));
         DebugGuard.MustBeLessThan(symbol, numberOfSymbols, nameof(symbol));
-        DebugGuard.IsTrue(probabilities[numberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
+        DebugGuard.IsTrue(distribution[numberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
-        this.EncodeIntegerQ15(symbol, probabilities, numberOfSymbols);
-        Av1SymbolReader.UpdateCdf(probabilities, symbol, numberOfSymbols);
+        this.EncodeIntegerQ15(symbol, distribution, numberOfSymbols);
+        distribution.Update(symbol);
     }
 
     public void WriteLiteral(uint value, int bitCount)
@@ -104,8 +104,8 @@ internal class Av1SymbolWriter : IDisposable
         l = this.low;
         r = this.rng;
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
-        v = ((r >> 8) * (frequency >> Av1SymbolReader.ProbabilityShift)) >> (7 - Av1SymbolReader.ProbabilityShift);
-        v += Av1SymbolReader.ProbabilityMinimum;
+        v = ((r >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
+        v += Av1Distribution.ProbabilityMinimum;
         if (val)
         {
             l += r - v;
@@ -123,7 +123,7 @@ internal class Av1SymbolWriter : IDisposable
     /// Encodes a symbol given an inverse cumulative distribution function(CDF) table in Q15.
     /// </summary>
     /// <param name="symbol">The value to encode.</param>
-    /// <param name="probabilities">
+    /// <param name="distribution">
     /// CDF_PROB_TOP minus the CDF, such that symbol s falls in the range
     /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
     /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
@@ -132,12 +132,12 @@ internal class Av1SymbolWriter : IDisposable
     /// The number of symbols in the alphabet.
     /// This should be at most 16.
     /// </param>
-    private void EncodeIntegerQ15(int symbol, uint[] probabilities, int numberOfSymbols)
-        => this.EncodeIntegerQ15(symbol > 0 ? probabilities[symbol - 1] : Av1SymbolReader.CdfProbabilityTop, probabilities[symbol], symbol, numberOfSymbols);
+    private void EncodeIntegerQ15(int symbol, Av1Distribution distribution, int numberOfSymbols)
+        => this.EncodeIntegerQ15(symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop, distribution[symbol], symbol, numberOfSymbols);
 
     private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {
-        const int totalShift = 7 - Av1SymbolReader.ProbabilityShift - Av1SymbolReader.CdfShift;
+        const int totalShift = 7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift;
         uint l = this.low;
         uint r = this.rng;
         DebugGuard.MustBeLessThanOrEqualTo(32768U, r, nameof(r));
@@ -145,21 +145,21 @@ internal class Av1SymbolWriter : IDisposable
         DebugGuard.MustBeLessThanOrEqualTo(lowFrequency, 32768U, nameof(lowFrequency));
         DebugGuard.MustBeGreaterThanOrEqualTo(totalShift, 0, nameof(totalShift));
         int n = numberOfSymbols - 1;
-        if (lowFrequency < Av1SymbolReader.CdfProbabilityTop)
+        if (lowFrequency < Av1Distribution.ProbabilityTop)
         {
             uint u;
             uint v;
-            u = (uint)((((r >> 8) * (lowFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
-                (Av1SymbolReader.ProbabilityMinimum * (n - (symbol - 1))));
-            v = (uint)((((r >> 8) * (highFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
-                (Av1SymbolReader.ProbabilityMinimum * (n - symbol)));
+            u = (uint)((((r >> 8) * (lowFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - (symbol - 1))));
+            v = (uint)((((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - symbol)));
             l += r - u;
             r = u - v;
         }
         else
         {
-            r -= (uint)((((r >> 8) * (highFrequency >> Av1SymbolReader.ProbabilityShift)) >> totalShift) +
-                (Av1SymbolReader.ProbabilityMinimum * (n - symbol)));
+            r -= (uint)((((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - symbol)));
         }
 
         this.Normalize(l, r);

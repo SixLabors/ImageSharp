@@ -20,7 +20,7 @@ internal class Av1TileDecoderStub : IAv1TileDecoder
 
     public ObuTileInfo TileInfo { get; } = new ObuTileInfo();
 
-    public void DecodeTile(int tileNum)
+    public void DecodeTile(Span<byte> tileData, int tileNum)
     {
     }
 

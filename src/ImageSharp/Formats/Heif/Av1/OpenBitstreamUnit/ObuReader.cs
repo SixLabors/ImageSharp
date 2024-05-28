@@ -899,7 +899,7 @@ internal class ObuReader
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
-        => segmentationParameters.SegmentationEnabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
+        => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
 
     private static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
     {
@@ -980,18 +980,16 @@ internal class ObuReader
 
         for (int tileNum = tileGroupStart; tileNum <= tileGroupEnd; tileNum++)
         {
-            int tileRow = tileNum / tileInfo.TileColumnCount;
-            int tileColumn = tileNum % tileInfo.TileColumnCount;
             bool isLastTile = tileNum == tileGroupEnd;
-            int tileSize = header.PayloadSize;
+            int tileDataSize = header.PayloadSize;
             if (!isLastTile)
             {
-                tileSize = (int)reader.ReadLittleEndian(tileInfo.TileSizeBytes) + 1;
-                header.PayloadSize -= tileSize + tileInfo.TileSizeBytes;
+                tileDataSize = (int)reader.ReadLittleEndian(tileInfo.TileSizeBytes) + 1;
+                header.PayloadSize -= tileDataSize + tileInfo.TileSizeBytes;
             }
 
-            // TODO: Pass more info to the decoder.
-            decoder.DecodeTile(tileNum);
+            Span<byte> tileData = reader.GetSymbolReader(tileDataSize);
+            decoder.DecodeTile(tileData, tileNum);
         }
 
         if (tileGroupEnd != tileCount - 1)
@@ -1101,8 +1099,8 @@ internal class ObuReader
 
     private static void ReadSegmentationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
-        frameInfo.SegmentationParameters.SegmentationEnabled = reader.ReadBoolean();
-        Guard.IsFalse(frameInfo.SegmentationParameters.SegmentationEnabled, nameof(frameInfo.SegmentationParameters.SegmentationEnabled), "Segmentation not supported yet.");
+        frameInfo.SegmentationParameters.Enabled = reader.ReadBoolean();
+        Guard.IsFalse(frameInfo.SegmentationParameters.Enabled, nameof(frameInfo.SegmentationParameters.Enabled), "Segmentation not supported yet.");
 
         // TODO: Parse more stuff.
     }

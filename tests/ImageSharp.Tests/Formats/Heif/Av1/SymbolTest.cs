@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 using SixLabors.ImageSharp.Memory;
 
@@ -185,30 +186,53 @@ public class SymbolTest
         Assert.Equal(expectedValues, values);
     }
 
+    [Theory]
+    [InlineData(0, 255, 255, 255, 158)]
+
+    // [InlineData(1, 255, 255, 255, 158)]
+    // [InlineData(4, 255, 207, 254, 18)]
+    public void ReadPartitionTypeSymbols(int ctx, byte b0, byte b1, byte b2, byte b3)
+    {
+        // Assign
+        byte[] values = [b0, b1, b2, b3, 0];
+        Av1SymbolDecoder decoder = new(values);
+        Av1PartitionType[] expected = [
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None ];
+        Av1PartitionType[] actuals = new Av1PartitionType[expected.Length];
+
+        // Act
+        for (int i = 0; i < expected.Length; i++)
+        {
+            actuals[i] = decoder.ReadPartitionSymbol(ctx);
+        }
+
+        // Assert
+        Assert.Equal(expected, actuals);
+    }
+
     [Fact]
     public void RoundTripUseIntraBlockCopy()
     {
         // Assign
         bool[] values = [true, true, false, true, false, false, false];
-        MemoryStream output = new(100);
         Configuration configuration = Configuration.Default;
-        using Av1SymbolWriter writer = new(configuration, 100 / 8);
-        Av1SymbolEncoder encoder = new();
-        Av1SymbolDecoder decoder = new();
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
         bool[] actuals = new bool[values.Length];
 
         // Act
         foreach (bool value in values)
         {
-            encoder.WriteUseIntraBlockCopySymbol(writer, value);
+            encoder.WriteUseIntraBlockCopySymbol(value);
         }
 
-        using IMemoryOwner<byte> encoded = writer.Exit();
+        using IMemoryOwner<byte> encoded = encoder.Exit();
 
+        Av1SymbolDecoder decoder = new(encoded.GetSpan());
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadUseIntraBlockCopySymbol(ref reader);
+            actuals[i] = decoder.ReadUseIntraBlockCopy();
         }
 
         // Assert

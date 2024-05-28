@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal static class ObuConstants
@@ -84,4 +86,31 @@ internal static class ObuConstants
     /// Maximum size of a loop restoration tile.
     /// </summary>
     public const int RestorationMaxTileSize = 256;
+
+    /// <summary>
+    /// Number of Wiener coefficients to read.
+    /// </summary>
+    public const int WienerCoefficientCount = 3;
+
+    public const int FrameLoopFilterCount = 4;
+
+    /// <summary>
+    /// Value indicating alternative encoding of quantizer index delta values.
+    /// </summary>
+    public const int DeltaQuantizerSmall = 3;
+
+    /// <summary>
+    /// Value indicating alternative encoding of loop filter delta values.
+    /// </summary>
+    public const int DeltaLoopFilterSmall = 3;
+
+    /// <summary>
+    /// Maximum value used for loop filtering.
+    /// </summary>
+    public const int MaxLoopFilter = 63;
+
+    /// <summary>
+    /// Maximum magnitude of AngleDeltaY and AngleDeltaUV.
+    /// </summary>
+    public const int MaxAngleDelta = 3;
 }

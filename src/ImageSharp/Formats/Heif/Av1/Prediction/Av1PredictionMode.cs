@@ -19,6 +19,7 @@ internal enum Av1PredictionMode
     SmoothVertical,
     SmoothHorizontal,
     Paeth,
+    UvChromaFromLuma,
     IntraModeStart = DC,
     IntraModeEnd = Paeth + 1,
     IntraModes = Paeth,

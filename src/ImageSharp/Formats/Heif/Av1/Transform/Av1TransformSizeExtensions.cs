@@ -13,4 +13,12 @@ internal static class Av1TransformSizeExtensions
         int pels = Size2d[(int)size];
         return (pels > 1024) ? 2 : (pels > 256) ? 1 : 0;
     }
+
+    public static int GetWidth(this Av1TransformSize size) => (int)size;
+
+    public static int GetHeight(this Av1TransformSize size) => (int)size;
+
+    public static int GetWidthLog2(this Av1TransformSize size) => (int)size;
+
+    public static int GetHeightLog2(this Av1TransformSize size) => (int)size;
 }

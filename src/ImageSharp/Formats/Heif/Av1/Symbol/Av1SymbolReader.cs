@@ -5,13 +5,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal ref struct Av1SymbolReader
 {
-    internal const int CdfProbabilityTop = 1 << CdfProbabilityBitCount;
-    internal const int ProbabilityMinimum = 4;
-    internal const int CdfShift = 15 - CdfProbabilityBitCount;
-    internal const int ProbabilityShift = 6;
-    internal static readonly int[] NumberOfSymbols2Speed = [0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
-
-    private const int CdfProbabilityBitCount = 15;
     private const int DecoderWindowsSize = 32;
     private const int LotsOfBits = 0x4000;
 
@@ -45,10 +38,12 @@ internal ref struct Av1SymbolReader
         this.Refill();
     }
 
-    public int ReadSymbol(uint[] probabilities, int numberOfSymbols)
+    public int ReadSymbol(Av1Distribution distribution)
     {
-        int value = this.DecodeIntegerQ15(probabilities, numberOfSymbols);
-        UpdateCdf(probabilities, value, numberOfSymbols);
+        int value = this.DecodeIntegerQ15(distribution);
+
+        // UpdateCdf(probabilities, value, numberOfSymbols);
+        distribution.Update(value);
         return value;
     }
 
@@ -87,8 +82,8 @@ internal ref struct Av1SymbolReader
 
         // assert(dif >> (DecoderWindowsSize - 16) < r);
         // assert(32768U <= r);
-        v = ((range >> 8) * (frequency >> ProbabilityShift)) >> (7 - ProbabilityShift);
-        v += ProbabilityMinimum;
+        v = ((range >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
+        v += Av1Distribution.ProbabilityMinimum;
         vw = v << (DecoderWindowsSize - 16);
         ret = true;
         newRange = v;
@@ -106,17 +101,13 @@ internal ref struct Av1SymbolReader
     /// <summary>
     /// Decodes a symbol given an inverse cumulative distribution function(CDF) table in Q15.
     /// </summary>
-    /// <param name="probabilities">
+    /// <param name="distribution">
     /// CDF_PROB_TOP minus the CDF, such that symbol s falls in the range
     /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
     /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
     /// </param>
-    /// <param name="numberOfSymbols">
-    /// The number of symbols in the alphabet.
-    /// This should be at most 16.
-    /// </param>
     /// <returns>The decoded symbol.</returns>
-    private int DecodeIntegerQ15(uint[] probabilities, int numberOfSymbols)
+    private int DecodeIntegerQ15(Av1Distribution distribution)
     {
         uint c;
         uint u;
@@ -125,20 +116,20 @@ internal ref struct Av1SymbolReader
 
         uint dif = this.difference;
         uint r = this.range;
-        int n = numberOfSymbols - 1;
+        int n = distribution.NumberOfSymbols - 1;
 
         DebugGuard.MustBeLessThan(dif >> (DecoderWindowsSize - 16), r, nameof(r));
-        DebugGuard.IsTrue(probabilities[numberOfSymbols - 1] == 0, "Last value in probability array needs to be zero.");
+        DebugGuard.IsTrue(distribution[n] == 0, "Last value in probability array needs to be zero.");
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
-        DebugGuard.MustBeGreaterThanOrEqualTo(7 - ProbabilityShift - CdfShift, 0, nameof(CdfShift));
+        DebugGuard.MustBeGreaterThanOrEqualTo(7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift, 0, nameof(Av1Distribution.CdfShift));
         c = dif >> (DecoderWindowsSize - 16);
         v = r;
         ret = -1;
         do
         {
             u = v;
-            v = ((r >> 8) * (probabilities[++ret] >> ProbabilityShift)) >> (7 - ProbabilityShift - CdfShift);
-            v += (uint)(ProbabilityMinimum * (n - ret));
+            v = ((r >> 8) * (distribution[++ret] >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift);
+            v += (uint)(Av1Distribution.ProbabilityMinimum * (n - ret));
         }
         while (c < v);
 
@@ -212,32 +203,5 @@ internal ref struct Av1SymbolReader
         this.difference = dif;
         this.count = cnt;
         this.position = position;
-    }
-
-    internal static void UpdateCdf(uint[] probabilities, int value, int numberOfSymbols)
-    {
-        DebugGuard.MustBeLessThan(numberOfSymbols, 17, nameof(numberOfSymbols));
-        int rate15 = probabilities[numberOfSymbols] > 15 ? 1 : 0;
-        int rate31 = probabilities[numberOfSymbols] > 31 ? 1 : 0;
-        int rate = 3 + rate15 + rate31 + NumberOfSymbols2Speed[numberOfSymbols]; // + get_msb(nsymbs);
-        int tmp = CdfProbabilityTop;
-
-        // Single loop (faster)
-        for (int i = 0; i < numberOfSymbols - 1; i++)
-        {
-            tmp = (i == value) ? 0 : tmp;
-            uint p = probabilities[i];
-            if (tmp < p)
-            {
-                probabilities[i] -= (ushort)((p - tmp) >> rate);
-            }
-            else
-            {
-                probabilities[i] += (ushort)((tmp - p) >> rate);
-            }
-        }
-
-        uint rate32 = probabilities[numberOfSymbols] < 32 ? 1U : 0U;
-        probabilities[numberOfSymbols] += rate32;
     }
 }

@@ -428,7 +428,7 @@ internal class ObuWriter
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
-        => segmentationParameters.SegmentationEnabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
+        => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
 
     private static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
     {
@@ -560,7 +560,7 @@ internal class ObuWriter
 
     private static void WriteSegmentationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
-        Guard.IsFalse(frameInfo.SegmentationParameters.SegmentationEnabled, nameof(frameInfo.SegmentationParameters.SegmentationEnabled), "Segmentatino not supported yet.");
+        Guard.IsFalse(frameInfo.SegmentationParameters.Enabled, nameof(frameInfo.SegmentationParameters.Enabled), "Segmentatino not supported yet.");
         writer.WriteBoolean(false);
     }
 

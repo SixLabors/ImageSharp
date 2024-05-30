@@ -175,6 +175,7 @@ public class TgaEncoderTests
 
             using (var memStream = new MemoryStream())
             {
+                image.DebugSave(provider, encoder);
                 image.Save(memStream, encoder);
                 memStream.Position = 0;
                 using (var encodedImage = (Image<TPixel>)Image.Load(memStream))

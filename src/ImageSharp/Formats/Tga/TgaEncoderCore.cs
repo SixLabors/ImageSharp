@@ -3,8 +3,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -160,19 +158,26 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.PixelBuffer;
+
+        using IMemoryOwner<Rgba32> rgbaOwner = this.memoryAllocator.Allocate<Rgba32>(image.Width);
+        Span<Rgba32> rgbaRow = rgbaOwner.GetSpan();
+
         for (int y = 0; y < image.Height; y++)
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
+            PixelOperations<TPixel>.Instance.ToRgba32(image.Configuration, pixelRow, rgbaRow);
+
             for (int x = 0; x < image.Width;)
             {
                 TPixel currentPixel = pixelRow[x];
+                Rgba32 rgba = rgbaRow[x];
                 byte equalPixelCount = FindEqualPixels(pixelRow, x);
 
                 if (equalPixelCount > 0)
                 {
-                    // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
+                    // Write the number of equal pixels, with the high bit set, indicating it's a compressed pixel run.
                     stream.WriteByte((byte)(equalPixelCount | 128));
-                    this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
+                    this.WritePixel(stream, rgba);
                     x += equalPixelCount + 1;
                 }
                 else
@@ -180,12 +185,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
                     // Write Raw Packet (i.e., Non-Run-Length Encoded):
                     byte unEqualPixelCount = FindUnEqualPixels(pixelRow, x);
                     stream.WriteByte(unEqualPixelCount);
-                    this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
+                    this.WritePixel(stream, rgba);
                     x++;
                     for (int i = 0; i < unEqualPixelCount; i++)
                     {
                         currentPixel = pixelRow[x];
-                        this.WritePixel(stream, currentPixel, currentPixel.ToRgba32());
+                        rgba = rgbaRow[x];
+                        this.WritePixel(stream, rgba);
                         x++;
                     }
                 }
@@ -196,22 +202,19 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes a the pixel to the stream.
     /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="currentPixel">The current pixel.</param>
     /// <param name="color">The color of the pixel to write.</param>
-    private void WritePixel<TPixel>(Stream stream, TPixel currentPixel, Rgba32 color)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private void WritePixel(Stream stream, Rgba32 color)
     {
         switch (this.bitsPerPixel)
         {
             case TgaBitsPerPixel.Pixel8:
-                int luminance = GetLuminance(currentPixel);
-                stream.WriteByte((byte)luminance);
+                L8 l8 = L8.FromRgba32(color);
+                stream.WriteByte(l8.PackedValue);
                 break;
 
             case TgaBitsPerPixel.Pixel16:
-                Bgra5551 bgra5551 = new(color.ToVector4());
+                Bgra5551 bgra5551 = Bgra5551.FromRgba32(color);
                 Span<byte> buffer = stackalloc byte[2];
                 BinaryPrimitives.WriteInt16LittleEndian(buffer, (short)bgra5551.PackedValue);
                 stream.WriteByte(buffer[0]);
@@ -401,18 +404,5 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
                 pixelSpan.Length);
             stream.Write(rowSpan);
         }
-    }
-
-    /// <summary>
-    /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    /// <param name="sourcePixel">The pixel to get the luminance from.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static int GetLuminance<TPixel>(TPixel sourcePixel)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Vector4 vector = sourcePixel.ToVector4();
-        return ColorNumerics.GetBT709Luminance(ref vector, 256);
     }
 }

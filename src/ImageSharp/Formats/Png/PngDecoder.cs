@@ -53,8 +53,8 @@ public sealed class PngDecoder : SpecializedImageDecoder<PngDecoderOptions>
         stream.Position = 0;
 
         PngMetadata meta = info.Metadata.GetPngMetadata();
-        PngColorType color = meta.ColorType.GetValueOrDefault();
-        PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
+        PngColorType color = meta.ColorType;
+        PngBitDepth bits = meta.BitDepth;
 
         switch (color)
         {

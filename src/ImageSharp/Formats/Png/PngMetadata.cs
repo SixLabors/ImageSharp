@@ -47,17 +47,17 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     /// Gets or sets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType"/> values.
     /// </summary>
-    public PngBitDepth? BitDepth { get; set; }
+    public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
 
     /// <summary>
     /// Gets or sets the color type.
     /// </summary>
-    public PngColorType? ColorType { get; set; }
+    public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
 
     /// <summary>
     /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
     /// </summary>
-    public PngInterlaceMode? InterlaceMethod { get; set; } = PngInterlaceMode.None;
+    public PngInterlaceMode InterlaceMethod { get; set; } = PngInterlaceMode.None;
 
     /// <summary>
     /// Gets or sets the gamma value for the image.
@@ -100,21 +100,23 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             for (int i = 0; i < colorTable.Length; i++)
             {
                 ref Color c = ref colorTable[i];
-                if (c == metadata.BackgroundColor)
+                if (c != metadata.BackgroundColor)
                 {
-                    // Png treats background as fully empty
-                    c = Color.Transparent;
-                    break;
+                    continue;
                 }
+
+                // Png treats background as fully empty
+                c = Color.Transparent;
+                break;
             }
         }
 
         return new()
         {
-            ColorType = colorTable != null ? PngColorType.Palette : null,
+            ColorType = colorTable != null ? PngColorType.Palette : PngColorType.RgbWithAlpha,
             BitDepth = colorTable != null
                         ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Length), 1, 8)
-                        : null,
+                        : PngBitDepth.Bit8,
             ColorTable = colorTable,
             RepeatCount = metadata.RepeatCount,
         };
@@ -131,12 +133,14 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             for (int i = 0; i < colorTable.Length; i++)
             {
                 ref Color c = ref colorTable[i];
-                if (c == metadata.BackgroundColor)
+                if (c != metadata.BackgroundColor)
                 {
-                    // Png treats background as fully empty
-                    c = Color.Transparent;
-                    break;
+                    continue;
                 }
+
+                // Png treats background as fully empty
+                c = Color.Transparent;
+                break;
             }
         }
 
@@ -240,6 +244,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 info = PixelComponentInfo.Create(3, bpp, 16, 16, 16);
                 break;
 
+            case PngColorType.RgbWithAlpha:
             default:
 
                 alpha = PixelAlphaRepresentation.Unassociated;

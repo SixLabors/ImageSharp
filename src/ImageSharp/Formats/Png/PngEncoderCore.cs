@@ -1484,41 +1484,19 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         // Use options, then check metadata, if nothing set there then we suggest
         // a sensible default based upon the pixel format.
-        PngColorType? colorType = encoder.ColorType ?? pngMetadata.ColorType;
-        byte? bits = (byte?)(encoder.BitDepth ?? pngMetadata.BitDepth);
+        PngColorType color = encoder.ColorType ?? pngMetadata.ColorType;
+        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth);
 
-        if (colorType is null || bits is null)
-        {
-            PixelTypeInfo info = TPixel.GetPixelTypeInfo();
-            PixelComponentInfo? componentInfo = info.ComponentInfo;
-
-            colorType ??= SuggestColorType<TPixel>(in info);
-
-            if (bits is null)
-            {
-                // TODO: Update once we stop abusing PixelTypeInfo in decoders.
-                if (componentInfo.HasValue)
-                {
-                    PixelComponentInfo c = componentInfo.Value;
-                    bits = (byte)SuggestBitDepth<TPixel>(in c);
-                }
-                else
-                {
-                    bits = (byte)PngBitDepth.Bit8;
-                }
-            }
-        }
-
-        // Ensure bit depth and color type are a supported combination.
+        // Ensure the bit depth and color type are a supported combination.
         // Bit8 is the only bit depth supported by all color types.
-        byte[] validBitDepths = PngConstants.ColorTypes[colorType.Value];
+        byte[] validBitDepths = PngConstants.ColorTypes[color];
         if (Array.IndexOf(validBitDepths, bits) == -1)
         {
             bits = (byte)PngBitDepth.Bit8;
         }
 
-        this.colorType = colorType.Value;
-        this.bitDepth = bits.Value;
+        this.colorType = color;
+        this.bitDepth = bits;
 
         if (!encoder.FilterMethod.HasValue)
         {
@@ -1529,7 +1507,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         use16Bit = bits == (byte)PngBitDepth.Bit16;
         bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
 
-        this.interlaceMode = (encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod)!.Value;
+        this.interlaceMode = encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod;
         this.chunkFilter = encoder.SkipMetadata ? PngChunkFilter.ExcludeAll : encoder.ChunkFilter ?? PngChunkFilter.None;
     }
 
@@ -1668,47 +1646,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             // PngColorType.RgbWithAlpha
             _ => use16Bit ? 8 : 4,
         };
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
-    /// </summary>
-    /// <param name="info">The pixel type info.</param>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngColorType SuggestColorType<TPixel>(in PixelTypeInfo info)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (info.AlphaRepresentation == PixelAlphaRepresentation.None)
-        {
-            return info.ColorType switch
-            {
-                PixelColorType.Luminance => PngColorType.Grayscale,
-                _ => PngColorType.Rgb,
-            };
-        }
-
-        return info.ColorType switch
-        {
-            PixelColorType.Luminance | PixelColorType.Alpha or PixelColorType.Alpha => PngColorType.GrayscaleWithAlpha,
-            _ => PngColorType.RgbWithAlpha,
-        };
-    }
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
-    /// </summary>
-    /// <param name="info">The pixel type info.</param>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngBitDepth SuggestBitDepth<TPixel>(in PixelComponentInfo info)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int bits = info.GetMaximumComponentPrecision();
-        if (bits > (int)PixelComponentBitDepth.Bit8)
-        {
-            return PngBitDepth.Bit16;
-        }
-
-        return PngBitDepth.Bit8;
-    }
 
     private unsafe struct ScratchBuffer
     {

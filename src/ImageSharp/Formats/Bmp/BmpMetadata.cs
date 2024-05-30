@@ -42,37 +42,25 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
     public static BmpMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
-        if (bpp == 1)
+        return bpp switch
         {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel1 };
-        }
-
-        if (bpp == 2)
-        {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel2 };
-        }
-
-        if (bpp <= 4)
-        {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel4 };
-        }
-
-        if (bpp <= 8)
-        {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel8 };
-        }
-
-        if (bpp <= 16)
-        {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel16, InfoHeaderType = BmpInfoHeaderType.WinVersion3 };
-        }
-
-        if (bpp <= 24)
-        {
-            return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.WinVersion4 };
-        }
-
-        return new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel32, InfoHeaderType = BmpInfoHeaderType.WinVersion5 };
+            1 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel1 },
+            2 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel2 },
+            <= 4 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel4 },
+            <= 8 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel8 },
+            <= 16 => new BmpMetadata
+            {
+                BitsPerPixel = BmpBitsPerPixel.Pixel16, InfoHeaderType = BmpInfoHeaderType.WinVersion3
+            },
+            <= 24 => new BmpMetadata
+            {
+                BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.WinVersion4
+            },
+            _ => new BmpMetadata
+            {
+                BitsPerPixel = BmpBitsPerPixel.Pixel32, InfoHeaderType = BmpInfoHeaderType.WinVersion5
+            }
+        };
     }
 
     /// <inheritdoc/>
@@ -97,30 +85,42 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
             _ => bpp < 32 ? PixelAlphaRepresentation.None : PixelAlphaRepresentation.Unassociated
         };
 
-        PixelComponentInfo info = this.BitsPerPixel switch
+        PixelComponentInfo info;
+        PixelColorType color;
+        switch (this.BitsPerPixel)
         {
-            BmpBitsPerPixel.Pixel1 => PixelComponentInfo.Create(1, bpp, 1),
-            BmpBitsPerPixel.Pixel2 => PixelComponentInfo.Create(1, bpp, 2),
-            BmpBitsPerPixel.Pixel4 => PixelComponentInfo.Create(1, bpp, 4),
-            BmpBitsPerPixel.Pixel8 => PixelComponentInfo.Create(1, bpp, 8),
+            case BmpBitsPerPixel.Pixel1:
+                info = PixelComponentInfo.Create(1, bpp, 1);
+                color = PixelColorType.Indexed;
+                break;
+            case BmpBitsPerPixel.Pixel2:
+                info = PixelComponentInfo.Create(1, bpp, 2);
+                color = PixelColorType.Indexed;
+                break;
+            case BmpBitsPerPixel.Pixel4:
+                info = PixelComponentInfo.Create(1, bpp, 4);
+                color = PixelColorType.Indexed;
+                break;
+            case BmpBitsPerPixel.Pixel8:
+                info = PixelComponentInfo.Create(1, bpp, 8);
+                color = PixelColorType.Indexed;
+                break;
 
             // Could be 555 with padding but 565 is more common in newer bitmaps and offers
             // greater accuracy due to extra green precision.
-            BmpBitsPerPixel.Pixel16 => PixelComponentInfo.Create(3, bpp, 5, 6, 5),
-            BmpBitsPerPixel.Pixel24 => PixelComponentInfo.Create(3, bpp, 8, 8, 8),
-            BmpBitsPerPixel.Pixel32 or _ => PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8),
-        };
-
-        PixelColorType color = this.BitsPerPixel switch
-        {
-            BmpBitsPerPixel.Pixel1 or
-            BmpBitsPerPixel.Pixel2 or
-            BmpBitsPerPixel.Pixel4 or
-            BmpBitsPerPixel.Pixel8 => PixelColorType.Indexed,
-            BmpBitsPerPixel.Pixel16 or
-            BmpBitsPerPixel.Pixel24 => PixelColorType.RGB,
-            BmpBitsPerPixel.Pixel32 or _ => PixelColorType.RGB | PixelColorType.Alpha,
-        };
+            case BmpBitsPerPixel.Pixel16:
+                info = PixelComponentInfo.Create(3, bpp, 5, 6, 5);
+                color = PixelColorType.RGB;
+                break;
+            case BmpBitsPerPixel.Pixel24:
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                color = PixelColorType.RGB;
+                break;
+            case BmpBitsPerPixel.Pixel32 or _:
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                color = PixelColorType.RGB | PixelColorType.Alpha;
+                break;
+        }
 
         return new()
         {

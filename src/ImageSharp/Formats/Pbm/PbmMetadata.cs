@@ -40,7 +40,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
     /// <summary>
     /// Gets or sets the data type of the pixel components.
     /// </summary>
-    public PbmComponentType ComponentType { get; set; } = PbmComponentType.Byte;
+    public PbmComponentType ComponentType { get; set; }
 
     /// <inheritdoc/>
     public static PbmMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
@@ -69,16 +69,13 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
                 break;
         }
 
-        PbmComponentType componentType = PbmComponentType.Short;
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
-        if (bpp == 1)
+        PbmComponentType componentType = bpp switch
         {
-            componentType = PbmComponentType.Bit;
-        }
-        else if (bpp <= 8)
-        {
-            componentType = PbmComponentType.Byte;
-        }
+            1 => PbmComponentType.Bit,
+            <= 8 => PbmComponentType.Byte,
+            _ => PbmComponentType.Short
+        };
 
         return new PbmMetadata
         {

@@ -78,11 +78,13 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
             for (int i = 0; i < colorTable.Length; i++)
             {
-                if (background == colorTable[i])
+                if (background != colorTable[i])
                 {
-                    index = i;
-                    break;
+                    continue;
                 }
+
+                index = i;
+                break;
             }
         }
 
@@ -105,11 +107,13 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
             for (int i = 0; i < colorTable.Length; i++)
             {
-                if (background == colorTable[i])
+                if (background != colorTable[i])
                 {
-                    index = i;
-                    break;
+                    continue;
                 }
+
+                index = i;
+                break;
             }
         }
 

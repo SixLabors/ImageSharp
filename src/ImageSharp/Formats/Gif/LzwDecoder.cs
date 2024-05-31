@@ -20,6 +20,11 @@ internal sealed class LzwDecoder : IDisposable
     private const int MaxStackSize = 4096;
 
     /// <summary>
+    /// The maximum bits for a lzw code.
+    /// </summary>
+    private const int MaximumLzwBits = 12;
+
+    /// <summary>
     /// The null code.
     /// </summary>
     private const int NullCode = -1;
@@ -73,7 +78,7 @@ internal sealed class LzwDecoder : IDisposable
         // It is possible to specify a larger LZW minimum code size than the palette length in bits
         // which may leave a gap in the codes where no colors are assigned.
         // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || clearCode > MaxStackSize)
+        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || clearCode > MaxStackSize)
         {
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided
@@ -245,7 +250,7 @@ internal sealed class LzwDecoder : IDisposable
         // It is possible to specify a larger LZW minimum code size than the palette length in bits
         // which may leave a gap in the codes where no colors are assigned.
         // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || clearCode > MaxStackSize)
+        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || clearCode > MaxStackSize)
         {
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided

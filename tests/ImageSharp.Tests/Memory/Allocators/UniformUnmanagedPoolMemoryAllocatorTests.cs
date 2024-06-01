@@ -442,4 +442,20 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
     }
+
+    [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
+    public void MemoryAllocator_Create_SetHighLimit()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+        static void RunTest()
+        {
+            const long threeGB = 3L * (1 << 30);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            {
+                AllocationLimitMegabytes = (int)(threeGB / 1024)
+            });
+            using MemoryGroup<byte> memoryGroup = allocator.AllocateGroup<byte>(threeGB, 1024);
+            Assert.Equal(threeGB, memoryGroup.TotalLength);
+        }
+    }
 }

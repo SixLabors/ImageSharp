@@ -205,7 +205,7 @@ internal class Av1Decoder : IAv1TileDecoder
         else if (hasRows && hasColumns)
         {
             int ctx = this.GetPartitionContext(rowIndex, columnIndex, blockSize);
-            partitionType = reader.ReadPartitionSymbol(ctx);
+            partitionType = reader.ReadPartitionType(ctx);
         }
         else if (hasColumns)
         {

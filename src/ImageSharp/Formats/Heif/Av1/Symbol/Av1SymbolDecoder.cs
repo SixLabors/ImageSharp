@@ -32,7 +32,7 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.tileIntraBlockCopy) > 0;
     }
 
-    public Av1PartitionType ReadPartitionSymbol(int context)
+    public Av1PartitionType ReadPartitionType(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
         return (Av1PartitionType)r.ReadSymbol(this.tilePartitionTypes[context]);

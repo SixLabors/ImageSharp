@@ -186,29 +186,35 @@ public class SymbolTest
         Assert.Equal(expectedValues, values);
     }
 
-    [Theory]
-    [InlineData(0, 255, 255, 255, 158)]
-
-    // [InlineData(1, 255, 255, 255, 158)]
-    // [InlineData(4, 255, 207, 254, 18)]
-    public void ReadPartitionTypeSymbols(int ctx, byte b0, byte b1, byte b2, byte b3)
+    [Fact]
+    public void RoundTripPartitionType()
     {
         // Assign
-        byte[] values = [b0, b1, b2, b3, 0];
-        Av1SymbolDecoder decoder = new(values);
-        Av1PartitionType[] expected = [
+        int ctx = 7;
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None ];
-        Av1PartitionType[] actuals = new Av1PartitionType[expected.Length];
+        Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
 
         // Act
-        for (int i = 0; i < expected.Length; i++)
+        foreach (Av1PartitionType value in values)
         {
-            actuals[i] = decoder.ReadPartitionSymbol(ctx);
+            encoder.WritePartitionType(value, 7);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(encoded.GetSpan());
+        Av1SymbolReader reader = new(encoded.GetSpan());
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadPartitionType(ctx);
         }
 
         // Assert
-        Assert.Equal(expected, actuals);
+        Assert.Equal(values, actuals);
     }
 
     [Fact]
@@ -223,7 +229,7 @@ public class SymbolTest
         // Act
         foreach (bool value in values)
         {
-            encoder.WriteUseIntraBlockCopySymbol(value);
+            encoder.WriteUseIntraBlockCopy(value);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();

@@ -25,13 +25,13 @@ internal class Av1SymbolWriter : IDisposable
 
     public void Dispose() => this.memory.Dispose();
 
-    public void WriteSymbol(int symbol, Av1Distribution distribution, int numberOfSymbols)
+    public void WriteSymbol(int symbol, Av1Distribution distribution)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(symbol, 0, nameof(symbol));
-        DebugGuard.MustBeLessThan(symbol, numberOfSymbols, nameof(symbol));
-        DebugGuard.IsTrue(distribution[numberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
+        DebugGuard.MustBeLessThan(symbol, distribution.NumberOfSymbols, nameof(symbol));
+        DebugGuard.IsTrue(distribution[distribution.NumberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
-        this.EncodeIntegerQ15(symbol, distribution, numberOfSymbols);
+        this.EncodeIntegerQ15(symbol, distribution);
         distribution.Update(symbol);
     }
 
@@ -128,12 +128,8 @@ internal class Av1SymbolWriter : IDisposable
     /// [s > 0 ? (CDF_PROB_TOP - icdf[s - 1]) : 0, CDF_PROB_TOP - icdf[s]).
     /// The values must be monotonically non - increasing, and icdf[nsyms - 1] must be 0.
     /// </param>
-    /// <param name="numberOfSymbols">
-    /// The number of symbols in the alphabet.
-    /// This should be at most 16.
-    /// </param>
-    private void EncodeIntegerQ15(int symbol, Av1Distribution distribution, int numberOfSymbols)
-        => this.EncodeIntegerQ15(symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop, distribution[symbol], symbol, numberOfSymbols);
+    private void EncodeIntegerQ15(int symbol, Av1Distribution distribution)
+        => this.EncodeIntegerQ15(symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop, distribution[symbol], symbol, distribution.NumberOfSymbols);
 
     private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {

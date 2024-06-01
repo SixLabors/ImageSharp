@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 

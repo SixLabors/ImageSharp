@@ -113,4 +113,9 @@ internal static class ObuConstants
     /// Maximum magnitude of AngleDeltaY and AngleDeltaUV.
     /// </summary>
     public const int MaxAngleDelta = 3;
+
+    /// <summary>
+    /// Number of segments allowed in segmentation map.
+    /// </summary>
+    public const int MaxSegments = 8;
 }

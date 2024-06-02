@@ -263,8 +263,8 @@ internal class ObuReader
         sequenceHeader.EnableDualFilter = false;
         sequenceHeader.OrderHintInfo.EnableJointCompound = false;
         sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = false;
-        sequenceHeader.SequenceForceScreenContentTools = 2;
-        sequenceHeader.SequenceForceIntegerMotionVector = 2;
+        sequenceHeader.ForceScreenContentTools = 2;
+        sequenceHeader.ForceIntegerMotionVector = 2;
         sequenceHeader.OrderHintInfo.OrderHintBits = 0;
 
         // Video related flags removed
@@ -280,13 +280,13 @@ internal class ObuReader
     {
         ObuColorConfig colorConfig = new();
         ReadBitDepth(ref reader, colorConfig, sequenceHeader);
-        colorConfig.Monochrome = false;
+        colorConfig.IsMonochrome = false;
         if (sequenceHeader.SequenceProfile != ObuSequenceProfile.High)
         {
-            colorConfig.Monochrome = reader.ReadBoolean();
+            colorConfig.IsMonochrome = reader.ReadBoolean();
         }
 
-        colorConfig.ChannelCount = colorConfig.Monochrome ? 1 : 3;
+        colorConfig.ChannelCount = colorConfig.IsMonochrome ? 1 : 3;
         colorConfig.IsColorDescriptionPresent = reader.ReadBoolean();
         colorConfig.ColorPrimaries = ObuColorPrimaries.Unspecified;
         colorConfig.TransferCharacteristics = ObuTransferCharacteristics.Unspecified;
@@ -303,7 +303,7 @@ internal class ObuReader
         colorConfig.SubSamplingY = false;
         colorConfig.ChromaSamplePosition = ObuChromoSamplePosition.Unknown;
         colorConfig.HasSeparateUvDelta = false;
-        if (colorConfig.Monochrome)
+        if (colorConfig.IsMonochrome)
         {
             colorConfig.ColorRange = reader.ReadBoolean();
             colorConfig.SubSamplingX = true;
@@ -669,7 +669,7 @@ internal class ObuReader
         }
 
         frameInfo.DisableCdfUpdate = reader.ReadBoolean();
-        frameInfo.AllowScreenContentTools = sequenceHeader.SequenceForceScreenContentTools == 1;
+        frameInfo.AllowScreenContentTools = sequenceHeader.ForceScreenContentTools == 1;
         if (frameInfo.AllowScreenContentTools)
         {
             frameInfo.AllowScreenContentTools = reader.ReadBoolean();
@@ -677,13 +677,13 @@ internal class ObuReader
 
         if (frameInfo.AllowScreenContentTools)
         {
-            if (sequenceHeader.SequenceForceIntegerMotionVector == 1)
+            if (sequenceHeader.ForceIntegerMotionVector == 1)
             {
                 frameInfo.ForceIntegerMotionVector = reader.ReadBoolean();
             }
             else
             {
-                frameInfo.ForceIntegerMotionVector = sequenceHeader.SequenceForceIntegerMotionVector != 0;
+                frameInfo.ForceIntegerMotionVector = sequenceHeader.ForceIntegerMotionVector != 0;
             }
         }
         else
@@ -899,7 +899,7 @@ internal class ObuReader
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
-        => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
+        => segmentationParameters.Enabled && segmentationParameters.IsFeatureActive(segmentId, feature);
 
     private static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
     {
@@ -919,7 +919,7 @@ internal class ObuReader
     {
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
         ObuFrameHeader frameInfo = decoder.FrameInfo;
-        int planeCount = sequenceHeader.ColorConfig.Monochrome ? 1 : 3;
+        int planeCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         int startBitPosition = reader.BitPosition;
         ReadUncompressedFrameHeader(ref reader, decoder, header, planeCount);
         if (trailingBit)

@@ -55,9 +55,9 @@ internal class ObuSequenceHeader
 
     public bool EnableDualFilter { get; set; }
 
-    public int SequenceForceIntegerMotionVector { get; set; }
+    public int ForceIntegerMotionVector { get; set; }
 
-    public int SequenceForceScreenContentTools { get; set; }
+    public int ForceScreenContentTools { get; set; }
 
     public bool EnableSuperResolution { get; set; }
 

@@ -5,7 +5,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal class Av1ParseAboveContext
 {
-    public int PartitionWidth { get; internal set; }
+    public int PartitionWidth { get; set; }
 
-    internal void Clear() => throw new NotImplementedException();
+    public int[][] AboveContext { get; set; } = [];
+
+    internal void Clear(int startColumnIndex, int endColumnIndex)
+    {
+        this.PartitionWidth = -1;
+        this.AboveContext = [];
+    }
 }

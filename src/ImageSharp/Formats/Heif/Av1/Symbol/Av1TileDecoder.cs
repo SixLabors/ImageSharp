@@ -18,37 +18,16 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private bool[][][] blockDecoded = [];
     private int[][] referenceSgrXqd = [];
     private int[][][] referenceLrWiener = [];
-    private bool availableUp;
-    private bool availableLeft;
-    private bool availableUpForChroma;
-    private bool availableLeftForChroma;
     private Av1ParseAboveContext aboveContext = new();
     private Av1ParseLeftContext leftContext = new();
-    private bool skip;
-    private bool readDeltas;
     private int currentQuantizerIndex;
-    private Av1PredictionMode[][] yModes = [];
-    private Av1PredictionMode yMode = Av1PredictionMode.DC;
-    private Av1PredictionMode uvMode = Av1PredictionMode.DC;
-    private Av1PredictionMode[][] uvModes = [];
-    private object[] referenceFrame = [];
-    private object[][][] referenceFrames = [];
-    private int paletteSizeY;
-    private int paletteSizeUv;
-    private object[][] aboveLevelContext = [];
-    private object[][] aboveDcContext = [];
-    private object[][] leftLevelContext = [];
-    private object[][] leftDcContext = [];
-    private Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-    private object filterUltraMode = -1;
-    private int angleDeltaY;
-    private int angleDeltaUv;
-    private bool lossless;
+    private int[][] aboveLevelContext = [];
+    private int[][] aboveDcContext = [];
+    private int[][] leftLevelContext = [];
+    private int[][] leftDcContext = [];
     private int[][] segmentIds = [];
     private int maxLumaWidth;
     private int maxLumaHeight;
-    private int segmentId;
-    private int[][] cdefIndex = [];
     private int deltaLoopFilterResolution = -1;
     private int deltaQuantizerResolution = -1;
 
@@ -74,9 +53,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
     public void DecodeTile(Span<byte> tileData, int tileNum)
     {
         Av1SymbolDecoder reader = new(tileData);
-        int tileRowIndex = tileNum / this.TileInfo.TileColumnCount;
         int tileColumnIndex = tileNum % this.TileInfo.TileColumnCount;
-        this.aboveContext.Clear();
+        int tileRowIndex = tileNum / this.TileInfo.TileColumnCount;
+
+        this.aboveContext.Clear(this.TileInfo.TileColumnStartModeInfo[tileColumnIndex], this.TileInfo.TileColumnStartModeInfo[tileColumnIndex - 1]);
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
         this.referenceSgrXqd = new int[planesCount][];
@@ -111,12 +91,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 // this.ClearCdef(row, column);
                 this.ClearBlockDecodedFlags(row, column, superBlock4x4Size);
                 this.ReadLoopRestoration(row, column, superBlockSize);
-                this.DecodePartition(ref reader, row, column, superBlockSize);
+                this.ParsePartition(ref reader, row, column, superBlockSize);
             }
         }
     }
 
-    private void ClearLoopFilterDelta() => this.deltaLoopFilter = new int[4];
+    private void ClearLoopFilterDelta()
+        => this.deltaLoopFilter = new int[4];
 
     private void ClearBlockDecodedFlags(int row, int column, int superBlock4x4Size)
     {
@@ -169,16 +150,17 @@ internal class Av1TileDecoder : IAv1TileDecoder
         // TODO: Implement
     }
 
-    private void DecodePartition(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void ParsePartition(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
     {
+        Av1SuperblockInfo superblockInfo = new();
         if (rowIndex >= this.TileInfo.TileRowStartModeInfo[rowIndex] ||
             columnIndex >= this.TileInfo.TileColumnStartModeInfo[columnIndex])
         {
             return;
         }
 
-        this.availableUp = this.IsInside(rowIndex - 1, columnIndex);
-        this.availableLeft = this.IsInside(rowIndex, columnIndex - 1);
+        bool availableUp = this.IsInside(rowIndex - 1, columnIndex);
+        bool availableLeft = this.IsInside(rowIndex, columnIndex - 1);
         int block4x4Size = blockSize.Get4x4WideCount();
         int halfBlock4x4Size = block4x4Size >> 1;
         int quarterBlock4x4Size = halfBlock4x4Size >> 2;
@@ -212,80 +194,84 @@ internal class Av1TileDecoder : IAv1TileDecoder
         switch (partitionType)
         {
             case Av1PartitionType.Split:
-                this.DecodePartition(ref reader, rowIndex, columnIndex, subSize);
-                this.DecodePartition(ref reader, rowIndex, columnIndex + halfBlock4x4Size, subSize);
-                this.DecodePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex, subSize);
-                this.DecodePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize);
+                this.ParsePartition(ref reader, rowIndex, columnIndex, subSize);
+                this.ParsePartition(ref reader, rowIndex, columnIndex + halfBlock4x4Size, subSize);
+                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex, subSize);
+                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize);
                 break;
             case Av1PartitionType.None:
-                this.DecodeBlock(ref reader, rowIndex, columnIndex, subSize);
+                this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.None);
                 break;
             default:
                 throw new NotImplementedException($"Partition type: {partitionType} is not supported.");
         }
     }
 
-    private void DecodeBlock(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void ParseBlock(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1PartitionType partitionType)
     {
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
         int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
-        bool hasChroma = planesCount > 1;
-        if (block4x4Height == 1 && this.SequenceHeader.ColorConfig.SubSamplingY && (rowIndex & 0x1) == 0)
-        {
-            hasChroma = false;
-        }
-
-        if (block4x4Width == 1 && this.SequenceHeader.ColorConfig.SubSamplingX && (columnIndex & 0x1) == 0)
-        {
-            hasChroma = false;
-        }
-
-        this.availableUp = this.IsInside(rowIndex - 1, columnIndex);
-        this.availableLeft = this.IsInside(rowIndex, columnIndex - 1);
-        this.availableUpForChroma = this.availableUp;
-        this.availableLeftForChroma = this.availableLeft;
+        Av1BlockModeInfo blockModeInfo = new(planesCount, blockSize);
+        bool hasChroma = this.HasChroma(rowIndex, columnIndex, blockSize);
+        Av1PartitionInfo partitionInfo = new(blockModeInfo, superblockInfo, hasChroma, partitionType);
+        partitionInfo.ColumnIndex = columnIndex;
+        partitionInfo.RowIndex = rowIndex;
+        partitionInfo.AvailableUp = this.IsInside(rowIndex - 1, columnIndex);
+        partitionInfo.AvailableLeft = this.IsInside(rowIndex, columnIndex - 1);
+        partitionInfo.AvailableUpForChroma = partitionInfo.AvailableUp;
+        partitionInfo.AvailableLeftForChroma = partitionInfo.AvailableLeft;
         if (hasChroma)
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)
             {
-                this.availableUpForChroma = this.IsInside(rowIndex - 2, columnIndex);
+                partitionInfo.AvailableUpForChroma = this.IsInside(rowIndex - 2, columnIndex);
             }
 
             if (this.SequenceHeader.ColorConfig.SubSamplingX && block4x4Width == 1)
             {
-                this.availableLeftForChroma = this.IsInside(rowIndex, columnIndex - 2);
+                partitionInfo.AvailableLeftForChroma = this.IsInside(rowIndex, columnIndex - 2);
             }
         }
 
-        this.ReadModeInfo(ref reader, rowIndex, columnIndex, blockSize);
-        this.ReadPaletteTokens(ref reader);
+        if (partitionInfo.AvailableUp)
+        {
+            partitionInfo.AboveModeInfo = superblockInfo.GetModeInfo(rowIndex - 1, columnIndex);
+        }
+
+        if (partitionInfo.AvailableLeft)
+        {
+            partitionInfo.LeftModeInfo = superblockInfo.GetModeInfo(rowIndex, columnIndex - 1);
+        }
+
+        this.ReadModeInfo(ref reader, partitionInfo);
+        ReadPaletteTokens(ref reader, partitionInfo);
         ReadBlockTransformSize(ref reader, rowIndex, columnIndex, blockSize);
-        if (this.skip)
+        if (partitionInfo.ModeInfo.Skip)
         {
-            this.ResetBlockContext(rowIndex, columnIndex, blockSize);
+            this.ResetSkipContext(partitionInfo);
         }
 
-        // bool isCompound = false;
-        for (int y = 0; y < block4x4Height; y++)
-        {
-            for (int x = 0; x < block4x4Width; x++)
-            {
-                this.yModes[rowIndex + y][columnIndex + x] = this.yMode;
-                if (this.referenceFrame[0] == (object)ObuFrameType.IntraOnlyFrame && hasChroma)
-                {
-                    this.uvModes[rowIndex + y][columnIndex + x] = this.uvMode;
-                }
-
-                for (int refList = 0; refList < 2; refList++)
-                {
-                    this.referenceFrames[rowIndex + y][columnIndex + x][refList] = this.referenceFrame[refList];
-                }
-            }
-        }
-
-        ComputePrediction();
         this.Residual(rowIndex, columnIndex, blockSize);
+    }
+
+    private void ResetSkipContext(Av1PartitionInfo partitionInfo)
+    {
+        int planesCount = this.SequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
+        for (int i = 0; i < planesCount; i++)
+        {
+            bool subX = i > 0 && this.SequenceHeader.ColorConfig.SubSamplingX;
+            bool subY = i > 0 && this.SequenceHeader.ColorConfig.SubSamplingY;
+            Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+            int txsWide = planeBlockSize.GetWidth() >> 2;
+            int txsHigh = planeBlockSize.GetHeight() >> 2;
+            int aboveOffset = (partitionInfo.ColumnIndex - this.TileInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> (subX ? 1 : 0);
+            int leftOffset = (partitionInfo.RowIndex - this.TileInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> (subY ? 1 : 0);
+            int[] aboveContext = this.aboveContext.AboveContext[i + aboveOffset];
+            int[] leftContext = this.leftContext.LeftContext[i + leftOffset];
+            Array.Fill(aboveContext, 0);
+            Array.Fill(leftContext, 0);
+        }
     }
 
     private void Residual(int rowIndex, int columnIndex, Av1BlockSize blockSize)
@@ -307,7 +293,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 int subBlockColumn = columnChunk & superBlockMask;
                 for (int plane = 0; plane < 1 + (this.HasChroma(rowIndex, columnIndex, blockSize) ? 2 : 0); plane++)
                 {
-                    Av1TransformSize transformSize = this.FrameInfo.CodedLossless ? Av1TransformSize.Size4x4 : this.GetSize(plane, this.transformSize);
+                    Av1TransformSize transformSize = this.FrameInfo.CodedLossless ? Av1TransformSize.Size4x4 : this.GetSize(plane, -1);
                     int stepX = transformSize.GetWidth() >> 2;
                     int stepY = transformSize.GetHeight() >> 2;
                     Av1BlockSize planeSize = this.GetPlaneResidualSize(sizeChunk, plane);
@@ -348,6 +334,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
     {
+        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(), false, Av1PartitionType.None);
         int startX = (baseX + 4) * x;
         int startY = (baseY + 4) * y;
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -368,28 +355,28 @@ internal class Av1TileDecoder : IAv1TileDecoder
             return;
         }
 
-        if ((plane == 0 && this.paletteSizeY > 0) ||
-            (plane != 0 && this.paletteSizeUv > 0))
+        if ((plane == 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) > 0) ||
+            (plane != 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) > 0))
         {
             this.PredictPalette(plane, startX, startY, x, y, transformSize);
         }
         else
         {
-            bool isChromaFromLuma = plane > 0 && this.uvMode == Av1PredictionMode.UvChromaFromLuma;
+            bool isChromaFromLuma = plane > 0 && partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma;
             Av1PredictionMode mode;
             if (plane == 0)
             {
-                mode = this.yMode;
+                mode = partitionInfo.ModeInfo.YMode;
             }
             else
             {
-                mode = isChromaFromLuma ? Av1PredictionMode.DC : this.uvMode;
+                mode = isChromaFromLuma ? Av1PredictionMode.DC : partitionInfo.ModeInfo.UvMode;
             }
 
             int log2Width = transformSize.GetWidthLog2();
             int log2Height = transformSize.GetHeightLog2();
-            bool leftAvailable = x > 0 || plane == 0 ? this.availableLeft : this.availableLeftForChroma;
-            bool upAvailable = y > 0 || plane == 0 ? this.availableUp : this.availableUpForChroma;
+            bool leftAvailable = x > 0 || plane == 0 ? partitionInfo.AvailableLeft : partitionInfo.AvailableLeftForChroma;
+            bool upAvailable = y > 0 || plane == 0 ? partitionInfo.AvailableUp : partitionInfo.AvailableUpForChroma;
             bool haveAboveRight = this.blockDecoded[plane][(subBlockRow >> subY) - 1][(subBlockColumn >> subX) + stepX];
             bool haveBelowLeft = this.blockDecoded[plane][(subBlockRow >> subY) + stepY][(subBlockColumn >> subX) - 1];
             this.PredictIntra(plane, startX, startY, leftAvailable, upAvailable, haveAboveRight, haveBelowLeft, mode, log2Width, log2Height);
@@ -405,7 +392,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             this.maxLumaHeight = startY + (stepY * 4);
         }
 
-        if (!this.skip)
+        if (!partitionInfo.ModeInfo.Skip)
         {
             int eob = this.Coefficients(plane, startX, startY, transformSize);
             if (eob > 0)
@@ -434,11 +421,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void PredictPalette(int plane, int startX, int startY, int x, int y, Av1TransformSize transformSize) => throw new NotImplementedException();
 
-    private static void ComputePrediction()
-    {
-        // Not applicable for INTRA frames.
-    }
-
     private void ResetBlockContext(int rowIndex, int columnIndex, Av1BlockSize blockSize)
     {
         int block4x4Width = blockSize.Get4x4WideCount();
@@ -446,21 +428,22 @@ internal class Av1TileDecoder : IAv1TileDecoder
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
         bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
         int endPlane = this.HasChroma(rowIndex, columnIndex, blockSize) ? 3 : 1;
+        this.aboveLevelContext = new int[3][];
+        this.aboveDcContext = new int[3][];
+        this.leftLevelContext = new int[3][];
+        this.leftDcContext = new int[3][];
         for (int plane = 0; plane < endPlane; plane++)
         {
             int subX = plane > 0 && subsamplingX ? 1 : 0;
             int subY = plane > 0 && subsamplingY ? 1 : 0;
-            for (int i = columnIndex >> subX; i < (columnIndex + block4x4Width) >> subX; i++)
-            {
-                this.aboveLevelContext[plane][i] = 0;
-                this.aboveDcContext[plane][i] = 0;
-            }
-
-            for (int i = rowIndex >> subY; i < (rowIndex + block4x4Height) >> subY; i++)
-            {
-                this.leftLevelContext[plane][i] = 0;
-                this.leftDcContext[plane][i] = 0;
-            }
+            this.aboveLevelContext[plane] = new int[(columnIndex + block4x4Width) >> subX];
+            this.aboveDcContext[plane] = new int[(columnIndex + block4x4Width) >> subX];
+            this.leftLevelContext[plane] = new int[(rowIndex + block4x4Height) >> subY];
+            this.leftDcContext[plane] = new int[(rowIndex + block4x4Height) >> subY];
+            Array.Fill(this.aboveLevelContext[plane], 0);
+            Array.Fill(this.aboveDcContext[plane], 0);
+            Array.Fill(this.leftLevelContext[plane], 0);
+            Array.Fill(this.leftDcContext[plane], 0);
         }
     }
 
@@ -480,209 +463,250 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }*/
     }
 
-    private void ReadPaletteTokens(ref Av1SymbolDecoder reader)
+    private static void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         reader.ReadLiteral(-1);
-        if (this.paletteSizeY != 0)
+        if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
         {
             // Todo: Implement.
             throw new NotImplementedException();
         }
 
-        if (this.paletteSizeUv != 0)
+        if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
         {
             // Todo: Implement.
             throw new NotImplementedException();
         }
     }
 
-    private void ReadModeInfo(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
-        => this.ReadIntraFrameModeInfo(ref reader, rowIndex, columnIndex, blockSize);
-
-    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        this.skip = false;
+        DebugGuard.IsTrue(this.FrameInfo.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
+        this.ReadIntraFrameModeInfo(ref reader, partitionInfo);
+    }
+
+    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    {
         if (this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip)
         {
-            this.ReadIntraSegmentId(ref reader);
+            this.IntraSegmentId(ref reader, partitionInfo);
         }
 
         // this.skipMode = false;
-        this.ReadSkip(ref reader);
+        partitionInfo.ModeInfo.Skip = this.ReadSkip(ref reader, partitionInfo);
         if (!this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip)
         {
-            this.IntraSegmentId(ref reader, rowIndex, columnIndex);
+            this.IntraSegmentId(ref reader, partitionInfo);
         }
 
-        this.ReadCdef(ref reader, rowIndex, columnIndex, blockSize);
-        this.ReadDeltaQuantizerIndex(ref reader, blockSize);
-        this.ReadDeltaLoopFilter(ref reader, blockSize);
-        this.readDeltas = false;
-        this.referenceFrame[0] = -1; // IntraFrame;
-        this.referenceFrame[1] = -1; // None;
+        this.ReadCdef(ref reader, partitionInfo);
+
+        bool readDeltas = false;
+        if (readDeltas)
+        {
+            this.ReadDeltaQuantizerIndex(ref reader, partitionInfo);
+            this.ReadDeltaLoopFilter(ref reader, partitionInfo);
+        }
+
+        partitionInfo.ReferenceFrame[0] = 0; // IntraFrame;
+        partitionInfo.ReferenceFrame[1] = -1; // None;
+        partitionInfo.ModeInfo.SetPaletteSizes(0, 0);
         bool useIntraBlockCopy = false;
-        if (this.FrameInfo.AllowIntraBlockCopy)
+        if (this.AllowIntraBlockCopy())
         {
             useIntraBlockCopy = reader.ReadUseIntraBlockCopy();
         }
 
         if (useIntraBlockCopy)
         {
-            // TODO: Implement
+            partitionInfo.ModeInfo.YMode = Av1PredictionMode.DC;
+            partitionInfo.ModeInfo.UvMode = Av1PredictionMode.DC;
         }
         else
         {
             // this.IsInter = false;
-            this.yMode = reader.ReadIntraFrameYMode(blockSize);
-            this.IntraAngleInfoY(ref reader, blockSize);
-            if (this.HasChroma(rowIndex, columnIndex, blockSize))
+            partitionInfo.ModeInfo.YMode = reader.ReadYMode(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
+            partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Y] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.YMode, partitionInfo.ModeInfo.BlockSize);
+            if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
             {
-                this.uvMode = reader.ReadUvMode(blockSize, this.IsChromaForLumaAllowed(blockSize));
-                if (this.uvMode == Av1PredictionMode.UvChromaFromLuma)
+                partitionInfo.ModeInfo.UvMode = reader.ReadIntraModeUv(partitionInfo.ModeInfo.YMode, this.IsChromaForLumaAllowed(partitionInfo));
+                if (partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma)
                 {
-                    this.ReadChromaFromLumaAlphas(ref reader);
+                    this.ReadChromaFromLumaAlphas(ref reader, partitionInfo);
                 }
 
-                this.IntraAngleInfoUv(ref reader, blockSize);
+                partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Uv] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode, partitionInfo.ModeInfo.BlockSize);
+            }
+            else
+            {
+                partitionInfo.ModeInfo.UvMode = Av1PredictionMode.DC;
             }
 
-            this.paletteSizeY = 0;
-            this.paletteSizeUv = 0;
-            if (this.SequenceHeader.ModeInfoSize >= (int)Av1BlockSize.Block8x8 &&
-                ((Av1BlockSize)this.SequenceHeader.ModeInfoSize).Get4x4WideCount() <= 64 &&
-                ((Av1BlockSize)this.SequenceHeader.ModeInfoSize).Get4x4HighCount() <= 64 &&
+            if (partitionInfo.ModeInfo.BlockSize >= Av1BlockSize.Block8x8 &&
+                partitionInfo.ModeInfo.BlockSize.GetWidth() <= 64 &&
+                partitionInfo.ModeInfo.BlockSize.GetHeight() <= 64 &&
                 this.FrameInfo.AllowScreenContentTools)
             {
-                this.PaletteModeInfo(ref reader);
+                this.PaletteModeInfo(ref reader, partitionInfo);
             }
 
-            this.FilterIntraModeInfo(ref reader, blockSize);
+            this.FilterIntraModeInfo(ref reader, partitionInfo);
         }
     }
 
-    private bool IsChromaForLumaAllowed(Av1BlockSize blockSize)
+    private bool AllowIntraBlockCopy()
+        => (this.FrameInfo.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame) &&
+            (this.SequenceHeader.ForceScreenContentTools > 0) &&
+            this.FrameInfo.AllowIntraBlockCopy;
+
+    private bool IsChromaForLumaAllowed(Av1PartitionInfo partitionInfo)
     {
-        if (this.lossless)
+        if (this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId])
         {
             // In lossless, CfL is available when the partition size is equal to the
             // transform size.
             bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
             bool subY = this.SequenceHeader.ColorConfig.SubSamplingY;
-            Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX, subY);
+            Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
             return planeBlockSize == Av1BlockSize.Block4x4;
         }
 
         // Spec: CfL is available to luma partitions lesser than or equal to 32x32
-        return blockSize.Get4x4WideCount() <= 32 && blockSize.Get4x4HighCount() <= 32;
+        return partitionInfo.ModeInfo.BlockSize.GetWidth() <= 32 && partitionInfo.ModeInfo.BlockSize.GetHeight() <= 32;
     }
 
-    private void ReadIntraSegmentId(ref Av1SymbolDecoder reader) => throw new NotImplementedException();
-
-    private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, Av1BlockSize blockSize)
+    private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        bool useFilterIntra = false;
         if (this.SequenceHeader.EnableFilterIntra &&
-            this.yMode == Av1PredictionMode.DC && this.paletteSizeY == 0 &&
-            Math.Max(blockSize.GetWidth(), blockSize.GetHeight()) <= 32)
+            partitionInfo.ModeInfo.YMode == Av1PredictionMode.DC &&
+            partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) == 0 &&
+            Math.Max(partitionInfo.ModeInfo.BlockSize.GetWidth(), partitionInfo.ModeInfo.BlockSize.GetHeight()) <= 32)
         {
-            useFilterIntra = reader.ReadUseFilterUltra();
-            if (useFilterIntra)
+            partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = reader.ReadUseFilterUltra(partitionInfo.ModeInfo.BlockSize);
+            if (partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra)
             {
-                this.filterUltraMode = reader.ReadFilterUltraMode();
+                partitionInfo.ModeInfo.FilterIntraModeInfo.Mode = reader.ReadFilterUltraMode();
             }
         }
+        else
+        {
+            partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = false;
+        }
     }
 
-    private void PaletteModeInfo(ref Av1SymbolDecoder reader) =>
+    private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
 
         // TODO: Implement.
         throw new NotImplementedException();
 
-    private void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader) =>
+    private void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
 
         // TODO: Implement.
         throw new NotImplementedException();
 
-    private void IntraAngleInfoY(ref Av1SymbolDecoder reader, Av1BlockSize blockSize)
+    private static int IntraAngleInfo(ref Av1SymbolDecoder reader, Av1PredictionMode mode, Av1BlockSize blockSize)
     {
-        this.angleDeltaY = 0;
-        if (blockSize >= Av1BlockSize.Block8x8 && IsDirectionalMode(this.yMode))
+        int angleDelta = 0;
+        if (blockSize >= Av1BlockSize.Block8x8 && IsDirectionalMode(mode))
         {
-            int angleDeltaY = reader.ReadAngleDelta(this.yMode);
-            this.angleDeltaY = angleDeltaY - ObuConstants.MaxAngleDelta;
+            int symbol = reader.ReadAngleDelta(mode);
+            angleDelta = symbol - ObuConstants.MaxAngleDelta;
         }
-    }
 
-    private void IntraAngleInfoUv(ref Av1SymbolDecoder reader, Av1BlockSize blockSize)
-    {
-        this.angleDeltaUv = 0;
-        if (blockSize >= Av1BlockSize.Block8x8 && IsDirectionalMode(this.uvMode))
-        {
-            int angleDeltaUv = reader.ReadAngleDelta(this.uvMode);
-            this.angleDeltaUv = angleDeltaUv - ObuConstants.MaxAngleDelta;
-        }
+        return angleDelta;
     }
 
     private static bool IsDirectionalMode(Av1PredictionMode mode)
         => mode is >= Av1PredictionMode.Vertical and <= Av1PredictionMode.Directional67Degrees;
 
-    private void IntraSegmentId(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex)
+    private void IntraSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (this.FrameInfo.SegmentationParameters.Enabled)
         {
-            this.ReadSegmentId(ref reader, rowIndex, columnIndex);
-        }
-        else
-        {
-            this.segmentId = 0;
+            this.ReadSegmentId(ref reader, partitionInfo);
         }
 
-        this.lossless = this.FrameInfo.LosslessArray[this.segmentId];
+        int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
+        int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+        int x_mis = Math.Min(this.FrameInfo.ModeInfoColumnCount - partitionInfo.ColumnIndex, bw4);
+        int y_mis = Math.Min(this.FrameInfo.ModeInfoRowCount - partitionInfo.RowIndex, bh4);
+
+        for (int y = 0; y < y_mis; y++)
+        {
+            for (int x = 0; x < x_mis; x++)
+            {
+                this.segmentIds[partitionInfo.RowIndex + y][partitionInfo.ColumnIndex + x] = partitionInfo.ModeInfo.SegmentId;
+            }
+        }
     }
 
-    private void ReadSegmentId(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex)
+    private void ReadSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        int pred;
+        int predictor;
         int prevUL = -1;
         int prevU = -1;
         int prevL = -1;
-        if (this.availableUp && this.availableLeft)
+        int columnIndex = partitionInfo.ColumnIndex;
+        int rowIndex = partitionInfo.RowIndex;
+        if (partitionInfo.AvailableUp && partitionInfo.AvailableLeft)
         {
-            prevUL = this.segmentIds[rowIndex - 1][columnIndex - 1];
+            prevUL = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex - 1);
         }
 
-        if (this.availableUp)
+        if (partitionInfo.AvailableUp)
         {
-            prevU = this.segmentIds[rowIndex - 1][columnIndex];
+            prevU = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex);
         }
 
-        if (this.availableLeft)
+        if (partitionInfo.AvailableLeft)
         {
-            prevU = this.segmentIds[rowIndex][columnIndex - 1];
+            prevU = this.GetSegmentId(partitionInfo, rowIndex, columnIndex - 1);
         }
 
         if (prevU == -1)
         {
-            pred = prevL == -1 ? 0 : prevL;
+            predictor = prevL == -1 ? 0 : prevL;
         }
         else if (prevL == -1)
         {
-            pred = prevU;
+            predictor = prevU;
         }
         else
         {
-            pred = prevU == prevUL ? prevU : prevL;
+            predictor = prevU == prevUL ? prevU : prevL;
         }
 
-        if (this.skip)
+        if (partitionInfo.ModeInfo.Skip)
         {
-            this.segmentId = 0;
+            partitionInfo.ModeInfo.SegmentId = predictor;
         }
         else
         {
+            int ctx = prevUL < 0 ? 0 /* Edge cases */
+                : prevUL == prevU && prevUL == prevL ? 2
+                : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
             int lastActiveSegmentId = this.FrameInfo.SegmentationParameters.LastActiveSegmentId;
-            this.segmentId = NegativeDeinterleave(reader.ReadSegmentId(-1), pred, lastActiveSegmentId + 1);
+            partitionInfo.ModeInfo.SegmentId = NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
         }
+    }
+
+    private int GetSegmentId(Av1PartitionInfo partitionInfo, int rowIndex, int columnIndex)
+    {
+        int modeInfoOffset = (rowIndex * this.FrameInfo.ModeInfoColumnCount) + columnIndex;
+        int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
+        int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+        int xMin = Math.Min(this.FrameInfo.ModeInfoColumnCount - columnIndex, bw4);
+        int yMin = Math.Min(this.FrameInfo.ModeInfoRowCount - rowIndex, bh4);
+        int segmentId = ObuConstants.MaxSegments - 1;
+        for (int y = 0; y < yMin; y++)
+        {
+            for (int x = 0; x < xMin; x++)
+            {
+                segmentId = Math.Min(segmentId, this.segmentIds[y][x]);
+            }
+        }
+
+        return segmentId;
     }
 
     private static int NegativeDeinterleave(int diff, int reference, int max)
@@ -731,41 +755,45 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
-    private void ReadCdef(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        if (this.skip || this.FrameInfo.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameInfo.AllowIntraBlockCopy)
+        if (partitionInfo.ModeInfo.Skip || this.FrameInfo.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameInfo.AllowIntraBlockCopy)
         {
             return;
         }
 
         int cdefSize4 = Av1BlockSize.Block64x64.Get4x4WideCount();
         int cdefMask4 = ~(cdefSize4 - 1);
-        int r = rowIndex & cdefMask4;
-        int c = columnIndex & cdefMask4;
-        if (this.cdefIndex[r][c] == -1)
+        int r = partitionInfo.RowIndex & cdefMask4;
+        int c = partitionInfo.ColumnIndex & cdefMask4;
+        if (partitionInfo.CdefStrength[r][c] == -1)
         {
-            this.cdefIndex[r][c] = reader.ReadLiteral(this.FrameInfo.CdefParameters.BitCount);
-            int w4 = blockSize.Get4x4WideCount();
-            int h4 = blockSize.Get4x4HighCount();
-            for (int i = r; i < r + h4; i += cdefSize4)
+            partitionInfo.CdefStrength[r][c] = reader.ReadLiteral(this.FrameInfo.CdefParameters.BitCount);
+            if (this.SequenceHeader.SuperBlockSize == Av1BlockSize.Block128x128)
             {
-                for (int j = c; j < c + w4; j += cdefSize4)
+                int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
+                int h4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+                for (int i = r; i < r + h4; i += cdefSize4)
                 {
-                    this.cdefIndex[i][j] = this.cdefIndex[r][c];
+                    for (int j = c; j < c + w4; j += cdefSize4)
+                    {
+                        partitionInfo.CdefStrength[i & cdefMask4][j & cdefMask4] = partitionInfo.CdefStrength[r][c];
+                    }
                 }
             }
         }
     }
 
-    private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1BlockSize blockSize)
+    private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (blockSize == superBlockSize && this.skip)
+        if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent ||
+            (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
             return;
         }
 
-        if (this.readDeltas && this.FrameInfo.DeltaLoopFilterParameters.IsPresent)
+        if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent)
         {
             int frameLoopFilterCount = 1;
             if (this.FrameInfo.DeltaLoopFilterParameters.Multi)
@@ -793,28 +821,32 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
-    private void ReadSkip(ref Av1SymbolDecoder reader)
+    private bool ReadSkip(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
+        int segmentId = partitionInfo.ModeInfo.SegmentId;
         if (this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip &&
-            this.FrameInfo.SegmentationParameters.IsFeatureActive(-1, ObuSegmentationFeature.LevelSkip))
+            this.FrameInfo.SegmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip))
         {
-            this.skip = true;
+            return true;
         }
         else
         {
-            this.skip = reader.ReadSkip(-1);
+            int aboveSkip = partitionInfo.AboveModeInfo != null && partitionInfo.AboveModeInfo.Skip ? 1 : 0;
+            int leftSkip = partitionInfo.LeftModeInfo != null && partitionInfo.LeftModeInfo.Skip ? 1 : 0;
+            return reader.ReadSkip(aboveSkip + leftSkip);
         }
     }
 
-    private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1BlockSize blockSize)
+    private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (blockSize == superBlockSize && this.skip)
+        if (!this.FrameInfo.DeltaQParameters.IsPresent ||
+            (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
             return;
         }
 
-        if (this.readDeltas)
+        if (partitionInfo.ModeInfo.BlockSize != this.SequenceHeader.SuperBlockSize || !partitionInfo.ModeInfo.Skip)
         {
             int deltaQuantizerAbsolute = reader.ReadDeltaQuantizerAbsolute();
             if (deltaQuantizerAbsolute == ObuConstants.DeltaQuantizerSmall)
@@ -829,6 +861,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 bool deltaQuantizerSignBit = reader.ReadLiteral(1) > 0;
                 int reducedDeltaQuantizerIndex = deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
                 this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << this.deltaQuantizerResolution));
+                partitionInfo.SuperblockInfo.SuperblockDeltaQ[0] = this.currentQuantizerIndex;
             }
         }
     }

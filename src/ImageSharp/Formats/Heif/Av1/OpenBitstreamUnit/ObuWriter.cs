@@ -109,11 +109,11 @@ internal class ObuWriter
         WriteBitDepth(ref writer, colorConfig, sequenceHeader);
         if (sequenceHeader.SequenceProfile != ObuSequenceProfile.High)
         {
-            writer.WriteBoolean(colorConfig.Monochrome);
+            writer.WriteBoolean(colorConfig.IsMonochrome);
         }
 
         writer.WriteBoolean(false); // colorConfig.IsColorDescriptionPresent
-        if (colorConfig.Monochrome)
+        if (colorConfig.IsMonochrome)
         {
             writer.WriteBoolean(colorConfig.ColorRange);
             return;
@@ -321,7 +321,7 @@ internal class ObuWriter
 
         if (frameInfo.AllowScreenContentTools)
         {
-            if (sequenceHeader.SequenceForceIntegerMotionVector == 1)
+            if (sequenceHeader.ForceIntegerMotionVector == 1)
             {
                 writer.WriteBoolean(frameInfo.ForceIntegerMotionVector);
             }
@@ -448,7 +448,7 @@ internal class ObuWriter
     {
         ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
         ObuFrameHeader frameInfo = decoder.FrameInfo;
-        int planeCount = sequenceHeader.ColorConfig.Monochrome ? 1 : 3;
+        int planeCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         int startBitPosition = writer.BitPosition;
         WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameInfo, planeCount);
         if (writeTrailingBits)

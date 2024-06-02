@@ -17,6 +17,6 @@ internal class ObuSegmentationParameters
 
     public int LastActiveSegmentId { get; internal set; }
 
-    internal bool IsFeatureActive(int segmentId, ObuSegmentationFeature feature)
+    internal bool IsFeatureActive(int segmentId, ObuSegmentationLevelFeature feature)
         => this.FeatureEnabled[segmentId, (int)feature];
 }

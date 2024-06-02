@@ -9,7 +9,7 @@ internal class ObuColorConfig
 
     public int ChannelCount { get; set; }
 
-    public bool Monochrome { get; set; }
+    public bool IsMonochrome { get; set; }
 
     public ObuColorPrimaries ColorPrimaries { get; set; }
 

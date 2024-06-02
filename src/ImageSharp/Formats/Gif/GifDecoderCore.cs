@@ -463,6 +463,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         finally
         {
             indices?.Dispose();
+            this.currentLocalColorTable?.Dispose();
         }
     }
 

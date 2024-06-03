@@ -14,7 +14,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private static readonly int[] WienerTapsMid = [3, -7, 15];
     private const int PartitionProbabilitySet = 4;
 
-    private int[] deltaLoopFilter = [];
+    // Number of Coefficients in a single ModeInfo 4x4 block of pixels (1 DC + 16 AC).
+    private const int NumberofCoefficients = 1 + 16;
+
     private bool[][][] blockDecoded = [];
     private int[][] referenceSgrXqd = [];
     private int[][][] referenceLrWiener = [];
@@ -30,12 +32,50 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int maxLumaHeight;
     private int deltaLoopFilterResolution = -1;
     private int deltaQuantizerResolution = -1;
+    private int[] coefficientsY = [];
+    private int[] coefficientsU = [];
+    private int[] coefficientsV = [];
+    private int numModeInfosInSuperblock;
+    private int superblockColumnCount;
+    private int superblockRowCount;
+    private Av1SuperblockInfo[] superblockInfos;
+    private Av1BlockModeInfo[] modeInfos;
+    private Av1TransformInfo[] transformInfosY;
+    private Av1TransformInfo[] transformInfosUv;
+    private int[] deltaQ;
+    private int[] cdefStrength;
+    private int[] deltaLoopFilter;
 
     public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo)
     {
         this.FrameInfo = frameInfo;
         this.SequenceHeader = sequenceHeader;
         this.TileInfo = tileInfo;
+
+        // init_main_frame_ctxt
+        int superblockSizeLog2 = this.SequenceHeader.SuperBlockSizeLog2;
+        int superblockAlignedWidth = Av1Math.AlignPowerOf2(this.SequenceHeader.MaxFrameWidth, superblockSizeLog2);
+        int superblockAlignedHeight = Av1Math.AlignPowerOf2(this.SequenceHeader.MaxFrameHeight, superblockSizeLog2);
+        this.superblockColumnCount = superblockAlignedWidth >> superblockSizeLog2;
+        this.superblockRowCount = superblockAlignedHeight >> superblockSizeLog2;
+        int superblockCount = this.superblockColumnCount * this.superblockRowCount;
+        this.numModeInfosInSuperblock = (1 << (superblockSizeLog2 - ObuConstants.ModeInfoSizeLog2)) * (1 << (superblockSizeLog2 - ObuConstants.ModeInfoSizeLog2));
+
+        this.superblockInfos = new Av1SuperblockInfo[superblockCount];
+        this.modeInfos = new Av1BlockModeInfo[superblockCount * this.numModeInfosInSuperblock];
+        this.transformInfosY = new Av1TransformInfo[superblockCount * this.numModeInfosInSuperblock];
+        this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.numModeInfosInSuperblock];
+        this.coefficientsY = new int[superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients];
+        int subsamplingFactor = (this.SequenceHeader.ColorConfig.SubSamplingX && this.SequenceHeader.ColorConfig.SubSamplingY) ? 2 :
+                (this.SequenceHeader.ColorConfig.SubSamplingX && !this.SequenceHeader.ColorConfig.SubSamplingY) ? 1 :
+                (!this.SequenceHeader.ColorConfig.SubSamplingX && !this.SequenceHeader.ColorConfig.SubSamplingY) ? 0 : -1;
+        Guard.IsFalse(subsamplingFactor == -1, nameof(subsamplingFactor), "Invalid combination of subsampling.");
+        this.coefficientsU = new int[(superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients) >> subsamplingFactor];
+        this.coefficientsV = new int[(superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients) >> subsamplingFactor];
+        this.deltaQ = new int[superblockCount];
+        this.cdefStrength = new int[superblockCount * (this.SequenceHeader.Use128x128SuperBlock ? 4 : 1)];
+        Array.Fill(this.cdefStrength, -1);
+        this.deltaLoopFilter = new int[superblockCount * ObuConstants.FrameLoopFilterCount];
     }
 
     public bool SequenceHeaderDone { get; set; }
@@ -58,7 +98,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
         this.aboveContext.Clear(this.TileInfo.TileColumnStartModeInfo[tileColumnIndex], this.TileInfo.TileColumnStartModeInfo[tileColumnIndex - 1]);
         this.ClearLoopFilterDelta();
-        int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        int planesCount = this.SequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         this.referenceSgrXqd = new int[planesCount][];
         this.referenceLrWiener = new int[planesCount][][];
         for (int plane = 0; plane < planesCount; plane++)
@@ -87,11 +127,24 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
                 bool readDeltas = this.FrameInfo.DeltaQParameters.IsPresent;
 
+                this.ClearBlockDecodedFlags(row, column, superBlock4x4Size);
+
+                int superblockIndex = (superBlockRow * this.superblockColumnCount) + superBlockColumn;
+                int cdefFactor = this.SequenceHeader.Use128x128SuperBlock ? 4 : 1;
+                Av1SuperblockInfo superblockInfo = new(this.modeInfos[superblockIndex], this.transformInfosY[superblockIndex])
+                {
+                    CoefficientsY = this.coefficientsY,
+                    CoefficientsU = this.coefficientsU,
+                    CoefficientsV = this.coefficientsV,
+                    CdefStrength = this.cdefStrength[superblockIndex * cdefFactor],
+                    SuperblockDeltaLoopFilter = this.deltaLoopFilter[ObuConstants.FrameLoopFilterCount * superblockIndex],
+                    SuperblockDeltaQ = this.deltaQ[superblockIndex]
+                };
+
                 // Nothing to do for CDEF
                 // this.ClearCdef(row, column);
-                this.ClearBlockDecodedFlags(row, column, superBlock4x4Size);
-                this.ReadLoopRestoration(row, column, superBlockSize);
-                this.ParsePartition(ref reader, row, column, superBlockSize);
+                // this.ReadLoopRestoration(row, column, superBlockSize);
+                this.ParsePartition(ref reader, row, column, superBlockSize, superblockInfo);
             }
         }
     }
@@ -150,9 +203,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         // TODO: Implement
     }
 
-    private void ParsePartition(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void ParsePartition(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo)
     {
-        Av1SuperblockInfo superblockInfo = new();
         if (rowIndex >= this.TileInfo.TileRowStartModeInfo[rowIndex] ||
             columnIndex >= this.TileInfo.TileColumnStartModeInfo[columnIndex])
         {
@@ -164,8 +216,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int block4x4Size = blockSize.Get4x4WideCount();
         int halfBlock4x4Size = block4x4Size >> 1;
         int quarterBlock4x4Size = halfBlock4x4Size >> 2;
-        bool hasRows = rowIndex + halfBlock4x4Size < this.TileInfo.TileRowCount;
-        bool hasColumns = columnIndex + halfBlock4x4Size < this.TileInfo.TileColumnCount;
+        bool hasRows = (rowIndex + halfBlock4x4Size) < this.FrameInfo.ModeInfoRowCount;
+        bool hasColumns = (columnIndex + halfBlock4x4Size) < this.FrameInfo.ModeInfoColumnCount;
         Av1PartitionType partitionType = Av1PartitionType.Split;
         if (blockSize < Av1BlockSize.Block8x8)
         {
@@ -194,13 +246,75 @@ internal class Av1TileDecoder : IAv1TileDecoder
         switch (partitionType)
         {
             case Av1PartitionType.Split:
-                this.ParsePartition(ref reader, rowIndex, columnIndex, subSize);
-                this.ParsePartition(ref reader, rowIndex, columnIndex + halfBlock4x4Size, subSize);
-                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex, subSize);
-                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize);
+                this.ParsePartition(ref reader, rowIndex, columnIndex, subSize, superblockInfo);
+                this.ParsePartition(ref reader, rowIndex, columnIndex + halfBlock4x4Size, subSize, superblockInfo);
+                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex, subSize, superblockInfo);
+                this.ParsePartition(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize, superblockInfo);
                 break;
             case Av1PartitionType.None:
                 this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.None);
+                break;
+            case Av1PartitionType.Horizontal:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.Horizontal);
+                if (hasRows)
+                {
+                    this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex, subSize, superblockInfo, Av1PartitionType.Horizontal);
+                }
+
+                break;
+            case Av1PartitionType.Vertical:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.Vertical);
+                if (hasRows)
+                {
+                    this.ParseBlock(ref reader, rowIndex, columnIndex + halfBlock4x4Size, subSize, superblockInfo, Av1PartitionType.Vertical);
+                }
+
+                break;
+            case Av1PartitionType.HorizontalA:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, splitSize, superblockInfo, Av1PartitionType.HorizontalA);
+                this.ParseBlock(ref reader, rowIndex, columnIndex + halfBlock4x4Size, splitSize, superblockInfo, Av1PartitionType.HorizontalA);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize, superblockInfo, Av1PartitionType.HorizontalA);
+                break;
+            case Av1PartitionType.HorizontalB:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.HorizontalB);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex, splitSize, superblockInfo, Av1PartitionType.HorizontalB);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, splitSize, superblockInfo, Av1PartitionType.HorizontalB);
+                break;
+            case Av1PartitionType.VerticalA:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, splitSize, superblockInfo, Av1PartitionType.VerticalA);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex, splitSize, superblockInfo, Av1PartitionType.VerticalA);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, subSize, superblockInfo, Av1PartitionType.VerticalA);
+                break;
+            case Av1PartitionType.VerticalB:
+                this.ParseBlock(ref reader, rowIndex, columnIndex, subSize, superblockInfo, Av1PartitionType.VerticalB);
+                this.ParseBlock(ref reader, rowIndex, columnIndex + halfBlock4x4Size, splitSize, superblockInfo, Av1PartitionType.VerticalB);
+                this.ParseBlock(ref reader, rowIndex + halfBlock4x4Size, columnIndex + halfBlock4x4Size, splitSize, superblockInfo, Av1PartitionType.VerticalB);
+                break;
+            case Av1PartitionType.Horizontal4:
+                for (int i = 0; i < 4; i++)
+                {
+                    int currentBlockRow = rowIndex + (i * quarterBlock4x4Size);
+                    if (i > 0 && currentBlockRow > this.FrameInfo.ModeInfoRowCount)
+                    {
+                        break;
+                    }
+
+                    this.ParseBlock(ref reader, currentBlockRow, columnIndex, subSize, superblockInfo, Av1PartitionType.Horizontal4);
+                }
+
+                break;
+            case Av1PartitionType.Vertical4:
+                for (int i = 0; i < 4; i++)
+                {
+                    int currentBlockColumn = columnIndex + (i * quarterBlock4x4Size);
+                    if (i > 0 && currentBlockColumn > this.FrameInfo.ModeInfoColumnCount)
+                    {
+                        break;
+                    }
+
+                    this.ParseBlock(ref reader, rowIndex, currentBlockColumn, subSize, superblockInfo, Av1PartitionType.Vertical4);
+                }
+
                 break;
             default:
                 throw new NotImplementedException($"Partition type: {partitionType} is not supported.");
@@ -334,7 +448,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
     {
-        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(), false, Av1PartitionType.None);
+        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(new(1, Av1BlockSize.Invalid), new()), false, Av1PartitionType.None);
         int startX = (baseX + 4) * x;
         int startY = (baseY + 4) * y;
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -861,7 +975,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 bool deltaQuantizerSignBit = reader.ReadLiteral(1) > 0;
                 int reducedDeltaQuantizerIndex = deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
                 this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << this.deltaQuantizerResolution));
-                partitionInfo.SuperblockInfo.SuperblockDeltaQ[0] = this.currentQuantizerIndex;
+                partitionInfo.SuperblockInfo.SuperblockDeltaQ = this.currentQuantizerIndex;
             }
         }
     }

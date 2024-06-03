@@ -49,4 +49,19 @@ The smallest unit in the frame. It determines the parameters for an area of 4 by
 
 # References
 
+[AV1 embedded in HEIF](https://aomediacodec.github.io/av1-isobmff)
+
 [AV1 specification](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)
+
+[AVIF specification](https://aomediacodec.github.io/av1-avif)
+
+[AV1/AVIF reference implementation](http://gitlab.com/AOMediaCodec/SVT-AV1)
+
+[AOM's original development implementation](https://github.com/AOMediaCodec/libavif)
+
+# Test images
+
+[Netflix image repository](http://download.opencontent.netflix.com/?prefix=AV1/)
+
+[AVIF sample images](https://github.com/link-u/avif-sample-images)
+

@@ -5,13 +5,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuSegmentationParameters
 {
-    public int[,] QMLevel { get; internal set; } = new int[3, ObuConstants.MaxSegmentCount];
+    public int[,] QMLevel { get; internal set; } = new int[3, Av1Constants.MaxSegmentCount];
 
-    public bool[,] FeatureEnabled { get; internal set; } = new bool[ObuConstants.MaxSegmentCount, ObuConstants.SegmentationLevelMax];
+    public bool[,] FeatureEnabled { get; internal set; } = new bool[Av1Constants.MaxSegmentCount, Av1Constants.SegmentationLevelMax];
 
     public bool Enabled { get; internal set; }
 
-    public int[,] FeatureData { get; internal set; } = new int[ObuConstants.MaxSegmentCount, ObuConstants.SegmentationLevelMax];
+    public int[,] FeatureData { get; internal set; } = new int[Av1Constants.MaxSegmentCount, Av1Constants.SegmentationLevelMax];
 
     public bool SegmentIdPrecedesSkip { get; internal set; }
 

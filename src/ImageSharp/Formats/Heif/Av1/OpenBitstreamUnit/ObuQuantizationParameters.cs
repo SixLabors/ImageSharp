@@ -7,7 +7,7 @@ internal class ObuQuantizationParameters
 {
     public int BaseQIndex { get; set; }
 
-    public int[] QIndex { get; set; } = new int[ObuConstants.MaxSegmentCount];
+    public int[] QIndex { get; set; } = new int[Av1Constants.MaxSegmentCount];
 
     public bool IsUsingQMatrix { get; internal set; }
 

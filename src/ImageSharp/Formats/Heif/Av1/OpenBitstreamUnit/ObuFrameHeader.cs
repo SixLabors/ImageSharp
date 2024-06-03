@@ -19,7 +19,7 @@ internal class ObuFrameHeader
 
     public bool CodedLossless { get; set; }
 
-    public bool[] LosslessArray { get; set; } = new bool[ObuConstants.MaxSegmentCount];
+    public bool[] LosslessArray { get; set; } = new bool[Av1Constants.MaxSegmentCount];
 
     public ObuQuantizationParameters QuantizationParameters { get; set; } = new ObuQuantizationParameters();
 
@@ -63,9 +63,9 @@ internal class ObuFrameHeader
 
     internal ObuFrameType FrameType { get; set; }
 
-    internal bool[] ReferenceValid { get; set; } = new bool[ObuConstants.ReferenceFrameCount];
+    internal bool[] ReferenceValid { get; set; } = new bool[Av1Constants.ReferenceFrameCount];
 
-    internal bool[] ReferenceOrderHint { get; set; } = new bool[ObuConstants.ReferenceFrameCount];
+    internal bool[] ReferenceOrderHint { get; set; } = new bool[Av1Constants.ReferenceFrameCount];
 
     internal bool ShowFrame { get; set; }
 
@@ -79,11 +79,11 @@ internal class ObuFrameHeader
 
     internal uint CurrentFrameId { get; set; }
 
-    internal uint[] ReferenceFrameIndex { get; set; } = new uint[ObuConstants.ReferenceFrameCount];
+    internal uint[] ReferenceFrameIndex { get; set; } = new uint[Av1Constants.ReferenceFrameCount];
 
     internal uint OrderHint { get; set; }
 
-    internal uint PrimaryReferenceFrame { get; set; } = ObuConstants.PrimaryReferenceFrameNone;
+    internal uint PrimaryReferenceFrame { get; set; } = Av1Constants.PrimaryReferenceFrameNone;
 
     internal uint RefreshFrameFlags { get; set; }
 }

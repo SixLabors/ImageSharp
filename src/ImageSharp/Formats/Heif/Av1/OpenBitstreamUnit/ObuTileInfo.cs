@@ -23,13 +23,13 @@ internal class ObuTileInfo
 
     internal int TileColumnCount { get; set; }
 
-    internal int[] TileColumnStartModeInfo { get; set; } = new int[ObuConstants.MaxTileRowCount + 1];
+    internal int[] TileColumnStartModeInfo { get; set; } = new int[Av1Constants.MaxTileRowCount + 1];
 
     internal int MinLog2TileRowCount { get; set; }
 
     internal int TileRowCountLog2 { get; set; }
 
-    internal int[] TileRowStartModeInfo { get; set; } = new int[ObuConstants.MaxTileColumnCount + 1];
+    internal int[] TileRowStartModeInfo { get; set; } = new int[Av1Constants.MaxTileColumnCount + 1];
 
     internal int TileRowCount { get; set; }
 

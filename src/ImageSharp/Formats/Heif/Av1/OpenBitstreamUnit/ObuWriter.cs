@@ -82,7 +82,7 @@ internal class ObuWriter
         writer.WriteLiteral((uint)sequenceHeader.SequenceProfile, 3);
         writer.WriteBoolean(true); // IsStillPicture
         writer.WriteBoolean(true); // IsReducedStillPicture
-        writer.WriteLiteral((uint)sequenceHeader.OperatingPoint[0].SequenceLevelIndex, ObuConstants.LevelBits);
+        writer.WriteLiteral((uint)sequenceHeader.OperatingPoint[0].SequenceLevelIndex, Av1Constants.LevelBits);
 
         // Frame width and Height
         writer.WriteLiteral((uint)sequenceHeader.FrameWidthBits - 1, 4);
@@ -168,7 +168,7 @@ internal class ObuWriter
 
         if (useSuperResolution)
         {
-            writer.WriteLiteral((uint)frameInfo.FrameSize.SuperResolutionDenominator - ObuConstants.SuperResolutionScaleDenominatorMinimum, ObuConstants.SuperResolutionScaleBits);
+            writer.WriteLiteral((uint)frameInfo.FrameSize.SuperResolutionDenominator - Av1Constants.SuperResolutionScaleDenominatorMinimum, Av1Constants.SuperResolutionScaleBits);
         }
     }
 
@@ -186,7 +186,7 @@ internal class ObuWriter
     private static void WriteFrameSizeWithReferences(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
     {
         bool foundReference = false;
-        for (int i = 0; i < ObuConstants.ReferencesPerFrame; i++)
+        for (int i = 0; i < Av1Constants.ReferencesPerFrame; i++)
         {
             writer.WriteBoolean(foundReference);
             if (foundReference)
@@ -237,13 +237,13 @@ internal class ObuWriter
         }
 
         int superBlockSize = superBlockShift + 2;
-        int maxTileAreaOfSuperBlock = ObuConstants.MaxTileArea >> (2 * superBlockSize);
+        int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
 
-        tileInfo.MaxTileWidthSuperBlock = ObuConstants.MaxTileWidth >> superBlockSize;
-        tileInfo.MaxTileHeightSuperBlock = (ObuConstants.MaxTileArea / ObuConstants.MaxTileWidth) >> superBlockSize;
+        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superBlockSize;
+        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
         tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperBlock, superBlockColumnCount);
-        tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superBlockColumnCount, ObuConstants.MaxTileColumnCount));
-        tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superBlockRowCount, ObuConstants.MaxTileRowCount));
+        tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superBlockColumnCount, Av1Constants.MaxTileColumnCount));
+        tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superBlockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superBlockColumnCount * superBlockRowCount));
 
         writer.WriteBoolean(tileInfo.HasUniformTileSpacing);
@@ -348,7 +348,7 @@ internal class ObuWriter
             }
 
             int diffLength = sequenceHeader.DeltaFrameIdLength;
-            for (int i = 0; i < ObuConstants.ReferenceFrameCount; i++)
+            for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
             {
                 if (frameInfo.CurrentFrameId > (1U << diffLength))
                 {
@@ -370,7 +370,7 @@ internal class ObuWriter
 
         if (!isIntraFrame && !frameInfo.ErrorResilientMode)
         {
-            writer.WriteLiteral(frameInfo.PrimaryReferenceFrame, ObuConstants.PimaryReferenceBits);
+            writer.WriteLiteral(frameInfo.PrimaryReferenceFrame, Av1Constants.PimaryReferenceBits);
         }
 
         // Skipping, as no decoder info model present
@@ -395,7 +395,7 @@ internal class ObuWriter
             }
         }
 
-        if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
+        if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             SetupPastIndependence(frameInfo);
         }
@@ -436,7 +436,7 @@ internal class ObuWriter
         {
             int data = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer];
             int qIndex = baseQIndex + data;
-            return Av1Math.Clamp(qIndex, 0, ObuConstants.MaxQ);
+            return Av1Math.Clamp(qIndex, 0, Av1Constants.MaxQ);
         }
         else
         {

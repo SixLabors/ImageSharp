@@ -59,7 +59,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         this.superblockColumnCount = superblockAlignedWidth >> superblockSizeLog2;
         this.superblockRowCount = superblockAlignedHeight >> superblockSizeLog2;
         int superblockCount = this.superblockColumnCount * this.superblockRowCount;
-        this.numModeInfosInSuperblock = (1 << (superblockSizeLog2 - ObuConstants.ModeInfoSizeLog2)) * (1 << (superblockSizeLog2 - ObuConstants.ModeInfoSizeLog2));
+        this.numModeInfosInSuperblock = (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)) * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2));
 
         this.superblockInfos = new Av1SuperblockInfo[superblockCount];
         this.modeInfos = new Av1BlockModeInfo[superblockCount * this.numModeInfosInSuperblock];
@@ -75,7 +75,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         this.deltaQ = new int[superblockCount];
         this.cdefStrength = new int[superblockCount * (this.SequenceHeader.Use128x128SuperBlock ? 4 : 1)];
         Array.Fill(this.cdefStrength, -1);
-        this.deltaLoopFilter = new int[superblockCount * ObuConstants.FrameLoopFilterCount];
+        this.deltaLoopFilter = new int[superblockCount * Av1Constants.FrameLoopFilterCount];
     }
 
     public bool SequenceHeaderDone { get; set; }
@@ -108,7 +108,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             this.referenceLrWiener[plane] = new int[2][];
             for (int pass = 0; pass < 2; pass++)
             {
-                this.referenceLrWiener[plane][pass] = new int[ObuConstants.WienerCoefficientCount];
+                this.referenceLrWiener[plane][pass] = new int[Av1Constants.WienerCoefficientCount];
                 Array.Copy(WienerTapsMid, this.referenceLrWiener[plane][pass], WienerTapsMid.Length);
             }
         }
@@ -117,11 +117,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int superBlock4x4Size = superBlockSize.Get4x4WideCount();
         for (int row = this.TileInfo.TileRowStartModeInfo[tileRowIndex]; row < this.TileInfo.TileRowStartModeInfo[tileRowIndex + 1]; row += this.SequenceHeader.ModeInfoSize)
         {
-            int superBlockRow = row << ObuConstants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
+            int superBlockRow = row << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
             this.leftContext.Clear();
             for (int column = this.TileInfo.TileColumnStartModeInfo[tileColumnIndex]; column < this.TileInfo.TileColumnStartModeInfo[tileColumnIndex + 1]; column += this.SequenceHeader.ModeInfoSize)
             {
-                int superBlockColumn = column << ObuConstants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
+                int superBlockColumn = column << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
                 bool subSamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
                 bool subSamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
 
@@ -137,7 +137,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                     CoefficientsU = this.coefficientsU,
                     CoefficientsV = this.coefficientsV,
                     CdefStrength = this.cdefStrength[superblockIndex * cdefFactor],
-                    SuperblockDeltaLoopFilter = this.deltaLoopFilter[ObuConstants.FrameLoopFilterCount * superblockIndex],
+                    SuperblockDeltaLoopFilter = this.deltaLoopFilter[Av1Constants.FrameLoopFilterCount * superblockIndex],
                     SuperblockDeltaQ = this.deltaQ[superblockIndex]
                 };
 
@@ -415,10 +415,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
                     int num4x4Height = planeSize.Get4x4HighCount();
                     int subX = plane > 0 && subsamplingX ? 1 : 0;
                     int subY = plane > 0 && subsamplingY ? 1 : 0;
-                    int baseX = (columnChunk >> subX) * (1 << ObuConstants.ModeInfoSizeLog2);
-                    int baseY = (rowChunk >> subY) * (1 << ObuConstants.ModeInfoSizeLog2);
-                    int baseXBlock = (columnIndex >> subX) * (1 << ObuConstants.ModeInfoSizeLog2);
-                    int baseYBlock = (rowIndex >> subY) * (1 << ObuConstants.ModeInfoSizeLog2);
+                    int baseX = (columnChunk >> subX) * (1 << Av1Constants.ModeInfoSizeLog2);
+                    int baseY = (rowChunk >> subY) * (1 << Av1Constants.ModeInfoSizeLog2);
+                    int baseXBlock = (columnIndex >> subX) * (1 << Av1Constants.ModeInfoSizeLog2);
+                    int baseYBlock = (rowIndex >> subY) * (1 << Av1Constants.ModeInfoSizeLog2);
                     for (int y = 0; y < num4x4Height; y += stepY)
                     {
                         for (int x = 0; x < num4x4Width; x += stepX)
@@ -455,15 +455,15 @@ internal class Av1TileDecoder : IAv1TileDecoder
         bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
         int subX = plane > 0 && subsamplingX ? 1 : 0;
         int subY = plane > 0 && subsamplingY ? 1 : 0;
-        int columnIndex = startX << subX >> ObuConstants.ModeInfoSizeLog2;
-        int rowIndex = startY << subY >> ObuConstants.ModeInfoSizeLog2;
+        int columnIndex = startX << subX >> Av1Constants.ModeInfoSizeLog2;
+        int rowIndex = startY << subY >> Av1Constants.ModeInfoSizeLog2;
         int superBlockMask = this.SequenceHeader.Use128x128SuperBlock ? 31 : 15;
         int subBlockColumn = columnIndex & superBlockMask;
         int subBlockRow = rowIndex & superBlockMask;
-        int stepX = transformSize.GetWidth() >> ObuConstants.ModeInfoSizeLog2;
-        int stepY = transformSize.GetHeight() >> ObuConstants.ModeInfoSizeLog2;
-        int maxX = (this.SequenceHeader.ModeInfoSize * (1 << ObuConstants.ModeInfoSizeLog2)) >> subX;
-        int maxY = (this.SequenceHeader.ModeInfoSize * (1 << ObuConstants.ModeInfoSizeLog2)) >> subY;
+        int stepX = transformSize.GetWidth() >> Av1Constants.ModeInfoSizeLog2;
+        int stepY = transformSize.GetHeight() >> Av1Constants.ModeInfoSizeLog2;
+        int maxX = (this.SequenceHeader.ModeInfoSize * (1 << Av1Constants.ModeInfoSizeLog2)) >> subX;
+        int maxY = (this.SequenceHeader.ModeInfoSize * (1 << Av1Constants.ModeInfoSizeLog2)) >> subY;
         if (startX >= maxX || startY >= maxY)
         {
             return;
@@ -724,7 +724,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         if (blockSize >= Av1BlockSize.Block8x8 && IsDirectionalMode(mode))
         {
             int symbol = reader.ReadAngleDelta(mode);
-            angleDelta = symbol - ObuConstants.MaxAngleDelta;
+            angleDelta = symbol - Av1Constants.MaxAngleDelta;
         }
 
         return angleDelta;
@@ -811,7 +811,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
         int xMin = Math.Min(this.FrameInfo.ModeInfoColumnCount - columnIndex, bw4);
         int yMin = Math.Min(this.FrameInfo.ModeInfoRowCount - rowIndex, bh4);
-        int segmentId = ObuConstants.MaxSegments - 1;
+        int segmentId = Av1Constants.MaxSegments - 1;
         for (int y = 0; y < yMin; y++)
         {
             for (int x = 0; x < xMin; x++)
@@ -912,13 +912,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
             int frameLoopFilterCount = 1;
             if (this.FrameInfo.DeltaLoopFilterParameters.Multi)
             {
-                frameLoopFilterCount = this.SequenceHeader.ColorConfig.ChannelCount > 1 ? ObuConstants.FrameLoopFilterCount : ObuConstants.FrameLoopFilterCount - 2;
+                frameLoopFilterCount = this.SequenceHeader.ColorConfig.ChannelCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
 
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
                 int deltaLoopFilterAbsolute = reader.ReadDeltaLoopFilterAbsolute();
-                if (deltaLoopFilterAbsolute == ObuConstants.DeltaLoopFilterSmall)
+                if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
                 {
                     int deltaLoopFilterRemainingBits = reader.ReadLiteral(3) + 1;
                     int deltaLoopFilterAbsoluteBitCount = reader.ReadLiteral(deltaLoopFilterRemainingBits);
@@ -929,7 +929,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     bool deltaLoopFilterSign = reader.ReadLiteral(1) > 0;
                     int reducedDeltaLoopFilterLevel = deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
-                    this.deltaLoopFilter[i] = Av1Math.Clip3(-ObuConstants.MaxLoopFilter, ObuConstants.MaxLoopFilter, this.deltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << this.deltaLoopFilterResolution));
+                    this.deltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, this.deltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << this.deltaLoopFilterResolution));
                 }
             }
         }
@@ -963,7 +963,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         if (partitionInfo.ModeInfo.BlockSize != this.SequenceHeader.SuperBlockSize || !partitionInfo.ModeInfo.Skip)
         {
             int deltaQuantizerAbsolute = reader.ReadDeltaQuantizerAbsolute();
-            if (deltaQuantizerAbsolute == ObuConstants.DeltaQuantizerSmall)
+            if (deltaQuantizerAbsolute == Av1Constants.DeltaQuantizerSmall)
             {
                 int deltaQuantizerRemainingBits = reader.ReadLiteral(3) + 1;
                 int deltaQuantizerAbsoluteBitCount = reader.ReadLiteral(deltaQuantizerRemainingBits);

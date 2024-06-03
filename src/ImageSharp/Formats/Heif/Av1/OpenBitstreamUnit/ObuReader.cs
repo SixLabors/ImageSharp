@@ -197,7 +197,7 @@ internal class ObuReader
     {
         frameInfo.ModeInfoColumnCount = 2 * ((frameInfo.FrameSize.FrameWidth + 7) >> 3);
         frameInfo.ModeInfoRowCount = 2 * ((frameInfo.FrameSize.FrameHeight + 7) >> 3);
-        frameInfo.ModeInfoStride = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, ObuConstants.MaxSuperBlockSizeLog2) >> ObuConstants.ModeInfoSizeLog2;
+        frameInfo.ModeInfoStride = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, Av1Constants.MaxSuperBlockSizeLog2) >> Av1Constants.ModeInfoSizeLog2;
     }
 
     private static bool IsValidObuType(ObuType type) => type switch
@@ -211,7 +211,7 @@ internal class ObuReader
     private static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         sequenceHeader.SequenceProfile = (ObuSequenceProfile)reader.ReadLiteral(3);
-        if (sequenceHeader.SequenceProfile > ObuConstants.MaxSequenceProfile)
+        if (sequenceHeader.SequenceProfile > Av1Constants.MaxSequenceProfile)
         {
             throw new ImageFormatException("Unknown sequence profile.");
         }
@@ -230,7 +230,7 @@ internal class ObuReader
         ObuOperatingPoint operatingPoint = new();
         sequenceHeader.OperatingPoint[0] = operatingPoint;
         operatingPoint.OperatorIndex = 0;
-        operatingPoint.SequenceLevelIndex = (int)reader.ReadLiteral(ObuConstants.LevelBits);
+        operatingPoint.SequenceLevelIndex = (int)reader.ReadLiteral(Av1Constants.LevelBits);
         if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[0].SequenceLevelIndex))
         {
             throw new ImageFormatException("Invalid sequence level.");
@@ -388,20 +388,20 @@ internal class ObuReader
 
         if (useSuperResolution)
         {
-            frameInfo.FrameSize.SuperResolutionDenominator = (int)reader.ReadLiteral(ObuConstants.SuperResolutionScaleBits) + ObuConstants.SuperResolutionScaleDenominatorMinimum;
+            frameInfo.FrameSize.SuperResolutionDenominator = (int)reader.ReadLiteral(Av1Constants.SuperResolutionScaleBits) + Av1Constants.SuperResolutionScaleDenominatorMinimum;
         }
         else
         {
-            frameInfo.FrameSize.SuperResolutionDenominator = ObuConstants.ScaleNumerator;
+            frameInfo.FrameSize.SuperResolutionDenominator = Av1Constants.ScaleNumerator;
         }
 
         frameInfo.FrameSize.SuperResolutionUpscaledWidth = frameInfo.FrameSize.FrameWidth;
         frameInfo.FrameSize.FrameWidth =
-            ((frameInfo.FrameSize.SuperResolutionUpscaledWidth * ObuConstants.ScaleNumerator) +
+            ((frameInfo.FrameSize.SuperResolutionUpscaledWidth * Av1Constants.ScaleNumerator) +
             (frameInfo.FrameSize.SuperResolutionDenominator / 2)) /
             frameInfo.FrameSize.SuperResolutionDenominator;
 
-        if (frameInfo.FrameSize.SuperResolutionDenominator != ObuConstants.ScaleNumerator)
+        if (frameInfo.FrameSize.SuperResolutionDenominator != Av1Constants.ScaleNumerator)
         {
             int manWidth = Math.Min(16, frameInfo.FrameSize.SuperResolutionUpscaledWidth);
             frameInfo.FrameSize.FrameWidth = Math.Max(manWidth, frameInfo.FrameSize.FrameWidth);
@@ -426,7 +426,7 @@ internal class ObuReader
     private static void ReadFrameSizeWithReferences(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
     {
         bool foundReference = false;
-        for (int i = 0; i < ObuConstants.ReferencesPerFrame; i++)
+        for (int i = 0; i < Av1Constants.ReferencesPerFrame; i++)
         {
             foundReference = reader.ReadBoolean();
             if (foundReference)
@@ -485,13 +485,13 @@ internal class ObuReader
         }
 
         int superBlockSize = superBlockShift + 2;
-        int maxTileAreaOfSuperBlock = ObuConstants.MaxTileArea >> (2 * superBlockSize);
+        int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
 
-        tileInfo.MaxTileWidthSuperBlock = ObuConstants.MaxTileWidth >> superBlockSize;
-        tileInfo.MaxTileHeightSuperBlock = (ObuConstants.MaxTileArea / ObuConstants.MaxTileWidth) >> superBlockSize;
+        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superBlockSize;
+        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
         tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperBlock, superBlockColumnCount);
-        tileInfo.MaxLog2TileColumnCount = TileLog2(1, Math.Min(superBlockColumnCount, ObuConstants.MaxTileColumnCount));
-        tileInfo.MaxLog2TileRowCount = TileLog2(1, Math.Min(superBlockRowCount, ObuConstants.MaxTileRowCount));
+        tileInfo.MaxLog2TileColumnCount = TileLog2(1, Math.Min(superBlockColumnCount, Av1Constants.MaxTileColumnCount));
+        tileInfo.MaxLog2TileRowCount = TileLog2(1, Math.Min(superBlockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, TileLog2(maxTileAreaOfSuperBlock, superBlockColumnCount * superBlockRowCount));
         tileInfo.HasUniformTileSpacing = reader.ReadBoolean();
         if (tileInfo.HasUniformTileSpacing)
@@ -610,7 +610,7 @@ internal class ObuReader
             tileInfo.TileRowCountLog2 = TileLog2(1, tileInfo.TileRowCount);
         }
 
-        if (tileInfo.TileColumnCount > ObuConstants.MaxTileColumnCount || tileInfo.TileRowCount > ObuConstants.MaxTileRowCount)
+        if (tileInfo.TileColumnCount > Av1Constants.MaxTileColumnCount || tileInfo.TileRowCount > Av1Constants.MaxTileRowCount)
         {
             throw new ImageFormatException("Tile width or height too big.");
         }
@@ -659,9 +659,9 @@ internal class ObuReader
 
         if (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame)
         {
-            frameInfo.ReferenceValid = new bool[ObuConstants.ReferenceFrameCount];
-            frameInfo.ReferenceOrderHint = new bool[ObuConstants.ReferenceFrameCount];
-            for (int i = 0; i < ObuConstants.ReferenceFrameCount; i++)
+            frameInfo.ReferenceValid = new bool[Av1Constants.ReferenceFrameCount];
+            frameInfo.ReferenceOrderHint = new bool[Av1Constants.ReferenceFrameCount];
+            for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
             {
                 frameInfo.ReferenceValid[i] = false;
                 frameInfo.ReferenceOrderHint[i] = false;
@@ -717,7 +717,7 @@ internal class ObuReader
             }
 
             int diffLength = sequenceHeader.DeltaFrameIdLength;
-            for (int i = 0; i < ObuConstants.ReferenceFrameCount; i++)
+            for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
             {
                 if (frameInfo.CurrentFrameId > (1U << diffLength))
                 {
@@ -756,11 +756,11 @@ internal class ObuReader
 
         if (isIntraFrame || frameInfo.ErrorResilientMode)
         {
-            frameInfo.PrimaryReferenceFrame = ObuConstants.PrimaryReferenceFrameNone;
+            frameInfo.PrimaryReferenceFrame = Av1Constants.PrimaryReferenceFrameNone;
         }
         else
         {
-            frameInfo.PrimaryReferenceFrame = reader.ReadLiteral(ObuConstants.PimaryReferenceBits);
+            frameInfo.PrimaryReferenceFrame = reader.ReadLiteral(Av1Constants.PimaryReferenceBits);
         }
 
         // Skipping, as no decoder info model present
@@ -785,7 +785,7 @@ internal class ObuReader
         {
             if (frameInfo.ErrorResilientMode && sequenceHeader.OrderHintInfo != null)
             {
-                for (int i = 0; i < ObuConstants.ReferenceFrameCount; i++)
+                for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
                 {
                     int referenceOrderHint = (int)reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
                     if (referenceOrderHint != (frameInfo.ReferenceOrderHint[i] ? 1U : 0U))
@@ -822,7 +822,7 @@ internal class ObuReader
             frameInfo.DisableFrameEndUpdateCdf = true;
         }
 
-        if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
+        if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             SetupPastIndependence(frameInfo);
         }
@@ -836,14 +836,14 @@ internal class ObuReader
 
         // SetupSegmentationDequantization();
         Av1MainParseContext mainParseContext = new();
-        if (frameInfo.PrimaryReferenceFrame == ObuConstants.PrimaryReferenceFrameNone)
+        if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             // ResetParseContext(mainParseContext, frameInfo.QuantizationParameters.BaseQIndex);
         }
 
         int tilesCount = frameInfo.TilesInfo.TileColumnCount * frameInfo.TilesInfo.TileRowCount;
         frameInfo.CodedLossless = true;
-        for (int segmentId = 0; segmentId < ObuConstants.MaxSegmentCount; segmentId++)
+        for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
             int qIndex = GetQIndex(frameInfo.SegmentationParameters, segmentId, frameInfo.QuantizationParameters.BaseQIndex);
             frameInfo.QuantizationParameters.QIndex[segmentId] = qIndex;
@@ -907,7 +907,7 @@ internal class ObuReader
         {
             int data = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer];
             int qIndex = baseQIndex + data;
-            return Av1Math.Clamp(qIndex, 0, ObuConstants.MaxQ);
+            return Av1Math.Clamp(qIndex, 0, Av1Constants.MaxQ);
         }
         else
         {
@@ -1180,7 +1180,7 @@ internal class ObuReader
                 }
             }
 
-            frameInfo.LoopRestorationParameters[0].Size = ObuConstants.RestorationMaxTileSize >> (int)(2 - loopRestorationShift);
+            frameInfo.LoopRestorationParameters[0].Size = Av1Constants.RestorationMaxTileSize >> (int)(2 - loopRestorationShift);
             int uvShift = 0;
             if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && usesChromaLoopRestoration)
             {

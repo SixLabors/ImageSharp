@@ -46,3 +46,7 @@ A block is the smallest are of the image which has the same transformation param
 ## ModeInfo
 
 The smallest unit in the frame. It determines the parameters for an area of 4 by 4 pixels.
+
+# References
+
+[AV1 specification](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)

@@ -191,7 +191,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp;
         PixelColorType colorType;
@@ -262,19 +262,23 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 break;
         }
 
-        return new()
+        return new PixelTypeInfo(bpp)
+        {
+            AlphaRepresentation = alpha,
+            ColorType = colorType,
+            ComponentInfo = info,
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
         {
             ColorTable = this.ColorTable,
             ColorTableMode = FrameColorTableMode.Global,
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = alpha,
-                ColorType = colorType,
-                ComponentInfo = info,
-            },
+            PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = (ushort)Numerics.Clamp(this.RepeatCount, 0, ushort.MaxValue),
         };
-    }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

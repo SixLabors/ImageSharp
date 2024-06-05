@@ -139,7 +139,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp;
         PixelColorType colorType;
@@ -173,17 +173,21 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
                 break;
         }
 
-        return new FormatConnectingMetadata
+        return new PixelTypeInfo(bpp)
         {
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = PixelAlphaRepresentation.None,
-                ColorType = colorType,
-                ComponentInfo = info,
-            },
-            Quality = this.Quality,
+            AlphaRepresentation = PixelAlphaRepresentation.None,
+            ColorType = colorType,
+            ComponentInfo = info,
         };
     }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo(),
+            Quality = this.Quality,
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

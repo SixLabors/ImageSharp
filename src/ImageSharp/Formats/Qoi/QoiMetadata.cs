@@ -51,7 +51,7 @@ public class QoiMetadata : IFormatMetadata<QoiMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp;
         PixelColorType colorType;
@@ -73,16 +73,20 @@ public class QoiMetadata : IFormatMetadata<QoiMetadata>
                 break;
         }
 
-        return new()
+        return new PixelTypeInfo(bpp)
         {
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = alpha,
-                ColorType = colorType,
-                ComponentInfo = info,
-            }
+            AlphaRepresentation = alpha,
+            ColorType = colorType,
+            ComponentInfo = info,
         };
     }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo()
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

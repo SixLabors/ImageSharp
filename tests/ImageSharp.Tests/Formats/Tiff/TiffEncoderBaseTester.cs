@@ -30,7 +30,7 @@ public abstract class TiffEncoderBaseTester
         using Image<TPixel> input = provider.GetImage();
         using var memStream = new MemoryStream();
         TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
-        TiffCompression inputCompression = inputMeta.Compression ?? TiffCompression.None;
+        TiffCompression inputCompression = inputMeta.Compression;
 
         // act
         input.Save(memStream, tiffEncoder);

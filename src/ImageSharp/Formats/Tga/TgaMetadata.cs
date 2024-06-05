@@ -49,10 +49,9 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = (int)this.BitsPerPixel;
-
         PixelComponentInfo info;
         PixelColorType color;
         PixelAlphaRepresentation alpha;
@@ -80,16 +79,20 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
                 break;
         }
 
-        return new()
+        return new PixelTypeInfo(bpp)
         {
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = alpha,
-                ComponentInfo = info,
-                ColorType = color
-            }
+            AlphaRepresentation = alpha,
+            ComponentInfo = info,
+            ColorType = color
         };
     }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo()
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

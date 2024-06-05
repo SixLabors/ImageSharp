@@ -127,15 +127,25 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     }
 
     /// <inheritdoc/>
+    public PixelTypeInfo GetPixelTypeInfo()
+    {
+        int bpp = this.GlobalColorTable.HasValue
+            ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
+            : 8;
+
+        return new PixelTypeInfo(bpp)
+        {
+            ColorType = PixelColorType.Indexed,
+            ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),
+        };
+    }
+
+    /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
     {
         Color color = this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
             ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
             : Color.Transparent;
-
-        int bpp = this.GlobalColorTable.HasValue
-            ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
-            : 8;
 
         return new()
         {
@@ -143,11 +153,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             BackgroundColor = color,
             ColorTable = this.GlobalColorTable,
             ColorTableMode = this.ColorTableMode,
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                ColorType = PixelColorType.Indexed,
-                ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),
-            },
+            PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = this.RepeatCount,
         };
     }

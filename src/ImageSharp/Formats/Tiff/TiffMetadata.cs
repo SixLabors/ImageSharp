@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Tiff;
 
 /// <summary>
 /// Provides Tiff specific metadata information for the image.
 /// </summary>
-public class TiffMetadata : IDeepCloneable
+public class TiffMetadata : IFormatMetadata<TiffMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffMetadata"/> class.
@@ -36,5 +38,17 @@ public class TiffMetadata : IDeepCloneable
     public TiffFormatType FormatType { get; set; }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new TiffMetadata(this);
+    public static TiffMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata() => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public TiffMetadata DeepClone() => new(this);
 }

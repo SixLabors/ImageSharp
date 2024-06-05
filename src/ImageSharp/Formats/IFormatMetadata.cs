@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -8,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 public interface IFormatMetadata : IDeepCloneable
 {
+    /// <summary>
+    /// Converts the metadata to a <see cref="PixelTypeInfo"/> instance.
+    /// </summary>
+    /// <returns>The pixel type info.</returns>
+    PixelTypeInfo GetPixelTypeInfo();
+
     /// <summary>
     /// Converts the metadata to a <see cref="FormatConnectingMetadata"/> instance.
     /// </summary>

@@ -85,7 +85,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp;
         PixelColorType colorType;
@@ -114,16 +114,20 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
                 break;
         }
 
-        return new FormatConnectingMetadata
+        return new PixelTypeInfo(bpp)
         {
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = PixelAlphaRepresentation.None,
-                ColorType = colorType,
-                ComponentInfo = info,
-            },
+            AlphaRepresentation = PixelAlphaRepresentation.None,
+            ColorType = colorType,
+            ComponentInfo = info,
         };
     }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo(),
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

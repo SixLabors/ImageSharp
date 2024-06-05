@@ -34,27 +34,27 @@ public class TiffFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the bits per pixel.
     /// </summary>
-    public TiffBitsPerPixel? BitsPerPixel { get; set; }
+    public TiffBitsPerPixel BitsPerPixel { get; set; } = TiffConstants.DefaultBitsPerPixel;
 
     /// <summary>
     /// Gets or sets number of bits per component.
     /// </summary>
-    public TiffBitsPerSample? BitsPerSample { get; set; }
+    public TiffBitsPerSample BitsPerSample { get; set; } = TiffConstants.DefaultBitsPerSample;
 
     /// <summary>
     /// Gets or sets the compression scheme used on the image data.
     /// </summary>
-    public TiffCompression? Compression { get; set; }
+    public TiffCompression Compression { get; set; } = TiffConstants.DefaultCompression;
 
     /// <summary>
     /// Gets or sets the color space of the image data.
     /// </summary>
-    public TiffPhotometricInterpretation? PhotometricInterpretation { get; set; }
+    public TiffPhotometricInterpretation PhotometricInterpretation { get; set; } = TiffConstants.DefaultPhotometricInterpretation;
 
     /// <summary>
     /// Gets or sets a mathematical operator that is applied to the image data before an encoding scheme is applied.
     /// </summary>
-    public TiffPredictor? Predictor { get; set; }
+    public TiffPredictor Predictor { get; set; } = TiffConstants.DefaultPredictor;
 
     /// <summary>
     /// Gets or sets the set of inks used in a separated (<see cref="TiffPhotometricInterpretation.Separated"/>) image.
@@ -89,7 +89,7 @@ public class TiffFrameMetadata : IDeepCloneable
                 meta.BitsPerSample = bitsPerSample;
             }
 
-            meta.BitsPerPixel = meta.BitsPerSample?.BitsPerPixel();
+            meta.BitsPerPixel = meta.BitsPerSample.BitsPerPixel();
 
             if (profile.TryGetValue(ExifTag.Compression, out IExifValue<ushort>? compressionValue))
             {
@@ -111,6 +111,7 @@ public class TiffFrameMetadata : IDeepCloneable
                 meta.InkSet = (TiffInkSet)inkSetValue.Value;
             }
 
+            // TODO: Why do we remove this? Encoding should overwrite.
             profile.RemoveValue(ExifTag.BitsPerSample);
             profile.RemoveValue(ExifTag.Compression);
             profile.RemoveValue(ExifTag.PhotometricInterpretation);

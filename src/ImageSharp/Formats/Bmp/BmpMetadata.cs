@@ -50,15 +50,18 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
             <= 8 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Pixel8 },
             <= 16 => new BmpMetadata
             {
-                BitsPerPixel = BmpBitsPerPixel.Pixel16, InfoHeaderType = BmpInfoHeaderType.WinVersion3
+                BitsPerPixel = BmpBitsPerPixel.Pixel16,
+                InfoHeaderType = BmpInfoHeaderType.WinVersion3
             },
             <= 24 => new BmpMetadata
             {
-                BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.WinVersion4
+                BitsPerPixel = BmpBitsPerPixel.Pixel24,
+                InfoHeaderType = BmpInfoHeaderType.WinVersion4
             },
             _ => new BmpMetadata
             {
-                BitsPerPixel = BmpBitsPerPixel.Pixel32, InfoHeaderType = BmpInfoHeaderType.WinVersion5
+                BitsPerPixel = BmpBitsPerPixel.Pixel32,
+                InfoHeaderType = BmpInfoHeaderType.WinVersion5
             }
         };
     }
@@ -68,7 +71,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
         => new();
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
+    public PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = (int)this.BitsPerPixel;
 
@@ -122,16 +125,20 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
                 break;
         }
 
-        return new()
+        return new PixelTypeInfo(bpp)
         {
-            PixelTypeInfo = new PixelTypeInfo(bpp)
-            {
-                AlphaRepresentation = alpha,
-                ComponentInfo = info,
-                ColorType = color
-            }
+            AlphaRepresentation = alpha,
+            ComponentInfo = info,
+            ColorType = color
         };
     }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo()
+        };
 
     /// <inheritdoc/>
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()

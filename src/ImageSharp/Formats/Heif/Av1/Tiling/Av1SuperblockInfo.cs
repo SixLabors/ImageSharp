@@ -5,27 +5,31 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal class Av1SuperblockInfo
 {
-    public Av1SuperblockInfo(Av1BlockModeInfo superblockModeInfo, Av1TransformInfo superblockTransformInfo)
+    private readonly Av1FrameBuffer frameBuffer;
+
+    public Av1SuperblockInfo(Av1FrameBuffer frameBuffer, Point position)
     {
-        this.SuperblockModeInfo = superblockModeInfo;
-        this.SuperblockTransformInfo = superblockTransformInfo;
+        this.Position = position;
+        this.frameBuffer = frameBuffer;
     }
 
-    public int SuperblockDeltaQ { get; internal set; }
+    public Point Position { get; }
 
-    public Av1BlockModeInfo SuperblockModeInfo { get; set; }
+    public ref int SuperblockDeltaQ => ref this.frameBuffer.GetDeltaQuantizationIndex(this.Position);
 
-    public int[] CoefficientsY { get; set; } = [];
+    public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(default);
 
-    public int[] CoefficientsU { get; set; } = [];
+    public Span<int> CoefficientsY => this.frameBuffer.GetCoefficientsY(this.Position);
 
-    public int[] CoefficientsV { get; set; } = [];
+    public Span<int> CoefficientsU => this.frameBuffer.GetCoefficientsU(this.Position);
 
-    public Av1TransformInfo SuperblockTransformInfo { get; set; }
+    public Span<int> CoefficientsV => this.frameBuffer.GetCoefficientsV(this.Position);
 
-    public int CdefStrength { get; internal set; }
+    public Av1TransformInfo SuperblockTransformInfo => this.frameBuffer.GetTransformY(this.Position);
 
-    public int SuperblockDeltaLoopFilter { get; set; }
+    public Span<int> CdefStrength => this.frameBuffer.GetCdefStrength(this.Position);
 
-    public Av1BlockModeInfo GetModeInfo(int rowIndex, int columnIndex) => throw new NotImplementedException();
+    public Span<int> SuperblockDeltaLoopFilter => this.frameBuffer.GetDeltaLoopFilter(this.Position);
+
+    public Av1BlockModeInfo GetModeInfo(Point index) => this.frameBuffer.GetModeInfo(this.Position, index);
 }

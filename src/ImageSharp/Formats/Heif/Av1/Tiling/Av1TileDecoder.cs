@@ -14,9 +14,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private static readonly int[] WienerTapsMid = [3, -7, 15];
     private const int PartitionProbabilitySet = 4;
 
-    // Number of Coefficients in a single ModeInfo 4x4 block of pixels (1 DC + 16 AC).
-    private const int NumberofCoefficients = 1 + 16;
-
     private bool[][][] blockDecoded = [];
     private int[][] referenceSgrXqd = [];
     private int[][][] referenceLrWiener = [];
@@ -32,19 +29,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int maxLumaHeight;
     private int deltaLoopFilterResolution = -1;
     private int deltaQuantizerResolution = -1;
-    private int[] coefficientsY = [];
-    private int[] coefficientsU = [];
-    private int[] coefficientsV = [];
-    private int numModeInfosInSuperblock;
-    private int superblockColumnCount;
-    private int superblockRowCount;
-    private Av1SuperblockInfo[] superblockInfos;
-    private Av1BlockModeInfo[] modeInfos;
-    private Av1TransformInfo[] transformInfosY;
-    private Av1TransformInfo[] transformInfosUv;
-    private int[] deltaQ;
-    private int[] cdefStrength;
-    private int[] deltaLoopFilter;
+    private readonly Av1FrameBuffer frameBuffer;
 
     public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo)
     {
@@ -53,29 +38,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         this.TileInfo = tileInfo;
 
         // init_main_frame_ctxt
-        int superblockSizeLog2 = this.SequenceHeader.SuperBlockSizeLog2;
-        int superblockAlignedWidth = Av1Math.AlignPowerOf2(this.SequenceHeader.MaxFrameWidth, superblockSizeLog2);
-        int superblockAlignedHeight = Av1Math.AlignPowerOf2(this.SequenceHeader.MaxFrameHeight, superblockSizeLog2);
-        this.superblockColumnCount = superblockAlignedWidth >> superblockSizeLog2;
-        this.superblockRowCount = superblockAlignedHeight >> superblockSizeLog2;
-        int superblockCount = this.superblockColumnCount * this.superblockRowCount;
-        this.numModeInfosInSuperblock = (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)) * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2));
-
-        this.superblockInfos = new Av1SuperblockInfo[superblockCount];
-        this.modeInfos = new Av1BlockModeInfo[superblockCount * this.numModeInfosInSuperblock];
-        this.transformInfosY = new Av1TransformInfo[superblockCount * this.numModeInfosInSuperblock];
-        this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.numModeInfosInSuperblock];
-        this.coefficientsY = new int[superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients];
-        int subsamplingFactor = (this.SequenceHeader.ColorConfig.SubSamplingX && this.SequenceHeader.ColorConfig.SubSamplingY) ? 2 :
-                (this.SequenceHeader.ColorConfig.SubSamplingX && !this.SequenceHeader.ColorConfig.SubSamplingY) ? 1 :
-                (!this.SequenceHeader.ColorConfig.SubSamplingX && !this.SequenceHeader.ColorConfig.SubSamplingY) ? 0 : -1;
-        Guard.IsFalse(subsamplingFactor == -1, nameof(subsamplingFactor), "Invalid combination of subsampling.");
-        this.coefficientsU = new int[(superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients) >> subsamplingFactor];
-        this.coefficientsV = new int[(superblockCount * this.numModeInfosInSuperblock * NumberofCoefficients) >> subsamplingFactor];
-        this.deltaQ = new int[superblockCount];
-        this.cdefStrength = new int[superblockCount * (this.SequenceHeader.Use128x128SuperBlock ? 4 : 1)];
-        Array.Fill(this.cdefStrength, -1);
-        this.deltaLoopFilter = new int[superblockCount * Av1Constants.FrameLoopFilterCount];
+        this.frameBuffer = new(this.SequenceHeader);
     }
 
     public bool SequenceHeaderDone { get; set; }
@@ -129,17 +92,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
                 this.ClearBlockDecodedFlags(row, column, superBlock4x4Size);
 
-                int superblockIndex = (superBlockRow * this.superblockColumnCount) + superBlockColumn;
-                int cdefFactor = this.SequenceHeader.Use128x128SuperBlock ? 4 : 1;
-                Av1SuperblockInfo superblockInfo = new(this.modeInfos[superblockIndex], this.transformInfosY[superblockIndex])
-                {
-                    CoefficientsY = this.coefficientsY,
-                    CoefficientsU = this.coefficientsU,
-                    CoefficientsV = this.coefficientsV,
-                    CdefStrength = this.cdefStrength[superblockIndex * cdefFactor],
-                    SuperblockDeltaLoopFilter = this.deltaLoopFilter[Av1Constants.FrameLoopFilterCount * superblockIndex],
-                    SuperblockDeltaQ = this.deltaQ[superblockIndex]
-                };
+                Point superblockPosition = new Point(superBlockColumn, superBlockRow);
+                Av1SuperblockInfo superblockInfo = new(this.frameBuffer, superblockPosition);
 
                 // Nothing to do for CDEF
                 // this.ClearCdef(row, column);
@@ -150,7 +104,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     }
 
     private void ClearLoopFilterDelta()
-        => this.deltaLoopFilter = new int[4];
+        => this.frameBuffer.ClearDeltaLoopFilter();
 
     private void ClearBlockDecodedFlags(int row, int column, int superBlock4x4Size)
     {
@@ -350,12 +304,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
         if (partitionInfo.AvailableUp)
         {
-            partitionInfo.AboveModeInfo = superblockInfo.GetModeInfo(rowIndex - 1, columnIndex);
+            partitionInfo.AboveModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex - 1, columnIndex));
         }
 
         if (partitionInfo.AvailableLeft)
         {
-            partitionInfo.LeftModeInfo = superblockInfo.GetModeInfo(rowIndex, columnIndex - 1);
+            partitionInfo.LeftModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex, columnIndex - 1));
         }
 
         this.ReadModeInfo(ref reader, partitionInfo);
@@ -448,7 +402,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
     {
-        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(new(1, Av1BlockSize.Invalid), new()), false, Av1PartitionType.None);
+        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(this.frameBuffer, default), false, Av1PartitionType.None);
         int startX = (baseX + 4) * x;
         int startY = (baseY + 4) * y;
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -915,6 +869,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 frameLoopFilterCount = this.SequenceHeader.ColorConfig.ChannelCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
 
+            Span<int> currentDeltaLoopFilter = partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter;
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
                 int deltaLoopFilterAbsolute = reader.ReadDeltaLoopFilterAbsolute();
@@ -929,7 +884,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     bool deltaLoopFilterSign = reader.ReadLiteral(1) > 0;
                     int reducedDeltaLoopFilterLevel = deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
-                    this.deltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, this.deltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << this.deltaLoopFilterResolution));
+                    currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << this.deltaLoopFilterResolution));
                 }
             }
         }

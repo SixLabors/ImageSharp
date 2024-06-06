@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Provides Tiff specific metadata information for the frame.
 /// </summary>
-public class TiffFrameMetadata : IDeepCloneable
+public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
@@ -60,6 +60,20 @@ public class TiffFrameMetadata : IDeepCloneable
     /// Gets or sets the set of inks used in a separated (<see cref="TiffPhotometricInterpretation.Separated"/>) image.
     /// </summary>
     public TiffInkSet? InkSet { get; set; }
+
+    /// <inheritdoc/>
+    public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
+        => new();
+
+    /// <inheritdoc/>
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+        => new();
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public TiffFrameMetadata DeepClone() => new(this);
 
     /// <summary>
     /// Returns a new <see cref="TiffFrameMetadata"/> instance parsed from the given Exif profile.
@@ -118,7 +132,4 @@ public class TiffFrameMetadata : IDeepCloneable
             profile.RemoveValue(ExifTag.Predictor);
         }
     }
-
-    /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new TiffFrameMetadata(this);
 }

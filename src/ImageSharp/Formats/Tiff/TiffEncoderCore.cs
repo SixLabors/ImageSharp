@@ -339,6 +339,20 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
         TiffCompression compression,
         TiffPredictor predictor)
     {
+        // Ensure 1 Bit compression is only used with 1 bit pixel type.
+        // Choose a sensible default based on the bits per pixel.
+        if (IsOneBitCompression(compression) && bitsPerPixel != TiffBitsPerPixel.Bit1)
+        {
+            compression = bitsPerPixel switch
+            {
+                < TiffBitsPerPixel.Bit8 => TiffCompression.None,
+                _ => TiffCompression.Deflate,
+            };
+        }
+
+        // Ensure predictor is only used with compression that supports it.
+        predictor = HasPredictor(compression) ? predictor : TiffPredictor.None;
+
         // BitsPerPixel should be the primary source of truth for the encoder options.
         switch (bitsPerPixel)
         {
@@ -346,14 +360,14 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
                 if (IsOneBitCompression(compression))
                 {
                     // The “normal” PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
-                    this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.WhiteIsZero, compression, TiffPredictor.None);
+                    this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.WhiteIsZero, compression, predictor);
                     break;
                 }
 
-                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.BlackIsZero, compression, TiffPredictor.None);
+                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.BlackIsZero, compression, predictor);
                 break;
             case TiffBitsPerPixel.Bit4:
-                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.PaletteColor, compression, TiffPredictor.None);
+                this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.PaletteColor, compression, predictor);
                 break;
             case TiffBitsPerPixel.Bit8:
 
@@ -381,22 +395,16 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
             case TiffBitsPerPixel.Bit42:
             case TiffBitsPerPixel.Bit48:
                 // Encoding not yet supported bits per pixel will default to 24 bits.
-                this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
+
+                this.SetEncoderOptions(TiffBitsPerPixel.Bit24, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
             case TiffBitsPerPixel.Bit64:
                 // Encoding not yet supported bits per pixel will default to 32 bits.
-                this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, TiffPredictor.None);
+                this.SetEncoderOptions(TiffBitsPerPixel.Bit32, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
             default:
                 this.SetEncoderOptions(bitsPerPixel, TiffPhotometricInterpretation.Rgb, compression, predictor);
                 break;
-        }
-
-        // Make sure 1 Bit compression is only used with 1 bit pixel type.
-        if (IsOneBitCompression(this.CompressionType) && this.BitsPerPixel != TiffBitsPerPixel.Bit1)
-        {
-            // Invalid compression / bits per pixel combination, fallback to no compression.
-            this.CompressionType = TiffCompression.None;
         }
     }
 
@@ -415,4 +423,7 @@ internal sealed class TiffEncoderCore : IImageEncoderInternals
 
     public static bool IsOneBitCompression(TiffCompression? compression)
         => compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax;
+
+    public static bool HasPredictor(TiffCompression? compression)
+        => compression is TiffCompression.Deflate or TiffCompression.Lzw;
 }

@@ -29,16 +29,15 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int maxLumaHeight;
     private int deltaLoopFilterResolution = -1;
     private int deltaQuantizerResolution = -1;
-    private readonly Av1FrameBuffer frameBuffer;
 
-    public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo)
+    public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
     {
         this.FrameInfo = frameInfo;
         this.SequenceHeader = sequenceHeader;
         this.TileInfo = tileInfo;
 
         // init_main_frame_ctxt
-        this.frameBuffer = new(this.SequenceHeader);
+        this.FrameBuffer = new(this.SequenceHeader);
     }
 
     public bool SequenceHeaderDone { get; set; }
@@ -51,7 +50,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     public ObuSequenceHeader SequenceHeader { get; }
 
-    public ObuTileInfo TileInfo { get; }
+    public ObuTileGroupHeader TileInfo { get; }
+
+    public Av1FrameBuffer FrameBuffer { get; }
 
     public void DecodeTile(Span<byte> tileData, int tileNum)
     {
@@ -93,7 +94,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 this.ClearBlockDecodedFlags(row, column, superBlock4x4Size);
 
                 Point superblockPosition = new Point(superBlockColumn, superBlockRow);
-                Av1SuperblockInfo superblockInfo = new(this.frameBuffer, superblockPosition);
+                Av1SuperblockInfo superblockInfo = new(this.FrameBuffer, superblockPosition);
 
                 // Nothing to do for CDEF
                 // this.ClearCdef(row, column);
@@ -104,7 +105,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     }
 
     private void ClearLoopFilterDelta()
-        => this.frameBuffer.ClearDeltaLoopFilter();
+        => this.FrameBuffer.ClearDeltaLoopFilter();
 
     private void ClearBlockDecodedFlags(int row, int column, int superBlock4x4Size)
     {
@@ -150,6 +151,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 throw new NotImplementedException("No loop restoration filter support.");
             }
         }
+    }
+
+    public void StartDecodeTiles()
+    {
+        // TODO: Implement
     }
 
     public void FinishDecodeTiles(bool doCdef, bool doLoopRestoration)
@@ -402,7 +408,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
     {
-        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(this.frameBuffer, default), false, Av1PartitionType.None);
+        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid), new(this.FrameBuffer, default), false, Av1PartitionType.None);
         int startX = (baseX + 4) * x;
         int startY = (baseY + 4) * y;
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;

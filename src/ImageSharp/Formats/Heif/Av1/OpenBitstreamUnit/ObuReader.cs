@@ -7,11 +7,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuReader
 {
+    public ObuSequenceHeader? SequenceHeader { get; set; }
+
+    public ObuFrameHeader? FrameHeader { get; set; }
+
+    public ObuTileGroupHeader? TileGroupHeader { get; set; }
+
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public static void Read(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB = false)
+    public void Read(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB = false)
     {
+        bool seenFrameHeader = false;
         bool frameDecodingFinished = false;
         while (!frameDecodingFinished)
         {
@@ -40,34 +47,35 @@ internal class ObuReader
             switch (header.Type)
             {
                 case ObuType.SequenceHeader:
-                    ReadSequenceHeader(ref reader, decoder.SequenceHeader);
-                    if (decoder.SequenceHeader.ColorConfig.BitDepth == 12)
+                    this.SequenceHeader = new();
+                    ReadSequenceHeader(ref reader, this.SequenceHeader);
+                    if (this.SequenceHeader.ColorConfig.BitDepth == 12)
                     {
                         // TODO: Initialize 12 bit predictors
                     }
 
-                    decoder.SequenceHeaderDone = true;
                     break;
                 case ObuType.FrameHeader:
                 case ObuType.RedundantFrameHeader:
                 case ObuType.Frame:
                     if (header.Type != ObuType.Frame)
                     {
-                        decoder.ShowExistingFrame = false;
+                        // Nothing to do here.
                     }
                     else if (header.Type != ObuType.FrameHeader)
                     {
-                        Guard.IsFalse(decoder.SeenFrameHeader, nameof(Av1Decoder.SeenFrameHeader), "Frame header expected");
+                        Guard.IsFalse(seenFrameHeader, nameof(seenFrameHeader), "Frame header expected");
                     }
                     else
                     {
-                        Guard.IsTrue(decoder.SeenFrameHeader, nameof(Av1Decoder.SeenFrameHeader), "Already decoded a frame header");
+                        Guard.IsTrue(seenFrameHeader, nameof(seenFrameHeader), "Already decoded a frame header");
                     }
 
-                    if (!decoder.SeenFrameHeader)
+                    if (!seenFrameHeader)
                     {
-                        decoder.SeenFrameHeader = true;
-                        ReadFrameHeader(ref reader, decoder, header, header.Type != ObuType.Frame);
+                        seenFrameHeader = true;
+                        this.FrameHeader = new();
+                        this.ReadFrameHeader(ref reader, header, header.Type != ObuType.Frame);
                     }
 
                     if (header.Type != ObuType.Frame)
@@ -78,15 +86,16 @@ internal class ObuReader
                     goto TILE_GROUP;
                 case ObuType.TileGroup:
                     TILE_GROUP:
-                    if (!decoder.SeenFrameHeader)
+                    if (!seenFrameHeader)
                     {
                         throw new InvalidImageContentException("Corrupt frame");
                     }
 
-                    ReadTileGroup(ref reader, decoder, header, out frameDecodingFinished);
+                    this.TileGroupHeader = new();
+                    this.ReadTileGroup(ref reader, decoder, header, out frameDecodingFinished);
                     if (frameDecodingFinished)
                     {
-                        decoder.SeenFrameHeader = false;
+                        seenFrameHeader = false;
                     }
 
                     break;
@@ -465,9 +474,9 @@ internal class ObuReader
         ComputeImageSize(sequenceHeader, frameInfo);
     }
 
-    private static ObuTileInfo ReadTileInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static ObuTileGroupHeader ReadTileInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
-        ObuTileInfo tileInfo = new();
+        ObuTileGroupHeader tileInfo = new();
         int superBlockColumnCount;
         int superBlockRowCount;
         int superBlockShift;
@@ -633,10 +642,10 @@ internal class ObuReader
         return tileInfo;
     }
 
-    private static void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, int planesCount)
+    private void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, int planesCount)
     {
-        ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
-        ObuFrameHeader frameInfo = decoder.FrameInfo;
+        ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
+        ObuFrameHeader frameInfo = this.FrameHeader!;
         int idLength = 0;
         uint previousFrameId = 0;
         bool isIntraFrame = false;
@@ -915,13 +924,11 @@ internal class ObuReader
         }
     }
 
-    private static void ReadFrameHeader(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, bool trailingBit)
+    private void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
-        ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
-        ObuFrameHeader frameInfo = decoder.FrameInfo;
-        int planeCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
+        int planeCount = this.SequenceHeader!.ColorConfig.IsMonochrome ? 1 : 3;
         int startBitPosition = reader.BitPosition;
-        ReadUncompressedFrameHeader(ref reader, decoder, header, planeCount);
+        this.ReadUncompressedFrameHeader(ref reader, header, planeCount);
         if (trailingBit)
         {
             ReadTrailingBits(ref reader);
@@ -934,11 +941,12 @@ internal class ObuReader
         header.PayloadSize -= headerBytes;
     }
 
-    private static void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, out bool isLastTileGroup)
+    private void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, out bool isLastTileGroup)
     {
-        ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
-        ObuFrameHeader frameInfo = decoder.FrameInfo;
-        ObuTileInfo tileInfo = decoder.TileInfo;
+        ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
+        ObuFrameHeader frameInfo = this.FrameHeader!;
+        ObuTileGroupHeader tileInfo = this.TileGroupHeader!;
+        this.TileGroupHeader = tileInfo;
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         int startBitPosition = reader.BitPosition;
         bool tileStartAndEndPresentFlag = false;

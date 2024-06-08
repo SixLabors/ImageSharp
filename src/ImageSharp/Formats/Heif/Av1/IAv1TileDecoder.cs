@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
@@ -11,34 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal interface IAv1TileDecoder
 {
     /// <summary>
-    /// Gets or sets a value indicating whether a sequence header has been read.
+    /// Start decoding all tiles of a frame.
     /// </summary>
-    bool SequenceHeaderDone { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to show the existing frame.
-    /// </summary>
-    bool ShowExistingFrame { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether a FrameHeader has just been read.
-    /// </summary>
-    bool SeenFrameHeader { get; set; }
-
-    /// <summary>
-    /// Gets Information about the frame.
-    /// </summary>
-    ObuFrameHeader FrameInfo { get; }
-
-    /// <summary>
-    /// Gets Information about the sequence of frames.
-    /// </summary>
-    ObuSequenceHeader SequenceHeader { get; }
-
-    /// <summary>
-    /// Gets information required to decode the tiles of a frame.
-    /// </summary>
-    ObuTileInfo TileInfo { get; }
+    void StartDecodeTiles();
 
     /// <summary>
     /// Decode a single tile.

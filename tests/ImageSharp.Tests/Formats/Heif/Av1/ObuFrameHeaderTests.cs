@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -22,14 +21,17 @@ public class ObuFrameHeaderTests
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
-        Av1Decoder decoder = new();
+        Av1BitStreamReader reader = new(span);
+        IAv1TileDecoder decoder = new Av1TileDecoderStub();
+        ObuReader obuReader = new();
 
         // Act
-        decoder.Decode(span);
+        obuReader.Read(ref reader, blockSize, decoder);
 
         // Assert
-        Assert.True(decoder.SequenceHeaderDone);
-        Assert.False(decoder.SeenFrameHeader);
+        Assert.NotNull(obuReader.SequenceHeader);
+        Assert.NotNull(obuReader.FrameHeader);
+        Assert.NotNull(obuReader.TileGroupHeader);
     }
 
     /* [Theory]
@@ -67,29 +69,31 @@ public class ObuFrameHeaderTests
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
         IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
         Av1BitStreamReader reader = new(span);
+        ObuReader obuReader1 = new();
 
         // Act 1
-        ObuReader.Read(ref reader, blockSize, tileDecoder);
+        obuReader1.Read(ref reader, blockSize, tileDecoder);
 
         // Assign 2
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter.Write(encoded, tileDecoder);
+        ObuWriter.Write(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, obuReader1.TileGroupHeader);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
         IAv1TileDecoder tileDecoder2 = new Av1TileDecoderStub();
         Av1BitStreamReader reader2 = new(span);
+        ObuReader obuReader2 = new();
 
         // Act 2
-        ObuReader.Read(ref reader2, encodedBuffer.Length, tileDecoder2);
+        obuReader2.Read(ref reader2, encodedBuffer.Length, tileDecoder2);
 
         // Assert
-        Assert.Equal(PrettyPrintProperties(tileDecoder.SequenceHeader.ColorConfig), PrettyPrintProperties(tileDecoder2.SequenceHeader.ColorConfig));
-        Assert.Equal(PrettyPrintProperties(tileDecoder.SequenceHeader), PrettyPrintProperties(tileDecoder2.SequenceHeader));
-        Assert.Equal(PrettyPrintProperties(tileDecoder.FrameInfo), PrettyPrintProperties(tileDecoder2.FrameInfo));
-        Assert.Equal(PrettyPrintProperties(tileDecoder.TileInfo), PrettyPrintProperties(tileDecoder2.TileInfo));
+        Assert.Equal(PrettyPrintProperties(obuReader1.SequenceHeader.ColorConfig), PrettyPrintProperties(obuReader2.SequenceHeader.ColorConfig));
+        Assert.Equal(PrettyPrintProperties(obuReader1.SequenceHeader), PrettyPrintProperties(obuReader2.SequenceHeader));
+        Assert.Equal(PrettyPrintProperties(obuReader1.FrameHeader), PrettyPrintProperties(obuReader2.FrameHeader));
+        Assert.Equal(PrettyPrintProperties(obuReader1.TileGroupHeader), PrettyPrintProperties(obuReader2.TileGroupHeader));
     }
 
     private static string PrettyPrintProperties(object obj)

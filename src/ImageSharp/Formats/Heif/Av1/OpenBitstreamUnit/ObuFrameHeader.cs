@@ -15,7 +15,7 @@ internal class ObuFrameHeader
 
     public bool AllowHighPrecisionMotionVector { get; set; }
 
-    public ObuTileInfo TilesInfo { get; set; } = new ObuTileInfo();
+    public ObuTileGroupHeader TilesInfo { get; set; } = new ObuTileGroupHeader();
 
     public bool CodedLossless { get; set; }
 

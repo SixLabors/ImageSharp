@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-internal class ObuTileInfo
+internal class ObuTileGroupHeader
 {
     internal int MaxTileWidthSuperBlock { get; set; }
 

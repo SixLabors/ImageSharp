@@ -8,38 +8,36 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal class Av1Decoder : IAv1TileDecoder
 {
-    private readonly Av1TileDecoder tileDecoder;
+    private readonly ObuReader obuReader;
+    private Av1TileDecoder? tileDecoder;
+    private Av1FrameBuffer? frameBuffer;
 
-    public Av1Decoder()
-    {
-        this.FrameInfo = new ObuFrameHeader();
-        this.SequenceHeader = new ObuSequenceHeader();
-        this.TileInfo = new ObuTileInfo();
-        this.SeenFrameHeader = false;
-        this.tileDecoder = new Av1TileDecoder(this.SequenceHeader, this.FrameInfo, this.TileInfo);
-    }
+    public Av1Decoder() => this.obuReader = new();
 
-    public bool SequenceHeaderDone { get; set; }
+    public ObuFrameHeader? FrameHeader { get; private set; }
 
-    public bool ShowExistingFrame { get; set; }
+    public ObuSequenceHeader? SequenceHeader { get; private set; }
 
-    public bool SeenFrameHeader { get; set; }
-
-    public ObuFrameHeader FrameInfo { get; }
-
-    public ObuSequenceHeader SequenceHeader { get; }
-
-    public ObuTileInfo TileInfo { get; }
+    public ObuTileGroupHeader? TilesHeader { get; private set; }
 
     public void Decode(Span<byte> buffer)
     {
         Av1BitStreamReader reader = new(buffer);
-        ObuReader.Read(ref reader, buffer.Length, this, false);
+        this.obuReader.Read(ref reader, buffer.Length, this, false);
+        this.frameBuffer = this.tileDecoder?.FrameBuffer;
+    }
+
+    public void StartDecodeTiles()
+    {
+        this.SequenceHeader = this.obuReader.SequenceHeader;
+        this.FrameHeader = this.obuReader.FrameHeader;
+        this.TilesHeader = this.obuReader.TileGroupHeader;
+        this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!, this.TilesHeader!);
     }
 
     public void DecodeTile(Span<byte> tileData, int tileNum)
-        => this.tileDecoder.DecodeTile(tileData, tileNum);
+        => this.tileDecoder!.DecodeTile(tileData, tileNum);
 
     public void FinishDecodeTiles(bool doCdef, bool doLoopRestoration)
-        => this.tileDecoder.FinishDecodeTiles(doCdef, doLoopRestoration);
+        => this.tileDecoder!.FinishDecodeTiles(doCdef, doLoopRestoration);
 }

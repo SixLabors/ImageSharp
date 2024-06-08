@@ -10,23 +10,23 @@ internal class ObuWriter
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public static void Write(Stream stream, IAv1TileDecoder decoder)
+    public static void Write(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
     {
         MemoryStream bufferStream = new(100);
         Av1BitStreamWriter writer = new(bufferStream);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, [], 0);
 
-        WriteSequenceHeader(ref writer, decoder.SequenceHeader);
+        WriteSequenceHeader(ref writer, sequenceHeader);
         writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
 
         bufferStream.Position = 0;
-        WriteFrameHeader(ref writer, decoder, true);
+        WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
         writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
 
         bufferStream.Position = 0;
-        WriteTileGroup(ref writer, decoder.TileInfo);
+        WriteTileGroup(ref writer, tileInfo);
         writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), (int)bufferStream.Position);
     }
@@ -218,7 +218,7 @@ internal class ObuWriter
         WriteSuperResolutionParameters(ref writer, sequenceHeader, frameInfo);
     }
 
-    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileInfo tileInfo)
+    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
     {
         int superBlockColumnCount;
         int superBlockRowCount;
@@ -444,10 +444,8 @@ internal class ObuWriter
         }
     }
 
-    private static int WriteFrameHeader(ref Av1BitStreamWriter writer, IAv1TileDecoder decoder, bool writeTrailingBits)
+    private static int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool writeTrailingBits)
     {
-        ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
-        ObuFrameHeader frameInfo = decoder.FrameInfo;
         int planeCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         int startBitPosition = writer.BitPosition;
         WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameInfo, planeCount);
@@ -463,7 +461,7 @@ internal class ObuWriter
         return headerBytes;
     }
 
-    private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileInfo tileInfo)
+    private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         int startBitPosition = writer.BitPosition;

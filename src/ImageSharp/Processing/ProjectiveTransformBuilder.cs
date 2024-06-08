@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Processing;
@@ -269,6 +270,28 @@ public class ProjectiveTransformBuilder
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendTranslation(Vector2 position)
         => this.AppendMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
+
+    /// <summary>
+    /// Prepends a quad distortion matrix using the specified corner points.
+    /// </summary>
+    /// <param name="topLeft">The top-left corner point of the distorted quad.</param>
+    /// <param name="topRight">The top-right corner point of the distorted quad.</param>
+    /// <param name="bottomRight">The bottom-right corner point of the distorted quad.</param>
+    /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
+    /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+    public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
+        => this.Prepend(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
+
+    /// <summary>
+    /// Appends a quad distortion matrix using the specified corner points.
+    /// </summary>
+    /// <param name="topLeft">The top-left corner point of the distorted quad.</param>
+    /// <param name="topRight">The top-right corner point of the distorted quad.</param>
+    /// <param name="bottomRight">The bottom-right corner point of the distorted quad.</param>
+    /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
+    /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+    public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
+        => this.Append(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
 
     /// <summary>
     /// Prepends a raw matrix.

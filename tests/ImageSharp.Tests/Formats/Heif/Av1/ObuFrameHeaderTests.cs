@@ -31,7 +31,7 @@ public class ObuFrameHeaderTests
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
-        Assert.NotNull(obuReader.TileGroupHeader);
+        Assert.NotNull(obuReader.FrameHeader.TilesInfo);
     }
 
     /* [Theory]
@@ -78,7 +78,7 @@ public class ObuFrameHeaderTests
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter.Write(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, obuReader1.TileGroupHeader);
+        ObuWriter.Write(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
@@ -93,7 +93,7 @@ public class ObuFrameHeaderTests
         Assert.Equal(PrettyPrintProperties(obuReader1.SequenceHeader.ColorConfig), PrettyPrintProperties(obuReader2.SequenceHeader.ColorConfig));
         Assert.Equal(PrettyPrintProperties(obuReader1.SequenceHeader), PrettyPrintProperties(obuReader2.SequenceHeader));
         Assert.Equal(PrettyPrintProperties(obuReader1.FrameHeader), PrettyPrintProperties(obuReader2.FrameHeader));
-        Assert.Equal(PrettyPrintProperties(obuReader1.TileGroupHeader), PrettyPrintProperties(obuReader2.TileGroupHeader));
+        Assert.Equal(PrettyPrintProperties(obuReader1.FrameHeader.TilesInfo), PrettyPrintProperties(obuReader2.FrameHeader.TilesInfo));
     }
 
     private static string PrettyPrintProperties(object obj)

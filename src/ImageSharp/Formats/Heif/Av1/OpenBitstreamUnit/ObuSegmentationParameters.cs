@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuSegmentationParameters
 {
-    public int[,] QMLevel { get; internal set; } = new int[3, Av1Constants.MaxSegmentCount];
+    public int[][] QMLevel { get; internal set; } = new int[3][];
 
     public bool[,] FeatureEnabled { get; internal set; } = new bool[Av1Constants.MaxSegmentCount, Av1Constants.SegmentationLevelMax];
 

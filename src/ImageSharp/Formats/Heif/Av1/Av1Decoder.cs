@@ -18,8 +18,6 @@ internal class Av1Decoder : IAv1TileDecoder
 
     public ObuSequenceHeader? SequenceHeader { get; private set; }
 
-    public ObuTileGroupHeader? TilesHeader { get; private set; }
-
     public void Decode(Span<byte> buffer)
     {
         Av1BitStreamReader reader = new(buffer);
@@ -31,8 +29,7 @@ internal class Av1Decoder : IAv1TileDecoder
     {
         this.SequenceHeader = this.obuReader.SequenceHeader;
         this.FrameHeader = this.obuReader.FrameHeader;
-        this.TilesHeader = this.obuReader.TileGroupHeader;
-        this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!, this.TilesHeader!);
+        this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!);
     }
 
     public void DecodeTile(Span<byte> tileData, int tileNum)

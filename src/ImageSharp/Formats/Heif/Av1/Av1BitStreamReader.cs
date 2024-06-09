@@ -49,7 +49,7 @@ internal ref struct Av1BitStreamReader
 
     public uint ReadLiteral(int bitCount)
     {
-        DebugGuard.MustBeBetweenOrEqualTo(bitCount, 0, 32, nameof(bitCount));
+        DebugGuard.MustBeBetweenOrEqualTo(bitCount, 1, 32, nameof(bitCount));
 
         uint bits = (this.currentWord << this.bitOffset) >> (WordSize - bitCount);
         this.bitOffset += bitCount;

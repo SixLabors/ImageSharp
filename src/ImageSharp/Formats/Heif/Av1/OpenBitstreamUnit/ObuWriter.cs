@@ -10,7 +10,7 @@ internal class ObuWriter
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public static void Write(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
+    public static void Write(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         MemoryStream bufferStream = new(100);
         Av1BitStreamWriter writer = new(bufferStream);
@@ -26,7 +26,7 @@ internal class ObuWriter
         WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
 
         bufferStream.Position = 0;
-        WriteTileGroup(ref writer, tileInfo);
+        WriteTileGroup(ref writer, frameInfo.TilesInfo);
         writer.Flush();
         WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), (int)bufferStream.Position);
     }
@@ -145,7 +145,7 @@ internal class ObuWriter
             }
         }
 
-        writer.WriteBoolean(colorConfig.HasSeparateUvDeltaQ);
+        writer.WriteBoolean(colorConfig.HasSeparateUvDelta);
     }
 
     private static void WriteBitDepth(ref Av1BitStreamWriter writer, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
@@ -520,7 +520,7 @@ internal class ObuWriter
             if (frameInfo.DeltaLoopFilterParameters.IsPresent)
             {
                 writer.WriteLiteral((uint)frameInfo.DeltaLoopFilterParameters.Resolution, 2);
-                writer.WriteBoolean(frameInfo.DeltaLoopFilterParameters.Multi);
+                writer.WriteBoolean(frameInfo.DeltaLoopFilterParameters.IsMulti);
             }
         }
     }
@@ -535,6 +535,11 @@ internal class ObuWriter
         if (planesCount > 1)
         {
             bool areUvDeltaDifferent = false;
+            if (colorInfo.HasSeparateUvDelta)
+            {
+                writer.WriteBoolean(colorInfo.HasSeparateUvDelta);
+            }
+
             WriteDeltaQ(ref writer, quantParams.DeltaQDc[(int)Av1Plane.U]);
             WriteDeltaQ(ref writer, quantParams.DeltaQAc[(int)Av1Plane.U]);
             if (areUvDeltaDifferent)
@@ -549,7 +554,7 @@ internal class ObuWriter
         {
             writer.WriteLiteral((uint)quantParams.QMatrix[(int)Av1Plane.Y], 4);
             writer.WriteLiteral((uint)quantParams.QMatrix[(int)Av1Plane.U], 4);
-            if (colorInfo.HasSeparateUvDeltaQ)
+            if (colorInfo.HasSeparateUvDelta)
             {
                 writer.WriteLiteral((uint)quantParams.QMatrix[(int)Av1Plane.V], 4);
             }

@@ -30,11 +30,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int deltaLoopFilterResolution = -1;
     private int deltaQuantizerResolution = -1;
 
-    public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
+    public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         this.FrameInfo = frameInfo;
         this.SequenceHeader = sequenceHeader;
-        this.TileInfo = tileInfo;
 
         // init_main_frame_ctxt
         this.FrameBuffer = new(this.SequenceHeader);
@@ -50,17 +49,15 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     public ObuSequenceHeader SequenceHeader { get; }
 
-    public ObuTileGroupHeader TileInfo { get; }
-
     public Av1FrameBuffer FrameBuffer { get; }
 
     public void DecodeTile(Span<byte> tileData, int tileNum)
     {
         Av1SymbolDecoder reader = new(tileData);
-        int tileColumnIndex = tileNum % this.TileInfo.TileColumnCount;
-        int tileRowIndex = tileNum / this.TileInfo.TileColumnCount;
+        int tileColumnIndex = tileNum % this.FrameInfo.TilesInfo.TileColumnCount;
+        int tileRowIndex = tileNum / this.FrameInfo.TilesInfo.TileColumnCount;
 
-        this.aboveContext.Clear(this.TileInfo.TileColumnStartModeInfo[tileColumnIndex], this.TileInfo.TileColumnStartModeInfo[tileColumnIndex - 1]);
+        this.aboveContext.Clear(this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex], this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex - 1]);
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         this.referenceSgrXqd = new int[planesCount][];
@@ -79,11 +76,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
         int superBlock4x4Size = superBlockSize.Get4x4WideCount();
-        for (int row = this.TileInfo.TileRowStartModeInfo[tileRowIndex]; row < this.TileInfo.TileRowStartModeInfo[tileRowIndex + 1]; row += this.SequenceHeader.ModeInfoSize)
+        for (int row = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex]; row < this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1]; row += this.SequenceHeader.ModeInfoSize)
         {
             int superBlockRow = row << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
             this.leftContext.Clear();
-            for (int column = this.TileInfo.TileColumnStartModeInfo[tileColumnIndex]; column < this.TileInfo.TileColumnStartModeInfo[tileColumnIndex + 1]; column += this.SequenceHeader.ModeInfoSize)
+            for (int column = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex]; column < this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex + 1]; column += this.SequenceHeader.ModeInfoSize)
             {
                 int superBlockColumn = column << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
                 bool subSamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -165,8 +162,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ParsePartition(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo)
     {
-        if (rowIndex >= this.TileInfo.TileRowStartModeInfo[rowIndex] ||
-            columnIndex >= this.TileInfo.TileColumnStartModeInfo[columnIndex])
+        if (rowIndex >= this.FrameInfo.TilesInfo.TileRowStartModeInfo[rowIndex] ||
+            columnIndex >= this.FrameInfo.TilesInfo.TileColumnStartModeInfo[columnIndex])
         {
             return;
         }
@@ -339,8 +336,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
             Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
             int txsWide = planeBlockSize.GetWidth() >> 2;
             int txsHigh = planeBlockSize.GetHeight() >> 2;
-            int aboveOffset = (partitionInfo.ColumnIndex - this.TileInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> (subX ? 1 : 0);
-            int leftOffset = (partitionInfo.RowIndex - this.TileInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> (subY ? 1 : 0);
+            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameInfo.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> (subX ? 1 : 0);
+            int leftOffset = (partitionInfo.RowIndex - this.FrameInfo.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> (subY ? 1 : 0);
             int[] aboveContext = this.aboveContext.AboveContext[i + aboveOffset];
             int[] leftContext = this.leftContext.LeftContext[i + leftOffset];
             Array.Fill(aboveContext, 0);
@@ -870,7 +867,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent)
         {
             int frameLoopFilterCount = 1;
-            if (this.FrameInfo.DeltaLoopFilterParameters.Multi)
+            if (this.FrameInfo.DeltaLoopFilterParameters.IsMulti)
             {
                 frameLoopFilterCount = this.SequenceHeader.ColorConfig.ChannelCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
@@ -942,10 +939,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
     }
 
     private bool IsInside(int rowIndex, int columnIndex) =>
-        columnIndex >= this.TileInfo.TileColumnCount &&
-        columnIndex < this.TileInfo.TileColumnCount &&
-        rowIndex >= this.TileInfo.TileRowCount &&
-        rowIndex < this.TileInfo.TileRowCount;
+        columnIndex >= this.FrameInfo.TilesInfo.TileColumnCount &&
+        columnIndex < this.FrameInfo.TilesInfo.TileColumnCount &&
+        rowIndex >= this.FrameInfo.TilesInfo.TileRowCount &&
+        rowIndex < this.FrameInfo.TilesInfo.TileRowCount;
 
     /*
     private static bool IsChroma(int rowIndex, int columnIndex, Av1BlockModeInfo blockMode, bool subSamplingX, bool subSamplingY)
@@ -961,8 +958,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
     {
         // Maximum partition point is 8x8. Offset the log value occordingly.
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
-        int aboveCtx = this.aboveContext.PartitionWidth + columnIndex - this.TileInfo.TileColumnStartModeInfo[columnIndex];
-        int leftCtx = this.leftContext.PartitionHeight + rowIndex - this.TileInfo.TileRowStartModeInfo[rowIndex];
+        int aboveCtx = this.aboveContext.PartitionWidth + columnIndex - this.FrameInfo.TilesInfo.TileColumnStartModeInfo[columnIndex];
+        int leftCtx = this.leftContext.PartitionHeight + rowIndex - this.FrameInfo.TilesInfo.TileRowStartModeInfo[rowIndex];
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;
         return (left * 2) + above + (blockSizeLog * PartitionProbabilitySet);

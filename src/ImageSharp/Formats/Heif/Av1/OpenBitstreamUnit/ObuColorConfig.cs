@@ -29,8 +29,6 @@ internal class ObuColorConfig
 
     public int BitDepth { get; set; }
 
-    public bool HasSeparateUvDeltaQ { get; set; }
-
     public Av1ColorFormat GetColorFormat()
     {
         Av1ColorFormat format = Av1ColorFormat.Yuv400;

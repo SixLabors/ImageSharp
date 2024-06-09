@@ -9,5 +9,5 @@ internal class ObuDeltaLoopFilterParameters
 
     public int Resolution { get; internal set; }
 
-    public bool Multi { get; internal set; }
+    public bool IsMulti { get; internal set; }
 }

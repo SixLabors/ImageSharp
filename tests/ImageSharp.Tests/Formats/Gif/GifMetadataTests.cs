@@ -35,7 +35,7 @@ public class GifMetadataTests
             RepeatCount = 1,
             ColorTableMode = GifColorTableMode.Global,
             GlobalColorTable = new[] { Color.Black, Color.White },
-            Comments = new List<string> { "Foo" }
+            Comments = ["Foo"]
         };
 
         GifMetadata clone = (GifMetadata)meta.DeepClone();
@@ -126,7 +126,7 @@ public class GifMetadataTests
     public async Task Identify_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
+        await using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo image = await GifDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -152,7 +152,7 @@ public class GifMetadataTests
     public async Task Decode_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
+        await using MemoryStream stream = new(testFile.Bytes, false);
         using Image<Rgba32> image = await GifDecoder.Instance.DecodeAsync<Rgba32>(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -213,5 +213,25 @@ public class GifMetadataTests
 
         Assert.Equal(frameDelay, gifFrameMetadata.FrameDelay);
         Assert.Equal(disposalMethod, gifFrameMetadata.DisposalMethod);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Gif.Issues.BadMaxLzwBits, 8)]
+    [InlineData(TestImages.Gif.Issues.Issue2012BadMinCode, 1)]
+    public void Identify_Frames_Bad_Lzw(string imagePath, int framesCount)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        GifMetadata gifMetadata = imageInfo.Metadata.GetGifMetadata();
+        Assert.NotNull(gifMetadata);
+
+        Assert.Equal(framesCount, imageInfo.FrameMetadataCollection.Count);
+        GifFrameMetadata gifFrameMetadata = imageInfo.FrameMetadataCollection[imageInfo.FrameMetadataCollection.Count - 1].GetGifMetadata();
+
+        Assert.NotNull(gifFrameMetadata);
     }
 }

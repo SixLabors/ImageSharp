@@ -255,7 +255,7 @@ internal sealed class LzwDecoder : IDisposable
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided
             // color palette but we won't bother since the image is most likely corrupted.
-            GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
+            return;
         }
 
         int codeSize = minCodeSize + 1;

@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
 /// Provides Webp specific metadata information for the image.
 /// </summary>
-public class WebpMetadata : IFormatFrameMetadata<WebpMetadata>
+public class WebpMetadata : IFormatMetadata<WebpMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpMetadata"/> class.
@@ -65,12 +67,90 @@ public class WebpMetadata : IFormatFrameMetadata<WebpMetadata>
         };
 
     /// <inheritdoc/>
-    public static WebpMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
-        => throw new NotImplementedException();
+    public static WebpMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        WebpBitsPerPixel bitsPerPixel;
+        WebpColorType color;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB | PixelColorType.Alpha;
+        switch (colorType)
+        {
+            case PixelColorType.RGB:
+            case PixelColorType.BGR:
+                color = WebpColorType.Rgb;
+                bitsPerPixel = WebpBitsPerPixel.Bit24;
+                break;
+            case PixelColorType.YCbCr:
+                color = WebpColorType.Yuv;
+                bitsPerPixel = WebpBitsPerPixel.Bit24;
+                break;
+            default:
+                if (colorType.HasFlag(PixelColorType.Alpha))
+                {
+                    color = WebpColorType.Rgba;
+                    bitsPerPixel = WebpBitsPerPixel.Bit32;
+                    break;
+                }
+
+                color = WebpColorType.Rgb;
+                bitsPerPixel = WebpBitsPerPixel.Bit24;
+                break;
+        }
+
+        return new()
+        {
+            BitsPerPixel = bitsPerPixel,
+            ColorType = color,
+            FileFormat = WebpFileFormatType.Lossless,
+            BackgroundColor = metadata.BackgroundColor,
+            RepeatCount = metadata.RepeatCount
+        };
+    }
 
     /// <inheritdoc/>
-    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
-        => throw new NotImplementedException();
+    public PixelTypeInfo GetPixelTypeInfo()
+    {
+        int bpp;
+        PixelColorType colorType;
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+        PixelComponentInfo info;
+        switch (this.ColorType)
+        {
+            case WebpColorType.Yuv:
+                bpp = 24;
+                colorType = PixelColorType.YCbCr;
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                break;
+            case WebpColorType.Rgb:
+                bpp = 24;
+                colorType = PixelColorType.RGB;
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                break;
+            case WebpColorType.Rgba:
+            default:
+                bpp = 32;
+                colorType = PixelColorType.RGB | PixelColorType.Alpha;
+                info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                alpha = PixelAlphaRepresentation.Unassociated;
+                break;
+        }
+
+        return new PixelTypeInfo(bpp)
+        {
+            AlphaRepresentation = alpha,
+            ColorType = colorType,
+            ComponentInfo = info,
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo(),
+            ColorTableMode = FrameColorTableMode.Global,
+            RepeatCount = this.RepeatCount,
+            BackgroundColor = this.BackgroundColor
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

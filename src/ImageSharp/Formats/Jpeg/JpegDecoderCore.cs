@@ -603,58 +603,58 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// Returns the jpeg color type based on the colorspace and subsampling used.
     /// </summary>
     /// <returns>Jpeg color type.</returns>
-    private JpegEncodingColor DeduceJpegColorType()
+    private JpegColorType DeduceJpegColorType()
     {
         switch (this.ColorSpace)
         {
             case JpegColorSpace.Grayscale:
-                return JpegEncodingColor.Luminance;
+                return JpegColorType.Luminance;
 
             case JpegColorSpace.RGB:
-                return JpegEncodingColor.Rgb;
+                return JpegColorType.Rgb;
 
             case JpegColorSpace.YCbCr:
                 if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio444;
+                    return JpegColorType.YCbCrRatio444;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio422;
+                    return JpegColorType.YCbCrRatio422;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio411;
+                    return JpegColorType.YCbCrRatio411;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio410;
+                    return JpegColorType.YCbCrRatio410;
                 }
                 else
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
 
             case JpegColorSpace.Cmyk:
-                return JpegEncodingColor.Cmyk;
+                return JpegColorType.Cmyk;
             case JpegColorSpace.Ycck:
-                return JpegEncodingColor.Ycck;
+                return JpegColorType.Ycck;
             default:
-                return JpegEncodingColor.YCbCrRatio420;
+                return JpegColorType.YCbCrRatio420;
         }
     }
 

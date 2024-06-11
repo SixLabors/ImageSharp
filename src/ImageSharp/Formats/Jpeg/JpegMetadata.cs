@@ -82,7 +82,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     /// <summary>
     /// Gets or sets the color type.
     /// </summary>
-    public JpegEncodingColor ColorType { get; set; } = JpegEncodingColor.YCbCrRatio420;
+    public JpegColorType ColorType { get; set; } = JpegColorType.YCbCrRatio420;
 
     /// <summary>
     /// Gets or sets a value indicating whether the component encoding mode should be interleaved.
@@ -109,29 +109,29 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     /// <inheritdoc/>
     public static JpegMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
-        JpegEncodingColor color;
+        JpegColorType color;
         PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.YCbCr;
         switch (colorType)
         {
             case PixelColorType.Luminance:
-                color = JpegEncodingColor.Luminance;
+                color = JpegColorType.Luminance;
                 break;
             case PixelColorType.CMYK:
-                color = JpegEncodingColor.Cmyk;
+                color = JpegColorType.Cmyk;
                 break;
             case PixelColorType.YCCK:
-                color = JpegEncodingColor.Ycck;
+                color = JpegColorType.Ycck;
                 break;
             default:
                 if (colorType.HasFlag(PixelColorType.RGB) || colorType.HasFlag(PixelColorType.BGR))
                 {
-                    color = JpegEncodingColor.Rgb;
+                    color = JpegColorType.Rgb;
                 }
                 else
                 {
                     color = metadata.Quality <= Quantization.DefaultQualityFactor
-                        ? JpegEncodingColor.YCbCrRatio420
-                        : JpegEncodingColor.YCbCrRatio444;
+                        ? JpegColorType.YCbCrRatio420
+                        : JpegColorType.YCbCrRatio444;
                 }
 
                 break;
@@ -153,22 +153,22 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
         PixelComponentInfo info;
         switch (this.ColorType)
         {
-            case JpegEncodingColor.Luminance:
+            case JpegColorType.Luminance:
                 bpp = 8;
                 colorType = PixelColorType.Luminance;
                 info = PixelComponentInfo.Create(1, bpp, 8);
                 break;
-            case JpegEncodingColor.Cmyk:
+            case JpegColorType.Cmyk:
                 bpp = 32;
                 colorType = PixelColorType.CMYK;
                 info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
                 break;
-            case JpegEncodingColor.Ycck:
+            case JpegColorType.Ycck:
                 bpp = 32;
                 colorType = PixelColorType.YCCK;
                 info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
                 break;
-            case JpegEncodingColor.Rgb:
+            case JpegColorType.Rgb:
                 bpp = 24;
                 colorType = PixelColorType.RGB;
                 info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);

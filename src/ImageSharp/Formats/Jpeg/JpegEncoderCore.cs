@@ -780,7 +780,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
-        JpegEncodingColor color = this.encoder.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+        JpegColorType color = this.encoder.ColorType ?? metadata.ColorType;
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

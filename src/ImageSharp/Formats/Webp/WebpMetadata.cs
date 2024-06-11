@@ -43,7 +43,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
     /// <summary>
     /// Gets or sets the webp file format used. Either lossless or lossy.
     /// </summary>
-    public WebpFileFormatType FileFormat { get; set; } = WebpFileFormatType.Lossless;
+    public WebpFileFormatType FileFormat { get; set; } = WebpFileFormatType.Lossy;
 
     /// <summary>
     /// Gets or sets the loop count. The number of times to loop the animation. 0 means infinitely.

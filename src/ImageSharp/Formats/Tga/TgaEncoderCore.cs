@@ -59,7 +59,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
 
         TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
-        if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
+        if (this.bitsPerPixel == TgaBitsPerPixel.Bit8)
         {
             imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
         }
@@ -71,13 +71,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
             imageDescriptor |= 0x20;
         }
 
-        if (this.bitsPerPixel is TgaBitsPerPixel.Pixel32)
+        if (this.bitsPerPixel is TgaBitsPerPixel.Bit32)
         {
             // Indicate, that 8 bit are used for the alpha channel.
             imageDescriptor |= 0x8;
         }
 
-        if (this.bitsPerPixel is TgaBitsPerPixel.Pixel16)
+        if (this.bitsPerPixel is TgaBitsPerPixel.Bit16)
         {
             // Indicate, that 1 bit is used for the alpha channel.
             imageDescriptor |= 0x1;
@@ -130,19 +130,19 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         Buffer2D<TPixel> pixels = image.PixelBuffer;
         switch (this.bitsPerPixel)
         {
-            case TgaBitsPerPixel.Pixel8:
+            case TgaBitsPerPixel.Bit8:
                 this.Write8Bit(configuration, stream, pixels);
                 break;
 
-            case TgaBitsPerPixel.Pixel16:
+            case TgaBitsPerPixel.Bit16:
                 this.Write16Bit(configuration, stream, pixels);
                 break;
 
-            case TgaBitsPerPixel.Pixel24:
+            case TgaBitsPerPixel.Bit24:
                 this.Write24Bit(configuration, stream, pixels);
                 break;
 
-            case TgaBitsPerPixel.Pixel32:
+            case TgaBitsPerPixel.Bit32:
                 this.Write32Bit(configuration, stream, pixels);
                 break;
         }
@@ -208,12 +208,12 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     {
         switch (this.bitsPerPixel)
         {
-            case TgaBitsPerPixel.Pixel8:
+            case TgaBitsPerPixel.Bit8:
                 L8 l8 = L8.FromRgba32(color);
                 stream.WriteByte(l8.PackedValue);
                 break;
 
-            case TgaBitsPerPixel.Pixel16:
+            case TgaBitsPerPixel.Bit16:
                 Bgra5551 bgra5551 = Bgra5551.FromRgba32(color);
                 Span<byte> buffer = stackalloc byte[2];
                 BinaryPrimitives.WriteInt16LittleEndian(buffer, (short)bgra5551.PackedValue);
@@ -222,13 +222,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
                 break;
 
-            case TgaBitsPerPixel.Pixel24:
+            case TgaBitsPerPixel.Bit24:
                 stream.WriteByte(color.B);
                 stream.WriteByte(color.G);
                 stream.WriteByte(color.R);
                 break;
 
-            case TgaBitsPerPixel.Pixel32:
+            case TgaBitsPerPixel.Bit32:
                 stream.WriteByte(color.B);
                 stream.WriteByte(color.G);
                 stream.WriteByte(color.R);

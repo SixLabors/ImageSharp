@@ -934,7 +934,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         return (TgaImageOrigin)((this.fileHeader.ImageDescriptor & 0x30) >> 4);
     }
 
-    private bool IsTrueColor32BitPerPixel(TgaBitsPerPixel bitsPerPixel) => bitsPerPixel == TgaBitsPerPixel.Pixel32 &&
+    private bool IsTrueColor32BitPerPixel(TgaBitsPerPixel bitsPerPixel) => bitsPerPixel == TgaBitsPerPixel.Bit32 &&
                                                                            (this.fileHeader.ImageType == TgaImageType.TrueColor ||
                                                                             this.fileHeader.ImageType == TgaImageType.RleTrueColor);
 }

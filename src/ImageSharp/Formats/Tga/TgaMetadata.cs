@@ -27,7 +27,7 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
     /// <summary>
     /// Gets or sets the number of bits per pixel.
     /// </summary>
-    public TgaBitsPerPixel BitsPerPixel { get; set; } = TgaBitsPerPixel.Pixel24;
+    public TgaBitsPerPixel BitsPerPixel { get; set; } = TgaBitsPerPixel.Bit24;
 
     /// <summary>
     /// Gets or sets the number of alpha bits per pixel.
@@ -41,10 +41,10 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
         return bpp switch
         {
-            <= 8 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Pixel8 },
-            <= 16 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Pixel16 },
-            <= 24 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Pixel24 },
-            _ => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Pixel32 }
+            <= 8 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit8 },
+            <= 16 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit16 },
+            <= 24 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit24 },
+            _ => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit32 }
         };
     }
 
@@ -57,22 +57,22 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         PixelAlphaRepresentation alpha;
         switch (this.BitsPerPixel)
         {
-            case TgaBitsPerPixel.Pixel8:
+            case TgaBitsPerPixel.Bit8:
                 info = PixelComponentInfo.Create(1, bpp, 8);
                 color = PixelColorType.Luminance;
                 alpha = PixelAlphaRepresentation.None;
                 break;
-            case TgaBitsPerPixel.Pixel16:
+            case TgaBitsPerPixel.Bit16:
                 info = PixelComponentInfo.Create(1, bpp, 5, 5, 5, 1);
                 color = PixelColorType.BGR | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;
                 break;
-            case TgaBitsPerPixel.Pixel24:
+            case TgaBitsPerPixel.Bit24:
                 info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
                 color = PixelColorType.RGB;
                 alpha = PixelAlphaRepresentation.None;
                 break;
-            case TgaBitsPerPixel.Pixel32 or _:
+            case TgaBitsPerPixel.Bit32 or _:
                 info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
                 color = PixelColorType.RGB | PixelColorType.Alpha;
                 alpha = PixelAlphaRepresentation.Unassociated;

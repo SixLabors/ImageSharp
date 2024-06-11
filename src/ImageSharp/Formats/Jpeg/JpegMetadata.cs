@@ -14,7 +14,9 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
     /// </summary>
-    public JpegMetadata() => this.Comments = [];
+    public JpegMetadata()
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JpegMetadata"/> class.

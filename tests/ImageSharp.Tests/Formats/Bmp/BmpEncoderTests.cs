@@ -22,8 +22,8 @@ public class BmpEncoderTests
     public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
     new()
     {
-        BmpBitsPerPixel.Pixel24,
-        BmpBitsPerPixel.Pixel32
+        BmpBitsPerPixel.Bit24,
+        BmpBitsPerPixel.Bit32
     };
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
@@ -37,13 +37,13 @@ public class BmpEncoderTests
     public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
     new()
     {
-        { Bit1, BmpBitsPerPixel.Pixel1 },
-        { Bit2, BmpBitsPerPixel.Pixel2 },
-        { Bit4, BmpBitsPerPixel.Pixel4 },
-        { Bit8, BmpBitsPerPixel.Pixel8 },
-        { Rgb16, BmpBitsPerPixel.Pixel16 },
-        { Car, BmpBitsPerPixel.Pixel24 },
-        { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
+        { Bit1, BmpBitsPerPixel.Bit1 },
+        { Bit2, BmpBitsPerPixel.Bit2 },
+        { Bit4, BmpBitsPerPixel.Bit4 },
+        { Bit8, BmpBitsPerPixel.Bit8 },
+        { Rgb16, BmpBitsPerPixel.Bit16 },
+        { Car, BmpBitsPerPixel.Bit24 },
+        { Bit32Rgb, BmpBitsPerPixel.Bit32 }
     };
 
     [Fact]
@@ -97,61 +97,61 @@ public class BmpEncoderTests
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel);
 
     [Theory]
-    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
     public void Encode_32Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
 
         // If supportTransparency is false, a v3 bitmap header will be written.
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
     public void Encode_32Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)] // WinBmpv3 is a 24 bits per pixel image.
-    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)] // WinBmpv3 is a 24 bits per pixel image.
+    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
     public void Encode_24Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
-    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
+    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
     public void Encode_24Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
-    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
+    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
     public void Encode_16Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
-    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
+    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
     public void Encode_16Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
-    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
+    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
     public void Encode_8Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
-    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
+    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
     public void Encode_8Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
+    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Bit8)]
     public void Encode_8BitGray_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TestBmpEncoderCore(
@@ -160,7 +160,7 @@ public class BmpEncoderTests
             supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit4)]
     public void Encode_4Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -176,7 +176,7 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit4)]
     public void Encode_4Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -192,7 +192,7 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Bit2)]
     public void Encode_2Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -214,7 +214,7 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Bit2)]
     public void Encode_2Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -236,21 +236,21 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Bit1)]
     public void Encode_1Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Bit1)]
     public void Encode_1Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
+    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Bit8)]
     public void Encode_8BitGray_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TestBmpEncoderCore(
@@ -271,7 +271,7 @@ public class BmpEncoderTests
         using Image<TPixel> image = provider.GetImage();
         BmpEncoder encoder = new()
         {
-            BitsPerPixel = BmpBitsPerPixel.Pixel8,
+            BitsPerPixel = BmpBitsPerPixel.Bit8,
             Quantizer = new WuQuantizer()
         };
 
@@ -303,7 +303,7 @@ public class BmpEncoderTests
         using Image<TPixel> image = provider.GetImage();
         BmpEncoder encoder = new()
         {
-            BitsPerPixel = BmpBitsPerPixel.Pixel8,
+            BitsPerPixel = BmpBitsPerPixel.Bit8,
             Quantizer = new OctreeQuantizer()
         };
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
@@ -322,8 +322,8 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
     public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
@@ -364,8 +364,8 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
-    [WithFile(V5Header, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
+    [WithFile(V5Header, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
     public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -374,7 +374,7 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(BlackWhitePalletDataMatrix, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel1)]
+    [WithFile(BlackWhitePalletDataMatrix, PixelTypes.Rgb24, BmpBitsPerPixel.Bit1)]
     public void Encode_Issue2467<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -409,7 +409,7 @@ public class BmpEncoderTests
         using Image<TPixel> image = provider.GetImage();
 
         // There is no alpha in bmp with less then 32 bits per pixels, so the reference image will be made opaque.
-        if (bitsPerPixel != BmpBitsPerPixel.Pixel32)
+        if (bitsPerPixel != BmpBitsPerPixel.Bit32)
         {
             image.Mutate(c => c.MakeOpaque());
         }

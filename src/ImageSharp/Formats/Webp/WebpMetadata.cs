@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Provides Webp specific metadata information for the image.
 /// </summary>
-public class WebpMetadata : IDeepCloneable
+public class WebpMetadata : IFormatFrameMetadata<WebpMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpMetadata"/> class.
@@ -21,15 +21,27 @@ public class WebpMetadata : IDeepCloneable
     /// <param name="other">The metadata to create an instance from.</param>
     private WebpMetadata(WebpMetadata other)
     {
+        this.BitsPerPixel = other.BitsPerPixel;
+        this.ColorType = other.ColorType;
         this.FileFormat = other.FileFormat;
         this.RepeatCount = other.RepeatCount;
         this.BackgroundColor = other.BackgroundColor;
     }
 
     /// <summary>
+    /// Gets or sets the number of bits per pixel.
+    /// </summary>
+    public WebpBitsPerPixel BitsPerPixel { get; set; } = WebpBitsPerPixel.Bit32;
+
+    /// <summary>
+    /// Gets or sets the color type.
+    /// </summary>
+    public WebpColorType ColorType { get; set; } = WebpColorType.Rgba;
+
+    /// <summary>
     /// Gets or sets the webp file format used. Either lossless or lossy.
     /// </summary>
-    public WebpFileFormatType? FileFormat { get; set; }
+    public WebpFileFormatType FileFormat { get; set; } = WebpFileFormatType.Lossless;
 
     /// <summary>
     /// Gets or sets the loop count. The number of times to loop the animation. 0 means infinitely.
@@ -44,9 +56,6 @@ public class WebpMetadata : IDeepCloneable
     /// </summary>
     public Color BackgroundColor { get; set; }
 
-    /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new WebpMetadata(this);
-
     internal static WebpMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
         => new()
         {
@@ -54,4 +63,18 @@ public class WebpMetadata : IDeepCloneable
             BackgroundColor = metadata.BackgroundColor,
             RepeatCount = metadata.RepeatCount
         };
+
+    /// <inheritdoc/>
+    public static WebpMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
+        => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+        => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public WebpMetadata DeepClone() => new(this);
 }

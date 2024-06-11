@@ -72,7 +72,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved ?? true;
+        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
         using JpegFrame frame = new(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.

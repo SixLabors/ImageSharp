@@ -48,11 +48,12 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     internal int? ChrominanceQuality { get; set; }
 
     /// <summary>
-    /// Gets the encoded quality.
+    /// Gets or sets the encoded quality.
     /// </summary>
     /// <remarks>
     /// Note that jpeg image can have different quality for luminance and chrominance components.
     /// This property returns maximum value of luma/chroma qualities if both are present.
+    /// Setting the quality will update both values.
     /// </remarks>
     public int Quality
     {
@@ -70,34 +71,40 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
 
             return this.ChrominanceQuality ?? Quantization.DefaultQualityFactor;
         }
+
+        set
+        {
+            this.LuminanceQuality = value;
+            this.ChrominanceQuality = value;
+        }
     }
 
     /// <summary>
-    /// Gets the color type.
+    /// Gets or sets the color type.
     /// </summary>
-    public JpegEncodingColor? ColorType { get; internal set; }
+    public JpegEncodingColor ColorType { get; set; } = JpegEncodingColor.YCbCrRatio420;
 
     /// <summary>
-    /// Gets the component encoding mode.
+    /// Gets or sets a value indicating whether the component encoding mode should be interleaved.
     /// </summary>
     /// <remarks>
     /// Interleaved encoding mode encodes all color components in a single scan.
     /// Non-interleaved encoding mode encodes each color component in a separate scan.
     /// </remarks>
-    public bool? Interleaved { get; internal set; }
+    public bool Interleaved { get; set; } = true;
 
     /// <summary>
-    /// Gets the scan encoding mode.
+    /// Gets or sets a value indicating whether the scan encoding mode is progressive.
     /// </summary>
     /// <remarks>
     /// Progressive jpeg images encode component data across multiple scans.
     /// </remarks>
-    public bool? Progressive { get; internal set; }
+    public bool Progressive { get; set; }
 
     /// <summary>
-    /// Gets the comments.
+    /// Gets or sets collection of comments.
     /// </summary>
-    public IList<JpegComData> Comments { get; }
+    public IList<JpegComData> Comments { get; set; } = [];
 
     /// <inheritdoc/>
     public static JpegMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)

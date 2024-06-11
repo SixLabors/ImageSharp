@@ -477,7 +477,7 @@ public class BmpDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         Assert.NotNull(imageInfo);
-        Assert.Equal(expectedPixelSize, imageInfo.PixelType?.BitsPerPixel);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
     [Theory]
@@ -557,5 +557,17 @@ public class BmpDecoderTests
         // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
         // Compare to reference output instead.
         image.CompareToReferenceOutput(provider, extension: "png");
+    }
+
+    [Theory]
+    [WithFile(Issue2696, PixelTypes.Rgba32)]
+    public void BmpDecoder_ThrowsException_Issue2696<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+            });
+        Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 }

@@ -17,7 +17,7 @@ internal sealed class CostManager : IDisposable
 
     private const int FreeIntervalsStartCount = 25;
 
-    private readonly Stack<CostInterval> freeIntervals = new(FreeIntervalsStartCount);
+    private readonly Stack<CostInterval> freeIntervals = new Stack<CostInterval>(FreeIntervalsStartCount);
 
     public CostManager(MemoryAllocator memoryAllocator, IMemoryOwner<ushort> distArray, int pixCount, CostModel costModel)
     {

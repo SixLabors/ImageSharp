@@ -326,20 +326,43 @@ public partial class JpegDecoderTests
         image.CompareToOriginal(provider);
     }
 
+    // https://github.com/SixLabors/ImageSharp/discussions/2564
     [Theory]
-    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
-    public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Jpeg.Issues.Issue2564, PixelTypes.Rgba32)]
+    public void Issue2564_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.IsWindows &&
-            TestEnvironment.RunsOnCI)
-        {
-            // Windows CI runs consistently fail with OOM.
-            return;
-        }
-
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-        Assert.Equal(65503, image.Width);
-        Assert.Equal(65503, image.Height);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.Rgb24)]
+    public void DecodeHang_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance); });
+
+    // https://github.com/SixLabors/ImageSharp/issues/2517
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2517, PixelTypes.Rgba32)]
+    public void Issue2517_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2638
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2638, PixelTypes.Rgba32)]
+    public void Issue2638_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
     }
 }

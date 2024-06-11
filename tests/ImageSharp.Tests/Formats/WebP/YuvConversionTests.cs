@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -143,7 +142,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));
@@ -249,7 +248,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));

@@ -87,7 +87,9 @@ public partial class PngDecoderTests
         TestImages.Png.DisposeBackgroundRegion,
         TestImages.Png.DisposePreviousFirst,
         TestImages.Png.DisposeBackgroundBeforeRegion,
-        TestImages.Png.BlendOverMultiple
+        TestImages.Png.BlendOverMultiple,
+        TestImages.Png.FrameOffset,
+        TestImages.Png.DefaultNotAnimated
     };
 
     [Theory]
@@ -470,6 +472,23 @@ public partial class PngDecoderTests
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
     }
 
+    // https://github.com/SixLabors/ImageSharp/pull/2589
+    [Theory]
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32, true)]
+    [WithFile(TestImages.Png.Bad.Issue2589, PixelTypes.Rgba32, false)]
+    public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData });
+
+        image.DebugSave(provider);
+        if (compare)
+        {
+            // Magick cannot actually decode this image to compare.
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+        }
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/1014
     [Theory]
     [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
@@ -564,7 +583,7 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -577,7 +596,7 @@ public partial class PngDecoderTests
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
         Assert.NotNull(metadata.ColorTable);
-        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToRgba32().A < 255);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410
@@ -635,5 +654,51 @@ public partial class PngDecoderTests
                 providerDump,
                 "Disco")
             .Dispose();
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        PngDecoder decoder = PngDecoder.Instance;
+        PngDecoderOptions options = new() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData };
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
+
+        // TODO: Try to reduce this to 1.
+        Assert.True(eofHitCounter.EofHitCount <= 3);
+        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+    }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Decode_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Info_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        _ = Image.Identify(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.Issue2714BadPalette)]
+    public void Decode_BadPalette(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
     }
 }

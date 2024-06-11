@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -67,20 +68,70 @@ public abstract partial class Image
         int i;
         do
         {
-            i = stream.Read(headersBuffer, n, headerSize - n);
+            i = stream.Read(headersBuffer[n..headerSize]);
             n += i;
         }
         while (n < headerSize && i > 0);
 
         stream.Position = startPosition;
 
+        return InternalDetectFormat(configuration, headersBuffer[..n]);
+    }
+
+    /// <summary>
+    /// By reading the header on the provided stream this calculates the images format.
+    /// </summary>
+    /// <param name="configuration">The general configuration.</param>
+    /// <param name="stream">The image stream to read the header from.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The mime type or null if none found.</returns>
+    /// <exception cref="UnknownImageFormatException">The input format is not recognized.</exception>
+    private static async ValueTask<IImageFormat> InternalDetectFormatAsync(
+        Configuration configuration,
+        Stream stream,
+        CancellationToken cancellationToken)
+    {
+        // We take a minimum of the stream length vs the max header size and always check below
+        // to ensure that only formats that headers fit within the given buffer length are tested.
+        int headerSize = (int)Math.Min(configuration.MaxHeaderSize, stream.Length);
+        if (headerSize <= 0)
+        {
+            ImageFormatManager.ThrowInvalidDecoder(configuration.ImageFormatsManager);
+        }
+
+        using (IMemoryOwner<byte> memoryOwner = configuration.MemoryAllocator.Allocate<byte>(headerSize))
+        {
+            Memory<byte> headersBuffer = memoryOwner.Memory;
+            long startPosition = stream.Position;
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int n = 0;
+            int i;
+            do
+            {
+                i = await stream.ReadAsync(headersBuffer[n..headerSize], cancellationToken);
+                n += i;
+            }
+            while (n < headerSize && i > 0);
+
+            stream.Position = startPosition;
+
+            return InternalDetectFormat(configuration, headersBuffer.Span[..n]);
+        }
+    }
+
+    private static IImageFormat InternalDetectFormat(
+        Configuration configuration,
+        ReadOnlySpan<byte> headersBuffer)
+    {
         // Does the given stream contain enough data to fit in the header for the format
         // and does that data match the format specification?
         // Individual formats should still check since they are public.
         IImageFormat? format = null;
         foreach (IImageFormatDetector formatDetector in configuration.ImageFormatsManager.FormatDetectors)
         {
-            if (formatDetector.HeaderSize <= headerSize && formatDetector.TryDetectFormat(headersBuffer, out IImageFormat? attemptFormat))
+            if (formatDetector.HeaderSize <= headersBuffer.Length && formatDetector.TryDetectFormat(headersBuffer, out IImageFormat? attemptFormat))
             {
                 format = attemptFormat;
             }
@@ -107,6 +158,22 @@ public abstract partial class Image
     }
 
     /// <summary>
+    /// By reading the header on the provided stream this calculates the images format.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <param name="stream">The image stream to read the header from.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The <see cref="IImageDecoder"/>.</returns>
+    private static async ValueTask<IImageDecoder> DiscoverDecoderAsync(
+        DecoderOptions options,
+        Stream stream,
+        CancellationToken cancellationToken)
+    {
+        IImageFormat format = await InternalDetectFormatAsync(options.Configuration, stream, cancellationToken);
+        return options.Configuration.ImageFormatsManager.GetDecoder(format);
+    }
+
+    /// <summary>
     /// Decodes the image stream to the current image.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
@@ -122,14 +189,14 @@ public abstract partial class Image
         return decoder.Decode<TPixel>(options, stream);
     }
 
-    private static Task<Image<TPixel>> DecodeAsync<TPixel>(
+    private static async Task<Image<TPixel>> DecodeAsync<TPixel>(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream);
-        return decoder.DecodeAsync<TPixel>(options, stream, cancellationToken);
+        IImageDecoder decoder = await DiscoverDecoderAsync(options, stream, cancellationToken);
+        return await decoder.DecodeAsync<TPixel>(options, stream, cancellationToken);
     }
 
     private static Image Decode(DecoderOptions options, Stream stream)
@@ -138,13 +205,13 @@ public abstract partial class Image
         return decoder.Decode(options, stream);
     }
 
-    private static Task<Image> DecodeAsync(
+    private static async Task<Image> DecodeAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken)
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream);
-        return decoder.DecodeAsync(options, stream, cancellationToken);
+        IImageDecoder decoder = await DiscoverDecoderAsync(options, stream, cancellationToken);
+        return await decoder.DecodeAsync(options, stream, cancellationToken);
     }
 
     /// <summary>
@@ -166,12 +233,12 @@ public abstract partial class Image
     /// <param name="stream">The stream.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="ImageInfo"/>.</returns>
-    private static Task<ImageInfo> InternalIdentifyAsync(
+    private static async Task<ImageInfo> InternalIdentifyAsync(
         DecoderOptions options,
         Stream stream,
         CancellationToken cancellationToken)
     {
-        IImageDecoder decoder = DiscoverDecoder(options, stream);
-        return decoder.IdentifyAsync(options, stream, cancellationToken);
+        IImageDecoder decoder = await DiscoverDecoderAsync(options, stream, cancellationToken);
+        return await decoder.IdentifyAsync(options, stream, cancellationToken);
     }
 }

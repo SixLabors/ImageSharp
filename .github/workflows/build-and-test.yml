@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release/*
     tags:
       - "v*"
   pull_request:
@@ -19,42 +20,23 @@ jobs:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
+            framework: net8.0
+            sdk: 8.0.x
             runtime: -x64
             codecov: false
-          - os: macos-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+            framework: net8.0
+            sdk: 8.0.x
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
+            framework: net8.0
+            sdk: 8.0.x
             runtime: -x64
             codecov: false
           - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: ubuntu-latest
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
-          - os: macos-latest
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net6.0
-            sdk: 6.0.x
+            framework: net8.0
+            sdk: 8.0.x
             runtime: -x64
             codecov: false
         exclude:
@@ -86,7 +68,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -96,10 +78,10 @@ jobs:
         run: git lfs pull
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v1
+        uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -108,17 +90,17 @@ jobs:
 
       - name: DotNet Setup
         if: ${{ matrix.options.sdk-preview != true }}
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            6.0.x
+            8.0.x
 
       - name: DotNet Setup Preview
         if: ${{ matrix.options.sdk-preview == true }}
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
+            8.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
@@ -151,7 +133,7 @@ jobs:
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
@@ -178,10 +160,10 @@ jobs:
           submodules: recursive
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v1
+        uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget

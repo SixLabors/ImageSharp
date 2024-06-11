@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
@@ -60,6 +59,12 @@ internal static class Numerics
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static nint Modulo4(nint x) => x & 3;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nuint Modulo4(nuint x) => x & 3;
 
     /// <summary>
     /// Calculates <paramref name="x"/> % 8
@@ -909,25 +914,6 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Reduces elements of the vector into one sum.
-    /// </summary>
-    /// <param name="accumulator">The accumulator to reduce.</param>
-    /// <returns>The sum of all elements.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static int ReduceSumArm(Vector128<uint> accumulator)
-    {
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            Vector64<uint> sum = AdvSimd.Arm64.AddAcross(accumulator);
-            return (int)AdvSimd.Extract(sum, 0);
-        }
-
-        Vector128<ulong> sum2 = AdvSimd.AddPairwiseWidening(accumulator);
-        Vector64<uint> sum3 = AdvSimd.Add(sum2.GetLower().AsUInt32(), sum2.GetUpper().AsUInt32());
-        return (int)AdvSimd.Extract(sum3, 0);
-    }
-
-    /// <summary>
     /// Reduces even elements of the vector into one sum.
     /// </summary>
     /// <param name="accumulator">The accumulator to reduce.</param>
@@ -1030,6 +1016,26 @@ internal static class Numerics
     /// <typeparam name="TVector">The type of the vector.</typeparam>
     /// <param name="span">The given span.</param>
     /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
     public static nuint VectorCount<TVector>(this Span<float> span)
         where TVector : struct
         => (uint)span.Length / (uint)Vector<TVector>.Count;
@@ -1063,4 +1069,24 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector512Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector512<TVector>.Count;
 }

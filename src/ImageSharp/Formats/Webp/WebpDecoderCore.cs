@@ -3,12 +3,15 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -51,7 +54,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// The flag to decide how to handle the background color in the Animation Chunk.
     /// </summary>
-    private BackgroundColorHandling backgroundColorHandling;
+    private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
@@ -89,25 +92,30 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
             {
                 if (this.webImageInfo.Features is { Animation: true })
                 {
-                    using WebpAnimationDecoder animationDecoder = new(this.memoryAllocator, this.configuration, this.maxFrames, this.backgroundColorHandling);
+                    using WebpAnimationDecoder animationDecoder = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        this.maxFrames,
+                        this.backgroundColorHandling);
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
-                }
-
-                if (this.webImageInfo.Features is { Animation: true })
-                {
-                    WebpThrowHelper.ThrowNotSupportedException("Animations are not supported");
                 }
 
                 image = new Image<TPixel>(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
-                    WebpLosslessDecoder losslessDecoder = new(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                    WebpLosslessDecoder losslessDecoder = new(
+                        this.webImageInfo.Vp8LBitReader,
+                        this.memoryAllocator,
+                        this.configuration);
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
                 {
-                    WebpLossyDecoder lossyDecoder = new(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                    WebpLossyDecoder lossyDecoder = new(
+                        this.webImageInfo.Vp8BitReader,
+                        this.memoryAllocator,
+                        this.configuration);
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 
@@ -137,7 +145,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         {
             return new ImageInfo(
                 new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
-                new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
+                new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
     }
@@ -332,8 +340,31 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 return;
             }
 
-            metadata.ExifProfile = new(exifData);
+            ExifProfile exifProfile = new(exifData);
+
+            // Set the resolution from the metadata.
+            double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
+            double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
+
+            if (horizontalValue > 0 && verticalValue > 0)
+            {
+                metadata.HorizontalResolution = horizontalValue;
+                metadata.VerticalResolution = verticalValue;
+                metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
+            }
+
+            metadata.ExifProfile = exifProfile;
         }
+    }
+
+    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
+    {
+        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -359,7 +390,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                 return;
             }
 
-            metadata.XmpProfile = new(xmpData);
+            metadata.XmpProfile = new XmpProfile(xmpData);
         }
     }
 
@@ -407,7 +438,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         byte green = (byte)stream.ReadByte();
         byte red = (byte)stream.ReadByte();
         byte alpha = (byte)stream.ReadByte();
-        features.AnimationBackgroundColor = new Color(new Rgba32(red, green, blue, alpha));
+        features.AnimationBackgroundColor = Color.FromPixel(new Rgba32(red, green, blue, alpha));
         int bytesRead = stream.Read(buffer, 0, 2);
         if (bytesRead != 2)
         {

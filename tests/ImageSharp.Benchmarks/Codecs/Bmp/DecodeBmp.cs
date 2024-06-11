@@ -9,7 +9,7 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class DecodeBmp
 {
     private byte[] bmpBytes;

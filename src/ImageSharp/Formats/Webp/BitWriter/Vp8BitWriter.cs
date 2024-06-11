@@ -3,9 +3,6 @@
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 
@@ -72,7 +69,7 @@ internal class Vp8BitWriter : BitWriterBase
     }
 
     /// <inheritdoc/>
-    public override int NumBytes() => (int)this.pos;
+    public override int NumBytes => (int)this.pos;
 
     public int PutCoeffs(int ctx, Vp8Residual residual)
     {
@@ -116,7 +113,7 @@ internal class Vp8BitWriter : BitWriterBase
                     else
                     {
                         this.PutBit(v >= 9, 165);
-                        this.PutBit(!((v & 1) != 0), 145);
+                        this.PutBit((v & 1) == 0, 145);
                     }
                 }
                 else
@@ -394,87 +391,28 @@ internal class Vp8BitWriter : BitWriterBase
         }
     }
 
-    /// <summary>
-    /// Writes the encoded image to the stream.
-    /// </summary>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="exifProfile">The exif profile.</param>
-    /// <param name="xmpProfile">The XMP profile.</param>
-    /// <param name="iccProfile">The color profile.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
-    /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    /// <param name="alphaData">The alpha channel data.</param>
-    /// <param name="alphaDataIsCompressed">Indicates, if the alpha data is compressed.</param>
-    public void WriteEncodedImageToStream(
-        Stream stream,
-        ExifProfile? exifProfile,
-        XmpProfile? xmpProfile,
-        IccProfile? iccProfile,
-        uint width,
-        uint height,
-        bool hasAlpha,
-        Span<byte> alphaData,
-        bool alphaDataIsCompressed)
+    /// <inheritdoc />
+    public override void WriteEncodedImageToStream(Stream stream)
     {
-        bool isVp8X = false;
-        byte[]? exifBytes = null;
-        byte[]? xmpBytes = null;
-        byte[]? iccProfileBytes = null;
-        uint riffSize = 0;
-        if (exifProfile != null)
-        {
-            isVp8X = true;
-            exifBytes = exifProfile.ToByteArray();
-            riffSize += MetadataChunkSize(exifBytes!);
-        }
+        uint numBytes = (uint)this.NumBytes;
 
-        if (xmpProfile != null)
-        {
-            isVp8X = true;
-            xmpBytes = xmpProfile.Data;
-            riffSize += MetadataChunkSize(xmpBytes!);
-        }
-
-        if (iccProfile != null)
-        {
-            isVp8X = true;
-            iccProfileBytes = iccProfile.ToByteArray();
-            riffSize += MetadataChunkSize(iccProfileBytes);
-        }
-
-        if (hasAlpha)
-        {
-            isVp8X = true;
-            riffSize += AlphaChunkSize(alphaData);
-        }
-
-        if (isVp8X)
-        {
-            riffSize += ExtendedFileChunkSize;
-        }
-
-        this.Finish();
-        uint numBytes = (uint)this.NumBytes();
         int mbSize = this.enc.Mbw * this.enc.Mbh;
         int expectedSize = (int)((uint)mbSize * 7 / 8);
 
-        Vp8BitWriter bitWriterPartZero = new(expectedSize, this.enc);
+        Vp8BitWriter bitWriterPartZero = new Vp8BitWriter(expectedSize, this.enc);
 
         // Partition #0 with header and partition sizes.
-        uint size0 = this.GeneratePartition0(bitWriterPartZero);
+        uint size0 = bitWriterPartZero.GeneratePartition0();
 
         uint vp8Size = WebpConstants.Vp8FrameHeaderSize + size0;
         vp8Size += numBytes;
         uint pad = vp8Size & 1;
         vp8Size += pad;
 
-        // Compute RIFF size.
-        // At the minimum it is: "WEBPVP8 nnnn" + VP8 data size.
-        riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
+        // Emit header and partition #0
+        this.WriteVp8Header(stream, vp8Size);
+        this.WriteFrameHeader(stream, size0);
 
-        // Emit headers and partition #0
-        this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile, xmpProfile, iccProfileBytes, hasAlpha, alphaData, alphaDataIsCompressed);
         bitWriterPartZero.WriteToStream(stream);
 
         // Write the encoded image to the stream.
@@ -483,59 +421,49 @@ internal class Vp8BitWriter : BitWriterBase
         {
             stream.WriteByte(0);
         }
-
-        if (exifProfile != null)
-        {
-            this.WriteMetadataProfile(stream, exifBytes, WebpChunkType.Exif);
-        }
-
-        if (xmpProfile != null)
-        {
-            this.WriteMetadataProfile(stream, xmpBytes, WebpChunkType.Xmp);
-        }
     }
 
-    private uint GeneratePartition0(Vp8BitWriter bitWriter)
+    private uint GeneratePartition0()
     {
-        bitWriter.PutBitUniform(0); // colorspace
-        bitWriter.PutBitUniform(0); // clamp type
+        this.PutBitUniform(0); // colorspace
+        this.PutBitUniform(0); // clamp type
 
-        this.WriteSegmentHeader(bitWriter);
-        this.WriteFilterHeader(bitWriter);
+        this.WriteSegmentHeader();
+        this.WriteFilterHeader();
 
-        bitWriter.PutBits(0, 2);
+        this.PutBits(0, 2);
 
-        this.WriteQuant(bitWriter);
-        bitWriter.PutBitUniform(0);
-        this.WriteProbas(bitWriter);
-        this.CodeIntraModes(bitWriter);
+        this.WriteQuant();
+        this.PutBitUniform(0);
+        this.WriteProbas();
+        this.CodeIntraModes();
 
-        bitWriter.Finish();
+        this.Finish();
 
-        return (uint)bitWriter.NumBytes();
+        return (uint)this.NumBytes;
     }
 
-    private void WriteSegmentHeader(Vp8BitWriter bitWriter)
+    private void WriteSegmentHeader()
     {
         Vp8EncSegmentHeader hdr = this.enc.SegmentHeader;
         Vp8EncProba proba = this.enc.Proba;
-        if (bitWriter.PutBitUniform(hdr.NumSegments > 1 ? 1 : 0) != 0)
+        if (this.PutBitUniform(hdr.NumSegments > 1 ? 1 : 0) != 0)
         {
             // We always 'update' the quant and filter strength values.
             int updateData = 1;
-            bitWriter.PutBitUniform(hdr.UpdateMap ? 1 : 0);
-            if (bitWriter.PutBitUniform(updateData) != 0)
+            this.PutBitUniform(hdr.UpdateMap ? 1 : 0);
+            if (this.PutBitUniform(updateData) != 0)
             {
                 // We always use absolute values, not relative ones.
-                bitWriter.PutBitUniform(1); // (segment_feature_mode = 1. Paragraph 9.3.)
+                this.PutBitUniform(1); // (segment_feature_mode = 1. Paragraph 9.3.)
                 for (int s = 0; s < WebpConstants.NumMbSegments; ++s)
                 {
-                    bitWriter.PutSignedBits(this.enc.SegmentInfos[s].Quant, 7);
+                    this.PutSignedBits(this.enc.SegmentInfos[s].Quant, 7);
                 }
 
                 for (int s = 0; s < WebpConstants.NumMbSegments; ++s)
                 {
-                    bitWriter.PutSignedBits(this.enc.SegmentInfos[s].FStrength, 6);
+                    this.PutSignedBits(this.enc.SegmentInfos[s].FStrength, 6);
                 }
             }
 
@@ -543,50 +471,50 @@ internal class Vp8BitWriter : BitWriterBase
             {
                 for (int s = 0; s < 3; ++s)
                 {
-                    if (bitWriter.PutBitUniform(proba.Segments[s] != 255 ? 1 : 0) != 0)
+                    if (this.PutBitUniform(proba.Segments[s] != 255 ? 1 : 0) != 0)
                     {
-                        bitWriter.PutBits(proba.Segments[s], 8);
+                        this.PutBits(proba.Segments[s], 8);
                     }
                 }
             }
         }
     }
 
-    private void WriteFilterHeader(Vp8BitWriter bitWriter)
+    private void WriteFilterHeader()
     {
         Vp8FilterHeader hdr = this.enc.FilterHeader;
         bool useLfDelta = hdr.I4x4LfDelta != 0;
-        bitWriter.PutBitUniform(hdr.Simple ? 1 : 0);
-        bitWriter.PutBits((uint)hdr.FilterLevel, 6);
-        bitWriter.PutBits((uint)hdr.Sharpness, 3);
-        if (bitWriter.PutBitUniform(useLfDelta ? 1 : 0) != 0)
+        this.PutBitUniform(hdr.Simple ? 1 : 0);
+        this.PutBits((uint)hdr.FilterLevel, 6);
+        this.PutBits((uint)hdr.Sharpness, 3);
+        if (this.PutBitUniform(useLfDelta ? 1 : 0) != 0)
         {
             // '0' is the default value for i4x4LfDelta at frame #0.
             bool needUpdate = hdr.I4x4LfDelta != 0;
-            if (bitWriter.PutBitUniform(needUpdate ? 1 : 0) != 0)
+            if (this.PutBitUniform(needUpdate ? 1 : 0) != 0)
             {
                 // we don't use refLfDelta => emit four 0 bits.
-                bitWriter.PutBits(0, 4);
+                this.PutBits(0, 4);
 
                 // we use modeLfDelta for i4x4
-                bitWriter.PutSignedBits(hdr.I4x4LfDelta, 6);
-                bitWriter.PutBits(0, 3);    // all others unused.
+                this.PutSignedBits(hdr.I4x4LfDelta, 6);
+                this.PutBits(0, 3);    // all others unused.
             }
         }
     }
 
     // Nominal quantization parameters
-    private void WriteQuant(Vp8BitWriter bitWriter)
+    private void WriteQuant()
     {
-        bitWriter.PutBits((uint)this.enc.BaseQuant, 7);
-        bitWriter.PutSignedBits(this.enc.DqY1Dc, 4);
-        bitWriter.PutSignedBits(this.enc.DqY2Dc, 4);
-        bitWriter.PutSignedBits(this.enc.DqY2Ac, 4);
-        bitWriter.PutSignedBits(this.enc.DqUvDc, 4);
-        bitWriter.PutSignedBits(this.enc.DqUvAc, 4);
+        this.PutBits((uint)this.enc.BaseQuant, 7);
+        this.PutSignedBits(this.enc.DqY1Dc, 4);
+        this.PutSignedBits(this.enc.DqY2Dc, 4);
+        this.PutSignedBits(this.enc.DqY2Ac, 4);
+        this.PutSignedBits(this.enc.DqUvDc, 4);
+        this.PutSignedBits(this.enc.DqUvAc, 4);
     }
 
-    private void WriteProbas(Vp8BitWriter bitWriter)
+    private void WriteProbas()
     {
         Vp8EncProba probas = this.enc.Proba;
         for (int t = 0; t < WebpConstants.NumTypes; ++t)
@@ -599,25 +527,25 @@ internal class Vp8BitWriter : BitWriterBase
                     {
                         byte p0 = probas.Coeffs[t][b].Probabilities[c].Probabilities[p];
                         bool update = p0 != WebpLookupTables.DefaultCoeffsProba[t, b, c, p];
-                        if (bitWriter.PutBit(update, WebpLookupTables.CoeffsUpdateProba[t, b, c, p]))
+                        if (this.PutBit(update, WebpLookupTables.CoeffsUpdateProba[t, b, c, p]))
                         {
-                            bitWriter.PutBits(p0, 8);
+                            this.PutBits(p0, 8);
                         }
                     }
                 }
             }
         }
 
-        if (bitWriter.PutBitUniform(probas.UseSkipProba ? 1 : 0) != 0)
+        if (this.PutBitUniform(probas.UseSkipProba ? 1 : 0) != 0)
         {
-            bitWriter.PutBits(probas.SkipProba, 8);
+            this.PutBits(probas.SkipProba, 8);
         }
     }
 
     // Writes the partition #0 modes (that is: all intra modes)
-    private void CodeIntraModes(Vp8BitWriter bitWriter)
+    private void CodeIntraModes()
     {
-        var it = new Vp8EncIterator(this.enc.YTop, this.enc.UvTop, this.enc.Nz, this.enc.MbInfo, this.enc.Preds, this.enc.TopDerr, this.enc.Mbw, this.enc.Mbh);
+        Vp8EncIterator it = new Vp8EncIterator(this.enc);
         int predsWidth = this.enc.PredsWidth;
 
         do
@@ -627,18 +555,18 @@ internal class Vp8BitWriter : BitWriterBase
             Span<byte> preds = it.Preds.AsSpan(predIdx);
             if (this.enc.SegmentHeader.UpdateMap)
             {
-                bitWriter.PutSegment(mb.Segment, this.enc.Proba.Segments);
+                this.PutSegment(mb.Segment, this.enc.Proba.Segments);
             }
 
             if (this.enc.Proba.UseSkipProba)
             {
-                bitWriter.PutBit(mb.Skip, this.enc.Proba.SkipProba);
+                this.PutBit(mb.Skip, this.enc.Proba.SkipProba);
             }
 
-            if (bitWriter.PutBit(mb.MacroBlockType != 0, 145))
+            if (this.PutBit(mb.MacroBlockType != 0, 145))
             {
                 // i16x16
-                bitWriter.PutI16Mode(preds[0]);
+                this.PutI16Mode(preds[0]);
             }
             else
             {
@@ -649,7 +577,7 @@ internal class Vp8BitWriter : BitWriterBase
                     for (int x = 0; x < 4; x++)
                     {
                         byte[] probas = WebpLookupTables.ModesProba[topPred[x], left];
-                        left = bitWriter.PutI4Mode(it.Preds[predIdx + x], probas);
+                        left = this.PutI4Mode(it.Preds[predIdx + x], probas);
                     }
 
                     topPred = it.Preds.AsSpan(predIdx);
@@ -657,56 +585,18 @@ internal class Vp8BitWriter : BitWriterBase
                 }
             }
 
-            bitWriter.PutUvMode(mb.UvMode);
+            this.PutUvMode(mb.UvMode);
         }
         while (it.Next());
     }
 
-    private void WriteWebpHeaders(
-        Stream stream,
-        uint size0,
-        uint vp8Size,
-        uint riffSize,
-        bool isVp8X,
-        uint width,
-        uint height,
-        ExifProfile? exifProfile,
-        XmpProfile? xmpProfile,
-        byte[]? iccProfileBytes,
-        bool hasAlpha,
-        Span<byte> alphaData,
-        bool alphaDataIsCompressed)
-    {
-        this.WriteRiffHeader(stream, riffSize);
-
-        // Write VP8X, header if necessary.
-        if (isVp8X)
-        {
-            this.WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfileBytes, width, height, hasAlpha);
-
-            if (iccProfileBytes != null)
-            {
-                this.WriteColorProfile(stream, iccProfileBytes);
-            }
-
-            if (hasAlpha)
-            {
-                this.WriteAlphaChunk(stream, alphaData, alphaDataIsCompressed);
-            }
-        }
-
-        this.WriteVp8Header(stream, vp8Size);
-        this.WriteFrameHeader(stream, size0);
-    }
-
     private void WriteVp8Header(Stream stream, uint size)
     {
-        Span<byte> vp8ChunkHeader = stackalloc byte[WebpConstants.ChunkHeaderSize];
-
-        WebpConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
-        BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader[4..], size);
-
-        stream.Write(vp8ChunkHeader);
+        Span<byte> buf = stackalloc byte[WebpConstants.TagSize];
+        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Vp8);
+        stream.Write(buf);
+        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
+        stream.Write(buf);
     }
 
     private void WriteFrameHeader(Stream stream, uint size0)

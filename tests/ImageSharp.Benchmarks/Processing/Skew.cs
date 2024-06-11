@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Benchmarks.Processing;
 
-[Config(typeof(Config.MultiFramework))]
+[Config(typeof(Config.Standard))]
 public class Skew
 {
     [Benchmark]
     public Size DoSkew()
     {
-        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.BlanchedAlmond);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.BlanchedAlmond.ToPixel<Rgba32>());
         image.Mutate(x => x.Skew(20, 10));
 
         return image.Size;

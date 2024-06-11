@@ -60,7 +60,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette
+    public readonly ReadOnlyMemory<TPixel> Palette
     {
         get
         {
@@ -72,16 +72,14 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
-        Rectangle bounds = pixelRegion.Rectangle;
-        Buffer2D<TPixel> source = pixelRegion.Buffer;
-        using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width))
+        using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(pixelRegion.Width))
         {
             Span<Rgba32> bufferSpan = buffer.GetSpan();
 
             // Loop through each row
-            for (int y = bounds.Top; y < bounds.Bottom; y++)
+            for (int y = 0; y < pixelRegion.Height; y++)
             {
-                Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = pixelRegion.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)
@@ -128,7 +126,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -279,8 +277,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         [MethodImpl(InliningOptions.ShortMethod)]
         public int GetPaletteIndex(TPixel color)
         {
-            Unsafe.SkipInit(out Rgba32 rgba);
-            color.ToRgba32(ref rgba);
+            Rgba32 rgba = color.ToRgba32();
             return this.root.GetPaletteIndex(ref rgba, 0);
         }
 
@@ -478,9 +475,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                         Vector3.Zero,
                         new Vector3(255));
 
-                    Unsafe.SkipInit(out TPixel pixel);
-                    pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
-                    palette[index] = pixel;
+                    palette[index] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z));
 
                     // Consume the next palette index
                     this.paletteIndex = index++;

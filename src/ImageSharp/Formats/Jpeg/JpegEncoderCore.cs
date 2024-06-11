@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -25,6 +26,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// </summary>
     private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
+    /// <summary>
+    /// The current calling encoder.
+    /// </summary>
     private readonly JpegEncoder encoder;
 
     /// <summary>
@@ -88,6 +92,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         // Write Exif, XMP, ICC and IPTC profiles
         this.WriteProfiles(metadata, buffer);
+
+        // Write comments
+        this.WriteComments(image.Configuration, jpegMetadata);
 
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
@@ -168,6 +175,51 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
+    /// Writes the COM tags.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="metadata">The image metadata.</param>
+    private void WriteComments(Configuration configuration, JpegMetadata metadata)
+    {
+        if (metadata.Comments.Count == 0)
+        {
+            return;
+        }
+
+        const int maxCommentLength = 65533;
+        using IMemoryOwner<byte> bufferOwner = configuration.MemoryAllocator.Allocate<byte>(maxCommentLength);
+        Span<byte> buffer = bufferOwner.Memory.Span;
+        foreach (JpegComData comment in metadata.Comments)
+        {
+            int totalLength = comment.Value.Length;
+            if (totalLength == 0)
+            {
+                continue;
+            }
+
+            // Loop through and split the comment into multiple comments if the comment length
+            // is greater than the maximum allowed length.
+            while (totalLength > 0)
+            {
+                int currentLength = Math.Min(totalLength, maxCommentLength);
+
+                // Write the marker header.
+                this.WriteMarkerHeader(JpegConstants.Markers.COM, currentLength + 2, buffer);
+
+                ReadOnlySpan<char> commentValue = comment.Value.Span.Slice(comment.Value.Length - totalLength, currentLength);
+                for (int i = 0; i < commentValue.Length; i++)
+                {
+                    buffer[i] = (byte)commentValue[i];
+                }
+
+                // Write the comment.
+                this.outputStream.Write(buffer, 0, currentLength);
+                totalLength -= currentLength;
+            }
+        }
+    }
+
+    /// <summary>
     /// Writes the Define Huffman Table marker and tables.
     /// </summary>
     /// <param name="tableConfigs">The table configuration.</param>
@@ -176,10 +228,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ArgumentNullException"><paramref name="tableConfigs"/> is <see langword="null"/>.</exception>
     private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder, Span<byte> buffer)
     {
-        if (tableConfigs is null)
-        {
-            throw new ArgumentNullException(nameof(tableConfigs));
-        }
+        ArgumentNullException.ThrowIfNull(tableConfigs);
 
         int markerlen = 2;
 

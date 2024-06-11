@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -68,6 +69,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         this.IccProfile = other.IccProfile?.DeepClone();
         this.IptcProfile = other.IptcProfile?.DeepClone();
         this.XmpProfile = other.XmpProfile?.DeepClone();
+        this.CicpProfile = other.CicpProfile?.DeepClone();
 
         // NOTE: This clone is actually shallow but we share the same format
         // instances for all images in the configuration.
@@ -158,6 +160,11 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public IptcProfile? IptcProfile { get; set; }
 
     /// <summary>
+    /// Gets or sets the CICP profile.
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
+
+    /// <summary>
     /// Gets the original format, if any, the image was decode from.
     /// </summary>
     public IImageFormat? DecodedImageFormat { get; internal set; }
@@ -181,6 +188,32 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         TFormatMetadata newMeta = key.CreateDefaultFormatMetadata();
         this.formatMetadata[key] = newMeta;
         return newMeta;
+    }
+
+    /// <summary>
+    /// Gets the metadata value associated with the specified key.
+    /// </summary>
+    /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
+    /// <param name="key">The key of the value to get.</param>
+    /// <param name="metadata">
+    /// When this method returns, contains the metadata associated with the specified key,
+    /// if the key is found; otherwise, the default value for the type of the metadata parameter.
+    /// This parameter is passed uninitialized.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the frame metadata exists for the specified key; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool TryGetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key, out TFormatMetadata? metadata)
+        where TFormatMetadata : class, IDeepCloneable
+    {
+        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
+        {
+            metadata = (TFormatMetadata)meta;
+            return true;
+        }
+
+        metadata = default;
+        return false;
     }
 
     /// <inheritdoc/>

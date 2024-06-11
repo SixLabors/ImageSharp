@@ -1,10 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
-using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp.BitWriter;
 
@@ -14,17 +15,10 @@ internal abstract class BitWriterBase
 
     private const ulong MaxCanvasPixels = 4294967295ul;
 
-    protected const uint ExtendedFileChunkSize = WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
-
     /// <summary>
     /// Buffer to write to.
     /// </summary>
     private byte[] buffer;
-
-    /// <summary>
-    /// A scratch buffer to reduce allocations.
-    /// </summary>
-    private ScratchBuffer scratchBuffer;  // mutable struct, don't make readonly
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
@@ -42,28 +36,28 @@ internal abstract class BitWriterBase
     public byte[] Buffer => this.buffer;
 
     /// <summary>
+    /// Gets the number of bytes of the encoded image data.
+    /// </summary>
+    /// <returns>The number of bytes of the image data.</returns>
+    public abstract int NumBytes { get; }
+
+    /// <summary>
     /// Writes the encoded bytes of the image to the stream. Call Finish() before this.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
+    public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes));
 
     /// <summary>
     /// Writes the encoded bytes of the image to the given buffer. Call Finish() before this.
     /// </summary>
     /// <param name="dest">The destination buffer.</param>
-    public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes()).CopyTo(dest);
+    public void WriteToBuffer(Span<byte> dest) => this.Buffer.AsSpan(0, this.NumBytes).CopyTo(dest);
 
     /// <summary>
     /// Resizes the buffer to write to.
     /// </summary>
     /// <param name="extraSize">The extra size in bytes needed.</param>
     public abstract void BitWriterResize(int extraSize);
-
-    /// <summary>
-    /// Returns the number of bytes of the encoded image data.
-    /// </summary>
-    /// <returns>The number of bytes of the image data.</returns>
-    public abstract int NumBytes();
 
     /// <summary>
     /// Flush leftover bits.
@@ -84,63 +78,97 @@ internal abstract class BitWriterBase
     }
 
     /// <summary>
-    /// Writes the RIFF header to the stream.
+    /// Write the trunks before data trunk.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="riffSize">The block length.</param>
-    protected void WriteRiffHeader(Stream stream, uint riffSize)
+    /// <param name="width">The width of the image.</param>
+    /// <param name="height">The height of the image.</param>
+    /// <param name="exifProfile">The exif profile.</param>
+    /// <param name="xmpProfile">The XMP profile.</param>
+    /// <param name="iccProfile">The color profile.</param>
+    /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <returns>A <see cref="WebpVp8X"/> or a default instance.</returns>
+    public static WebpVp8X WriteTrunksBeforeData(
+        Stream stream,
+        uint width,
+        uint height,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile,
+        IccProfile? iccProfile,
+        bool hasAlpha,
+        bool hasAnimation)
     {
-        stream.Write(WebpConstants.RiffFourCc);
-        BinaryPrimitives.WriteUInt32LittleEndian(this.scratchBuffer.Span, riffSize);
-        stream.Write(this.scratchBuffer.Span.Slice(0, 4));
-        stream.Write(WebpConstants.WebpHeader);
-    }
+        // Write file size later
+        RiffHelper.BeginWriteRiffFile(stream, WebpConstants.WebpFourCc);
 
-    /// <summary>
-    /// Calculates the chunk size of EXIF, XMP or ICCP metadata.
-    /// </summary>
-    /// <param name="metadataBytes">The metadata profile bytes.</param>
-    /// <returns>The metadata chunk size in bytes.</returns>
-    protected static uint MetadataChunkSize(byte[] metadataBytes)
-    {
-        uint metaSize = (uint)metadataBytes.Length;
-        return WebpConstants.ChunkHeaderSize + metaSize + (metaSize & 1);
-    }
-
-    /// <summary>
-    /// Calculates the chunk size of a alpha chunk.
-    /// </summary>
-    /// <param name="alphaBytes">The alpha chunk bytes.</param>
-    /// <returns>The alpha data chunk size in bytes.</returns>
-    protected static uint AlphaChunkSize(Span<byte> alphaBytes)
-    {
-        uint alphaSize = (uint)alphaBytes.Length + 1;
-        return WebpConstants.ChunkHeaderSize + alphaSize + (alphaSize & 1);
-    }
-
-    /// <summary>
-    /// Writes a metadata profile (EXIF or XMP) to the stream.
-    /// </summary>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="metadataBytes">The metadata profile's bytes.</param>
-    /// <param name="chunkType">The chuck type to write.</param>
-    protected void WriteMetadataProfile(Stream stream, byte[]? metadataBytes, WebpChunkType chunkType)
-    {
-        DebugGuard.NotNull(metadataBytes, nameof(metadataBytes));
-
-        uint size = (uint)metadataBytes.Length;
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)chunkType);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
-        stream.Write(buf);
-        stream.Write(metadataBytes);
-
-        // Add padding byte if needed.
-        if ((size & 1) == 1)
+        // Write VP8X, header if necessary.
+        WebpVp8X vp8x = default;
+        bool isVp8X = exifProfile != null || xmpProfile != null || iccProfile != null || hasAlpha || hasAnimation;
+        if (isVp8X)
         {
-            stream.WriteByte(0);
+            vp8x = WriteVp8XHeader(stream, exifProfile, xmpProfile, iccProfile, width, height, hasAlpha, hasAnimation);
+
+            if (iccProfile != null)
+            {
+                RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Iccp, iccProfile.ToByteArray());
+            }
         }
+
+        return vp8x;
+    }
+
+    /// <summary>
+    /// Writes the encoded image to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    public abstract void WriteEncodedImageToStream(Stream stream);
+
+    /// <summary>
+    /// Write the trunks after data trunk.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="vp8x">The VP8X chunk.</param>
+    /// <param name="updateVp8x">Whether to update the chunk.</param>
+    /// <param name="initialPosition">The initial position of the stream before encoding.</param>
+    /// <param name="exifProfile">The EXIF profile.</param>
+    /// <param name="xmpProfile">The XMP profile.</param>
+    public static void WriteTrunksAfterData(
+        Stream stream,
+        in WebpVp8X vp8x,
+        bool updateVp8x,
+        long initialPosition,
+        ExifProfile? exifProfile,
+        XmpProfile? xmpProfile)
+    {
+        if (exifProfile != null)
+        {
+            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Exif, exifProfile.ToByteArray());
+        }
+
+        if (xmpProfile != null)
+        {
+            RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Xmp, xmpProfile.Data);
+        }
+
+        RiffHelper.EndWriteRiffFile(stream, in vp8x, updateVp8x, initialPosition);
+    }
+
+    /// <summary>
+    /// Writes the animation parameter(<see cref="WebpChunkType.AnimationParameter"/>) to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="background">
+    /// The default background color of the canvas in [Blue, Green, Red, Alpha] byte order.
+    /// This color MAY be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when the Disposal method is 1.
+    /// </param>
+    /// <param name="loopCount">The number of times to loop the animation. If it is 0, this means infinitely.</param>
+    public static void WriteAnimationParameter(Stream stream, Color background, ushort loopCount)
+    {
+        WebpAnimationParameter chunk = new(background.ToPixel<Bgra32>().PackedValue, loopCount);
+        chunk.WriteTo(stream);
     }
 
     /// <summary>
@@ -149,120 +177,40 @@ internal abstract class BitWriterBase
     /// <param name="stream">The stream to write to.</param>
     /// <param name="dataBytes">The alpha channel data bytes.</param>
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
-    protected void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
+    public static void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
     {
-        uint size = (uint)dataBytes.Length + 1;
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Alpha);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
-        stream.Write(buf);
-
+        long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.Alpha);
         byte flags = 0;
         if (alphaDataIsCompressed)
         {
-            flags |= 1;
+            // TODO: Filtering and preprocessing
+            flags = 1;
         }
 
         stream.WriteByte(flags);
         stream.Write(dataBytes);
-
-        // Add padding byte if needed.
-        if ((size & 1) == 1)
-        {
-            stream.WriteByte(0);
-        }
-    }
-
-    /// <summary>
-    /// Writes the color profile to the stream.
-    /// </summary>
-    /// <param name="stream">The stream to write to.</param>
-    /// <param name="iccProfileBytes">The color profile bytes.</param>
-    protected void WriteColorProfile(Stream stream, byte[] iccProfileBytes)
-    {
-        uint size = (uint)iccProfileBytes.Length;
-
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Iccp);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, size);
-        stream.Write(buf);
-
-        stream.Write(iccProfileBytes);
-
-        // Add padding byte if needed.
-        if ((size & 1) == 1)
-        {
-            stream.WriteByte(0);
-        }
+        RiffHelper.EndWriteChunk(stream, pos);
     }
 
     /// <summary>
     /// Writes a VP8X header to the stream.
     /// </summary>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
-    /// <param name="xmpProfile">A XMP profile or null, if it does not exist.</param>
-    /// <param name="iccProfileBytes">The color profile bytes.</param>
+    /// <param name="exifProfile">An EXIF profile or null, if it does not exist.</param>
+    /// <param name="xmpProfile">An XMP profile or null, if it does not exist.</param>
+    /// <param name="iccProfile">The color profile.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="hasAlpha">Flag indicating, if a alpha channel is present.</param>
-    protected void WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, byte[]? iccProfileBytes, uint width, uint height, bool hasAlpha)
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    protected static WebpVp8X WriteVp8XHeader(Stream stream, ExifProfile? exifProfile, XmpProfile? xmpProfile, IccProfile? iccProfile, uint width, uint height, bool hasAlpha, bool hasAnimation)
     {
-        if (width > MaxDimension || height > MaxDimension)
-        {
-            WebpThrowHelper.ThrowInvalidImageDimensions($"Image width or height exceeds maximum allowed dimension of {MaxDimension}");
-        }
+        WebpVp8X chunk = new(hasAnimation, xmpProfile != null, exifProfile != null, hasAlpha, iccProfile != null, width, height);
 
-        // The spec states that the product of Canvas Width and Canvas Height MUST be at most 2^32 - 1.
-        if (width * height > MaxCanvasPixels)
-        {
-            WebpThrowHelper.ThrowInvalidImageDimensions("The product of image width and height MUST be at most 2^32 - 1");
-        }
+        chunk.Validate(MaxDimension, MaxCanvasPixels);
 
-        uint flags = 0;
-        if (exifProfile != null)
-        {
-            // Set exif bit.
-            flags |= 8;
-        }
+        chunk.WriteTo(stream);
 
-        if (xmpProfile != null)
-        {
-            // Set xmp bit.
-            flags |= 4;
-        }
-
-        if (hasAlpha)
-        {
-            // Set alpha bit.
-            flags |= 16;
-        }
-
-        if (iccProfileBytes != null)
-        {
-            // Set iccp flag.
-            flags |= 32;
-        }
-
-        Span<byte> buf = this.scratchBuffer.Span.Slice(0, 4);
-        stream.Write(WebpConstants.Vp8XMagicBytes);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, WebpConstants.Vp8XChunkSize);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, flags);
-        stream.Write(buf);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, width - 1);
-        stream.Write(buf[..3]);
-        BinaryPrimitives.WriteUInt32LittleEndian(buf, height - 1);
-        stream.Write(buf[..3]);
-    }
-
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 4;
-        private fixed byte scratch[Size];
-
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+        return chunk;
     }
 }

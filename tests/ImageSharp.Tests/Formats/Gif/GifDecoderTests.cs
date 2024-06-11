@@ -101,9 +101,9 @@ public class GifDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32, 93)]
+    [WithFile(TestImages.Gif.M4nb, PixelTypes.Rgba32, 5)]
     [WithFile(TestImages.Gif.Rings, PixelTypes.Rgba32, 1)]
-    [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32, 36)]
+    [WithFile(TestImages.Gif.MixedDisposal, PixelTypes.Rgba32, 11)]
     public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider, int expectedFrameCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -133,7 +133,6 @@ public class GifDecoderTests
     }
 
     [Theory]
-    [InlineData(TestImages.Gif.Cheers, 8)]
     [InlineData(TestImages.Gif.Giphy, 8)]
     [InlineData(TestImages.Gif.Rings, 8)]
     [InlineData(TestImages.Gif.Trans, 8)]
@@ -194,7 +193,7 @@ public class GifDecoderTests
         }
     }
 
-    // https://github.com/SixLabors/ImageSharp/issues/1503
+    // https://github.com/SixLabors/ImageSharp/issues/1530
     [Theory]
     [WithFile(TestImages.Gif.Issues.Issue1530, PixelTypes.Rgba32)]
     public void Issue1530_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)
@@ -212,7 +211,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -224,7 +223,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -273,7 +272,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -285,7 +284,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -297,15 +296,9 @@ public class GifDecoderTests
     public void Issue2012BadMinCode<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Exception ex = Record.Exception(
-            () =>
-            {
-                using Image<TPixel> image = provider.GetImage();
-                image.DebugSave(provider);
-            });
-
-        Assert.NotNull(ex);
-        Assert.Contains("Gif Image does not contain a valid LZW minimum code.", ex.Message);
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
     }
 
     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
@@ -318,5 +311,16 @@ public class GifDecoderTests
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2743
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.BadMaxLzwBits, PixelTypes.Rgba32)]
+    public void IssueTooLargeLzwBits<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -171,7 +172,7 @@ public class ImagingTestCaseUtility
 
         encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
-        using (FileStream stream = File.OpenWrite(path))
+        using (FileStream stream = File.Create(path))
         {
             image.Save(stream, encoder);
         }
@@ -227,7 +228,7 @@ public class ImagingTestCaseUtility
         {
             using Image<TPixel> frameImage = image.Frames.CloneFrame(file.Index);
             string filePath = file.FileName;
-            using FileStream stream = File.OpenWrite(filePath);
+            using FileStream stream = File.Create(filePath);
             frameImage.Save(stream, encoder);
         }
 
@@ -277,8 +278,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = default;
-        rgbaPixel.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)
@@ -317,7 +317,6 @@ public class ImagingTestCaseUtility
             rgbaPixel.A -= perChannelChange;
         }
 
-        pixel.FromRgba64(rgbaPixel);
-        img[x, y] = pixel;
+        img[x, y] = TPixel.FromRgba64(rgbaPixel);
     }
 }

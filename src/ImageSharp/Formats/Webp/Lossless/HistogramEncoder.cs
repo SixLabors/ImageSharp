@@ -2,7 +2,9 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
@@ -27,19 +29,28 @@ internal static class HistogramEncoder
 
     private const ushort InvalidHistogramSymbol = ushort.MaxValue;
 
-    public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, uint quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, Span<ushort> histogramSymbols)
+    public static void GetHistoImageSymbols(
+        MemoryAllocator memoryAllocator,
+        int xSize,
+        int ySize,
+        Vp8LBackwardRefs refs,
+        uint quality,
+        int histoBits,
+        int cacheBits,
+        Vp8LHistogramSet imageHisto,
+        Vp8LHistogram tmpHisto,
+        Span<ushort> histogramSymbols)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(xSize, histoBits) : 1;
         int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
         int imageHistoRawSize = histoXSize * histoYSize;
-        int entropyCombineNumBins = BinSize;
-        ushort[] mapTmp = new ushort[imageHistoRawSize];
-        ushort[] clusterMappings = new ushort[imageHistoRawSize];
-        var origHisto = new List<Vp8LHistogram>(imageHistoRawSize);
-        for (int i = 0; i < imageHistoRawSize; i++)
-        {
-            origHisto.Add(new Vp8LHistogram(cacheBits));
-        }
+        const int entropyCombineNumBins = BinSize;
+
+        using IMemoryOwner<ushort> tmp = memoryAllocator.Allocate<ushort>(imageHistoRawSize * 2, AllocationOptions.Clean);
+        Span<ushort> mapTmp = tmp.Slice(0, imageHistoRawSize);
+        Span<ushort> clusterMappings = tmp.Slice(imageHistoRawSize, imageHistoRawSize);
+
+        using Vp8LHistogramSet origHisto = new(memoryAllocator, imageHistoRawSize, cacheBits);
 
         // Construct the histograms from the backward references.
         HistogramBuild(xSize, histoBits, refs, origHisto);
@@ -50,18 +61,17 @@ internal static class HistogramEncoder
         bool entropyCombine = numUsed > entropyCombineNumBins * 2 && quality < 100;
         if (entropyCombine)
         {
-            ushort[] binMap = mapTmp;
             int numClusters = numUsed;
             double combineCostFactor = GetCombineCostFactor(imageHistoRawSize, quality);
-            HistogramAnalyzeEntropyBin(imageHisto, binMap);
+            HistogramAnalyzeEntropyBin(imageHisto, mapTmp);
 
             // Collapse histograms with similar entropy.
-            HistogramCombineEntropyBin(imageHisto, histogramSymbols, clusterMappings, tmpHisto, binMap, entropyCombineNumBins, combineCostFactor);
+            HistogramCombineEntropyBin(imageHisto, histogramSymbols, clusterMappings, tmpHisto, mapTmp, entropyCombineNumBins, combineCostFactor);
 
             OptimizeHistogramSymbols(clusterMappings, numClusters, mapTmp, histogramSymbols);
         }
 
-        float x = quality / 100.0f;
+        float x = quality / 100F;
 
         // Cubic ramp between 1 and MaxHistoGreedy:
         int thresholdSize = (int)(1 + (x * x * x * (MaxHistoGreedy - 1)));
@@ -77,26 +87,25 @@ internal static class HistogramEncoder
         HistogramRemap(origHisto, imageHisto, histogramSymbols);
     }
 
-    private static void RemoveEmptyHistograms(List<Vp8LHistogram> histograms)
+    private static void RemoveEmptyHistograms(Vp8LHistogramSet histograms)
     {
-        int size = 0;
-        for (int i = 0; i < histograms.Count; i++)
+        for (int i = histograms.Count - 1; i >= 0; i--)
         {
             if (histograms[i] == null)
             {
-                continue;
+                histograms.RemoveAt(i);
             }
-
-            histograms[size++] = histograms[i];
         }
-
-        histograms.RemoveRange(size, histograms.Count - size);
     }
 
     /// <summary>
     /// Construct the histograms from the backward references.
     /// </summary>
-    private static void HistogramBuild(int xSize, int histoBits, Vp8LBackwardRefs backwardRefs, List<Vp8LHistogram> histograms)
+    private static void HistogramBuild(
+        int xSize,
+        int histoBits,
+        Vp8LBackwardRefs backwardRefs,
+        Vp8LHistogramSet histograms)
     {
         int x = 0, y = 0;
         int histoXSize = LosslessUtils.SubSampleSize(xSize, histoBits);
@@ -119,10 +128,10 @@ internal static class HistogramEncoder
     /// Partition histograms to different entropy bins for three dominant (literal,
     /// red and blue) symbol costs and compute the histogram aggregate bitCost.
     /// </summary>
-    private static void HistogramAnalyzeEntropyBin(List<Vp8LHistogram> histograms, ushort[] binMap)
+    private static void HistogramAnalyzeEntropyBin(Vp8LHistogramSet histograms, Span<ushort> binMap)
     {
         int histoSize = histograms.Count;
-        var costRange = new DominantCostRange();
+        DominantCostRange costRange = new();
 
         // Analyze the dominant (literal, red and blue) entropy costs.
         for (int i = 0; i < histoSize; i++)
@@ -148,17 +157,20 @@ internal static class HistogramEncoder
         }
     }
 
-    private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, Span<ushort> histogramSymbols)
+    private static int HistogramCopyAndAnalyze(
+        Vp8LHistogramSet origHistograms,
+        Vp8LHistogramSet histograms,
+        Span<ushort> histogramSymbols)
     {
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
         for (int clusterId = 0, i = 0; i < origHistograms.Count; i++)
         {
             Vp8LHistogram origHistogram = origHistograms[i];
             origHistogram.UpdateHistogramCost(stats, bitsEntropy);
 
             // Skip the histogram if it is completely empty, which can happen for tiles with no information (when they are skipped because of LZ77).
-            if (!origHistogram.IsUsed[0] && !origHistogram.IsUsed[1] && !origHistogram.IsUsed[2] && !origHistogram.IsUsed[3] && !origHistogram.IsUsed[4])
+            if (!origHistogram.IsUsed(0) && !origHistogram.IsUsed(1) && !origHistogram.IsUsed(2) && !origHistogram.IsUsed(3) && !origHistogram.IsUsed(4))
             {
                 origHistograms[i] = null;
                 histograms[i] = null;
@@ -166,7 +178,7 @@ internal static class HistogramEncoder
             }
             else
             {
-                histograms[i] = (Vp8LHistogram)origHistogram.DeepClone();
+                origHistogram.CopyTo(histograms[i]);
                 histogramSymbols[i] = (ushort)clusterId++;
             }
         }
@@ -184,11 +196,11 @@ internal static class HistogramEncoder
     }
 
     private static void HistogramCombineEntropyBin(
-        List<Vp8LHistogram> histograms,
+        Vp8LHistogramSet histograms,
         Span<ushort> clusters,
-        ushort[] clusterMappings,
+        Span<ushort> clusterMappings,
         Vp8LHistogram curCombo,
-        ushort[] binMap,
+        ReadOnlySpan<ushort> binMap,
         int numBins,
         double combineCostFactor)
     {
@@ -205,9 +217,9 @@ internal static class HistogramEncoder
             clusterMappings[idx] = (ushort)idx;
         }
 
-        var indicesToRemove = new List<int>();
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        List<int> indicesToRemove = new();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
         for (int idx = 0; idx < histograms.Count; idx++)
         {
             if (histograms[idx] == null)
@@ -236,13 +248,11 @@ internal static class HistogramEncoder
                     // histogram pairs. In that case, we fallback to combining
                     // histograms as usual to avoid increasing the header size.
                     bool tryCombine = curCombo.TrivialSymbol != NonTrivialSym || (histograms[idx].TrivialSymbol == NonTrivialSym && histograms[first].TrivialSymbol == NonTrivialSym);
-                    int maxCombineFailures = 32;
+                    const int maxCombineFailures = 32;
                     if (tryCombine || binInfo[binId].NumCombineFailures >= maxCombineFailures)
                     {
                         // Move the (better) merged histogram to its final slot.
-                        Vp8LHistogram tmp = curCombo;
-                        curCombo = histograms[first];
-                        histograms[first] = tmp;
+                        (histograms[first], curCombo) = (curCombo, histograms[first]);
 
                         histograms[idx] = null;
                         indicesToRemove.Add(idx);
@@ -256,9 +266,9 @@ internal static class HistogramEncoder
             }
         }
 
-        foreach (int index in indicesToRemove.OrderByDescending(i => i))
+        for (int i = indicesToRemove.Count - 1; i >= 0; i--)
         {
-            histograms.RemoveAt(index);
+            histograms.RemoveAt(indicesToRemove[i]);
         }
     }
 
@@ -266,7 +276,7 @@ internal static class HistogramEncoder
     /// Given a Histogram set, the mapping of clusters 'clusterMapping' and the
     /// current assignment of the cells in 'symbols', merge the clusters and assign the smallest possible clusters values.
     /// </summary>
-    private static void OptimizeHistogramSymbols(ushort[] clusterMappings, int numClusters, ushort[] clusterMappingsTmp, Span<ushort> symbols)
+    private static void OptimizeHistogramSymbols(Span<ushort> clusterMappings, int numClusters, Span<ushort> clusterMappingsTmp, Span<ushort> symbols)
     {
         bool doContinue = true;
 
@@ -293,7 +303,7 @@ internal static class HistogramEncoder
 
         // Create a mapping from a cluster id to its minimal version.
         int clusterMax = 0;
-        clusterMappingsTmp.AsSpan().Clear();
+        clusterMappingsTmp.Clear();
 
         // Re-map the ids.
         for (int i = 0; i < symbols.Length; i++)
@@ -318,15 +328,15 @@ internal static class HistogramEncoder
     /// Perform histogram aggregation using a stochastic approach.
     /// </summary>
     /// <returns>true if a greedy approach needs to be performed afterwards, false otherwise.</returns>
-    private static bool HistogramCombineStochastic(List<Vp8LHistogram> histograms, int minClusterSize)
+    private static bool HistogramCombineStochastic(Vp8LHistogramSet histograms, int minClusterSize)
     {
         uint seed = 1;
         int triesWithNoSuccess = 0;
         int numUsed = histograms.Count(h => h != null);
         int outerIters = numUsed;
         int numTriesNoSuccess = (int)((uint)outerIters / 2);
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
 
         if (numUsed < minClusterSize)
         {
@@ -335,25 +345,25 @@ internal static class HistogramEncoder
 
         // Priority list of histogram pairs. Its size impacts the quality of the compression and the speed:
         // the smaller the faster but the worse for the compression.
-        var histoPriorityList = new List<HistogramPair>();
-        int maxSize = 9;
+        List<HistogramPair> histoPriorityList = new();
+        const int maxSize = 9;
 
         // Fill the initial mapping.
         Span<int> mappings = histograms.Count <= 64 ? stackalloc int[histograms.Count] : new int[histograms.Count];
-        for (int j = 0, iter = 0; iter < histograms.Count; iter++)
+        for (int j = 0, i = 0; i < histograms.Count; i++)
         {
-            if (histograms[iter] == null)
+            if (histograms[i] == null)
             {
                 continue;
             }
 
-            mappings[j++] = iter;
+            mappings[j++] = i;
         }
 
         // Collapse similar histograms.
-        for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
+        for (int i = 0; i < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; i++)
         {
-            double bestCost = histoPriorityList.Count == 0 ? 0.0d : histoPriorityList[0].CostDiff;
+            double bestCost = histoPriorityList.Count == 0 ? 0D : histoPriorityList[0].CostDiff;
             int numTries = (int)((uint)numUsed / 2);
             uint randRange = (uint)((numUsed - 1) * numUsed);
 
@@ -398,12 +408,12 @@ internal static class HistogramEncoder
 
             int mappingIndex = mappings.IndexOf(bestIdx2);
             Span<int> src = mappings.Slice(mappingIndex + 1, numUsed - mappingIndex - 1);
-            Span<int> dst = mappings.Slice(mappingIndex);
+            Span<int> dst = mappings[mappingIndex..];
             src.CopyTo(dst);
 
             // Merge the histograms and remove bestIdx2 from the list.
             HistogramAdd(histograms[bestIdx2], histograms[bestIdx1], histograms[bestIdx1]);
-            histograms.ElementAt(bestIdx1).BitCost = histoPriorityList[0].CostCombo;
+            histograms[bestIdx1].BitCost = histoPriorityList[0].CostCombo;
             histograms[bestIdx2] = null;
             numUsed--;
 
@@ -418,7 +428,7 @@ internal static class HistogramEncoder
                 // check for it all the time nevertheless.
                 if (isIdx1Best && isIdx2Best)
                 {
-                    histoPriorityList[j] = histoPriorityList[histoPriorityList.Count - 1];
+                    histoPriorityList[j] = histoPriorityList[^1];
                     histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
                     continue;
                 }
@@ -439,18 +449,17 @@ internal static class HistogramEncoder
                 // Make sure the index order is respected.
                 if (p.Idx1 > p.Idx2)
                 {
-                    int tmp = p.Idx2;
-                    p.Idx2 = p.Idx1;
-                    p.Idx1 = tmp;
+                    (p.Idx1, p.Idx2) = (p.Idx2, p.Idx1);
                 }
 
                 if (doEval)
                 {
                     // Re-evaluate the cost of an updated pair.
-                    HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], stats, bitsEntropy, 0.0d, p);
-                    if (p.CostDiff >= 0.0d)
+                    HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], stats, bitsEntropy, 0D, p);
+
+                    if (p.CostDiff >= 0D)
                     {
-                        histoPriorityList[j] = histoPriorityList[histoPriorityList.Count - 1];
+                        histoPriorityList[j] = histoPriorityList[^1];
                         histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
                         continue;
                     }
@@ -463,20 +472,18 @@ internal static class HistogramEncoder
             triesWithNoSuccess = 0;
         }
 
-        bool doGreedy = numUsed <= minClusterSize;
-
-        return doGreedy;
+        return numUsed <= minClusterSize;
     }
 
-    private static void HistogramCombineGreedy(List<Vp8LHistogram> histograms)
+    private static void HistogramCombineGreedy(Vp8LHistogramSet histograms)
     {
         int histoSize = histograms.Count(h => h != null);
 
         // Priority list of histogram pairs.
-        var histoPriorityList = new List<HistogramPair>();
+        List<HistogramPair> histoPriorityList = new();
         int maxSize = histoSize * histoSize;
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
 
         for (int i = 0; i < histoSize; i++)
         {
@@ -509,11 +516,11 @@ internal static class HistogramEncoder
             // Remove pairs intersecting the just combined best pair.
             for (int i = 0; i < histoPriorityList.Count;)
             {
-                HistogramPair p = histoPriorityList.ElementAt(i);
+                HistogramPair p = histoPriorityList[i];
                 if (p.Idx1 == idx1 || p.Idx2 == idx1 || p.Idx1 == idx2 || p.Idx2 == idx2)
                 {
                     // Replace item at pos i with the last one and shrinking the list.
-                    histoPriorityList[i] = histoPriorityList[histoPriorityList.Count - 1];
+                    histoPriorityList[i] = histoPriorityList[^1];
                     histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
                 }
                 else
@@ -536,12 +543,15 @@ internal static class HistogramEncoder
         }
     }
 
-    private static void HistogramRemap(List<Vp8LHistogram> input, List<Vp8LHistogram> output, Span<ushort> symbols)
+    private static void HistogramRemap(
+        Vp8LHistogramSet input,
+        Vp8LHistogramSet output,
+        Span<ushort> symbols)
     {
         int inSize = input.Count;
         int outSize = output.Count;
-        var stats = new Vp8LStreaks();
-        var bitsEntropy = new Vp8LBitEntropy();
+        Vp8LStreaks stats = new();
+        Vp8LBitEntropy bitsEntropy = new();
         if (outSize > 1)
         {
             for (int i = 0; i < inSize; i++)
@@ -577,11 +587,11 @@ internal static class HistogramEncoder
         }
 
         // Recompute each output.
-        int paletteCodeBits = output.First().PaletteCodeBits;
-        output.Clear();
+        int paletteCodeBits = output[0].PaletteCodeBits;
         for (int i = 0; i < outSize; i++)
         {
-            output.Add(new Vp8LHistogram(paletteCodeBits));
+            output[i].Clear();
+            output[i].PaletteCodeBits = paletteCodeBits;
         }
 
         for (int i = 0; i < inSize; i++)
@@ -600,20 +610,26 @@ internal static class HistogramEncoder
     /// Create a pair from indices "idx1" and "idx2" provided its cost is inferior to "threshold", a negative entropy.
     /// </summary>
     /// <returns>The cost of the pair, or 0 if it superior to threshold.</returns>
-    private static double HistoPriorityListPush(List<HistogramPair> histoList, int maxSize, List<Vp8LHistogram> histograms, int idx1, int idx2, double threshold, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy)
+    private static double HistoPriorityListPush(
+        List<HistogramPair> histoList,
+        int maxSize,
+        Vp8LHistogramSet histograms,
+        int idx1,
+        int idx2,
+        double threshold,
+        Vp8LStreaks stats,
+        Vp8LBitEntropy bitsEntropy)
     {
-        var pair = new HistogramPair();
+        HistogramPair pair = new();
 
         if (histoList.Count == maxSize)
         {
-            return 0.0d;
+            return 0D;
         }
 
         if (idx1 > idx2)
         {
-            int tmp = idx2;
-            idx2 = idx1;
-            idx1 = tmp;
+            (idx1, idx2) = (idx2, idx1);
         }
 
         pair.Idx1 = idx1;
@@ -637,9 +653,16 @@ internal static class HistogramEncoder
     }
 
     /// <summary>
-    /// Update the cost diff and combo of a pair of histograms. This needs to be called when the the histograms have been merged with a third one.
+    /// Update the cost diff and combo of a pair of histograms. This needs to be called when the histograms have been
+    /// merged with a third one.
     /// </summary>
-    private static void HistoListUpdatePair(Vp8LHistogram h1, Vp8LHistogram h2, Vp8LStreaks stats, Vp8LBitEntropy bitsEntropy, double threshold, HistogramPair pair)
+    private static void HistoListUpdatePair(
+        Vp8LHistogram h1,
+        Vp8LHistogram h2,
+        Vp8LStreaks stats,
+        Vp8LBitEntropy bitsEntropy,
+        double threshold,
+        HistogramPair pair)
     {
         double sumCost = h1.BitCost + h2.BitCost;
         pair.CostCombo = 0.0d;

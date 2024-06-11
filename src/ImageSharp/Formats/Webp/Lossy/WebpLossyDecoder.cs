@@ -76,47 +76,48 @@ internal sealed class WebpLossyDecoder
         Vp8Proba proba = new();
         Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
 
-        using (Vp8Decoder decoder = new(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba, this.memoryAllocator))
+        using Vp8Decoder decoder = new(
+            info.Vp8FrameHeader,
+            pictureHeader,
+            vp8SegmentHeader,
+            proba,
+            this.memoryAllocator);
+        Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
+
+        // Paragraph 9.4: Parse the filter specs.
+        this.ParseFilterHeader(decoder);
+        decoder.PrecomputeFilterStrengths();
+
+        // Paragraph 9.5: Parse partitions.
+        this.ParsePartitions(decoder);
+
+        // Paragraph 9.6: Dequantization Indices.
+        this.ParseDequantizationIndices(decoder);
+
+        // Ignore the value of update probabilities.
+        this.bitReader.ReadBool();
+
+        // Paragraph 13.4: Parse probabilities.
+        this.ParseProbabilities(decoder);
+
+        // Decode image data.
+        this.ParseFrame(decoder, io);
+
+        if (info.Features?.Alpha == true)
         {
-            Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
-
-            // Paragraph 9.4: Parse the filter specs.
-            this.ParseFilterHeader(decoder);
-            decoder.PrecomputeFilterStrengths();
-
-            // Paragraph 9.5: Parse partitions.
-            this.ParsePartitions(decoder);
-
-            // Paragraph 9.6: Dequantization Indices.
-            this.ParseDequantizationIndices(decoder);
-
-            // Ignore the value of update probabilities.
-            this.bitReader.ReadBool();
-
-            // Paragraph 13.4: Parse probabilities.
-            this.ParseProbabilities(decoder);
-
-            // Decode image data.
-            this.ParseFrame(decoder, io);
-
-            if (info.Features?.Alpha == true)
-            {
-                using (AlphaDecoder alphaDecoder = new(
-                    width,
-                    height,
-                    alphaData,
-                    info.Features.AlphaChunkHeader,
-                    this.memoryAllocator,
-                    this.configuration))
-                {
-                    alphaDecoder.Decode();
-                    DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha);
-                }
-            }
-            else
-            {
-                this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels);
-            }
+            using AlphaDecoder alphaDecoder = new(
+                width,
+                height,
+                alphaData,
+                info.Features.AlphaChunkHeader,
+                this.memoryAllocator,
+                this.configuration);
+            alphaDecoder.Decode();
+            DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha);
+        }
+        else
+        {
+            this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels);
         }
     }
 
@@ -139,7 +140,6 @@ internal sealed class WebpLossyDecoder
     private static void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels, IMemoryOwner<byte> alpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         Span<byte> alphaSpan = alpha.Memory.Span;
         Span<Bgr24> pixelsBgr = MemoryMarshal.Cast<byte, Bgr24>(pixelData);
         for (int y = 0; y < height; y++)
@@ -150,8 +150,7 @@ internal sealed class WebpLossyDecoder
             {
                 int offset = yMulWidth + x;
                 Bgr24 bgr = pixelsBgr[offset];
-                color.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
-                decodedPixelRow[x] = color;
+                decodedPixelRow[x] = TPixel.FromBgra32(new(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
             }
         }
     }
@@ -194,8 +193,8 @@ internal sealed class WebpLossyDecoder
         {
             // Hardcoded tree parsing.
             block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) == 0
-                                ? (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[1])
-                                : (byte)(this.bitReader.GetBit((int)dec.Probabilities.Segments[2]) + 2);
+                ? (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[1])
+                : (byte)(this.bitReader.GetBit((int)dec.Probabilities.Segments[2]) + 2);
         }
         else
         {
@@ -590,57 +589,65 @@ internal sealed class WebpLossyDecoder
             return;
         }
 
-        if (dec.Filter == LoopFilter.Simple)
+        switch (dec.Filter)
         {
-            int offset = dec.CacheYOffset + (mbx * 16);
-            if (mbx > 0)
+            case LoopFilter.Simple:
             {
-                LossyUtils.SimpleHFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
+                int offset = dec.CacheYOffset + (mbx * 16);
+                if (mbx > 0)
+                {
+                    LossyUtils.SimpleHFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
+                }
+
+                if (filterInfo.UseInnerFiltering)
+                {
+                    LossyUtils.SimpleHFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
+                }
+
+                if (mby > 0)
+                {
+                    LossyUtils.SimpleVFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
+                }
+
+                if (filterInfo.UseInnerFiltering)
+                {
+                    LossyUtils.SimpleVFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
+                }
+
+                break;
             }
 
-            if (filterInfo.UseInnerFiltering)
+            case LoopFilter.Complex:
             {
-                LossyUtils.SimpleHFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
-            }
+                int uvBps = dec.CacheUvStride;
+                int yOffset = dec.CacheYOffset + (mbx * 16);
+                int uvOffset = dec.CacheUvOffset + (mbx * 8);
+                int hevThresh = filterInfo.HighEdgeVarianceThreshold;
+                if (mbx > 0)
+                {
+                    LossyUtils.HFilter16(dec.CacheY.Memory.Span, yOffset, yBps, limit + 4, iLevel, hevThresh);
+                    LossyUtils.HFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
+                }
 
-            if (mby > 0)
-            {
-                LossyUtils.SimpleVFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
-            }
+                if (filterInfo.UseInnerFiltering)
+                {
+                    LossyUtils.HFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
+                    LossyUtils.HFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
+                }
 
-            if (filterInfo.UseInnerFiltering)
-            {
-                LossyUtils.SimpleVFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
-            }
-        }
-        else if (dec.Filter == LoopFilter.Complex)
-        {
-            int uvBps = dec.CacheUvStride;
-            int yOffset = dec.CacheYOffset + (mbx * 16);
-            int uvOffset = dec.CacheUvOffset + (mbx * 8);
-            int hevThresh = filterInfo.HighEdgeVarianceThreshold;
-            if (mbx > 0)
-            {
-                LossyUtils.HFilter16(dec.CacheY.Memory.Span, yOffset, yBps, limit + 4, iLevel, hevThresh);
-                LossyUtils.HFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
-            }
+                if (mby > 0)
+                {
+                    LossyUtils.VFilter16(dec.CacheY.Memory.Span, yOffset, yBps, limit + 4, iLevel, hevThresh);
+                    LossyUtils.VFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
+                }
 
-            if (filterInfo.UseInnerFiltering)
-            {
-                LossyUtils.HFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
-                LossyUtils.HFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
-            }
+                if (filterInfo.UseInnerFiltering)
+                {
+                    LossyUtils.VFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
+                    LossyUtils.VFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
+                }
 
-            if (mby > 0)
-            {
-                LossyUtils.VFilter16(dec.CacheY.Memory.Span, yOffset, yBps, limit + 4, iLevel, hevThresh);
-                LossyUtils.VFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
-            }
-
-            if (filterInfo.UseInnerFiltering)
-            {
-                LossyUtils.VFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
-                LossyUtils.VFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
+                break;
             }
         }
     }
@@ -1328,18 +1335,12 @@ internal sealed class WebpLossyDecoder
     private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)
     {
         nzCoeffs <<= 2;
-        if (nz > 3)
+        nzCoeffs |= nz switch
         {
-            nzCoeffs |= 3;
-        }
-        else if (nz > 1)
-        {
-            nzCoeffs |= 2;
-        }
-        else
-        {
-            nzCoeffs |= (uint)dcNz;
-        }
+            > 3 => 3,
+            > 1 => 2,
+            _ => (uint)dcNz
+        };
 
         return nzCoeffs;
     }
@@ -1353,13 +1354,13 @@ internal sealed class WebpLossyDecoder
             if (mbx == 0)
             {
                 return mby == 0
-                           ? 6 // B_DC_PRED_NOTOPLEFT
-                           : 5; // B_DC_PRED_NOLEFT
+                    ? 6 // B_DC_PRED_NOTOPLEFT
+                    : 5; // B_DC_PRED_NOLEFT
             }
 
             return mby == 0
-                       ? 4 // B_DC_PRED_NOTOP
-                       : 0; // B_DC_PRED
+                ? 4 // B_DC_PRED_NOTOP
+                : 0; // B_DC_PRED
         }
 
         return mode;

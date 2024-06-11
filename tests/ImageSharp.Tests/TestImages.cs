@@ -61,6 +61,7 @@ public static class TestImages
         public const string TestPattern31x31 = "Png/testpattern31x31.png";
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
+        public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -72,6 +73,9 @@ public static class TestImages
         public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+        public const string FrameOffset = "Png/animated/frame-offset.png";
+        public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
+        public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -149,6 +153,9 @@ public static class TestImages
         // Issue 2447: https://github.com/SixLabors/ImageSharp/issues/2447
         public const string Issue2447 = "Png/issues/issue_2447.png";
 
+        // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
+        public const string Issue2668 = "Png/issues/Issue_2668.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -157,6 +164,7 @@ public static class TestImages
             public const string MissingPaletteChunk1 = "Png/missing_plte.png";
             public const string MissingPaletteChunk2 = "Png/missing_plte_2.png";
             public const string InvalidGammaChunk = "Png/length_gama.png";
+            public const string Issue2589 = "Png/issues/Issue_2589.png";
 
             // Zlib errors.
             public const string ZlibOverflow = "Png/zlib-overflow.png";
@@ -180,6 +188,12 @@ public static class TestImages
             // Invalid color type.
             public const string ColorTypeOne = "Png/xc1n0g08.png";
             public const string ColorTypeNine = "Png/xc9n2c08.png";
+            public const string FlagOfGermany0000016446 = "Png/issues/flag_of_germany-0000016446.png";
+
+            public const string BadZTXT = "Png/issues/bad-ztxt.png";
+            public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
+
+            public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
         }
     }
 
@@ -313,7 +327,11 @@ public static class TestImages
             public const string Issue2334_NotEnoughBytesA = "Jpg/issues/issue-2334-a.jpg";
             public const string Issue2334_NotEnoughBytesB = "Jpg/issues/issue-2334-b.jpg";
             public const string Issue2478_JFXX = "Jpg/issues/issue-2478-jfxx.jpg";
+            public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
+            public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
+            public const string Issue2067_CommentMarker = "Jpg/issues/issue-2067-comment.jpg";
+            public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
 
             public static class Fuzz
             {
@@ -437,6 +455,8 @@ public static class TestImages
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
+        public const string Issue2696 = "Bmp/issue-2696.bmp";
+
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
         public static readonly string[] BitFields =
@@ -490,6 +510,10 @@ public static class TestImages
         public const string Ratio1x4 = "Gif/base_1x4.gif";
         public const string LargeComment = "Gif/large_comment.gif";
         public const string GlobalQuantizationTest = "Gif/GlobalQuantizationTest.gif";
+        public const string MixedDisposal = "Gif/mixed-disposal.gif";
+        public const string M4nb = "Gif/m4nb.gif";
+        public const string Bit18RGBCube = "Gif/18-bit_RGB_Cube.gif";
+        public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
@@ -503,6 +527,7 @@ public static class TestImages
             public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
             public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
             public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            public const string BadMaxLzwBits = "Gif/issues/issue_2743.gif";
             public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
             public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
             public const string Issue1530 = "Gif/issues/issue1530.gif";
@@ -519,7 +544,27 @@ public static class TestImages
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
         }
 
-        public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
+        public static readonly string[] Animated =
+        {
+            M4nb,
+            Giphy,
+            Cheers,
+            Kumin,
+            Leo,
+            MixedDisposal,
+            GlobalQuantizationTest,
+            Issues.Issue2198,
+            Issues.Issue2288_A,
+            Issues.Issue2288_B,
+            Issues.Issue2288_C,
+            Issues.Issue2288_D,
+            Issues.Issue2450_A,
+            Issues.Issue2450_B,
+            Issues.BadDescriptorWidth,
+            Issues.Issue1530,
+            Bit18RGBCube,
+            Global256NoTrans
+        };
     }
 
     public static class Tga
@@ -598,6 +643,8 @@ public static class TestImages
 
         public const string Github_RLE_legacy = "Tga/Github_RLE_legacy.tga";
         public const string WhiteStripesPattern = "Tga/whitestripes.png";
+
+        public const string Issue2629 = "Tga/issues/Issue2629.tga";
     }
 
     public static class Webp
@@ -692,6 +739,7 @@ public static class TestImages
 
         public static class Lossy
         {
+            public const string AnimatedLandscape = "Webp/landscape.webp";
             public const string Earth = "Webp/earth_lossy.webp";
             public const string WithExif = "Webp/exif_lossy.webp";
             public const string WithExifNotEnoughData = "Webp/exif_lossy_not_enough_data.webp";
@@ -783,6 +831,7 @@ public static class TestImages
             public const string Issue1594 = "Webp/issues/Issue1594.webp";
             public const string Issue2243 = "Webp/issues/Issue2243.webp";
             public const string Issue2257 = "Webp/issues/Issue2257.webp";
+            public const string Issue2670 = "Webp/issues/Issue2670.webp";
         }
     }
 
@@ -1002,6 +1051,7 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
         public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
 

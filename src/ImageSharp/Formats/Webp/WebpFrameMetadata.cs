@@ -19,14 +19,37 @@ public class WebpFrameMetadata : IDeepCloneable
     /// Initializes a new instance of the <see cref="WebpFrameMetadata"/> class.
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
-    private WebpFrameMetadata(WebpFrameMetadata other) => this.FrameDuration = other.FrameDuration;
+    private WebpFrameMetadata(WebpFrameMetadata other)
+    {
+        this.FrameDelay = other.FrameDelay;
+        this.DisposalMethod = other.DisposalMethod;
+        this.BlendMethod = other.BlendMethod;
+    }
+
+    /// <summary>
+    /// Gets or sets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
+    /// </summary>
+    public WebpBlendMethod BlendMethod { get; set; }
+
+    /// <summary>
+    /// Gets or sets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
+    /// </summary>
+    public WebpDisposalMethod DisposalMethod { get; set; }
 
     /// <summary>
     /// Gets or sets the frame duration. The time to wait before displaying the next frame,
     /// in 1 millisecond units. Note the interpretation of frame duration of 0 (and often smaller and equal to  10) is implementation defined.
     /// </summary>
-    public uint FrameDuration { get; set; }
+    public uint FrameDelay { get; set; }
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new WebpFrameMetadata(this);
+
+    internal static WebpFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+        => new()
+        {
+            FrameDelay = (uint)metadata.Duration.TotalMilliseconds,
+            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendMethod.Source : WebpBlendMethod.Over,
+            DisposalMethod = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose
+        };
 }

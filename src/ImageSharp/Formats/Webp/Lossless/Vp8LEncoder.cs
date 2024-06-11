@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.BitWriter;
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -235,63 +236,126 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    /// <summary>
-    /// Encodes the image as lossless webp to the specified stream.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-    public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
-
+        // Write bytes from the bit-writer buffer to the stream.
         ImageMetadata metadata = image.Metadata;
         metadata.SyncProfiles();
 
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
+        // The alpha flag is updated following encoding.
+        WebpVp8X vp8x = BitWriterBase.WriteTrunksBeforeData(
+            stream,
+            (uint)image.Width,
+            (uint)image.Height,
+            exifProfile,
+            xmpProfile,
+            metadata.IccProfile,
+            false,
+            hasAnimation);
+
+        if (hasAnimation)
+        {
+            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
+        }
+
+        return vp8x;
+    }
+
+    public void EncodeFooter<TPixel>(Image<TPixel> image, in WebpVp8X vp8x, bool hasAlpha, Stream stream, long initialPosition)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Write bytes from the bit-writer buffer to the stream.
+        ImageMetadata metadata = image.Metadata;
+
+        ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
+        XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
+
+        bool updateVp8x = hasAlpha && vp8x != default;
+        WebpVp8X updated = updateVp8x ? vp8x.WithAlpha(true) : vp8x;
+        BitWriterBase.WriteTrunksAfterData(stream, in updated, updateVp8x, initialPosition, exifProfile, xmpProfile);
+    }
+
+    /// <summary>
+    /// Encodes the image as lossless webp to the specified stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The image frame to encode from.</param>
+    /// <param name="bounds">The region of interest within the frame to encode.</param>
+    /// <param name="frameMetadata">The frame metadata.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
+    /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
+    public bool Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         // Convert image pixels to bgra array.
-        bool hasAlpha = this.ConvertPixelsToBgra(image, width, height);
+        bool hasAlpha = this.ConvertPixelsToBgra(frame.PixelBuffer.GetRegion(bounds));
 
         // Write the image size.
-        this.WriteImageSize(width, height);
+        this.WriteImageSize(bounds.Width, bounds.Height);
 
         // Write the non-trivial Alpha flag and lossless version.
         this.WriteAlphaAndVersion(hasAlpha);
 
         // Encode the main image stream.
-        this.EncodeStream(image);
+        this.EncodeStream(bounds.Width, bounds.Height);
 
-        // Write bytes from the bitwriter buffer to the stream.
-        this.bitWriter.WriteEncodedImageToStream(stream, exifProfile, xmpProfile, metadata.IccProfile, (uint)width, (uint)height, hasAlpha);
+        this.bitWriter.Finish();
+
+        long prevPosition = 0;
+
+        if (hasAnimation)
+        {
+            prevPosition = new WebpFrameData(
+                    (uint)bounds.Left,
+                    (uint)bounds.Top,
+                    (uint)bounds.Width,
+                    (uint)bounds.Height,
+                    frameMetadata.FrameDelay,
+                    frameMetadata.BlendMethod,
+                    frameMetadata.DisposalMethod)
+                .WriteHeaderTo(stream);
+        }
+
+        // Write bytes from the bit-writer buffer to the stream.
+        this.bitWriter.WriteEncodedImageToStream(stream);
+
+        if (hasAnimation)
+        {
+            RiffHelper.EndWriteChunk(stream, prevPosition);
+        }
+
+        return hasAlpha;
     }
 
     /// <summary>
     /// Encodes the alpha image data using the webp lossless compression.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+    /// <param name="frame">The alpha-pixel data to encode from.</param>
     /// <param name="alphaData">The destination buffer to write the encoded alpha data to.</param>
     /// <returns>The size of the compressed data in bytes.
     /// If the size of the data is the same as the pixel count, the compression would not yield in smaller data and is left uncompressed.
     /// </returns>
-    public int EncodeAlphaImageData<TPixel>(Image<TPixel> image, IMemoryOwner<byte> alphaData)
+    public int EncodeAlphaImageData<TPixel>(Buffer2DRegion<TPixel> frame, IMemoryOwner<byte> alphaData)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int width = image.Width;
-        int height = image.Height;
+        int width = frame.Width;
+        int height = frame.Height;
         int pixelCount = width * height;
 
         // Convert image pixels to bgra array.
-        this.ConvertPixelsToBgra(image, width, height);
+        this.ConvertPixelsToBgra(frame);
 
         // The image-stream will NOT contain any headers describing the image dimension, the dimension is already known.
-        this.EncodeStream(image);
+        this.EncodeStream(width, height);
         this.bitWriter.Finish();
-        int size = this.bitWriter.NumBytes();
+        int size = this.bitWriter.NumBytes;
         if (size >= pixelCount)
         {
             // Compressing would not yield in smaller data -> leave the data uncompressed.
@@ -303,7 +367,7 @@ internal class Vp8LEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes the image size to the bitwriter buffer.
+    /// Writes the image size to the bit writer buffer.
     /// </summary>
     /// <param name="inputImgWidth">The input image width.</param>
     /// <param name="inputImgHeight">The input image height.</param>
@@ -320,7 +384,7 @@ internal class Vp8LEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes a flag indicating if alpha channel is used and the VP8L version to the bitwriter buffer.
+    /// Writes a flag indicating if alpha channel is used and the VP8L version to the bit-writer buffer.
     /// </summary>
     /// <param name="hasAlpha">Indicates if a alpha channel is present.</param>
     private void WriteAlphaAndVersion(bool hasAlpha)
@@ -332,14 +396,10 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Encodes the image stream using lossless webp format.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel type.</typeparam>
-    /// <param name="image">The image to encode.</param>
-    private void EncodeStream<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <param name="width">The image frame width.</param>
+    /// <param name="height">The image frame height.</param>
+    private void EncodeStream(int width, int height)
     {
-        int width = image.Width;
-        int height = image.Height;
-
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<uint> encodedData = this.EncodedData.GetSpan();
         bool lowEffort = this.method == 0;
@@ -425,9 +485,9 @@ internal class Vp8LEncoder : IDisposable
                 lowEffort);
 
             // If we are better than what we already have.
-            if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
+            if (isFirstConfig || this.bitWriter.NumBytes < bestSize)
             {
-                bestSize = this.bitWriter.NumBytes();
+                bestSize = this.bitWriter.NumBytes;
                 BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
             }
 
@@ -447,23 +507,20 @@ internal class Vp8LEncoder : IDisposable
     /// Converts the pixels of the image to bgra.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
-    /// <param name="image">The image to convert.</param>
-    /// <param name="width">The width of the image.</param>
-    /// <param name="height">The height of the image.</param>
+    /// <param name="pixels">The frame pixel buffer to convert.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    private bool ConvertPixelsToBgra<TPixel>(Image<TPixel> image, int width, int height)
+    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
         bool nonOpaque = false;
         Span<uint> bgra = this.Bgra.GetSpan();
         Span<byte> bgraBytes = MemoryMarshal.Cast<uint, byte>(bgra);
-        int widthBytes = width * 4;
-        for (int y = 0; y < height; y++)
+        int widthBytes = pixels.Width * 4;
+        for (int y = 0; y < pixels.Height; y++)
         {
-            Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(y);
+            Span<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
             Span<byte> rowBytes = bgraBytes.Slice(y * widthBytes, widthBytes);
-            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, width);
+            PixelOperations<TPixel>.Instance.ToBgra32Bytes(this.configuration, rowSpan, rowBytes, pixels.Width);
             if (!nonOpaque)
             {
                 Span<Bgra32> rowBgra = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
@@ -589,15 +646,21 @@ internal class Vp8LEncoder : IDisposable
             Vp8LBackwardRefs refsTmp = this.Refs[refsBest.Equals(this.Refs[0]) ? 1 : 0];
 
             this.bitWriter.Reset(bwInit);
-            Vp8LHistogram tmpHisto = new(cacheBits);
-            List<Vp8LHistogram> histogramImage = new(histogramImageXySize);
-            for (int i = 0; i < histogramImageXySize; i++)
-            {
-                histogramImage.Add(new Vp8LHistogram(cacheBits));
-            }
+            using OwnedVp8LHistogram tmpHisto = OwnedVp8LHistogram.Create(this.memoryAllocator, cacheBits);
+            using Vp8LHistogramSet histogramImage = new(this.memoryAllocator, histogramImageXySize, cacheBits);
 
             // Build histogram image and symbols from backward references.
-            HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, this.HistoBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+            HistogramEncoder.GetHistoImageSymbols(
+                this.memoryAllocator,
+                width,
+                height,
+                refsBest,
+                this.quality,
+                this.HistoBits,
+                cacheBits,
+                histogramImage,
+                tmpHisto,
+                histogramSymbols);
 
             // Create Huffman bit lengths and codes for each histogram image.
             int histogramImageSize = histogramImage.Count;
@@ -676,11 +739,9 @@ internal class Vp8LEncoder : IDisposable
             this.StoreImageToBitMask(width, this.HistoBits, refsBest, histogramSymbols, huffmanCodes);
 
             // Keep track of the smallest image so far.
-            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
+            if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes < bitWriterBest.NumBytes))
             {
-                Vp8LBitWriter tmp = this.bitWriter;
-                this.bitWriter = bitWriterBest;
-                bitWriterBest = tmp;
+                (bitWriterBest, this.bitWriter) = (this.bitWriter, bitWriterBest);
             }
 
             isFirstIteration = false;
@@ -787,13 +848,8 @@ internal class Vp8LEncoder : IDisposable
             refsTmp1,
             refsTmp2);
 
-        List<Vp8LHistogram> histogramImage = new()
-        {
-            new(cacheBits)
-        };
-
         // Build histogram image and symbols from backward references.
-        histogramImage[0].StoreRefs(refs);
+        using Vp8LHistogramSet histogramImage = new(this.memoryAllocator, refs, 1, cacheBits);
 
         // Create Huffman bit lengths and codes for each histogram image.
         GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
@@ -833,7 +889,7 @@ internal class Vp8LEncoder : IDisposable
     private void StoreHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
     {
         int count = 0;
-        Span<int> symbols = this.scratch.Span.Slice(0, 2);
+        Span<int> symbols = this.scratch.Span[..2];
         symbols.Clear();
         const int maxBits = 8;
         const int maxSymbol = 1 << maxBits;
@@ -886,6 +942,7 @@ internal class Vp8LEncoder : IDisposable
 
     private void StoreFullHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
     {
+        // TODO: Allocations. This method is called in a loop.
         int i;
         byte[] codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
         short[] codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
@@ -996,7 +1053,12 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, Span<ushort> histogramSymbols, HuffmanTreeCode[] huffmanCodes)
+    private void StoreImageToBitMask(
+        int width,
+        int histoBits,
+        Vp8LBackwardRefs backwardRefs,
+        Span<ushort> histogramSymbols,
+        HuffmanTreeCode[] huffmanCodes)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
         int tileMask = histoBits == 0 ? 0 : -(1 << histoBits);
@@ -1008,10 +1070,10 @@ internal class Vp8LEncoder : IDisposable
         int tileY = y & tileMask;
         int histogramIx = histogramSymbols[0];
         Span<HuffmanTreeCode> codes = huffmanCodes.AsSpan(5 * histogramIx);
-        using List<PixOrCopy>.Enumerator c = backwardRefs.Refs.GetEnumerator();
-        while (c.MoveNext())
+
+        for (int i = 0; i < backwardRefs.Refs.Count; i++)
         {
-            PixOrCopy v = c.Current;
+            PixOrCopy v = backwardRefs.Refs[i];
             if (tileX != (x & tileMask) || tileY != (y & tileMask))
             {
                 tileX = x & tileMask;
@@ -1024,7 +1086,7 @@ internal class Vp8LEncoder : IDisposable
             {
                 for (int k = 0; k < 4; k++)
                 {
-                    int code = (int)v.Literal(Order[k]);
+                    int code = v.Literal(Order[k]);
                     this.bitWriter.WriteHuffmanCode(codes[k], code);
                 }
             }
@@ -1149,35 +1211,41 @@ internal class Vp8LEncoder : IDisposable
             entropyComp[j] = bitEntropy.BitsEntropyRefine();
         }
 
-        entropy[(int)EntropyIx.Direct] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                         entropyComp[(int)HistoIx.HistoRed] +
-                                         entropyComp[(int)HistoIx.HistoGreen] +
-                                         entropyComp[(int)HistoIx.HistoBlue];
-        entropy[(int)EntropyIx.Spatial] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                          entropyComp[(int)HistoIx.HistoRedPred] +
-                                          entropyComp[(int)HistoIx.HistoGreenPred] +
-                                          entropyComp[(int)HistoIx.HistoBluePred];
-        entropy[(int)EntropyIx.SubGreen] = entropyComp[(int)HistoIx.HistoAlpha] +
-                                           entropyComp[(int)HistoIx.HistoRedSubGreen] +
-                                           entropyComp[(int)HistoIx.HistoGreen] +
-                                           entropyComp[(int)HistoIx.HistoBlueSubGreen];
-        entropy[(int)EntropyIx.SpatialSubGreen] = entropyComp[(int)HistoIx.HistoAlphaPred] +
-                                                  entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
-                                                  entropyComp[(int)HistoIx.HistoGreenPred] +
-                                                  entropyComp[(int)HistoIx.HistoBluePredSubGreen];
+        entropy[(int)EntropyIx.Direct] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRed] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlue];
+        entropy[(int)EntropyIx.Spatial] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPred] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePred];
+        entropy[(int)EntropyIx.SubGreen] =
+            entropyComp[(int)HistoIx.HistoAlpha] +
+            entropyComp[(int)HistoIx.HistoRedSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreen] +
+            entropyComp[(int)HistoIx.HistoBlueSubGreen];
+        entropy[(int)EntropyIx.SpatialSubGreen] =
+            entropyComp[(int)HistoIx.HistoAlphaPred] +
+            entropyComp[(int)HistoIx.HistoRedPredSubGreen] +
+            entropyComp[(int)HistoIx.HistoGreenPred] +
+            entropyComp[(int)HistoIx.HistoBluePredSubGreen];
         entropy[(int)EntropyIx.Palette] = entropyComp[(int)HistoIx.HistoPalette];
 
         // When including transforms, there is an overhead in bits from
         // storing them. This overhead is small but matters for small images.
         // For spatial, there are 14 transformations.
-        entropy[(int)EntropyIx.Spatial] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                           LosslessUtils.SubSampleSize(height, transformBits) *
-                                           LosslessUtils.FastLog2(14);
+        entropy[(int)EntropyIx.Spatial] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(14);
 
         // For color transforms: 24 as only 3 channels are considered in a ColorTransformElement.
-        entropy[(int)EntropyIx.SpatialSubGreen] += LosslessUtils.SubSampleSize(width, transformBits) *
-                                                   LosslessUtils.SubSampleSize(height, transformBits) *
-                                                   LosslessUtils.FastLog2(24);
+        entropy[(int)EntropyIx.SpatialSubGreen] +=
+            LosslessUtils.SubSampleSize(width, transformBits) *
+            LosslessUtils.SubSampleSize(height, transformBits) *
+            LosslessUtils.FastLog2(24);
 
         // For palettes, add the cost of storing the palette.
         // We empirically estimate the cost of a compressed entry as 8 bits.
@@ -1379,10 +1447,8 @@ internal class Vp8LEncoder : IDisposable
                         useLut = false;
                         break;
                     }
-                    else
-                    {
-                        buffer[ind] = (uint)j;
-                    }
+
+                    buffer[ind] = (uint)j;
                 }
 
                 if (useLut)
@@ -1591,14 +1657,12 @@ internal class Vp8LEncoder : IDisposable
             }
 
             // Swap color(palette[bestIdx], palette[i]);
-            uint best = palette[bestIdx];
-            palette[bestIdx] = palette[i];
-            palette[i] = best;
+            (palette[i], palette[bestIdx]) = (palette[bestIdx], palette[i]);
             predict = palette[i];
         }
     }
 
-    private static void GetHuffBitLengthsAndCodes(List<Vp8LHistogram> histogramImage, HuffmanTreeCode[] huffmanCodes)
+    private static void GetHuffBitLengthsAndCodes(Vp8LHistogramSet histogramImage, HuffmanTreeCode[] huffmanCodes)
     {
         int maxNumSymbols = 0;
 
@@ -1609,13 +1673,25 @@ internal class Vp8LEncoder : IDisposable
             int startIdx = 5 * i;
             for (int k = 0; k < 5; k++)
             {
-                int numSymbols =
-                    k == 0 ? histo.NumCodes() :
-                    k == 4 ? WebpConstants.NumDistanceCodes : 256;
+                int numSymbols;
+                if (k == 0)
+                {
+                    numSymbols = histo.NumCodes();
+                }
+                else if (k == 4)
+                {
+                    numSymbols = WebpConstants.NumDistanceCodes;
+                }
+                else
+                {
+                    numSymbols = 256;
+                }
+
                 huffmanCodes[startIdx + k].NumSymbols = numSymbols;
             }
         }
 
+        // TODO: Allocations.
         int end = 5 * histogramImage.Count;
         for (int i = 0; i < end; i++)
         {
@@ -1629,8 +1705,9 @@ internal class Vp8LEncoder : IDisposable
         }
 
         // Create Huffman trees.
+        // TODO: Allocations.
         bool[] bufRle = new bool[maxNumSymbols];
-        Span<HuffmanTree> huffTree = stackalloc HuffmanTree[3 * maxNumSymbols];
+        HuffmanTree[] huffTree = new HuffmanTree[3 * maxNumSymbols];
 
         for (int i = 0; i < histogramImage.Count; i++)
         {
@@ -1682,8 +1759,18 @@ internal class Vp8LEncoder : IDisposable
             histoBits++;
         }
 
-        return histoBits < WebpConstants.MinHuffmanBits ? WebpConstants.MinHuffmanBits :
-            histoBits > WebpConstants.MaxHuffmanBits ? WebpConstants.MaxHuffmanBits : histoBits;
+        if (histoBits < WebpConstants.MinHuffmanBits)
+        {
+            return WebpConstants.MinHuffmanBits;
+        }
+        else if (histoBits > WebpConstants.MaxHuffmanBits)
+        {
+            return WebpConstants.MaxHuffmanBits;
+        }
+        else
+        {
+            return histoBits;
+        }
     }
 
     /// <summary>
@@ -1720,11 +1807,7 @@ internal class Vp8LEncoder : IDisposable
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void BitWriterSwap(ref Vp8LBitWriter src, ref Vp8LBitWriter dst)
-    {
-        Vp8LBitWriter tmp = src;
-        src = dst;
-        dst = tmp;
-    }
+        => (dst, src) = (src, dst);
 
     /// <summary>
     /// Calculates the bits used for the transformation.
@@ -1732,9 +1815,21 @@ internal class Vp8LEncoder : IDisposable
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int GetTransformBits(WebpEncodingMethod method, int histoBits)
     {
-        int maxTransformBits = (int)method < 4 ? 6 : method > WebpEncodingMethod.Level4 ? 4 : 5;
-        int res = histoBits > maxTransformBits ? maxTransformBits : histoBits;
-        return res;
+        int maxTransformBits;
+        if ((int)method < 4)
+        {
+            maxTransformBits = 6;
+        }
+        else if (method > WebpEncodingMethod.Level4)
+        {
+            maxTransformBits = 4;
+        }
+        else
+        {
+            maxTransformBits = 5;
+        }
+
+        return histoBits > maxTransformBits ? maxTransformBits : histoBits;
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -1812,9 +1907,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public void ClearRefs()
     {
-        for (int i = 0; i < this.Refs.Length; i++)
+        foreach (Vp8LBackwardRefs t in this.Refs)
         {
-            this.Refs[i].Refs.Clear();
+            t.Refs.Clear();
         }
     }
 
@@ -1823,9 +1918,9 @@ internal class Vp8LEncoder : IDisposable
     {
         this.Bgra.Dispose();
         this.EncodedData.Dispose();
-        this.BgraScratch.Dispose();
+        this.BgraScratch?.Dispose();
         this.Palette.Dispose();
-        this.TransformData.Dispose();
+        this.TransformData?.Dispose();
         this.HashChain.Dispose();
     }
 

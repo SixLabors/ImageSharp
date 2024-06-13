@@ -219,6 +219,11 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <inheritdoc/>
     public ImageMetadata DeepClone() => new(this);
 
+    /// <summary>
+    /// Synchronizes the profiles with the current metadata.
+    /// </summary>
+    internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
+
     internal PixelTypeInfo GetDecodedPixelTypeInfo()
     {
         // None found. Check if we have a decoded format to convert from.
@@ -231,10 +236,4 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         // This should never happen.
         return default;
     }
-
-    /// TODO: This should be called on save.
-    /// <summary>
-    /// Synchronizes the profiles with the current metadata.
-    /// </summary>
-    internal void SyncProfiles() => this.ExifProfile?.Sync(this);
 }

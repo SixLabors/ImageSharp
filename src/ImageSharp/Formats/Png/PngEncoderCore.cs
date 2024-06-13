@@ -776,7 +776,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             return;
         }
 
-        meta.SyncProfiles();
         this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
     }
 

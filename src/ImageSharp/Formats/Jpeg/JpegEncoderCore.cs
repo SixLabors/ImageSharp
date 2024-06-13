@@ -539,17 +539,11 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="buffer">Temporary buffer.</param>
     private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
     {
-        if (metadata is null)
-        {
-            return;
-        }
-
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
         // - APP1 XMP
         // - APP2 ICC
         // - APP13 IPTC
-        metadata.SyncProfiles();
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
         this.WriteIccProfile(metadata.IccProfile, buffer);

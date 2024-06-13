@@ -315,8 +315,6 @@ internal class Vp8Encoder : IDisposable
     {
         // Write bytes from the bitwriter buffer to the stream.
         ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 

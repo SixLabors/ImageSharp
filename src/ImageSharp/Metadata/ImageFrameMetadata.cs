@@ -131,4 +131,9 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         where TFormatMetadata : class
         where TFormatFrameMetadata : class, IFormatFrameMetadata<TFormatFrameMetadata>
         => ((IDeepCloneable<TFormatFrameMetadata>)this.GetFormatMetadata(key)).DeepClone();
+
+    /// <summary>
+    /// Synchronizes the profiles with the current metadata.
+    /// </summary>
+    internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
 }

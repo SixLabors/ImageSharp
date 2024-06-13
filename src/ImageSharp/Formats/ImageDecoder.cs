@@ -307,6 +307,7 @@ public abstract class ImageDecoder : IImageDecoder
         if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             info.Metadata.DecodedImageFormat = format;
+            info.PixelType = info.Metadata.GetDecodedPixelTypeInfo();
 
             foreach (ImageFrameMetadata frame in info.FrameMetadataCollection)
             {

@@ -73,7 +73,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;
 
-        return new ImageInfo(pixelType, size, metadata);
+        return new ImageInfo(size, metadata);
     }
 
     /// <summary>

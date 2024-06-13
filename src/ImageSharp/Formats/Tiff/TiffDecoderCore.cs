@@ -234,7 +234,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 
-        return new ImageInfo(new PixelTypeInfo((int)framesMetadata[0].GetTiffMetadata().BitsPerPixel), new(width, height), metadata, framesMetadata);
+        return new ImageInfo(new(width, height), metadata, framesMetadata);
     }
 
     /// <summary>

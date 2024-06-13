@@ -646,7 +646,6 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     {
         this.ReadFileHeader(stream);
         return new ImageInfo(
-            new PixelTypeInfo(this.fileHeader.PixelDepth),
             new(this.fileHeader.Width, this.fileHeader.Height),
             this.metadata);
     }

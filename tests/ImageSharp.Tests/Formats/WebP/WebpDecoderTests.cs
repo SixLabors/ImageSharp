@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [ValidateDisposedMemoryAllocations]
 public class WebpDecoderTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
 

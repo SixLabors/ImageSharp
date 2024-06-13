@@ -1,23 +1,35 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#pragma warning disable CA1416 // Validate platform compatibility
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SDBitmap = System.Drawing.Bitmap;
-using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 public class SystemDrawingReferenceDecoder : ImageDecoder
 {
-    public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
+    private readonly IImageFormat imageFormat;
+
+    public SystemDrawingReferenceDecoder(IImageFormat imageFormat)
+        => this.imageFormat = imageFormat;
+
+    public static SystemDrawingReferenceDecoder Png { get; } = new SystemDrawingReferenceDecoder(PngFormat.Instance);
+
+    public static SystemDrawingReferenceDecoder Bmp { get; } = new SystemDrawingReferenceDecoder(BmpFormat.Instance);
 
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
-        using SDBitmap sourceBitmap = new(stream);
-        PixelTypeInfo pixelType = new(SDImage.GetPixelFormatSize(sourceBitmap.PixelFormat));
-        return new ImageInfo(pixelType, new(sourceBitmap.Width, sourceBitmap.Height), new ImageMetadata());
+        using Image<Rgba32> image = this.Decode<Rgba32>(options, stream, cancellationToken);
+        ImageMetadata metadata = image.Metadata;
+        return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+        {
+            PixelType = metadata.GetDecodedPixelTypeInfo()
+        };
     }
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -42,7 +54,9 @@ public class SystemDrawingReferenceDecoder : ImageDecoder
             g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
         }
 
-        return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap);
+        return ReferenceCodecUtilities.EnsureDecodedMetadata(
+            SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap),
+            this.imageFormat);
     }
 
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)

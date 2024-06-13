@@ -121,16 +121,14 @@ public class TgaEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // The test image has alternating black and white pixels, which should make using always RLE data inefficient.
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
-            using (var memStream = new MemoryStream())
-            {
-                image.Save(memStream, options);
-                byte[] imageBytes = memStream.ToArray();
-                Assert.Equal(expectedBytes, imageBytes.Length);
-            }
-        }
+        using Image<TPixel> image = provider.GetImage();
+        TgaEncoder options = new() { BitsPerPixel = TgaBitsPerPixel.Bit24, Compression = TgaCompression.RunLength };
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, options);
+        byte[] imageBytes = memStream.ToArray();
+
+        Assert.Equal(expectedBytes, imageBytes.Length);
     }
 
     // Run length encoded pixels should not exceed row boundaries.

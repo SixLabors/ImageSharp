@@ -169,10 +169,11 @@ public class WebpEncoderTests
     }
 
     [Theory]
-    [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg410, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // Input is lossy jpeg.
+    [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossless)] // Input is lossless png.
     [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
     [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
-    public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
+    public void Encode_PreserveEncodingType<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         WebpEncoder options = new();
@@ -440,7 +441,7 @@ public class WebpEncoderTests
             "with_alpha",
             encoder,
             ImageComparer.Tolerant(0.04f),
-            referenceDecoder: new MagickReferenceDecoder());
+            referenceDecoder: MagickReferenceDecoder.WebP);
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
         Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
@@ -468,7 +469,7 @@ public class WebpEncoderTests
             "with_alpha_compressed",
             encoder,
             ImageComparer.Tolerant(0.04f),
-            referenceDecoder: new MagickReferenceDecoder());
+            referenceDecoder: MagickReferenceDecoder.WebP);
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
         Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");

@@ -144,7 +144,6 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
             return new ImageInfo(
-                new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }

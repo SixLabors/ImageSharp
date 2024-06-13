@@ -226,7 +226,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame.PixelSize;
-        return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), new(pixelSize.Width, pixelSize.Height), this.Metadata);
+        return new ImageInfo(new(pixelSize.Width, pixelSize.Height), this.Metadata);
     }
 
     /// <summary>

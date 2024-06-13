@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 [ValidateDisposedMemoryAllocations]
 public partial class JpegDecoderTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Jpeg;
 
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 

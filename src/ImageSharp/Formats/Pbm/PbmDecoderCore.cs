@@ -69,7 +69,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     {
         this.ProcessHeader(stream);
 
-        var image = new Image<TPixel>(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
+        Image<TPixel> image = new(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
 
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -86,10 +86,9 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
-
-        // BlackAndWhite pixels are encoded into a byte.
-        int bitsPerPixel = this.componentType == PbmComponentType.Short ? 16 : 8;
-        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), new(this.pixelSize.Width, this.pixelSize.Height), this.metadata);
+        return new ImageInfo(
+            new(this.pixelSize.Width, this.pixelSize.Height),
+            this.metadata);
     }
 
     /// <summary>
@@ -97,6 +96,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
+    [MemberNotNull(nameof(metadata))]
     private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[2];

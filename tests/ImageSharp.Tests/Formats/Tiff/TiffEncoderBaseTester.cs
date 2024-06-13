@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public abstract class TiffEncoderBaseTester
 {
-    protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
+    protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder(TiffFormat.Instance);
 
     protected static void TestStripLength<TPixel>(
         TestImageProvider<TPixel> provider,
@@ -48,7 +48,6 @@ public abstract class TiffEncoderBaseTester
         Number[] stripByteCounts = exifProfileOutput.GetValue(ExifTag.StripByteCounts)?.Value;
         Assert.NotNull(stripByteCounts);
         Assert.True(stripByteCounts.Length > 1);
-        Assert.NotNull(outputMeta.BitsPerPixel);
 
         foreach (Number sz in stripByteCounts)
         {

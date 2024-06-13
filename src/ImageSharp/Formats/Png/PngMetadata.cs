@@ -176,9 +176,9 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 break;
 
             case PngColorType.Grayscale:
-                bpp = 8;
+                bpp = (int)this.BitDepth;
                 colorType = PixelColorType.Luminance;
-                info = PixelComponentInfo.Create(1, bpp, 8);
+                info = PixelComponentInfo.Create(1, bpp, bpp);
                 break;
 
             case PngColorType.GrayscaleWithAlpha:
@@ -200,15 +200,15 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             case PngColorType.Rgb:
                 if (this.BitDepth == PngBitDepth.Bit16)
                 {
-                    bpp = 24;
+                    bpp = 48;
                     colorType = PixelColorType.RGB;
-                    info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                    info = PixelComponentInfo.Create(3, bpp, 16, 16, 16);
                     break;
                 }
 
-                bpp = 48;
+                bpp = 24;
                 colorType = PixelColorType.RGB;
-                info = PixelComponentInfo.Create(3, bpp, 16, 16, 16);
+                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
                 break;
 
             case PngColorType.RgbWithAlpha:

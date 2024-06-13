@@ -97,20 +97,20 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
                 colorType = PixelColorType.Binary;
                 info = PixelComponentInfo.Create(1, bpp, 1);
                 break;
-            case PbmColorType.Grayscale:
-                bpp = 8;
-                colorType = PixelColorType.Luminance;
-                info = PixelComponentInfo.Create(1, bpp, 8);
-                break;
             case PbmColorType.Rgb:
-                bpp = 24;
+                bpp = this.ComponentType == PbmComponentType.Short ? 48 : 24;
                 colorType = PixelColorType.RGB;
-                info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                info = this.ComponentType == PbmComponentType.Short
+                    ? PixelComponentInfo.Create(3, bpp, 16, 16, 16)
+                    : PixelComponentInfo.Create(3, bpp, 8, 8, 8);
                 break;
+            case PbmColorType.Grayscale:
             default:
-                bpp = 8;
+                bpp = this.ComponentType == PbmComponentType.Short ? 16 : 8;
                 colorType = PixelColorType.Luminance;
-                info = PixelComponentInfo.Create(1, bpp, 8);
+                info = this.ComponentType == PbmComponentType.Short
+                    ? PixelComponentInfo.Create(1, bpp, bpp)
+                    : PixelComponentInfo.Create(1, bpp, bpp);
                 break;
         }
 

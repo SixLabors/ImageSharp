@@ -515,7 +515,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
             AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
 
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata);
+            return new ImageInfo(new(this.header.Width, this.header.Height), metadata);
         }
         finally
         {
@@ -678,29 +678,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.scanline?.Dispose();
         this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
         this.scanline = this.configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
-    }
-
-    /// <summary>
-    /// Calculates the correct number of bits per pixel for the given color type.
-    /// </summary>
-    /// <returns>The <see cref="int"/></returns>
-    private int CalculateBitsPerPixel()
-    {
-        switch (this.pngColorType)
-        {
-            case PngColorType.Grayscale:
-            case PngColorType.Palette:
-                return this.header.BitDepth;
-            case PngColorType.GrayscaleWithAlpha:
-                return this.header.BitDepth * 2;
-            case PngColorType.Rgb:
-                return this.header.BitDepth * 3;
-            case PngColorType.RgbWithAlpha:
-                return this.header.BitDepth * 4;
-            default:
-                PngThrowHelper.ThrowNotSupportedColor();
-                return -1;
-        }
     }
 
     /// <summary>

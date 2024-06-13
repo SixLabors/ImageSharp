@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata;
 
@@ -212,11 +213,24 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// The <typeparamref name="TFormatMetadata"/>.
     /// </returns>
     public TFormatMetadata CloneFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
-        where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>, new()
+        where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
         => ((IDeepCloneable<TFormatMetadata>)this.GetFormatMetadata(key)).DeepClone();
 
     /// <inheritdoc/>
     public ImageMetadata DeepClone() => new(this);
+
+    internal PixelTypeInfo GetDecodedPixelTypeInfo()
+    {
+        // None found. Check if we have a decoded format to convert from.
+        if (this.DecodedImageFormat is not null
+            && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatMetadata? decodedMetadata))
+        {
+            return decodedMetadata.GetPixelTypeInfo();
+        }
+
+        // This should never happen.
+        return default;
+    }
 
     /// TODO: This should be called on save.
     /// <summary>

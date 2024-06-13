@@ -20,11 +20,11 @@ public class BmpEncoderTests
     private static BmpEncoder BmpEncoder => new();
 
     public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
-    new()
-    {
-        BmpBitsPerPixel.Bit24,
-        BmpBitsPerPixel.Bit32
-    };
+        new()
+        {
+            BmpBitsPerPixel.Bit24,
+            BmpBitsPerPixel.Bit32
+        };
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
@@ -287,7 +287,7 @@ public class BmpEncoderTests
             provider,
             extension: "bmp",
             appendPixelTypeToFileName: false,
-            decoder: new MagickReferenceDecoder(false));
+            decoder: new MagickReferenceDecoder(BmpFormat.Instance, false));
     }
 
     [Theory]
@@ -318,7 +318,7 @@ public class BmpEncoderTests
             provider,
             extension: "bmp",
             appendPixelTypeToFileName: false,
-            decoder: new MagickReferenceDecoder(false));
+            decoder: new MagickReferenceDecoder(BmpFormat.Instance, false));
     }
 
     [Theory]
@@ -380,8 +380,8 @@ public class BmpEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        using var reencodedStream = new MemoryStream();
-        var encoder = new BmpEncoder
+        using MemoryStream reencodedStream = new();
+        BmpEncoder encoder = new()
         {
             BitsPerPixel = bitsPerPixel,
             SupportTransparency = false,

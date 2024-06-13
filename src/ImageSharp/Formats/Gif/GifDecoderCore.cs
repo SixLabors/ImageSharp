@@ -249,7 +249,6 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
 
         return new ImageInfo(
-            new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);

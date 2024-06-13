@@ -28,7 +28,7 @@ public interface IFormatMetadata : IDeepCloneable
 /// </summary>
 /// <typeparam name="TSelf">The metadata type implementing this interface.</typeparam>
 public interface IFormatMetadata<TSelf> : IFormatMetadata, IDeepCloneable<TSelf>
-    where TSelf : class, IFormatMetadata, new()
+    where TSelf : class, IFormatMetadata
 {
     /// <summary>
     /// Creates a new instance of the <typeparamref name="TSelf"/> class from the given <see cref="FormatConnectingMetadata"/>.

@@ -5,8 +5,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -85,7 +83,7 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        GifMetadata gifMetadata = GetGifMetadata(image);
+        GifMetadata gifMetadata = image.Metadata.CloneGifMetadata();
         this.colorTableMode ??= gifMetadata.ColorTableMode;
         bool useGlobalTable = this.colorTableMode == FrameColorTableMode.Global;
 
@@ -178,56 +176,17 @@ internal sealed class GifEncoderCore : IImageEncoderInternals
         quantized?.Dispose();
     }
 
-    private static GifMetadata GetGifMetadata<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
-        {
-            return gif.DeepClone();
-        }
-
-        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
-        {
-            AnimatedImageMetadata ani = png.ToAnimatedImageMetadata();
-            return GifMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
-        {
-            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
-            return GifMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
     private static GifFrameMetadata GetGifFrameMetadata<TPixel>(ImageFrame<TPixel> frame, int transparencyIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        GifFrameMetadata? metadata = null;
-        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
-        {
-            metadata = gif.DeepClone();
-        }
-        else if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
-        {
-            AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
-            metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
-        }
-        else if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
-        {
-            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
-            metadata = GifFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (metadata?.ColorTableMode == FrameColorTableMode.Global && transparencyIndex > -1)
+        GifFrameMetadata metadata = frame.Metadata.CloneGifMetadata();
+        if (metadata.ColorTableMode == FrameColorTableMode.Global && transparencyIndex > -1)
         {
             metadata.HasTransparency = true;
             metadata.TransparencyIndex = ClampIndex(transparencyIndex);
         }
 
-        return metadata ?? new();
+        return metadata;
     }
 
     private void EncodeAdditionalFrames<TPixel>(

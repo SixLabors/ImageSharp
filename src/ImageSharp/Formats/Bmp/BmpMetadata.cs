@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <summary>
 /// Provides Bmp specific metadata information for the image.
 /// </summary>
-public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<BmpMetadata>
+public class BmpMetadata : IFormatMetadata<BmpMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpMetadata"/> class.
@@ -65,10 +65,6 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
             }
         };
     }
-
-    /// <inheritdoc/>
-    public static BmpMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
-        => new();
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
@@ -139,10 +135,6 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>, IFormatFrameMetadata<Bm
         {
             PixelTypeInfo = this.GetPixelTypeInfo()
         };
-
-    /// <inheritdoc/>
-    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
-        => new();
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

@@ -40,7 +40,7 @@ public class QoiMetadata : IFormatMetadata<QoiMetadata>
     /// <inheritdoc/>
     public static QoiMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
-        PixelColorType color = metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB;
+        PixelColorType color = metadata.PixelTypeInfo.ColorType;
 
         if (color.HasFlag(PixelColorType.Alpha))
         {

@@ -46,7 +46,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
     public static PbmMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         PbmColorType color;
-        PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.Luminance;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType;
 
         switch (colorType)
         {

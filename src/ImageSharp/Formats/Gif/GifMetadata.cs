@@ -69,34 +69,6 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     /// </summary>
     public IList<string> Comments { get; set; } = [];
 
-    internal static GifMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
-    {
-        int index = 0;
-        Color background = metadata.BackgroundColor;
-        if (metadata.ColorTable.HasValue)
-        {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                if (background != colorTable[i])
-                {
-                    continue;
-                }
-
-                index = i;
-                break;
-            }
-        }
-
-        return new()
-        {
-            GlobalColorTable = metadata.ColorTable,
-            ColorTableMode = metadata.ColorTableMode,
-            RepeatCount = metadata.RepeatCount,
-            BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
-        };
-    }
-
     /// <inheritdoc/>
     public static GifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {

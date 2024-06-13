@@ -90,38 +90,6 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     /// </summary>
     public bool AnimateRootFrame { get; set; } = true;
 
-    internal static PngMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
-    {
-        // Should the conversion be from a format that uses a 24bit palette entries (gif)
-        // we need to clone and adjust the color table to allow for transparency.
-        Color[]? colorTable = metadata.ColorTable?.ToArray();
-        if (colorTable != null)
-        {
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                ref Color c = ref colorTable[i];
-                if (c != metadata.BackgroundColor)
-                {
-                    continue;
-                }
-
-                // Png treats background as fully empty
-                c = Color.Transparent;
-                break;
-            }
-        }
-
-        return new()
-        {
-            ColorType = colorTable != null ? PngColorType.Palette : PngColorType.RgbWithAlpha,
-            BitDepth = colorTable != null
-                        ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Length), 1, 8)
-                        : PngBitDepth.Bit8,
-            ColorTable = colorTable,
-            RepeatCount = metadata.RepeatCount,
-        };
-    }
-
     /// <inheritdoc/>
     public static PngMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
@@ -145,8 +113,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         }
 
         PngColorType color;
-        PixelColorType colorType =
-            metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB | PixelColorType.Alpha;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType;
 
         switch (colorType)
         {

@@ -57,22 +57,6 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
         this.BlendMode = frameControl.BlendMode;
     }
 
-    internal static PngFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
-        => new()
-        {
-            FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
-            DisposalMode = GetMode(metadata.DisposalMode),
-            BlendMode = metadata.BlendMode,
-        };
-
-    private static FrameDisposalMode GetMode(FrameDisposalMode mode) => mode switch
-    {
-        FrameDisposalMode.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
-        FrameDisposalMode.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
-        FrameDisposalMode.DoNotDispose => FrameDisposalMode.DoNotDispose,
-        _ => FrameDisposalMode.DoNotDispose,
-    };
-
     /// <inheritdoc/>
     public static PngFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
@@ -105,4 +89,12 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
 
     /// <inheritdoc/>
     public PngFrameMetadata DeepClone() => new(this);
+
+    private static FrameDisposalMode GetMode(FrameDisposalMode mode) => mode switch
+    {
+        FrameDisposalMode.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
+        FrameDisposalMode.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
+        FrameDisposalMode.DoNotDispose => FrameDisposalMode.DoNotDispose,
+        _ => FrameDisposalMode.DoNotDispose,
+    };
 }

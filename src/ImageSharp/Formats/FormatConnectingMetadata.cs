@@ -11,7 +11,12 @@ namespace SixLabors.ImageSharp.Formats;
 public class FormatConnectingMetadata
 {
     /// <summary>
-    /// Gets the quality.
+    /// Gets the encoding type.
+    /// </summary>
+    public EncodingType EncodingType { get; init; }
+
+    /// <summary>
+    /// Gets the quality to use when <see cref="EncodingType"/> is <see cref="EncodingType.Lossy"/>.
     /// </summary>
     /// <remarks>
     /// The value is usually between 1 and 100. Defaults to 100.

@@ -112,7 +112,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     public static JpegMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         JpegColorType color;
-        PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.YCbCr;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType;
         switch (colorType)
         {
             case PixelColorType.Luminance:
@@ -194,6 +194,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
         => new()
         {
+            EncodingType = EncodingType.Lossy,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             Quality = this.Quality,
         };

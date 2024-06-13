@@ -54,24 +54,16 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
     /// Gets or sets the default background color of the canvas when animating.
     /// This color may be used to fill the unused space on the canvas around the frames,
     /// as well as the transparent pixels of the first frame.
-    /// The background color is also used when the Disposal method is <see cref="WebpDisposalMethod.RestoreToBackground"/>.
+    /// The background color is also used when the Disposal method is <see cref="FrameDisposalMode.RestoreToBackground"/>.
     /// </summary>
     public Color BackgroundColor { get; set; }
-
-    internal static WebpMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
-        => new()
-        {
-            FileFormat = WebpFileFormatType.Lossless,
-            BackgroundColor = metadata.BackgroundColor,
-            RepeatCount = metadata.RepeatCount
-        };
 
     /// <inheritdoc/>
     public static WebpMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
         WebpBitsPerPixel bitsPerPixel;
         WebpColorType color;
-        PixelColorType colorType = metadata.PixelTypeInfo.ColorType ?? PixelColorType.RGB | PixelColorType.Alpha;
+        PixelColorType colorType = metadata.PixelTypeInfo.ColorType;
         switch (colorType)
         {
             case PixelColorType.RGB:
@@ -100,9 +92,9 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
         {
             BitsPerPixel = bitsPerPixel,
             ColorType = color,
-            FileFormat = WebpFileFormatType.Lossless,
             BackgroundColor = metadata.BackgroundColor,
-            RepeatCount = metadata.RepeatCount
+            RepeatCount = metadata.RepeatCount,
+            FileFormat = metadata.EncodingType == EncodingType.Lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy
         };
     }
 
@@ -146,6 +138,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
         => new()
         {
+            EncodingType = this.FileFormat == WebpFileFormatType.Lossless ? EncodingType.Lossless : EncodingType.Lossy,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             ColorTableMode = FrameColorTableMode.Global,
             RepeatCount = this.RepeatCount,

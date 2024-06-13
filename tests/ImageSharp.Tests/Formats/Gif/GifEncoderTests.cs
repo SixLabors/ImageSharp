@@ -242,33 +242,11 @@ public class GifEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-
-        int count = 0;
-        foreach (ImageFrame<TPixel> frame in image.Frames)
-        {
-            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
-            {
-                count++;
-            }
-        }
-
         provider.Utility.SaveTestOutputFile(image, extension: "gif");
 
         using FileStream fs = File.OpenRead(provider.Utility.GetTestOutputFileName("gif"));
         using Image<TPixel> image2 = Image.Load<TPixel>(fs);
-
         Assert.Equal(image.Frames.Count, image2.Frames.Count);
-
-        count = 0;
-        foreach (ImageFrame<TPixel> frame in image2.Frames)
-        {
-            if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata _))
-            {
-                count++;
-            }
-        }
-
-        Assert.Equal(image2.Frames.Count, count);
     }
 
     [Theory]
@@ -358,10 +336,10 @@ public class GifEncoderTests
 
             switch (webpF.DisposalMethod)
             {
-                case WebpDisposalMethod.RestoreToBackground:
+                case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMode);
                     break;
-                case WebpDisposalMethod.DoNotDispose:
+                case FrameDisposalMode.DoNotDispose:
                 default:
                     Assert.Equal(FrameDisposalMode.DoNotDispose, gifF.DisposalMode);
                     break;

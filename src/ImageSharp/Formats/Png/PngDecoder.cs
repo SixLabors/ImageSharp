@@ -101,5 +101,5 @@ public sealed class PngDecoder : SpecializedImageDecoder<PngDecoderOptions>
     }
 
     /// <inheritdoc/>
-    protected override PngDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new PngDecoderOptions() { GeneralOptions = options };
+    protected override PngDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new() { GeneralOptions = options };
 }

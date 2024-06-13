@@ -9,10 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -160,7 +158,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.height = image.Height;
 
         ImageMetadata metadata = image.Metadata;
-        PngMetadata pngMetadata = GetPngMetadata(image);
+        PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -211,7 +209,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             // Write the first animated frame.
             currentFrame = image.Frames[currentFrameIndex];
-            PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
+            PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
             FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
             uint sequenceNumber = 1;
@@ -241,7 +239,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 currentFrame = image.Frames[currentFrameIndex];
                 ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
-                frameMetadata = GetPngFrameMetadata(currentFrame);
+                frameMetadata = currentFrame.Metadata.GetPngMetadata();
                 bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
 
                 (bool difference, Rectangle bounds) =
@@ -286,54 +284,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
-    }
-
-    private static PngMetadata GetPngMetadata<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
-        {
-            return png.DeepClone();
-        }
-
-        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
-        {
-            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
-        {
-            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
-    private static PngFrameMetadata GetPngFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
-        {
-            return png.DeepClone();
-        }
-
-        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
-        {
-            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
-        {
-            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
     }
 
     /// <summary>

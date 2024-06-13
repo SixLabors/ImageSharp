@@ -16,7 +16,7 @@ public class BmpMetadataTests
     {
         BmpMetadata meta = new()
         { BitsPerPixel = BmpBitsPerPixel.Bit24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
-        BmpMetadata clone = (BmpMetadata)meta.DeepClone();
+        BmpMetadata clone = meta.DeepClone();
 
         clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;

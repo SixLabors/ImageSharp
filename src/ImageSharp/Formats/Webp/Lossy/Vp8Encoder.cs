@@ -332,7 +332,7 @@ internal class Vp8Encoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
 
@@ -376,7 +376,7 @@ internal class Vp8Encoder : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
-        this.Encode(stream, frame, image.Bounds, WebpCommonUtils.GetWebpFrameMetadata(frame), false, image);
+        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image);
     }
 
     /// <summary>
@@ -462,7 +462,7 @@ internal class Vp8Encoder : IDisposable
         // Extract and encode alpha channel data, if present.
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
-        Span<byte> alphaData = Span<byte>.Empty;
+        Span<byte> alphaData = [];
         IMemoryOwner<byte> encodedAlphaData = null;
         try
         {

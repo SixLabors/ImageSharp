@@ -526,10 +526,10 @@ public partial class PngEncoderTests
 
             switch (webpF.BlendMethod)
             {
-                case WebpBlendMethod.Source:
+                case FrameBlendMode.Source:
                     Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
                     break;
-                case WebpBlendMethod.Over:
+                case FrameBlendMode.Over:
                 default:
                     Assert.Equal(FrameBlendMode.Over, pngF.BlendMode);
                     break;
@@ -537,10 +537,10 @@ public partial class PngEncoderTests
 
             switch (webpF.DisposalMethod)
             {
-                case WebpDisposalMethod.RestoreToBackground:
+                case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
                     break;
-                case WebpDisposalMethod.DoNotDispose:
+                case FrameDisposalMode.DoNotDispose:
                 default:
                     Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;

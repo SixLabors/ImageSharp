@@ -9,8 +9,20 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 internal struct IconDir(ushort reserved, IconFileType type, ushort count)
 {
     public const int Size = 3 * sizeof(ushort);
+
+    /// <summary>
+    /// Reserved. Must always be 0.
+    /// </summary>
     public ushort Reserved = reserved;
+
+    /// <summary>
+    /// Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
+    /// </summary>
     public IconFileType Type = type;
+
+    /// <summary>
+    /// Specifies number of images in the file.
+    /// </summary>
     public ushort Count = count;
 
     public IconDir(IconFileType type)
@@ -23,9 +35,9 @@ internal struct IconDir(ushort reserved, IconFileType type, ushort count)
     {
     }
 
-    public static IconDir Parse(in ReadOnlySpan<byte> data)
+    public static IconDir Parse(ReadOnlySpan<byte> data)
         => MemoryMarshal.Cast<byte, IconDir>(data)[0];
 
-    public unsafe void WriteTo(in Stream stream)
+    public readonly unsafe void WriteTo(Stream stream)
         => stream.Write(MemoryMarshal.Cast<IconDir, byte>([this]));
 }

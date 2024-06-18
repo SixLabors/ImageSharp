@@ -109,6 +109,8 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     {
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
+
+        // TODO: Use a palette quantizer if supplied.
         this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;

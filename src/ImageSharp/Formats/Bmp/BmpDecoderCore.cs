@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -1597,6 +1598,14 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
             {
                 BmpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for the palette!");
             }
+        }
+
+        if (palette.Length > 0)
+        {
+            Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Bgr24>()];
+            ReadOnlySpan<Bgr24> rgbTable = MemoryMarshal.Cast<byte, Bgr24>(palette);
+            Color.FromPixel(rgbTable, colorTable);
+            this.bmpMetadata.ColorTable = colorTable;
         }
 
         int skipAmount = 0;

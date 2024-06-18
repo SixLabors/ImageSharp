@@ -10,12 +10,15 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderInternals
+internal abstract class IconDecoderCore : IImageDecoderInternals
 {
     private IconDir fileHeader;
     private IconDirEntry[]? entries;
 
-    public DecoderOptions Options { get; } = options;
+    protected IconDecoderCore(DecoderOptions options)
+        => this.Options = options;
+
+    public DecoderOptions Options { get; }
 
     public Size Dimensions { get; private set; }
 
@@ -61,10 +64,11 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
         }
 
         ImageMetadata metadata = new();
+        BmpMetadata? bmpMetadata = null;
         PngMetadata? pngMetadata = null;
         Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
         {
-            BmpBitsPerPixel bitsPerPixel = default;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
             ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
             ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
             for (int y = 0; y < source.Height; y++)
@@ -80,12 +84,12 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
                     pngMetadata = x.Image.Metadata.GetPngMetadata();
                 }
 
-                // Bmp does not contain frame specific metadata.
                 target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngMetadata());
             }
             else
             {
-                bitsPerPixel = x.Image.Metadata.GetBmpMetadata().BitsPerPixel;
+                bmpMetadata = x.Image.Metadata.GetBmpMetadata();
+                bitsPerPixel = bmpMetadata.BitsPerPixel;
             }
 
             this.SetFrameMetadata(target.Metadata, this.entries[x.Index], x.Compression, bitsPerPixel);
@@ -96,6 +100,11 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
         }).ToArray());
 
         // Copy the format specific metadata to the image.
+        if (bmpMetadata != null)
+        {
+            result.Metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
+        }
+
         if (pngMetadata != null)
         {
             result.Metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
@@ -114,9 +123,10 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
 
         ImageMetadata metadata = new();
         ImageFrameMetadata[] frames = new ImageFrameMetadata[this.fileHeader.Count];
+        int bpp = 0;
         for (int i = 0; i < frames.Length; i++)
         {
-            BmpBitsPerPixel bitsPerPixel = default;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
             ref IconDirEntry entry = ref this.entries[i];
 
             // If we hit the end of the stream we should break.
@@ -140,10 +150,12 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
             ImageInfo temp = this.GetDecoder(isPng).Identify(stream, cancellationToken);
 
             frames[i] = new();
-            if (isPng)
+            if (!isPng)
             {
                 bitsPerPixel = temp.Metadata.GetBmpMetadata().BitsPerPixel;
             }
+
+            bpp = Math.Max(bpp, (int)bitsPerPixel);
 
             this.SetFrameMetadata(frames[i], this.entries[i], isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, bitsPerPixel);
 
@@ -152,7 +164,7 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
             this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
         }
 
-        return new(new(32), this.Dimensions, metadata, frames);
+        return new(new(bpp), this.Dimensions, metadata, frames);
     }
 
     protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel);
@@ -211,15 +223,13 @@ internal abstract class IconDecoderCore(DecoderOptions options) : IImageDecoderI
                 GeneralOptions = this.Options,
             });
         }
-        else
+
+        return new BmpDecoderCore(new()
         {
-            return new BmpDecoderCore(new()
-            {
-                GeneralOptions = this.Options,
-                ProcessedAlphaMask = true,
-                SkipFileHeader = true,
-                UseDoubleHeight = true,
-            });
-        }
+            GeneralOptions = this.Options,
+            ProcessedAlphaMask = true,
+            SkipFileHeader = true,
+            UseDoubleHeight = true,
+        });
     }
 }

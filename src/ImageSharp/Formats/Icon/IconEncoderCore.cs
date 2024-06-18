@@ -2,18 +2,23 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconEncoderCore(IconFileType iconFileType)
-    : IImageEncoderInternals
+internal abstract class IconEncoderCore : IImageEncoderInternals
 {
+    private readonly IconFileType iconFileType;
     private IconDir fileHeader;
+    private EncodingFrameMetadata[]? entries;
 
-    private IconFrameMetadata[]? entries;
+    protected IconEncoderCore(IconFileType iconFileType)
+        => this.iconFileType = iconFileType;
 
     public void Encode<TPixel>(
         Image<TPixel> image,
@@ -24,17 +29,18 @@ internal abstract class IconEncoderCore(IconFileType iconFileType)
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        IconAssert.CanSeek(stream);
-
         // Stream may not at 0.
         long basePosition = stream.Position;
         this.InitHeader(image);
 
+        // We don't write the header and entries yet as we need to write the image data first.
         int dataOffset = IconDir.Size + (IconDirEntry.Size * this.entries.Length);
         _ = stream.Seek(dataOffset, SeekOrigin.Current);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
+            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
+            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
             ImageFrame<TPixel> frame = image.Frames[i];
             int width = this.entries[i].Entry.Width;
             if (width is 0)
@@ -50,36 +56,54 @@ internal abstract class IconEncoderCore(IconFileType iconFileType)
 
             this.entries[i].Entry.ImageOffset = (uint)stream.Position;
 
-            Image<TPixel> img = new(width, height);
+            // We crop the frame to the size specified in the metadata.
+            // TODO: we can optimize this by cropping the frame only if the new size is both required and different.
+            using Image<TPixel> encodingFrame = new(width, height);
             for (int y = 0; y < height; y++)
             {
-                frame.PixelBuffer.DangerousGetRowSpan(y)[..width].CopyTo(img.GetRootFramePixelBuffer().DangerousGetRowSpan(y));
+                frame.PixelBuffer.DangerousGetRowSpan(y)[..width]
+                     .CopyTo(encodingFrame.GetRootFramePixelBuffer().DangerousGetRowSpan(y));
             }
 
-            QuantizingImageEncoder encoder = this.entries[i].Compression switch
+            ref EncodingFrameMetadata encodingMetadata = ref this.entries[i];
+
+            QuantizingImageEncoder encoder = encodingMetadata.Compression switch
             {
-                IconFrameCompression.Bmp => new Bmp.BmpEncoder()
+                IconFrameCompression.Bmp => new BmpEncoder()
                 {
+                    // We don't have access to the palette in the metadata so we need to quantize the image
+                    // using a new one generated from the pixel data.
+                    Quantizer = encodingMetadata.Entry.BitCount <= 8
+                    ? new WuQuantizer(new()
+                    {
+                        MaxColors = encodingMetadata.Entry.ColorCount
+                    })
+                    : null,
                     ProcessedAlphaMask = true,
                     UseDoubleHeight = true,
                     SkipFileHeader = true,
                     SupportTransparency = false,
-                    BitsPerPixel = iconFileType is IconFileType.ICO
-                        ? (Bmp.BmpBitsPerPixel?)this.entries[i].Entry.BitCount
-                        : Bmp.BmpBitsPerPixel.Pixel24 // TODO: Here you need to switch to selecting the corresponding value according to the size of the image
+                    BitsPerPixel = encodingMetadata.BmpBitsPerPixel
                 },
-                IconFrameCompression.Png => new Png.PngEncoder(),
+                IconFrameCompression.Png => new PngEncoder()
+                {
+                    // Only 32bit Png supported.
+                    // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
+                    BitDepth = PngBitDepth.Bit8,
+                    ColorType = PngColorType.RgbWithAlpha
+                },
                 _ => throw new NotSupportedException(),
             };
 
-            encoder.Encode(img, stream);
-            this.entries[i].Entry.BytesInRes = (uint)stream.Position - this.entries[i].Entry.ImageOffset;
+            encoder.Encode(encodingFrame, stream);
+            encodingMetadata.Entry.BytesInRes = (uint)stream.Position - encodingMetadata.Entry.ImageOffset;
         }
 
+        // We now need to rewind the stream and write the header and the entries.
         long endPosition = stream.Position;
         _ = stream.Seek(basePosition, SeekOrigin.Begin);
         this.fileHeader.WriteTo(stream);
-        foreach (IconFrameMetadata frame in this.entries)
+        foreach (EncodingFrameMetadata frame in this.entries)
         {
             frame.Entry.WriteTo(stream);
         }
@@ -88,32 +112,37 @@ internal abstract class IconEncoderCore(IconFileType iconFileType)
     }
 
     [MemberNotNull(nameof(entries))]
-    private void InitHeader(in Image image)
+    private void InitHeader(Image image)
     {
-        this.fileHeader = new(iconFileType, (ushort)image.Frames.Count);
-        this.entries = iconFileType switch
+        this.fileHeader = new(this.iconFileType, (ushort)image.Frames.Count);
+        this.entries = this.iconFileType switch
         {
             IconFileType.ICO =>
             image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                return new IconFrameMetadata(metadata.Compression, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ToIconDirEntry());
             }).ToArray(),
             IconFileType.CUR =>
             image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                return new IconFrameMetadata(metadata.Compression, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ToIconDirEntry());
             }).ToArray(),
             _ => throw new NotSupportedException(),
         };
     }
 
-    internal sealed class IconFrameMetadata(IconFrameCompression compression, IconDirEntry iconDirEntry)
+    internal sealed class EncodingFrameMetadata(
+        IconFrameCompression compression,
+        BmpBitsPerPixel bmpBitsPerPixel,
+        IconDirEntry iconDirEntry)
     {
         private IconDirEntry iconDirEntry = iconDirEntry;
 
         public IconFrameCompression Compression { get; set; } = compression;
+
+        public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = bmpBitsPerPixel;
 
         public ref IconDirEntry Entry => ref this.iconDirEntry;
     }

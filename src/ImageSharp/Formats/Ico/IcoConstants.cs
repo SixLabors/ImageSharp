@@ -9,13 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Ico;
 internal static class IcoConstants
 {
     /// <summary>
-    /// The list of mimetypes that equate to a ico.
+    /// The list of mime types that equate to a ico.
     /// </summary>
     /// <remarks>
     /// See <see href="https://en.wikipedia.org/wiki/ICO_(file_format)#MIME_type"/>
     /// </remarks>
-    public static readonly IEnumerable<string> MimeTypes = new[]
-    {
+    public static readonly IEnumerable<string> MimeTypes =
+    [
+
         // IANA-registered
         "image/vnd.microsoft.icon",
 
@@ -27,12 +28,12 @@ internal static class IcoConstants
         "image/icon",
         "text/ico",
         "application/ico",
-    };
+    ];
 
     /// <summary>
     /// The list of file extensions that equate to a ico.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "ico" };
+    public static readonly IEnumerable<string> FileExtensions = ["ico"];
 
     public const uint FileHeader = 0x00_01_00_00;
 }

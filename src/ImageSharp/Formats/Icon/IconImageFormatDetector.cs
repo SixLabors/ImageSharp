@@ -60,9 +60,7 @@ public class IconImageFormatDetector : IImageFormatDetector
 
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 }

@@ -1,12 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
 
 namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// IcoFrameMetadata. TODO: Remove base class and merge into this class.
+/// Provides Ico specific metadata information for the image frame.
 /// </summary>
 public class IcoFrameMetadata : IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
 {
@@ -17,54 +18,36 @@ public class IcoFrameMetadata : IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="IcoFrameMetadata"/> class.
-    /// </summary>
-    /// <param name="width">width</param>
-    /// <param name="height">height</param>
-    /// <param name="colorCount">colorCount</param>
-    public IcoFrameMetadata(byte width, byte height, byte colorCount)
+    private IcoFrameMetadata(IcoFrameMetadata metadata)
     {
-        this.EncodingWidth = width;
-        this.EncodingHeight = height;
-        this.ColorCount = colorCount;
-    }
-
-    /// <inheritdoc cref="IcoFrameMetadata()"/>
-    public IcoFrameMetadata(IcoFrameMetadata metadata)
-    {
+        this.Compression = metadata.Compression;
         this.EncodingWidth = metadata.EncodingWidth;
         this.EncodingHeight = metadata.EncodingHeight;
-        this.ColorCount = metadata.ColorCount;
-        this.Compression = metadata.Compression;
+        this.BmpBitsPerPixel = metadata.BmpBitsPerPixel;
     }
 
     /// <summary>
-    /// Gets or sets icoFrameCompression.
+    /// Gets or sets the frame compressions format.
     /// </summary>
     public IconFrameCompression Compression { get; set; }
 
     /// <summary>
-    /// Gets or sets ColorCount field. <br />
-    /// Specifies number of colors in the color palette. Should be 0 if the image does not use a color palette.
+    /// Gets or sets the encoding width. <br />
+    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels.
     /// </summary>
-    // TODO: BmpMetadata does not supported palette yet.
-    public byte ColorCount { get; set; }
+    public byte EncodingWidth { get; set; }
 
     /// <summary>
-    /// Gets or sets Height field. <br />
-    /// Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
+    /// Gets or sets the encoding height. <br />
+    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels.
     /// </summary>
     public byte EncodingHeight { get; set; }
 
     /// <summary>
-    /// Gets or sets Width field. <br />
-    /// Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
+    /// Gets or sets the number of bits per pixel.<br/>
+    /// Used when <see cref="Compression"/> is <see cref="IconFrameCompression.Bmp"/>
     /// </summary>
-    public byte EncodingWidth { get; set; }
-
-    /// <inheritdoc cref="Bmp.BmpMetadata.BitsPerPixel" />
-    public Bmp.BmpBitsPerPixel BitsPerPixel { get; set; } = Bmp.BmpBitsPerPixel.Pixel24;
+    public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel32;
 
     /// <inheritdoc/>
     public IcoFrameMetadata DeepClone() => new(this);
@@ -72,24 +55,29 @@ public class IcoFrameMetadata : IDeepCloneable<IcoFrameMetadata>, IDeepCloneable
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
-    internal void FromIconDirEntry(in IconDirEntry entry)
+    internal void FromIconDirEntry(IconDirEntry entry)
     {
         this.EncodingWidth = entry.Width;
         this.EncodingHeight = entry.Height;
-        this.ColorCount = entry.ColorCount;
     }
 
-    internal IconDirEntry ToIconDirEntry() => new()
+    internal IconDirEntry ToIconDirEntry()
     {
-        Width = this.EncodingWidth,
-        Height = this.EncodingHeight,
-        ColorCount = this.ColorCount,
-        Planes = 1,
-        BitCount = this.Compression switch
+        byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Pixel8
+            ? (byte)0
+            : (byte)ColorNumerics.GetColorCountForBitDepth((int)this.BmpBitsPerPixel);
+
+        return new()
         {
-            IconFrameCompression.Bmp => (ushort)this.BitsPerPixel,
-            IconFrameCompression.Png => 32,
-            _ => throw new NotSupportedException($"Value: {this.Compression}"),
-        },
-    };
+            Width = this.EncodingWidth,
+            Height = this.EncodingHeight,
+            Planes = 1,
+            ColorCount = colorCount,
+            BitCount = this.Compression switch
+            {
+                IconFrameCompression.Bmp => (ushort)this.BmpBitsPerPixel,
+                IconFrameCompression.Png or _ => 32,
+            },
+        };
+    }
 }

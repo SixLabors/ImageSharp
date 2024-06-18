@@ -5,6 +5,10 @@ using SixLabors.ImageSharp.Formats.Icon;
 
 namespace SixLabors.ImageSharp.Formats.Ico;
 
-internal sealed class IcoEncoderCore() : IconEncoderCore(IconFileType.ICO)
+internal sealed class IcoEncoderCore : IconEncoderCore
 {
+    public IcoEncoderCore()
+        : base(IconFileType.ICO)
+    {
+    }
 }

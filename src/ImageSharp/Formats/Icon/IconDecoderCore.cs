@@ -175,14 +175,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         Span<byte> buffer = stackalloc byte[IconDirEntry.Size];
 
         // ICONDIR
-        _ = IconAssert.EndOfStream(stream.Read(buffer[..IconDir.Size]), IconDir.Size);
+        _ = CheckEndOfStream(stream.Read(buffer[..IconDir.Size]), IconDir.Size);
         this.fileHeader = IconDir.Parse(buffer);
 
         // ICONDIRENTRY
         this.entries = new IconDirEntry[this.fileHeader.Count];
         for (int i = 0; i < this.entries.Length; i++)
         {
-            _ = IconAssert.EndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
+            _ = CheckEndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
             this.entries[i] = IconDirEntry.Parse(buffer);
         }
 
@@ -231,5 +231,15 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             SkipFileHeader = true,
             UseDoubleHeight = true,
         });
+    }
+
+    private static int CheckEndOfStream(int v, int length)
+    {
+        if (v != length)
+        {
+            throw new InvalidImageContentException("Not enough bytes to read icon header.");
+        }
+
+        return v;
     }
 }

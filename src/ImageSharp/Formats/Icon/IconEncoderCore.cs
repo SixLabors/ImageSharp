@@ -90,7 +90,8 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
                     // Only 32bit Png supported.
                     // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
                     BitDepth = PngBitDepth.Bit8,
-                    ColorType = PngColorType.RgbWithAlpha
+                    ColorType = PngColorType.RgbWithAlpha,
+                    CompressionLevel = PngCompressionLevel.BestCompression
                 },
                 _ => throw new NotSupportedException(),
             };

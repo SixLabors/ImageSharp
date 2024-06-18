@@ -168,7 +168,6 @@ public class IcoDecoderTests
     [WithFile(InvalidAll, PixelTypes.Rgba32)]
     [WithFile(InvalidBpp, PixelTypes.Rgba32)]
     [WithFile(InvalidCompression, PixelTypes.Rgba32)]
-    [WithFile(InvalidPng, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE4, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE8, PixelTypes.Rgba32)]
     public void InvalidTest(TestImageProvider<Rgba32> provider)
@@ -180,6 +179,17 @@ public class IcoDecoderTests
 
             // TODO: Assert metadata, frame count, etc
         });
+
+    [Theory]
+    [WithFile(InvalidPng, PixelTypes.Rgba32)]
+    public void InvalidPngTest(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
 
     [Theory]
     [WithFile(MixedBmpPngA, PixelTypes.Rgba32)]

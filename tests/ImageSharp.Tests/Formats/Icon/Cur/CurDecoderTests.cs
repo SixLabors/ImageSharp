@@ -21,4 +21,16 @@ public class CurDecoderTests
 
         // TODO: Assert metadata, frame count, etc
     }
+
+    [Theory]
+    [WithFile(CurFake, PixelTypes.Rgba32)]
+    [WithFile(CurReal, PixelTypes.Rgba32)]
+    public void CurDecoder_Decode2(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
 }

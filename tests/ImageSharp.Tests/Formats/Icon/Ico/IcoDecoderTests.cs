@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
@@ -42,6 +41,16 @@ public class IcoDecoderTests
     [WithFile(Bpp1Size9x9, PixelTypes.Rgba32)]
     [WithFile(Bpp1TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp1TranspPartial, PixelTypes.Rgba32)]
+    public void Bpp1Test(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(Bpp24Size15x15, PixelTypes.Rgba32)]
     [WithFile(Bpp24Size16x16, PixelTypes.Rgba32)]
     [WithFile(Bpp24Size17x17, PixelTypes.Rgba32)]
@@ -61,6 +70,16 @@ public class IcoDecoderTests
     [WithFile(Bpp24TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp24TranspPartial, PixelTypes.Rgba32)]
     [WithFile(Bpp24Transp, PixelTypes.Rgba32)]
+    public void Bpp24Test(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(Bpp32Size15x15, PixelTypes.Rgba32)]
     [WithFile(Bpp32Size16x16, PixelTypes.Rgba32)]
     [WithFile(Bpp32Size17x17, PixelTypes.Rgba32)]
@@ -80,6 +99,16 @@ public class IcoDecoderTests
     [WithFile(Bpp32TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp32TranspPartial, PixelTypes.Rgba32)]
     [WithFile(Bpp32Transp, PixelTypes.Rgba32)]
+    public void Bpp32Test(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(Bpp4Size15x15, PixelTypes.Rgba32)]
     [WithFile(Bpp4Size16x16, PixelTypes.Rgba32)]
     [WithFile(Bpp4Size17x17, PixelTypes.Rgba32)]
@@ -98,6 +127,16 @@ public class IcoDecoderTests
     [WithFile(Bpp4Size9x9, PixelTypes.Rgba32)]
     [WithFile(Bpp4TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp4TranspPartial, PixelTypes.Rgba32)]
+    public void Bpp4Test(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(Bpp8Size15x15, PixelTypes.Rgba32)]
     [WithFile(Bpp8Size16x16, PixelTypes.Rgba32)]
     [WithFile(Bpp8Size17x17, PixelTypes.Rgba32)]
@@ -116,28 +155,82 @@ public class IcoDecoderTests
     [WithFile(Bpp8Size9x9, PixelTypes.Rgba32)]
     [WithFile(Bpp8TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp8TranspPartial, PixelTypes.Rgba32)]
+    public void Bpp8Test(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(InvalidAll, PixelTypes.Rgba32)]
-    [WithFile(IcoFake, PixelTypes.Rgba32)]
     [WithFile(InvalidBpp, PixelTypes.Rgba32)]
     [WithFile(InvalidCompression, PixelTypes.Rgba32)]
     [WithFile(InvalidPng, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE4, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE8, PixelTypes.Rgba32)]
+    public void InvalidTest(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(MixedBmpPngA, PixelTypes.Rgba32)]
     [WithFile(MixedBmpPngB, PixelTypes.Rgba32)]
     [WithFile(MixedBmpPngC, PixelTypes.Rgba32)]
+    public void MixedBmpPngTest(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(MultiSizeA, PixelTypes.Rgba32)]
     [WithFile(MultiSizeB, PixelTypes.Rgba32)]
     [WithFile(MultiSizeC, PixelTypes.Rgba32)]
     [WithFile(MultiSizeD, PixelTypes.Rgba32)]
     [WithFile(MultiSizeE, PixelTypes.Rgba32)]
     [WithFile(MultiSizeF, PixelTypes.Rgba32)]
+    public void MultiSizeTest(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
     [WithFile(MultiSizeMultiBitsA, PixelTypes.Rgba32)]
     [WithFile(MultiSizeMultiBitsB, PixelTypes.Rgba32)]
     [WithFile(MultiSizeMultiBitsC, PixelTypes.Rgba32)]
     [WithFile(MultiSizeMultiBitsD, PixelTypes.Rgba32)]
-    public void IcoDecoder_Decode2(TestImageProvider<Rgba32> provider)
+    public void MultiSizeMultiBitsTest(TestImageProvider<Rgba32> provider)
     {
-        Debug.Assert(false);
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
+    }
+
+    [Theory]
+    [WithFile(IcoFake, PixelTypes.Rgba32)]
+    public void IcoFakeTest(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+
+        image.DebugSaveMultiFrame(provider, extension: "png");
+
+        // TODO: Assert metadata, frame count, etc
     }
 }

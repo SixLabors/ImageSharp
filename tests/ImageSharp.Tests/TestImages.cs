@@ -1219,7 +1219,6 @@ public static class TestImages
         public const string Bpp8TranspNotSquare = "Icon/8bpp_transp_not_square.ico";
         public const string Bpp8TranspPartial = "Icon/8bpp_transp_partial.ico";
         public const string InvalidAll = "Icon/invalid_all.ico";
-        public const string IcoFake = "Icon/ico_fake.cur";
         public const string InvalidBpp = "Icon/invalid_bpp.ico";
         public const string InvalidCompression = "Icon/invalid_compression.ico";
         public const string InvalidPng = "Icon/invalid_png.ico";
@@ -1238,6 +1237,7 @@ public static class TestImages
         public const string MultiSizeMultiBitsB = "Icon/multi_size_multi_bits_b.ico";
         public const string MultiSizeMultiBitsC = "Icon/multi_size_multi_bits_c.ico";
         public const string MultiSizeMultiBitsD = "Icon/multi_size_multi_bits_d.ico";
+        public const string IcoFake = "Icon/ico_fake.cur";
     }
 
     public static class Cur

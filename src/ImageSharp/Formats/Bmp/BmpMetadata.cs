@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
@@ -23,6 +23,11 @@ public class BmpMetadata : IDeepCloneable
     {
         this.BitsPerPixel = other.BitsPerPixel;
         this.InfoHeaderType = other.InfoHeaderType;
+
+        if (other.ColorTable?.Length > 0)
+        {
+            this.ColorTable = other.ColorTable.Value.ToArray();
+        }
     }
 
     /// <summary>
@@ -35,8 +40,11 @@ public class BmpMetadata : IDeepCloneable
     /// </summary>
     public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel24;
 
+    /// <summary>
+    /// Gets or sets the color table, if any.
+    /// </summary>
+    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new BmpMetadata(this);
-
-    // TODO: Colors used once we support encoding palette bmps.
 }

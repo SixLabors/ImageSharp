@@ -167,7 +167,7 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
         {
             this.Compression = compression;
             this.BmpBitsPerPixel = compression == IconFrameCompression.Png
-                ? BmpBitsPerPixel.Pixel32
+                ? BmpBitsPerPixel.Bit32
                 : bmpBitsPerPixel;
             this.ColorTable = colorTable;
             this.iconDirEntry = iconDirEntry;

@@ -29,7 +29,7 @@ public class FormatConnectingMetadata
     public PixelTypeInfo PixelTypeInfo { get; init; }
 
     /// <summary>
-    /// Gets the shared color table.
+    /// Gets the shared color table if any.
     /// </summary>
     public ReadOnlyMemory<Color>? ColorTable { get; init; }
 

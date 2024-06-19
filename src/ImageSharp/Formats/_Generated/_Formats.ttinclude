@@ -5,7 +5,9 @@
 <#+
     private static readonly string[] formats = new []{
         "Bmp",
+        "Cur",
         "Gif",
+        "Ico",
         "Jpeg",
         "Pbm",
         "Png",
@@ -16,6 +18,8 @@
     };
 
     private static readonly string[] frameFormats = new []{
+        "Cur",
+        "Ico",
         "Gif",
         "Png",
         "Tiff",

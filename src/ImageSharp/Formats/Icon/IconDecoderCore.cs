@@ -74,7 +74,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         PngMetadata? pngMetadata = null;
         Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
         {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
             ReadOnlyMemory<Color>? colorTable = null;
             ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
             ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
@@ -106,7 +106,9 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
 
             this.SetFrameMetadata(
+                metadata,
                 target.Metadata,
+                x.Index,
                 this.entries[x.Index],
                 x.Compression,
                 bitsPerPixel,
@@ -146,7 +148,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         int bpp = 0;
         for (int i = 0; i < frames.Length; i++)
         {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
             ReadOnlyMemory<Color>? colorTable = null;
             ref IconDirEntry entry = ref this.entries[i];
 
@@ -198,7 +200,9 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             frames[i] = frameMetadata;
 
             this.SetFrameMetadata(
+                metadata,
                 frames[i],
+                i,
                 this.entries[i],
                 isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp,
                 bitsPerPixel,
@@ -220,11 +224,13 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
         }
 
-        return new(new(bpp), this.Dimensions, metadata, frames);
+        return new(this.Dimensions, metadata, frames);
     }
 
     protected abstract void SetFrameMetadata(
-        ImageFrameMetadata metadata,
+        ImageMetadata imageMetadata,
+        ImageFrameMetadata frameMetadata,
+        int index,
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,

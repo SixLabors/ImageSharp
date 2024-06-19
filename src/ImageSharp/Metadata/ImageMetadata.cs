@@ -194,7 +194,9 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         if (this.DecodedImageFormat is not null
             && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatMetadata? decodedMetadata))
         {
-            return TFormatMetadata.FromFormatConnectingMetadata(decodedMetadata.ToFormatConnectingMetadata());
+            TFormatMetadata derivedMeta = TFormatMetadata.FromFormatConnectingMetadata(decodedMetadata.ToFormatConnectingMetadata());
+            this.formatMetadata[key] = derivedMeta;
+            return derivedMeta;
         }
 
         // Fall back to a default instance.
@@ -217,7 +219,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         => ((IDeepCloneable<TFormatMetadata>)this.GetFormatMetadata(key)).DeepClone();
 
     internal void SetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key, TFormatMetadata value)
-        where TFormatMetadata : class, IDeepCloneable
+        where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
         => this.formatMetadata[key] = value;
 
     /// <inheritdoc/>

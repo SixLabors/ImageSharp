@@ -143,6 +143,9 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
         => new()
         {
+            EncodingType = this.BitsPerPixel <= BmpBitsPerPixel.Bit8
+                ? EncodingType.Lossy
+                : EncodingType.Lossless,
             PixelTypeInfo = this.GetPixelTypeInfo()
         };
 

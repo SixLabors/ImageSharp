@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -9,27 +11,44 @@ namespace SixLabors.ImageSharp.Formats;
 public class FormatConnectingFrameMetadata
 {
     /// <summary>
-    /// Gets or sets the frame color table.
+    /// Gets information about the encoded pixel type if any.
     /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; set; }
+    public PixelTypeInfo? PixelTypeInfo { get; init; }
 
     /// <summary>
-    /// Gets or sets the frame color table mode.
+    /// Gets the frame color table if any.
     /// </summary>
-    public FrameColorTableMode ColorTableMode { get; set; }
+    public ReadOnlyMemory<Color>? ColorTable { get; init; }
 
     /// <summary>
-    /// Gets or sets the duration of the frame.
+    /// Gets the frame color table mode.
     /// </summary>
-    public TimeSpan Duration { get; set; }
+    public FrameColorTableMode ColorTableMode { get; init; }
 
     /// <summary>
-    /// Gets or sets the frame alpha blending mode.
+    /// Gets the duration of the frame.
     /// </summary>
-    public FrameBlendMode BlendMode { get; set; }
+    public TimeSpan Duration { get; init; }
 
     /// <summary>
-    /// Gets or sets the frame disposal mode.
+    /// Gets the frame alpha blending mode.
     /// </summary>
-    public FrameDisposalMode DisposalMode { get; set; }
+    public FrameBlendMode BlendMode { get; init; }
+
+    /// <summary>
+    /// Gets the frame disposal mode.
+    /// </summary>
+    public FrameDisposalMode DisposalMode { get; init; }
+
+    /// <summary>
+    /// Gets or sets the encoding width. <br />
+    /// Used for formats that require a specific frame size.
+    /// </summary>
+    public int? EncodingWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encoding height. <br />
+    /// Used for formats that require a specific frame size.
+    /// </summary>
+    public int? EncodingHeight { get; set; }
 }

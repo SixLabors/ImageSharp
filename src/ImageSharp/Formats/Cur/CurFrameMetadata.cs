@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Cur;
 
@@ -18,14 +19,14 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     {
     }
 
-    private CurFrameMetadata(CurFrameMetadata metadata)
+    private CurFrameMetadata(CurFrameMetadata other)
     {
-        this.Compression = metadata.Compression;
-        this.HotspotX = metadata.HotspotX;
-        this.HotspotY = metadata.HotspotY;
-        this.EncodingWidth = metadata.EncodingWidth;
-        this.EncodingHeight = metadata.EncodingHeight;
-        this.BmpBitsPerPixel = metadata.BmpBitsPerPixel;
+        this.Compression = other.Compression;
+        this.HotspotX = other.HotspotX;
+        this.HotspotY = other.HotspotY;
+        this.EncodingWidth = other.EncodingWidth;
+        this.EncodingHeight = other.EncodingHeight;
+        this.BmpBitsPerPixel = other.BmpBitsPerPixel;
     }
 
     /// <summary>
@@ -45,13 +46,13 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
 
     /// <summary>
     /// Gets or sets the encoding width. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels.
+    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
     /// </summary>
     public byte EncodingWidth { get; set; }
 
     /// <summary>
     /// Gets or sets the encoding height. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels.
+    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
     /// </summary>
     public byte EncodingHeight { get; set; }
 
@@ -60,6 +61,12 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     /// Used when <see cref="Compression"/> is <see cref="IconFrameCompression.Bmp"/>
     /// </summary>
     public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel32;
+
+    /// <summary>
+    /// Gets or sets the color table, if any.
+    /// The underlying pixel format is represented by <see cref="Bgr24"/>.
+    /// </summary>
+    public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
     /// <inheritdoc/>
     public CurFrameMetadata DeepClone() => new(this);

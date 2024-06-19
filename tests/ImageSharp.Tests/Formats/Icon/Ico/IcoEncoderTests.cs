@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
@@ -10,23 +11,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
 [Trait("Format", "Icon")]
 public class IcoEncoderTests
 {
-    private static IcoEncoder CurEncoder => new();
-
-    public static readonly TheoryData<string> Files = new()
-    {
-        { Flutter },
-    };
+    private static IcoEncoder Encoder => new();
 
     [Theory]
-    [MemberData(nameof(Files))]
-    public void Encode(string imagePath)
+    [WithFile(Flutter, PixelTypes.Rgba32)]
+    public void CanRoundTripEncoder<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        TestFile testFile = TestFile.Create(imagePath);
-        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using Image<TPixel> image = provider.GetImage(IcoDecoder.Instance);
         using MemoryStream memStream = new();
-        input.Save(memStream, CurEncoder);
+        image.DebugSaveMultiFrame(provider);
 
+        image.Save(memStream, Encoder);
         memStream.Seek(0, SeekOrigin.Begin);
-        IcoDecoder.Instance.Decode(new(), memStream);
+
+        using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
+        encoded.DebugSaveMultiFrame(provider, appendPixelTypeToFileName: false);
+
+        // Despite preservation of the palette. The process can still be lossy
+        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.TolerantPercentage(.23f), IcoDecoder.Instance);
     }
 }

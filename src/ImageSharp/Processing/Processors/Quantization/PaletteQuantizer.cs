@@ -62,9 +62,10 @@ public class PaletteQuantizer : IQuantizer
     {
         Guard.NotNull(options, nameof(options));
 
-        // Always use the palette length over options since the palette cannot be reduced.
-        TPixel[] palette = new TPixel[this.colorPalette.Length];
-        Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
+        // If the palette is larger than the max colors then we need to trim it down.
+        // treat the buffer as FILO.
+        TPixel[] palette = new TPixel[Math.Min(options.MaxColors, this.colorPalette.Length)];
+        Color.ToPixel(this.colorPalette.Span[..palette.Length], palette.AsSpan());
         return new PaletteQuantizer<TPixel>(configuration, options, palette, this.transparentIndex);
     }
 }

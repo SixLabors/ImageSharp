@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Icon.Cur;
@@ -10,23 +11,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Icon.Cur;
 [Trait("Format", "Cur")]
 public class CurEncoderTests
 {
-    private static CurEncoder CurEncoder => new();
-
-    public static readonly TheoryData<string> Files = new()
-    {
-        { WindowsMouse },
-    };
+    private static CurEncoder Encoder => new();
 
     [Theory]
-    [MemberData(nameof(Files))]
-    public void Encode(string imagePath)
+    [WithFile(CurReal, PixelTypes.Rgba32)]
+    [WithFile(WindowsMouse, PixelTypes.Rgba32)]
+    public void CanRoundTripEncoder<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
     {
-        TestFile testFile = TestFile.Create(imagePath);
-        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using Image<TPixel> image = provider.GetImage(CurDecoder.Instance);
         using MemoryStream memStream = new();
-        input.Save(memStream, CurEncoder);
+        image.DebugSaveMultiFrame(provider);
 
+        image.Save(memStream, Encoder);
         memStream.Seek(0, SeekOrigin.Begin);
-        CurDecoder.Instance.Decode(new(), memStream);
+
+        using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
+        encoded.DebugSaveMultiFrame(provider, appendPixelTypeToFileName: false);
+
+        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, CurDecoder.Instance);
     }
 }

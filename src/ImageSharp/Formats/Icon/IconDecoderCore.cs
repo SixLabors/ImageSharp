@@ -31,10 +31,16 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
-        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries = new(this.entries.Length);
+        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries
+            = new((int)Math.Min(this.entries.Length, this.Options.MaxFrames));
 
         for (int i = 0; i < this.entries.Length; i++)
         {
+            if (i == this.Options.MaxFrames)
+            {
+                break;
+            }
+
             ref IconDirEntry entry = ref this.entries[i];
 
             // If we hit the end of the stream we should break.
@@ -69,6 +75,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
         {
             BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            ReadOnlyMemory<Color>? colorTable = null;
             ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
             ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
             for (int y = 0; y < source.Height; y++)
@@ -88,11 +95,22 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
             else
             {
-                bmpMetadata = x.Image.Metadata.GetBmpMetadata();
-                bitsPerPixel = bmpMetadata.BitsPerPixel;
+                BmpMetadata meta = x.Image.Metadata.GetBmpMetadata();
+                bitsPerPixel = meta.BitsPerPixel;
+                colorTable = meta.ColorTable;
+
+                if (x.Index == 0)
+                {
+                    bmpMetadata = meta;
+                }
             }
 
-            this.SetFrameMetadata(target.Metadata, this.entries[x.Index], x.Compression, bitsPerPixel);
+            this.SetFrameMetadata(
+                target.Metadata,
+                this.entries[x.Index],
+                x.Compression,
+                bitsPerPixel,
+                colorTable);
 
             x.Image.Dispose();
 
@@ -122,11 +140,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
 
         ImageMetadata metadata = new();
-        ImageFrameMetadata[] frames = new ImageFrameMetadata[this.fileHeader.Count];
+        BmpMetadata? bmpMetadata = null;
+        PngMetadata? pngMetadata = null;
+        ImageFrameMetadata[] frames = new ImageFrameMetadata[Math.Min(this.fileHeader.Count, this.Options.MaxFrames)];
         int bpp = 0;
         for (int i = 0; i < frames.Length; i++)
         {
             BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            ReadOnlyMemory<Color>? colorTable = null;
             ref IconDirEntry entry = ref this.entries[i];
 
             // If we hit the end of the stream we should break.
@@ -149,25 +170,65 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
             ImageInfo temp = this.GetDecoder(isPng).Identify(stream, cancellationToken);
 
-            frames[i] = new();
-            if (!isPng)
+            ImageFrameMetadata frameMetadata = new();
+
+            if (isPng)
             {
-                bitsPerPixel = temp.Metadata.GetBmpMetadata().BitsPerPixel;
+                if (i == 0)
+                {
+                    pngMetadata = temp.Metadata.GetPngMetadata();
+                }
+
+                frameMetadata.SetFormatMetadata(PngFormat.Instance, temp.FrameMetadataCollection[0].GetPngMetadata());
+            }
+            else
+            {
+                BmpMetadata meta = temp.Metadata.GetBmpMetadata();
+                bitsPerPixel = meta.BitsPerPixel;
+                colorTable = meta.ColorTable;
+
+                if (i == 0)
+                {
+                    bmpMetadata = meta;
+                }
             }
 
             bpp = Math.Max(bpp, (int)bitsPerPixel);
 
-            this.SetFrameMetadata(frames[i], this.entries[i], isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, bitsPerPixel);
+            frames[i] = frameMetadata;
+
+            this.SetFrameMetadata(
+                frames[i],
+                this.entries[i],
+                isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp,
+                bitsPerPixel,
+                colorTable);
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
             this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
         }
 
+        // Copy the format specific metadata to the image.
+        if (bmpMetadata != null)
+        {
+            metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
+        }
+
+        if (pngMetadata != null)
+        {
+            metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
+        }
+
         return new(new(bpp), this.Dimensions, metadata, frames);
     }
 
-    protected abstract void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel);
+    protected abstract void SetFrameMetadata(
+        ImageFrameMetadata metadata,
+        in IconDirEntry entry,
+        IconFrameCompression compression,
+        BmpBitsPerPixel bitsPerPixel,
+        ReadOnlyMemory<Color>? colorTable);
 
     [MemberNotNull(nameof(entries))]
     protected void ReadHeader(Stream stream)

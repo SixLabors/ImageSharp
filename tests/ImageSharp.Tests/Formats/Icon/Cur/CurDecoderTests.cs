@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
+using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 
@@ -17,9 +19,11 @@ public class CurDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
-
-        // TODO: Assert metadata, frame count, etc
+        CurFrameMetadata meta = image.Frames[0].Metadata.GetCurMetadata();
+        Assert.Equal(image.Width, meta.EncodingWidth);
+        Assert.Equal(image.Height, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -28,9 +32,10 @@ public class CurDecoderTests
     public void CurDecoder_Decode2(TestImageProvider<Rgba32> provider)
     {
         using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
-
-        image.DebugSaveMultiFrame(provider, extension: "png");
-
-        // TODO: Assert metadata, frame count, etc
+        CurFrameMetadata meta = image.Frames[0].Metadata.GetCurMetadata();
+        Assert.Equal(image.Width, meta.EncodingWidth);
+        Assert.Equal(image.Height, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
     }
 }

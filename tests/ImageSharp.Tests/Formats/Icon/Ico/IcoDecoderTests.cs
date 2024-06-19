@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
 
@@ -17,9 +19,9 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSaveMultiFrame(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        Assert.Equal(10, image.Frames.Count);
     }
 
     [Theory]
@@ -45,9 +47,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel1, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -74,9 +83,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel24, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -103,9 +119,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -131,9 +154,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel4, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -151,7 +181,8 @@ public class IcoDecoderTests
     [WithFile(Bpp8Size5x5, PixelTypes.Rgba32)]
     [WithFile(Bpp8Size6x6, PixelTypes.Rgba32)]
     [WithFile(Bpp8Size7x7, PixelTypes.Rgba32)]
-    [WithFile(Bpp8Size8x8, PixelTypes.Rgba32)]
+
+    // [WithFile(Bpp8Size8x8, PixelTypes.Rgba32)] This is actually 24 bit.
     [WithFile(Bpp8Size9x9, PixelTypes.Rgba32)]
     [WithFile(Bpp8TranspNotSquare, PixelTypes.Rgba32)]
     [WithFile(Bpp8TranspPartial, PixelTypes.Rgba32)]
@@ -159,9 +190,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel8, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -174,10 +212,6 @@ public class IcoDecoderTests
         => Assert.Throws<NotSupportedException>(() =>
         {
             using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
-
-            image.DebugSaveMultiFrame(provider, extension: "png");
-
-            // TODO: Assert metadata, frame count, etc
         });
 
     [Theory]
@@ -186,9 +220,16 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Png, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -199,9 +240,9 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        Assert.True(image.Frames.Count > 1);
 
-        // TODO: Assert metadata, frame count, etc
+        image.DebugSaveMultiFrame(provider);
     }
 
     [Theory]
@@ -215,9 +256,46 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        Assert.True(image.Frames.Count > 1);
 
-        // TODO: Assert metadata, frame count, etc
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            ImageFrame<Rgba32> frame = image.Frames[i];
+            IcoFrameMetadata meta = frame.Metadata.GetIcoMetadata();
+            Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        }
+
+        image.DebugSaveMultiFrame(provider);
+    }
+
+    [Theory]
+    [WithFile(MultiSizeA, PixelTypes.Rgba32)]
+    [WithFile(MultiSizeB, PixelTypes.Rgba32)]
+    [WithFile(MultiSizeC, PixelTypes.Rgba32)]
+    [WithFile(MultiSizeD, PixelTypes.Rgba32)]
+    [WithFile(MultiSizeE, PixelTypes.Rgba32)]
+    [WithFile(MultiSizeF, PixelTypes.Rgba32)]
+    public void MultiSize_CanDecodeSingleFrame(TestImageProvider<Rgba32> provider)
+    {
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance, new() { MaxFrames = 1 });
+        Assert.Single(image.Frames);
+    }
+
+    [Theory]
+    [InlineData(MultiSizeA)]
+    [InlineData(MultiSizeB)]
+    [InlineData(MultiSizeC)]
+    [InlineData(MultiSizeD)]
+    [InlineData(MultiSizeE)]
+    [InlineData(MultiSizeF)]
+    public void MultiSize_CanIdentifySingleFrame(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(new() { MaxFrames = 1 }, stream);
+
+        Assert.Single(imageInfo.FrameMetadataCollection);
     }
 
     [Theory]
@@ -229,9 +307,9 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        Assert.True(image.Frames.Count > 1);
 
-        // TODO: Assert metadata, frame count, etc
+        image.DebugSaveMultiFrame(provider);
     }
 
     [Theory]
@@ -240,8 +318,15 @@ public class IcoDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
 
-        image.DebugSaveMultiFrame(provider, extension: "png");
+        image.DebugSave(provider);
 
-        // TODO: Assert metadata, frame count, etc
+        IcoFrameMetadata meta = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        int expectedWidth = image.Width >= 256 ? 0 : image.Width;
+        int expectedHeight = image.Height >= 256 ? 0 : image.Height;
+
+        Assert.Equal(expectedWidth, meta.EncodingWidth);
+        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
+        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
     }
 }

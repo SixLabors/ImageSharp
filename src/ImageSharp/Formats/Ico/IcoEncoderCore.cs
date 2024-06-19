@@ -7,8 +7,8 @@ namespace SixLabors.ImageSharp.Formats.Ico;
 
 internal sealed class IcoEncoderCore : IconEncoderCore
 {
-    public IcoEncoderCore()
-        : base(IconFileType.ICO)
+    public IcoEncoderCore(QuantizingImageEncoder encoder)
+        : base(encoder, IconFileType.ICO)
     {
     }
 }

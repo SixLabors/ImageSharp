@@ -14,11 +14,17 @@ internal sealed class IcoDecoderCore : IconDecoderCore
     {
     }
 
-    protected override void SetFrameMetadata(ImageFrameMetadata metadata, in IconDirEntry entry, IconFrameCompression compression, BmpBitsPerPixel bitsPerPixel)
+    protected override void SetFrameMetadata(
+        ImageFrameMetadata metadata,
+        in IconDirEntry entry,
+        IconFrameCompression compression,
+        BmpBitsPerPixel bitsPerPixel,
+        ReadOnlyMemory<Color>? colorTable)
     {
         IcoFrameMetadata icoFrameMetadata = metadata.GetIcoMetadata();
         icoFrameMetadata.FromIconDirEntry(entry);
         icoFrameMetadata.Compression = compression;
         icoFrameMetadata.BmpBitsPerPixel = bitsPerPixel;
+        icoFrameMetadata.ColorTable = colorTable;
     }
 }

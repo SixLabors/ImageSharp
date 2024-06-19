@@ -13,12 +13,16 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 
 internal abstract class IconEncoderCore : IImageEncoderInternals
 {
+    private readonly QuantizingImageEncoder encoder;
     private readonly IconFileType iconFileType;
     private IconDir fileHeader;
     private EncodingFrameMetadata[]? entries;
 
-    protected IconEncoderCore(IconFileType iconFileType)
-        => this.iconFileType = iconFileType;
+    protected IconEncoderCore(QuantizingImageEncoder encoder, IconFileType iconFileType)
+    {
+        this.encoder = encoder;
+        this.iconFileType = iconFileType;
+    }
 
     public void Encode<TPixel>(
         Image<TPixel> image,
@@ -71,14 +75,7 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
             {
                 IconFrameCompression.Bmp => new BmpEncoder()
                 {
-                    // We don't have access to the palette in the metadata so we need to quantize the image
-                    // using a new one generated from the pixel data.
-                    Quantizer = encodingMetadata.Entry.BitCount <= 8
-                    ? new WuQuantizer(new()
-                    {
-                        MaxColors = encodingMetadata.Entry.ColorCount
-                    })
-                    : null,
+                    Quantizer = this.GetQuantizer(encodingMetadata),
                     ProcessedAlphaMask = true,
                     UseDoubleHeight = true,
                     SkipFileHeader = true,
@@ -122,28 +119,65 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
             image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
             }).ToArray(),
             IconFileType.CUR =>
             image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
             }).ToArray(),
             _ => throw new NotSupportedException(),
         };
     }
 
-    internal sealed class EncodingFrameMetadata(
-        IconFrameCompression compression,
-        BmpBitsPerPixel bmpBitsPerPixel,
-        IconDirEntry iconDirEntry)
+    private IQuantizer? GetQuantizer(EncodingFrameMetadata metadata)
     {
-        private IconDirEntry iconDirEntry = iconDirEntry;
+        if (metadata.Entry.BitCount > 8)
+        {
+            return null;
+        }
 
-        public IconFrameCompression Compression { get; set; } = compression;
+        if (this.encoder.Quantizer is not null)
+        {
+            return this.encoder.Quantizer;
+        }
 
-        public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = bmpBitsPerPixel;
+        if (metadata.ColorTable is null)
+        {
+            return new WuQuantizer(new()
+            {
+                MaxColors = metadata.Entry.ColorCount
+            });
+        }
+
+        // Don't dither if we have a palette. We want to preserve as much information as possible.
+        return new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null });
+    }
+
+    internal sealed class EncodingFrameMetadata
+    {
+        private IconDirEntry iconDirEntry;
+
+        public EncodingFrameMetadata(
+            IconFrameCompression compression,
+            BmpBitsPerPixel bmpBitsPerPixel,
+            ReadOnlyMemory<Color>? colorTable,
+            IconDirEntry iconDirEntry)
+        {
+            this.Compression = compression;
+            this.BmpBitsPerPixel = compression == IconFrameCompression.Png
+                ? BmpBitsPerPixel.Pixel32
+                : bmpBitsPerPixel;
+            this.ColorTable = colorTable;
+            this.iconDirEntry = iconDirEntry;
+        }
+
+        public IconFrameCompression Compression { get; }
+
+        public BmpBitsPerPixel BmpBitsPerPixel { get; }
+
+        public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
         public ref IconDirEntry Entry => ref this.iconDirEntry;
     }

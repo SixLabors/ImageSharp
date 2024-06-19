@@ -117,6 +117,11 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         return newMeta;
     }
 
+    internal void SetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, TFormatFrameMetadata value)
+        where TFormatMetadata : class
+        where TFormatFrameMetadata : class, IDeepCloneable
+        => this.formatMetadata[key] = value;
+
     /// <summary>
     /// Creates a new instance the metadata value associated with the specified key.
     /// The instance is created from a clone generated via <see cref="GetFormatMetadata{TFormatMetadata, TFormatFrameMetadata}(IImageFormat{TFormatMetadata, TFormatFrameMetadata})"/>.

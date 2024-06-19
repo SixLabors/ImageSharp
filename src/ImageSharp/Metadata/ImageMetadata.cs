@@ -216,6 +216,10 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
         => ((IDeepCloneable<TFormatMetadata>)this.GetFormatMetadata(key)).DeepClone();
 
+    internal void SetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key, TFormatMetadata value)
+        where TFormatMetadata : class, IDeepCloneable
+        => this.formatMetadata[key] = value;
+
     /// <inheritdoc/>
     public ImageMetadata DeepClone() => new(this);
 

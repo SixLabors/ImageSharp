@@ -26,6 +26,11 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     {
         this.BitsPerPixel = other.BitsPerPixel;
         this.InfoHeaderType = other.InfoHeaderType;
+
+        if (other.ColorTable?.Length > 0)
+        {
+            this.ColorTable = other.ColorTable.Value.ToArray();
+        }
     }
 
     /// <summary>
@@ -37,6 +42,11 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     /// Gets or sets the number of bits per pixel.
     /// </summary>
     public BmpBitsPerPixel BitsPerPixel { get; set; } = BmpBitsPerPixel.Bit24;
+
+    /// <summary>
+    /// Gets or sets the color table, if any.
+    /// </summary>
+    public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
     /// <inheritdoc/>
     public static BmpMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)

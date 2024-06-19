@@ -345,9 +345,10 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
+        List<ImageFrameMetadata> framesMetadata = [];
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
-        FrameControl? lastFrameControl = null;
+        FrameControl? currentFrameControl = null;
         Span<byte> buffer = stackalloc byte[20];
 
         this.currentStream.Skip(8);
@@ -400,7 +401,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 break;
                             }
 
-                            lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+
                             break;
                         case PngChunkType.FrameData:
                             if (frameCount == this.maxFrames)
@@ -413,20 +415,33 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 goto EOF;
                             }
 
-                            if (lastFrameControl is null)
+                            if (currentFrameControl is null)
                             {
                                 PngThrowHelper.ThrowMissingFrameControl();
                             }
+
+                            InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                             // Skip sequence number
                             this.currentStream.Skip(4);
                             this.SkipChunkDataAndCrc(chunk);
                             break;
                         case PngChunkType.Data:
+
                             // Spec says tRNS must be before IDAT so safe to exit.
                             if (this.colorMetadataOnly)
                             {
                                 goto EOF;
+                            }
+
+                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
+                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            if (framesMetadata.Count == 0)
+                            {
+                                InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
+
+                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
+                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -512,10 +527,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-            AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
-
-            return new ImageInfo(new(this.header.Width, this.header.Height), metadata);
+            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -678,6 +690,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.scanline?.Dispose();
         this.previousScanline = this.memoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
         this.scanline = this.configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
+    }
+
+    private static void InitializeFrameMetadata(List<ImageFrameMetadata> imageFrameMetadata, FrameControl currentFrameControl)
+    {
+        ImageFrameMetadata meta = new();
+        PngFrameMetadata frameMetadata = meta.GetPngMetadata();
+        frameMetadata.FromChunk(currentFrameControl);
+        imageFrameMetadata.Add(meta);
     }
 
     /// <summary>

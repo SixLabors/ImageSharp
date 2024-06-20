@@ -515,6 +515,7 @@ public static class TestImages
             public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
             public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
             public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            public const string BadMaxLzwBits = "Gif/issues/issue_2743.gif";
             public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
             public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
             public const string Issue1530 = "Gif/issues/issue1530.gif";

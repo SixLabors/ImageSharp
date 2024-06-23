@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -34,6 +34,8 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     private readonly List<HeifItem> items;
 
     private readonly List<HeifItemLink> itemLinks;
+
+    private Av1CodecConfiguration av1CodecConfiguration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HeifDecoderCore" /> class.
@@ -475,6 +477,8 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                 case Heif4CharCode.Iscl:
                 case Heif4CharCode.HvcC:
                 case Heif4CharCode.Av1C:
+                    this.av1CodecConfiguration = new(boxBuffer);
+                    break;
                 case Heif4CharCode.Rloc:
                 case Heif4CharCode.Udes:
                     // TODO: Implement

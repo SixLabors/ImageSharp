@@ -471,14 +471,14 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
                     }
 
                     break;
+                case Heif4CharCode.Av1C:
+                    this.av1CodecConfiguration = new(boxBuffer);
+                    break;
                 case Heif4CharCode.Altt:
                 case Heif4CharCode.Imir:
                 case Heif4CharCode.Irot:
                 case Heif4CharCode.Iscl:
                 case Heif4CharCode.HvcC:
-                case Heif4CharCode.Av1C:
-                    this.av1CodecConfiguration = new(boxBuffer);
-                    break;
                 case Heif4CharCode.Rloc:
                 case Heif4CharCode.Udes:
                     // TODO: Implement

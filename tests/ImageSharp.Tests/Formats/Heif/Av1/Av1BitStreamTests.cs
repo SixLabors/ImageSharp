@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
-public class Av1BitsStreamTests
+public class Av1BitStreamTests
 {
     [Theory]
     [InlineData(42, new bool[] { false, false, true, false, true, false, true, false })]
@@ -169,6 +169,7 @@ public class Av1BitsStreamTests
         {
             ulong actual = reader.ReadNonSymmetric(numberOfSymbols);
             actuals[i] = (uint)actual;
+
             // Assert.NotEqual(0UL, actual);
         }
 
@@ -230,6 +231,7 @@ public class Av1BitsStreamTests
         {
             int actual = reader.ReadSignedFromUnsigned(bitCount);
             actuals[i] = actual;
+
             // Assert.NotEqual(0, actual);
         }
 

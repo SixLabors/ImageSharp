@@ -195,7 +195,7 @@ public class SymbolTest
         Av1SymbolEncoder encoder = new(configuration, 100 / 8);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
-            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None ];
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
         Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
 
         // Act

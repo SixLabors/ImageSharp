@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Reader for Open Bitstream Units (OBU's).
+/// </summary>
 internal class ObuReader
 {
     public ObuSequenceHeader? SequenceHeader { get; set; }
@@ -112,6 +115,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.3.2. OBU header syntax.
+    /// </summary>
     private static ObuHeader ReadObuHeader(ref Av1BitStreamReader reader)
     {
         ObuHeader header = new();
@@ -189,6 +195,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.3.5. Byte alignment syntax.
+    /// </summary>
     private static void AlignToByteBoundary(ref Av1BitStreamReader reader)
     {
         while ((reader.BitPosition & 0x7) > 0)
@@ -216,6 +225,9 @@ internal class ObuReader
         _ => false,
     };
 
+    /// <summary>
+    /// 5.5.1. General sequence header OBU syntax.
+    /// </summary>
     private static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         sequenceHeader.SequenceProfile = (ObuSequenceProfile)reader.ReadLiteral(3);
@@ -284,6 +296,9 @@ internal class ObuReader
         ReadTrailingBits(ref reader);
     }
 
+    /// <summary>
+    /// 5.5.2. Color config syntax.
+    /// </summary>
     private static ObuColorConfig ReadColorConfig(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         ObuColorConfig colorConfig = new();
@@ -386,6 +401,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.8. Superres params syntax.
+    /// </summary>
     private void ReadSuperResolutionParameters(ref Av1BitStreamReader reader)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
@@ -418,6 +436,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.6. Render size syntax.
+    /// </summary>
     private void ReadRenderSize(ref Av1BitStreamReader reader)
     {
         ObuFrameHeader frameInfo = this.FrameHeader!;
@@ -434,6 +455,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.7. Frame size with refs syntax.
+    /// </summary>
     private void ReadFrameSizeWithReferences(ref Av1BitStreamReader reader, bool frameSizeOverrideFlag)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
@@ -461,6 +485,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.5. Frame size syntax.
+    /// </summary>
     private void ReadFrameSize(ref Av1BitStreamReader reader, bool frameSizeOverrideFlag)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
@@ -480,6 +507,9 @@ internal class ObuReader
         this.ComputeImageSize(sequenceHeader);
     }
 
+    /// <summary>
+    /// 5.9.15. Tile info syntax.
+    /// </summary>
     private static ObuTileGroupHeader ReadTileInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         ObuTileGroupHeader tileInfo = new();
@@ -648,6 +678,9 @@ internal class ObuReader
         return tileInfo;
     }
 
+    /// <summary>
+    /// 5.9.2. Uncompressed header syntax.
+    /// </summary>
     private void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, int planesCount)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
@@ -946,6 +979,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.1. General frame header OBU syntax.
+    /// </summary>
     private void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
         int planeCount = this.SequenceHeader!.ColorConfig.IsMonochrome ? 1 : 3;
@@ -963,6 +999,9 @@ internal class ObuReader
         header.PayloadSize -= headerBytes;
     }
 
+    /// <summary>
+    /// 5.11.1. General tile group OBU syntax.
+    /// </summary>
     private void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, out bool isLastTileGroup)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
@@ -1029,6 +1068,9 @@ internal class ObuReader
         decoder.FinishDecodeTiles(doCdef, doLoopRestoration);
     }
 
+    /// <summary>
+    /// 5.9.13. Delta quantizer syntax.
+    /// </summary>
     private static int ReadDeltaQ(ref Av1BitStreamReader reader)
     {
         int deltaQ = 0;
@@ -1040,6 +1082,9 @@ internal class ObuReader
         return deltaQ;
     }
 
+    /// <summary>
+    /// 5.9.17. Quantizer index delta parameters syntax.
+    /// </summary>
     private static void ReadFrameDeltaQParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         frameInfo.DeltaQParameters.Resolution = 0;
@@ -1055,6 +1100,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.18. Loop filter delta parameters syntax.
+    /// </summary>
     private static void ReadFrameDeltaLoopFilterParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         frameInfo.DeltaLoopFilterParameters.IsPresent = false;
@@ -1075,6 +1123,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.12. Quantization params syntax.
+    /// </summary>
     private static void ReadQuantizationParameters(ref Av1BitStreamReader reader, ObuQuantizationParameters quantParams, ObuColorConfig colorInfo, int planesCount)
     {
         quantParams.BaseQIndex = (int)reader.ReadLiteral(8);
@@ -1131,6 +1182,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.14. Segmentation params syntax.
+    /// </summary>
     private static void ReadSegmentationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         frameInfo.SegmentationParameters.Enabled = reader.ReadBoolean();
@@ -1139,6 +1193,9 @@ internal class ObuReader
         // TODO: Parse more stuff.
     }
 
+    /// <summary>
+    /// 5.9.11. Loop filter params syntax
+    /// </summary>
     private static void ReadLoopFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         frameInfo.LoopFilterParameters.FilterLevel = new int[2];
@@ -1168,6 +1225,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.21. TX mode syntax.
+    /// </summary>
     private static void ReadTransformMode(ref Av1BitStreamReader reader, ObuFrameHeader frameInfo)
     {
         if (frameInfo.CodedLossless)
@@ -1188,7 +1248,7 @@ internal class ObuReader
     }
 
     /// <summary>
-    /// See section 5.9.20.
+    /// See section 5.9.20. Loop restoration params syntax.
     /// </summary>
     private static void ReadLoopRestorationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
@@ -1244,7 +1304,7 @@ internal class ObuReader
     }
 
     /// <summary>
-    /// See section 5.9.19.
+    /// See section 5.9.19. CDEF params syntax.
     /// </summary>
     private static void ReadCdefParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
@@ -1273,6 +1333,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.24. Global motion params syntax.
+    /// </summary>
     private static void ReadGlobalMotionParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame)
     {
         if (isIntraFrame)
@@ -1284,6 +1347,9 @@ internal class ObuReader
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// 5.9.23. Frame reference mode syntax
+    /// </summary>
     private static ObuReferenceMode ReadFrameReferenceMode(ref Av1BitStreamReader reader, bool isIntraFrame)
     {
         if (isIntraFrame)
@@ -1294,6 +1360,9 @@ internal class ObuReader
         return (ObuReferenceMode)reader.ReadLiteral(1);
     }
 
+    /// <summary>
+    /// 5.11.10. Skip mode syntax.
+    /// </summary>
     private static void ReadSkipModeParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame, ObuReferenceMode referenceSelect)
     {
         if (isIntraFrame || referenceSelect == ObuReferenceMode.ReferenceModeSelect || !sequenceHeader.OrderHintInfo.EnableOrderHint)
@@ -1315,6 +1384,9 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.30. Film grain params syntax.
+    /// </summary>
     private static ObuFilmGrainParameters ReadFilmGrainFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         ObuFilmGrainParameters grainParams = new();

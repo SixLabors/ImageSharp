@@ -1138,6 +1138,7 @@ public static class TestImages
         public const string IrvineAvif = "Heif/Irvine_CA.avif";
 
         public const string XnConvert = "Heif/jpeg444_xnconvert.avif";
+    }
 
     public static class Ico
     {

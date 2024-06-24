@@ -227,7 +227,7 @@ public sealed class Configuration
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
             new QoiConfigurationModule(),
-            new HeifConfigurationModule());
+            new HeifConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule());
 }

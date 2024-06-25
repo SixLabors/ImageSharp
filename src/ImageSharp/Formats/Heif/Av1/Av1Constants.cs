@@ -118,4 +118,9 @@ internal static class Av1Constants
     /// Number of segments allowed in segmentation map.
     /// </summary>
     public const int MaxSegments = 8;
+
+    /// <summary>
+    /// Number of reference frame types (including intra type).
+    /// </summary>
+    public const int TotalReferencesPerFrame = 8;
 }

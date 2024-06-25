@@ -714,7 +714,7 @@ internal class ObuReader
         }
 
         frameInfo.DisableCdfUpdate = reader.ReadBoolean();
-        frameInfo.AllowScreenContentTools = sequenceHeader.ForceScreenContentTools == 1;
+        frameInfo.AllowScreenContentTools = sequenceHeader.ForceScreenContentTools == 2;
         if (frameInfo.AllowScreenContentTools)
         {
             frameInfo.AllowScreenContentTools = reader.ReadBoolean();
@@ -936,7 +936,7 @@ internal class ObuReader
         }
 
         frameInfo.AllLossless = frameInfo.CodedLossless && frameInfo.FrameSize.FrameWidth == frameInfo.FrameSize.SuperResolutionUpscaledWidth;
-        ReadLoopFilterParameters(ref reader, sequenceHeader, frameInfo, planesCount);
+        this.ReadLoopFilterParameters(ref reader, planesCount);
         ReadCdefParameters(ref reader, sequenceHeader, frameInfo, planesCount);
         ReadLoopRestorationParameters(ref reader, sequenceHeader, frameInfo, planesCount);
         ReadTransformMode(ref reader, frameInfo);
@@ -1024,7 +1024,7 @@ internal class ObuReader
         int tileGroupEnd = tileCount - 1;
         if (tileCount != 1 && tileStartAndEndPresentFlag)
         {
-            int tileBits = Av1Math.Log2(tileInfo.TileColumnCount) + Av1Math.Log2(tileInfo.TileRowCount);
+            int tileBits = tileInfo.TileColumnCountLog2 + tileInfo.TileRowCountLog2;
             tileGroupStart = (int)reader.ReadLiteral(tileBits);
             tileGroupEnd = (int)reader.ReadLiteral(tileBits);
         }
@@ -1196,8 +1196,9 @@ internal class ObuReader
     /// <summary>
     /// 5.9.11. Loop filter params syntax
     /// </summary>
-    private static void ReadLoopFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private void ReadLoopFilterParameters(ref Av1BitStreamReader reader, int planesCount)
     {
+        ObuFrameHeader frameInfo = this.FrameHeader!;
         frameInfo.LoopFilterParameters.FilterLevel = new int[2];
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy)
         {
@@ -1220,8 +1221,25 @@ internal class ObuReader
         frameInfo.LoopFilterParameters.ReferenceDeltaModeEnabled = reader.ReadBoolean();
         if (frameInfo.LoopFilterParameters.ReferenceDeltaModeEnabled)
         {
-            // TODO: Implement.
-            throw new NotImplementedException();
+            frameInfo.LoopFilterParameters.ReferenceDeltaModeUpdate = reader.ReadBoolean();
+            if (frameInfo.LoopFilterParameters.ReferenceDeltaModeUpdate)
+            {
+                for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
+                {
+                    if (reader.ReadBoolean())
+                    {
+                        frameInfo.LoopFilterParameters.ReferenceDeltas[i] = reader.ReadSignedFromUnsigned(7);
+                    }
+                }
+
+                for (int i = 0; i < 2; i++)
+                {
+                    if (reader.ReadBoolean())
+                    {
+                        frameInfo.LoopFilterParameters.ModeDeltas[i] = reader.ReadSignedFromUnsigned(7);
+                    }
+                }
+            }
         }
     }
 

@@ -1531,7 +1531,7 @@ internal class ObuReader
         => sequenceLevelIndex is < 24 or 31;
 
     /// <summary>
-    /// Returns the smallest value for k such that blockSize << k is greater than or equal to target.
+    /// Returns the smallest value for k such that blockSize &lt;&lt; k is greater than or equal to target.
     /// </summary>
     public static int TileLog2(int blockSize, int target)
     {

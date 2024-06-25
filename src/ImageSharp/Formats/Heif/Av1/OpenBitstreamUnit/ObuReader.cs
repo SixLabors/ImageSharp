@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -11,6 +12,34 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// </summary>
 internal class ObuReader
 {
+    /// <summary>
+    /// Maximum value used for loop filtering.
+    /// </summary>
+    private const int MaxLoopFilter = 63;
+
+    /// <summary>
+    /// Number of segments allowed in segmentation map.
+    /// </summary>
+    private const int MaxSegments = 0;
+
+    /// <summary>
+    /// Number of segment features.
+    /// </summary>
+    private const int SegLvlMax = 8;
+
+    /// <summary>
+    /// Index for reference frame segment feature.
+    /// </summary>
+    private const int SegLvlRefFrame = 5;
+
+    private const int PrimaryRefNone = 7;
+
+    private static readonly int[] SegmentationFeatureBits = [8, 6, 6, 6, 6, 3, 0, 0];
+
+    private static readonly int[] SegmentationFeatureSigned = [1, 1, 1, 1, 1, 0, 0, 0];
+
+    private static readonly int[] SegmentationFeatureMax = [255, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, 7, 0, 0];
+
     public ObuSequenceHeader? SequenceHeader { get; set; }
 
     public ObuFrameHeader? FrameHeader { get; set; }
@@ -1188,9 +1217,84 @@ internal class ObuReader
     private static void ReadSegmentationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
         frameInfo.SegmentationParameters.Enabled = reader.ReadBoolean();
-        Guard.IsFalse(frameInfo.SegmentationParameters.Enabled, nameof(frameInfo.SegmentationParameters.Enabled), "Segmentation not supported yet.");
 
-        // TODO: Parse more stuff.
+        if (frameInfo.SegmentationParameters.Enabled)
+        {
+            if (frameInfo.PrimaryReferenceFrame == PrimaryRefNone)
+            {
+                frameInfo.SegmentationParameters.SegmentationUpdateMap = 1;
+                frameInfo.SegmentationParameters.SegmentationTemporalUpdate = 0;
+                frameInfo.SegmentationParameters.SegmentationUpdateData = 1;
+            }
+            else
+            {
+                frameInfo.SegmentationParameters.SegmentationUpdateMap = reader.ReadBoolean() ? 1 : 0;
+                if (frameInfo.SegmentationParameters.SegmentationUpdateMap == 1)
+                {
+                    frameInfo.SegmentationParameters.SegmentationTemporalUpdate = reader.ReadBoolean() ? 1 : 0;
+                }
+
+                frameInfo.SegmentationParameters.SegmentationUpdateData = reader.ReadBoolean() ? 1 : 0;
+            }
+
+            if (frameInfo.SegmentationParameters.SegmentationUpdateData == 1)
+            {
+                for (int i = 0; i < MaxSegments; i++)
+                {
+                    for (int j = 0; j < SegLvlMax; j++)
+                    {
+                        int featureValue = 0;
+                        bool featureEnabled = reader.ReadBoolean();
+                        frameInfo.SegmentationParameters.FeatureEnabled[i, j] = featureEnabled;
+                        int clippedValue = 0;
+                        if (featureEnabled)
+                        {
+                            int bitsToRead = SegmentationFeatureBits[j];
+                            int limit = SegmentationFeatureMax[j];
+                            if (SegmentationFeatureSigned[j] == 1)
+                            {
+                                featureValue = reader.ReadSignedFromUnsigned(1 + bitsToRead);
+                                clippedValue = Av1Math.Clip3(-limit, limit, featureValue);
+                            }
+                            else
+                            {
+                                featureValue = (int)reader.ReadLiteral(bitsToRead);
+                            }
+                        }
+
+                        frameInfo.SegmentationParameters.FeatureData[i, j] = clippedValue;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < MaxSegments; i++)
+            {
+                for (int j = 0; j < SegLvlMax; j++)
+                {
+                    frameInfo.SegmentationParameters.FeatureEnabled[i, j] = false;
+                    frameInfo.SegmentationParameters.FeatureData[i, j] = 0;
+                }
+            }
+        }
+
+        frameInfo.SegmentationParameters.SegmentIdPrecedesSkip = false;
+        frameInfo.SegmentationParameters.LastActiveSegmentId = 0;
+        for (int i = 0; i < MaxSegments; i++)
+        {
+            for (int j = 0; j < SegLvlMax; j++)
+            {
+                if (frameInfo.SegmentationParameters.FeatureEnabled[i, j])
+                {
+                    frameInfo.SegmentationParameters.LastActiveSegmentId = i;
+                    if (j >= SegLvlRefFrame)
+                    {
+                        frameInfo.SegmentationParameters.SegmentIdPrecedesSkip = true;
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -1426,6 +1530,9 @@ internal class ObuReader
     private static bool IsValidSequenceLevel(int sequenceLevelIndex)
         => sequenceLevelIndex is < 24 or 31;
 
+    /// <summary>
+    /// Returns the smallest value for k such that blockSize << k is greater than or equal to target.
+    /// </summary>
     public static int TileLog2(int blockSize, int target)
     {
         int k;

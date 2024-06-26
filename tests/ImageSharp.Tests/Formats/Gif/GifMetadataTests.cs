@@ -190,5 +190,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 }
             }
         }
+
+        [Theory]
+        [InlineData(TestImages.Gif.Issues.BadMaxLzwBits, 8)]
+        [InlineData(TestImages.Gif.Issues.Issue2012BadMinCode, 1)]
+        public void Identify_Frames_Bad_Lzw(string imagePath, int framesCount)
+        {
+            TestFile testFile = TestFile.Create(imagePath);
+            using MemoryStream stream = new(testFile.Bytes, false);
+
+            IImageInfo imageInfo = Image.Identify(stream);
+
+            Assert.NotNull(imageInfo);
+            GifMetadata gifMetadata = imageInfo.Metadata.GetGifMetadata();
+            Assert.NotNull(gifMetadata);
+        }
     }
 }

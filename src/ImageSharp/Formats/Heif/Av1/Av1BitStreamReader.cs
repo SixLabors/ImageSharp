@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal ref struct Av1BitStreamReader
 {
-    private const int WordSize = 1 << WordSizeLog2;
+    public const int WordSize = 1 << WordSizeLog2;
     private const int WordSizeLog2 = 5;
     private const int WordSizeInBytesLog2 = WordSizeLog2 - Log2Of8;
     private const int Log2Of8 = 3;
@@ -182,7 +182,7 @@ internal ref struct Av1BitStreamReader
         // TODO: Pass exact byte iso Word start.
         int spanLength = tileDataSize >> WordSizeInBytesLog2;
         Span<uint> span = this.data.Slice(this.bitOffset >> WordSizeLog2, spanLength);
-        this.bitOffset += tileDataSize << Log2Of8;
+        this.Skip(tileDataSize << Log2Of8);
         return MemoryMarshal.Cast<uint, byte>(span);
     }
 }

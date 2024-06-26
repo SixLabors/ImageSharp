@@ -68,13 +68,13 @@ internal static class Av1BlockSizeExtensions
     /// Returns base 2 logarithm of the width of the block in units of 4 samples.
     /// </summary>
     public static int Get4x4WidthLog2(this Av1BlockSize blockSize)
-        => Get4x4WideCount(blockSize) << 2;
+        => Av1Math.Log2(Get4x4WideCount(blockSize));
 
     /// <summary>
     /// Returns base 2 logarithm of the height of the block in units of 4 samples.
     /// </summary>
     public static int Get4x4HeightLog2(this Av1BlockSize blockSize)
-        => Get4x4HighCount(blockSize) << 2;
+        => Av1Math.Log2(Get4x4HighCount(blockSize));
 
     /// <summary>
     /// Returns the block size of a sub sampled block.

@@ -32,31 +32,36 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
         Assert.NotNull(obuReader.FrameHeader.TilesInfo);
+        Assert.Equal(reader.Length * Av1BitStreamReader.WordSize, reader.BitPosition);
+        Assert.Equal(reader.Length * 4, blockSize);
     }
 
-    /* [Theory]
-    // [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
-    // public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize)
-    // {
-    //    // Assign
-    //    string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
-    //    byte[] content = File.ReadAllBytes(filePath);
-    //    Span<byte> span = content.AsSpan(fileOffset, blockSize);
-    //    IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
-    //    Av1BitStreamReader reader = new(span);
+    /*
+    [Theory]
+    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
+    public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize)
+    {
+        // Assign
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
+        byte[] content = File.ReadAllBytes(filePath);
+        Span<byte> span = content.AsSpan(fileOffset, blockSize);
+        Av1TileDecoderStub tileDecoder = new();
+        Av1BitStreamReader reader = new(span);
+        ObuReader obuReader = new();
 
-    //    // Act 1
-    //    ObuReader.Read(ref reader, blockSize, tileDecoder);
+        // Act 1
+        obuReader.Read(ref reader, blockSize, tileDecoder);
 
-    //    // Assign 2
-    //    MemoryStream encoded = new();
+        // Assign 2
+        MemoryStream encoded = new();
 
-    //    // Act 2
-    //    ObuWriter.Write(encoded, tileDecoder);
+        // Act 2
+        ObuWriter obuWriter = new();
+        ObuWriter.Write(encoded, obuReader.SequenceHeader, obuReader.FrameHeader);
 
-    //    // Assert
-    //    Assert.Equal(span, encoded.ToArray());
-    //}
+        // Assert
+        Assert.Equal(span, encoded.ToArray());
+    }
     */
 
     [Theory]

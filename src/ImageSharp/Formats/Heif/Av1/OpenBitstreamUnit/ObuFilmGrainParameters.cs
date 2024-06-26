@@ -1,16 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.Metrics;
-using System.Runtime.Intrinsics.X86;
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuFilmGrainParameters
 {
     /// <summary>
-    /// Gets or sets ApplyGrain. A value equal to 1 specifies that film grain should be added to this frame. A value equal to 0 specifies that film
+    /// Gets or sets a value indicating whether film grain should be added to this frame. A value equal to false specifies that film
     /// grain should not be added.
     /// </summary>
     public bool ApplyGrain { get; set; }
@@ -21,7 +17,7 @@ internal class ObuFilmGrainParameters
     public uint GrainSeed { get; set; }
 
     /// <summary>
-    /// Gets or sets UpdateGrain. A value equal to 1 means that a new set of parameters should be sent. A value equal to 0 means that the
+    /// Gets or sets a value indicating whether a new set of parameters should be sent. A value equal to false means that the
     /// previous set of parameters should be used.
     /// </summary>
     public bool UpdateGrain { get; set; }
@@ -54,7 +50,7 @@ internal class ObuFilmGrainParameters
     public uint[]? PointYScaling { get; set; }
 
     /// <summary>
-    /// Gets or sets ChromaScalingFromLuma. Specifies that the chroma scaling is inferred from the luma scaling.
+    /// Gets or sets a value indicating whether the chroma scaling is inferred from the luma scaling.
     /// </summary>
     public bool ChromaScalingFromLuma { get; set; }
 
@@ -162,15 +158,15 @@ internal class ObuFilmGrainParameters
     public uint CrOffset { get; set; }
 
     /// <summary>
-    /// Gets or sets OverlapFlag. Equal to true indicates that the overlap between film grain blocks shall be applied. overlap_flag equal to false
+    /// Gets or sets a value indicating whether the overlap between film grain blocks shall be applied. OverlapFlag equal to false
     /// indicates that the overlap between film grain blocks shall not be applied.
     /// </summary>
     public bool OverlapFlag { get; set; }
 
     /// <summary>
-    /// Gets or sets ClipToRestrictedRange. equal to true indicates that clipping to the restricted (studio) range shall be applied to the sample
+    /// Gets or sets a value indicating whether clipping to the restricted (studio) range shall be applied to the sample
     /// values after adding the film grain(see the semantics for color_range for an explanation of studio swing).
-    /// clip_to_restricted_range equal to false indicates that clipping to the full range shall be applied to the sample values after adding the film grain.
+    /// ClipToRestrictedRange equal to false indicates that clipping to the full range shall be applied to the sample values after adding the film grain.
     /// </summary>
     public bool ClipToRestrictedRange { get; set; }
 }

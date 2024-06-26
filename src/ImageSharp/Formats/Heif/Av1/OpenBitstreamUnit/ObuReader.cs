@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -1523,8 +1521,131 @@ internal class ObuReader
             return grainParams;
         }
 
-        // TODO: Implement parsing.
-        throw new NotImplementedException();
+        grainParams.GrainSeed = reader.ReadLiteral(16);
+
+        if (frameInfo.FrameType == ObuFrameType.InterFrame)
+        {
+            grainParams.UpdateGrain = reader.ReadBoolean();
+        }
+        else
+        {
+            grainParams.UpdateGrain = false;
+        }
+
+        if (!grainParams.UpdateGrain)
+        {
+            grainParams.FilmGrainParamsRefidx = reader.ReadLiteral(3);
+            uint tempGrainSeed = grainParams.GrainSeed;
+
+            // TODO: implement load_grain_params
+            // load_grain_params(film_grain_params_ref_idx)
+            grainParams.GrainSeed = tempGrainSeed;
+            return grainParams;
+        }
+
+        grainParams.NumYPoints = reader.ReadLiteral(4);
+        grainParams.PointYValue = new uint[grainParams.NumYPoints];
+        grainParams.PointYScaling = new uint[grainParams.NumYPoints];
+        for (int i = 0; i < grainParams.NumYPoints; i++)
+        {
+            grainParams.PointYValue[i] = reader.ReadLiteral(8);
+            grainParams.PointYScaling[i] = reader.ReadLiteral(8);
+        }
+
+        if (sequenceHeader.ColorConfig.IsMonochrome)
+        {
+            grainParams.ChromaScalingFromLuma = false;
+        }
+        else
+        {
+            grainParams.ChromaScalingFromLuma = reader.ReadBoolean();
+        }
+
+        if (sequenceHeader.ColorConfig.IsMonochrome ||
+            grainParams.ChromaScalingFromLuma ||
+            (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && grainParams.NumYPoints == 0))
+        {
+            grainParams.NumCbPoints = 0;
+            grainParams.NumCrPoints = 0;
+        }
+        else
+        {
+            grainParams.NumCbPoints = reader.ReadLiteral(4);
+            grainParams.PointCbValue = new uint[grainParams.NumCbPoints];
+            grainParams.PointCbScaling = new uint[grainParams.NumCbPoints];
+            for (int i = 0; i < grainParams.NumCbPoints; i++)
+            {
+                grainParams.PointCbValue[i] = reader.ReadLiteral(8);
+                grainParams.PointCbScaling[i] = reader.ReadLiteral(8);
+            }
+
+            grainParams.NumCrPoints = reader.ReadLiteral(4);
+            grainParams.PointCrValue = new uint[grainParams.NumCrPoints];
+            grainParams.PointCrScaling = new uint[grainParams.NumCrPoints];
+            for (int i = 0; i < grainParams.NumCbPoints; i++)
+            {
+                grainParams.PointCrValue[i] = reader.ReadLiteral(8);
+                grainParams.PointCrScaling[i] = reader.ReadLiteral(8);
+            }
+        }
+
+        grainParams.GrainScalingMinus8 = reader.ReadLiteral(2);
+        grainParams.ArCoeffLag = reader.ReadLiteral(2);
+        uint numPosLuma = 2 * grainParams.ArCoeffLag * (grainParams.ArCoeffLag + 1);
+
+        uint numPosChroma = 0;
+        if (grainParams.NumYPoints != 0)
+        {
+            numPosChroma = numPosLuma + 1;
+            grainParams.ArCoeffsYPlus128 = new uint[numPosLuma];
+            for (int i = 0; i < numPosLuma; i++)
+            {
+                grainParams.ArCoeffsYPlus128[i] = reader.ReadLiteral(8);
+            }
+        }
+        else
+        {
+            numPosChroma = numPosLuma;
+        }
+
+        if (grainParams.ChromaScalingFromLuma || grainParams.NumCbPoints != 0)
+        {
+            grainParams.ArCoeffsCbPlus128 = new uint[numPosChroma];
+            for (int i = 0; i < numPosChroma; i++)
+            {
+                grainParams.ArCoeffsCbPlus128[i] = reader.ReadLiteral(8);
+            }
+        }
+
+        if (grainParams.ChromaScalingFromLuma || grainParams.NumCrPoints != 0)
+        {
+            grainParams.ArCoeffsCrPlus128 = new uint[numPosChroma];
+            for (int i = 0; i < numPosChroma; i++)
+            {
+                grainParams.ArCoeffsCrPlus128[i] = reader.ReadLiteral(8);
+            }
+        }
+
+        grainParams.ArCoeffShiftMinus6 = reader.ReadLiteral(2);
+        grainParams.GrainScaleShift = reader.ReadLiteral(2);
+        if (grainParams.NumCbPoints != 0)
+        {
+            grainParams.CbMult = reader.ReadLiteral(8);
+            grainParams.CbLumaMult = reader.ReadLiteral(8);
+            grainParams.CbOffset = reader.ReadLiteral(8);
+        }
+
+        if (grainParams.NumCrPoints != 0)
+        {
+            grainParams.CrMult = reader.ReadLiteral(8);
+            grainParams.CrLumaMult = reader.ReadLiteral(8);
+            grainParams.CrOffset = reader.ReadLiteral(8);
+        }
+
+        grainParams.OverlapFlag = reader.ReadBoolean();
+        grainParams.ClipToRestrictedRange = reader.ReadBoolean();
+
+        return grainParams;
     }
 
     private static bool IsValidSequenceLevel(int sequenceLevelIndex)

@@ -427,68 +427,49 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         this.ReadImageDescriptor(stream);
 
-        Buffer2D<byte>? indices = null;
-        try
+        // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
+        bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
+
+        if (hasLocalColorTable)
         {
-            // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
-            bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
-
-            if (hasLocalColorTable)
-            {
-                // Read and store the local color table. We allocate the maximum possible size and slice to match.
-                int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
-                this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
-                stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-            }
-
-            indices = this.configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
-            this.ReadFrameIndices(stream, indices);
-
-            Span<byte> rawColorTable = default;
-            if (hasLocalColorTable)
-            {
-                rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
-            }
-            else if (this.globalColorTable != null)
-            {
-                rawColorTable = this.globalColorTable.GetSpan();
-            }
-
-            ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
-            this.ReadFrameColors(ref image, ref previousFrame, indices, colorTable, this.imageDescriptor);
-
-            // Skip any remaining blocks
-            SkipBlock(stream);
+            // Read and store the local color table. We allocate the maximum possible size and slice to match.
+            int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
+            this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
+            stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
         }
-        finally
+
+        Span<byte> rawColorTable = default;
+        if (hasLocalColorTable)
         {
-            indices?.Dispose();
+            rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
         }
-    }
+        else if (this.globalColorTable != null)
+        {
+            rawColorTable = this.globalColorTable.GetSpan();
+        }
 
-    /// <summary>
-    /// Reads the frame indices marking the color to use for each pixel.
-    /// </summary>
-    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="indices">The 2D pixel buffer to write to.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadFrameIndices(BufferedReadStream stream, Buffer2D<byte> indices)
-    {
-        int minCodeSize = stream.ReadByte();
-        using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream);
-        lzwDecoder.DecodePixels(minCodeSize, indices);
+        ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
+        this.ReadFrameColors(stream, ref image, ref previousFrame, colorTable, this.imageDescriptor);
+
+        // Skip any remaining blocks
+        SkipBlock(stream);
     }
 
     /// <summary>
     /// Reads the frames colors, mapping indices to colors.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
-    /// <param name="indices">The indexed pixels.</param>
     /// <param name="colorTable">The color table containing the available colors.</param>
     /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-    private void ReadFrameColors<TPixel>(ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
+    private void ReadFrameColors<TPixel>(
+        BufferedReadStream stream,
+        ref Image<TPixel>? image,
+        ref ImageFrame<TPixel>? previousFrame,
+        ReadOnlySpan<Rgb24> colorTable,
+        in GifImageDescriptor descriptor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int imageWidth = this.logicalScreenDescriptor.Width;
@@ -549,73 +530,83 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         byte transIndex = this.graphicsControlExtension.TransparencyIndex;
         int colorTableMaxIdx = colorTable.Length - 1;
 
-        for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
+        // For a properly encoded gif the descriptor dimensions will never exceed the logical screen dimensions.
+        // However we have images that exceed this that can be decoded by other libraries. #1530
+        using IMemoryOwner<byte> indicesRowOwner = this.memoryAllocator.Allocate<byte>(descriptor.Width);
+        Span<byte> indicesRow = indicesRowOwner.Memory.Span;
+        ref byte indicesRowRef = ref MemoryMarshal.GetReference(indicesRow);
+
+        int minCodeSize = stream.ReadByte();
+        if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
         {
-            ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y - descriptorTop));
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
 
-            // Check if this image is interlaced.
-            int writeY; // the target y offset to write to
-            if (descriptor.InterlaceFlag)
+            for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
-                // If so then we read lines at predetermined offsets.
-                // When an entire image height worth of offset lines has been read we consider this a pass.
-                // With each pass the number of offset lines changes and the starting line changes.
-                if (interlaceY >= descriptor.Height)
+                // Check if this image is interlaced.
+                int writeY; // the target y offset to write to
+                if (descriptor.InterlaceFlag)
                 {
-                    interlacePass++;
-                    switch (interlacePass)
+                    // If so then we read lines at predetermined offsets.
+                    // When an entire image height worth of offset lines has been read we consider this a pass.
+                    // With each pass the number of offset lines changes and the starting line changes.
+                    if (interlaceY >= descriptor.Height)
                     {
-                        case 1:
-                            interlaceY = 4;
-                            break;
-                        case 2:
-                            interlaceY = 2;
-                            interlaceIncrement = 4;
-                            break;
-                        case 3:
-                            interlaceY = 1;
-                            interlaceIncrement = 2;
-                            break;
-                    }
-                }
-
-                writeY = interlaceY + descriptor.Top;
-                interlaceY += interlaceIncrement;
-            }
-            else
-            {
-                writeY = y;
-            }
-
-            ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
-
-            if (!transFlag)
-            {
-                // #403 The left + width value can be larger than the image width
-                for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
-                {
-                    int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
-                    Rgb24 rgb = colorTable[index];
-                    pixel.FromRgb24(rgb);
-                }
-            }
-            else
-            {
-                for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
-                {
-                    int rawIndex = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
-
-                    // Treat any out of bounds values as transparent.
-                    if (rawIndex > colorTableMaxIdx || rawIndex == transIndex)
-                    {
-                        continue;
+                        interlacePass++;
+                        switch (interlacePass)
+                        {
+                            case 1:
+                                interlaceY = 4;
+                                break;
+                            case 2:
+                                interlaceY = 2;
+                                interlaceIncrement = 4;
+                                break;
+                            case 3:
+                                interlaceY = 1;
+                                interlaceIncrement = 2;
+                                break;
+                        }
                     }
 
-                    int index = Numerics.Clamp(rawIndex, 0, colorTableMaxIdx);
-                    ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
-                    Rgb24 rgb = colorTable[index];
-                    pixel.FromRgb24(rgb);
+                    writeY = Math.Min(interlaceY + descriptor.Top, image.Height);
+                    interlaceY += interlaceIncrement;
+                }
+                else
+                {
+                    writeY = y;
+                }
+
+                lzwDecoder.DecodePixelRow(indicesRow);
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
+
+                if (!transFlag)
+                {
+                    // #403 The left + width value can be larger than the image width
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    {
+                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
+                        Rgb24 rgb = colorTable[index];
+                        pixel.FromRgb24(rgb);
+                    }
+                }
+                else
+                {
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    {
+                        int index = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
+
+                        // Treat any out of bounds values as transparent.
+                        if (index > colorTableMaxIdx || index == transIndex)
+                        {
+                            continue;
+                        }
+
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
+                        Rgb24 rgb = colorTable[index];
+                        pixel.FromRgb24(rgb);
+                    }
                 }
             }
         }
@@ -656,8 +647,11 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         // Skip the frame indices. Pixels length + mincode size.
         // The gif format does not tell us the length of the compressed data beforehand.
         int minCodeSize = stream.ReadByte();
-        using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream);
-        lzwDecoder.SkipIndices(minCodeSize, this.imageDescriptor.Width * this.imageDescriptor.Height);
+        if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
+        {
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
+            lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+        }
 
         ImageFrameMetadata currentFrame = new();
         frameMetadata.Add(currentFrame);

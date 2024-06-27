@@ -183,6 +183,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
         }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2758
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2758, PixelTypes.Rgba32)]
+    public void Issue2758_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
         // https://github.com/SixLabors/ImageSharp/issues/405
         [Theory]
         [WithFile(TestImages.Gif.Issues.BadAppExtLength, PixelTypes.Rgba32)]

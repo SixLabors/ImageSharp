@@ -377,66 +377,50 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.ReadImageDescriptor();
 
-            IMemoryOwner<byte> localColorTable = null;
             Buffer2D<byte> indices = null;
-            try
-            {
-                // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
-                if (this.imageDescriptor.LocalColorTableFlag)
-                {
-                    int length = this.imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = this.Configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
-                    this.stream.Read(localColorTable.GetSpan());
-                }
-
-                indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
-                this.ReadFrameIndices(indices);
-
-                Span<byte> rawColorTable = default;
-                if (localColorTable != null)
-                {
-                    rawColorTable = localColorTable.GetSpan();
-                }
-                else if (this.globalColorTable != null)
-                {
-                    rawColorTable = this.globalColorTable.GetSpan();
-                }
-
-                ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
-                this.ReadFrameColors(ref image, ref previousFrame, indices, colorTable, this.imageDescriptor);
-
-                // Skip any remaining blocks
-                this.SkipBlock();
-            }
-            finally
-            {
-                localColorTable?.Dispose();
-                indices?.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Reads the frame indices marking the color to use for each pixel.
-        /// </summary>
-        /// <param name="indices">The 2D pixel buffer to write to.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(Buffer2D<byte> indices)
+        // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
+        bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
+        if (hasLocalColorTable)
         {
-            int minCodeSize = this.stream.ReadByte();
-            using var lzwDecoder = new LzwDecoder(this.Configuration.MemoryAllocator, this.stream);
-            lzwDecoder.DecodePixels(minCodeSize, indices);
+            // Read and store the local color table. We allocate the maximum possible size and slice to match.
+            int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
+            this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
+            stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
         }
+
+        Span<byte> rawColorTable = default;
+        if (hasLocalColorTable)
+        {
+            rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
+        }
+        else if (this.globalColorTable != null)
+        {
+            rawColorTable = this.globalColorTable.GetSpan();
+        }
+
+        ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
+        this.ReadFrameColors(stream, ref image, ref previousFrame, colorTable, this.imageDescriptor);
+
+        // Skip any remaining blocks
+        SkipBlock(stream);
+    }
+                localColorTable?.Dispose();
 
         /// <summary>
         /// Reads the frames colors, mapping indices to colors.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
         /// <param name="image">The image to decode the information to.</param>
         /// <param name="previousFrame">The previous frame.</param>
-        /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
+    private void ReadFrameColors<TPixel>(
+        BufferedReadStream stream,
+        ref Image<TPixel>? image,
+        ref ImageFrame<TPixel>? previousFrame,
+        ReadOnlySpan<Rgb24> colorTable,
+        in GifImageDescriptor descriptor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int imageWidth = this.logicalScreenDescriptor.Width;
@@ -494,10 +478,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
             byte transIndex = this.graphicsControlExtension.TransparencyIndex;
             int colorTableMaxIdx = colorTable.Length - 1;
 
+        // For a properly encoded gif the descriptor dimensions will never exceed the logical screen dimensions.
+        // However we have images that exceed this that can be decoded by other libraries. #1530
+        using IMemoryOwner<byte> indicesRowOwner = this.memoryAllocator.Allocate<byte>(descriptor.Width);
+        Span<byte> indicesRow = indicesRowOwner.Memory.Span;
+        ref byte indicesRowRef = ref MemoryMarshal.GetReference(indicesRow);
+
+        int minCodeSize = stream.ReadByte();
+        if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
+            {
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
+
             for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
-                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.DangerousGetRowSpan(y - descriptorTop));
-
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
                 if (descriptor.InterlaceFlag)
@@ -524,7 +517,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         }
                     }
 
-                    writeY = interlaceY + descriptor.Top;
+                    writeY = Math.Min(interlaceY + descriptor.Top, image.Height);
                     interlaceY += interlaceIncrement;
                 }
                 else
@@ -532,6 +525,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
+                lzwDecoder.DecodePixelRow(indicesRow);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
 
                 if (!transFlag)
@@ -539,8 +533,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     // #403 The left + width value can be larger than the image width
                     for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
-                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
+                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
                         Rgb24 rgb = colorTable[index];
                         pixel.FromRgb24(rgb);
                     }
@@ -549,16 +543,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, x - descriptorLeft), 0, colorTableMaxIdx);
+                        int index = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
                         if (transIndex != index)
+                        // Treat any out of bounds values as transparent.
+                        if (index > colorTableMaxIdx || index == transIndex)
                         {
-                            ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                            Rgb24 rgb = colorTable[index];
-                            pixel.FromRgb24(rgb);
+                            continue;
                         }
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
+                        Rgb24 rgb = colorTable[index];
+                        pixel.FromRgb24(rgb);
                     }
                 }
             }
+        }
 
             if (prevFrame != null)
             {
@@ -575,6 +573,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
+        if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
+        {
+            using LzwDecoder lzwDecoder = new(this.configuration.MemoryAllocator, stream, minCodeSize);
+            lzwDecoder.SkipIndices(this.imageDescriptor.Width * this.imageDescriptor.Height);
+        }
         /// Restores the current frame area to the background.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

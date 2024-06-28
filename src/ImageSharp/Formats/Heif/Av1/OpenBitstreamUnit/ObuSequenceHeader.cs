@@ -21,6 +21,8 @@ internal class ObuSequenceHeader
 
     public bool DecoderModelInfoPresentFlag { get; set; }
 
+    public bool TimingInfoPresentFlag { get; set; }
+
     public object? TimingInfo { get; set; }
 
     public bool IsFrameIdNumbersPresent { get; set; }

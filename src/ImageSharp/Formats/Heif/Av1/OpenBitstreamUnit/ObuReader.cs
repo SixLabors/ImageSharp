@@ -265,27 +265,77 @@ internal class ObuReader
 
         sequenceHeader.IsStillPicture = reader.ReadBoolean();
         sequenceHeader.IsReducedStillPictureHeader = reader.ReadBoolean();
-        if (!sequenceHeader.IsStillPicture || !sequenceHeader.IsReducedStillPictureHeader)
+        if (sequenceHeader.IsReducedStillPictureHeader)
         {
-            throw new ImageFormatException("Not a picture header, is this a movie file ??");
-        }
+            sequenceHeader.TimingInfo = null;
+            sequenceHeader.DecoderModelInfoPresentFlag = false;
+            sequenceHeader.InitialDisplayDelayPresentFlag = false;
+            sequenceHeader.OperatingPoint = new ObuOperatingPoint[1];
+            ObuOperatingPoint operatingPoint = new();
+            sequenceHeader.OperatingPoint[0] = operatingPoint;
+            operatingPoint.OperatorIndex = 0;
+            operatingPoint.SequenceLevelIndex = (int)reader.ReadLiteral(Av1Constants.LevelBits);
+            if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[0].SequenceLevelIndex))
+            {
+                throw new ImageFormatException("Invalid sequence level.");
+            }
 
-        sequenceHeader.TimingInfo = null;
-        sequenceHeader.DecoderModelInfoPresentFlag = false;
-        sequenceHeader.InitialDisplayDelayPresentFlag = false;
-        sequenceHeader.OperatingPoint = new ObuOperatingPoint[1];
-        ObuOperatingPoint operatingPoint = new();
-        sequenceHeader.OperatingPoint[0] = operatingPoint;
-        operatingPoint.OperatorIndex = 0;
-        operatingPoint.SequenceLevelIndex = (int)reader.ReadLiteral(Av1Constants.LevelBits);
-        if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[0].SequenceLevelIndex))
+            operatingPoint.SequenceTier = 0;
+            operatingPoint.IsDecoderModelPresent = false;
+            operatingPoint.IsInitialDisplayDelayPresent = false;
+        }
+        else
         {
-            throw new ImageFormatException("Invalid sequence level.");
-        }
+            sequenceHeader.TimingInfoPresentFlag = reader.ReadBoolean();
+            if (sequenceHeader.TimingInfoPresentFlag)
+            {
+                sequenceHeader.DecoderModelInfoPresentFlag = reader.ReadBoolean();
+                if (sequenceHeader.DecoderModelInfoPresentFlag)
+                {
+                    // TODO: read decoder_model_info( )
+                }
+            }
 
-        operatingPoint.SequenceTier = 0;
-        operatingPoint.IsDecoderModelPresent = false;
-        operatingPoint.IsInitialDisplayDelayPresent = false;
+            sequenceHeader.InitialDisplayDelayPresentFlag = reader.ReadBoolean();
+            uint operatingPointsCnt = reader.ReadLiteral(5) + 1;
+            sequenceHeader.OperatingPoint = new ObuOperatingPoint[operatingPointsCnt];
+            for (int i = 0; i < operatingPointsCnt; i++)
+            {
+                sequenceHeader.OperatingPoint[i] = new ObuOperatingPoint();
+                sequenceHeader.OperatingPoint[i].Idc = reader.ReadLiteral(12);
+                sequenceHeader.OperatingPoint[i].SequenceLevelIndex = (int)reader.ReadLiteral(5);
+                if (sequenceHeader.OperatingPoint[i].SequenceLevelIndex > 7)
+                {
+                    sequenceHeader.OperatingPoint[i].SequenceTier = (int)reader.ReadLiteral(1);
+                }
+                else
+                {
+                    sequenceHeader.OperatingPoint[i].SequenceTier = 0;
+                }
+
+                if (sequenceHeader.DecoderModelInfoPresentFlag)
+                {
+                    sequenceHeader.OperatingPoint[i].IsDecoderModelPresent = reader.ReadBoolean();
+                    if (sequenceHeader.OperatingPoint[i].IsDecoderModelPresent)
+                    {
+                        // TODO: operating_parameters_info( i )
+                    }
+                }
+                else
+                {
+                    sequenceHeader.OperatingPoint[i].IsDecoderModelPresent = false;
+                }
+
+                if (sequenceHeader.InitialDisplayDelayPresentFlag)
+                {
+                    sequenceHeader.OperatingPoint[i].IsInitialDisplayDelayPresent = reader.ReadBoolean();
+                    if (sequenceHeader.OperatingPoint[i].IsInitialDisplayDelayPresent)
+                    {
+                        sequenceHeader.OperatingPoint[i].InitialDisplayDelay = reader.ReadLiteral(4) + 1;
+                    }
+                }
+            }
+        }
 
         // Video related flags removed
 

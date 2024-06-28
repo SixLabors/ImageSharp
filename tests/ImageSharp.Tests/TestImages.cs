@@ -269,6 +269,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ValidExifArgumentNullExceptionOnEncode = "Jpg/issues/Issue2087-exif-null-reference-on-encode.jpg";
                 public const string Issue2133DeduceColorSpace = "Jpg/issues/Issue2133.jpg";
                 public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
+            public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
 
                 public static class Fuzz
                 {

@@ -120,7 +120,17 @@ internal static class Av1Constants
     public const int MaxSegments = 8;
 
     /// <summary>
+    /// Maximum number of color planes.
+    /// </summary>
+    public const int MaxPlanes = 3;
+
+    /// <summary>
     /// Number of reference frame types (including intra type).
     /// </summary>
     public const int TotalReferencesPerFrame = 8;
+
+    /// <summary>
+    /// Number of values for palette_size.
+    /// </summary>
+    public const int PaletteMaxSize = 8;
 }

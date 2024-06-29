@@ -422,14 +422,16 @@ internal class ObuReader
             }
             else
             {
-                if (sequenceHeader.EnableOrderHint)
-                {
-                    sequenceHeader.OrderHintInfo.OrderHintBits = (int)reader.ReadLiteral(3) + 1;
-                }
-                else
-                {
-                    sequenceHeader.OrderHintInfo.OrderHintBits = 0;
-                }
+                sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+            }
+
+            if (sequenceHeader.EnableOrderHint)
+            {
+                sequenceHeader.OrderHintInfo.OrderHintBits = (int)reader.ReadLiteral(3) + 1;
+            }
+            else
+            {
+                sequenceHeader.OrderHintInfo.OrderHintBits = 0;
             }
         }
 

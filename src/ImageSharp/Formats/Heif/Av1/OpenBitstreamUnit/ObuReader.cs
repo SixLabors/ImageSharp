@@ -292,7 +292,7 @@ internal class ObuReader
                 sequenceHeader.DecoderModelInfoPresentFlag = reader.ReadBoolean();
                 if (sequenceHeader.DecoderModelInfoPresentFlag)
                 {
-                    // TODO: read decoder_model_info( )
+                    ReadDecoderModelInfo(ref reader, sequenceHeader);
                 }
             }
 
@@ -460,6 +460,17 @@ internal class ObuReader
         colorConfig.HasSeparateUvDelta = reader.ReadBoolean();
         return colorConfig;
     }
+
+    /// <summary>
+    /// 5.5.4. Decoder model info syntax.
+    /// </summary>
+    private static void ReadDecoderModelInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader) => sequenceHeader.DecoderModelInfo = new ObuDecoderModelInfo
+    {
+        BufferDelayLength = reader.ReadLiteral(5) + 1,
+        NumUnitsInDecodingTick = reader.ReadLiteral(16),
+        BufferRemovalTimeLength = reader.ReadLiteral(5) + 1,
+        FramePresentationTimeLength = reader.ReadLiteral(5) + 1
+    };
 
     private static void ReadBitDepth(ref Av1BitStreamReader reader, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
     {

@@ -17,6 +17,8 @@ internal class ObuSequenceHeader
 
     public ObuOperatingPoint[] OperatingPoint { get; set; } = new ObuOperatingPoint[1];
 
+    public ObuDecoderModelInfo? DecoderModelInfo { get; set; }
+
     public bool InitialDisplayDelayPresentFlag { get; set; }
 
     public bool DecoderModelInfoPresentFlag { get; set; }

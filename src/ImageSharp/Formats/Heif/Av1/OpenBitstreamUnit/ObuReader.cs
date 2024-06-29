@@ -345,7 +345,20 @@ internal class ObuReader
         sequenceHeader.FrameHeightBits = (int)reader.ReadLiteral(4) + 1;
         sequenceHeader.MaxFrameWidth = (int)reader.ReadLiteral(sequenceHeader.FrameWidthBits) + 1;
         sequenceHeader.MaxFrameHeight = (int)reader.ReadLiteral(sequenceHeader.FrameHeightBits) + 1;
-        sequenceHeader.IsFrameIdNumbersPresent = false;
+        if (sequenceHeader.IsReducedStillPictureHeader)
+        {
+            sequenceHeader.IsFrameIdNumbersPresent = false;
+        }
+        else
+        {
+            sequenceHeader.IsFrameIdNumbersPresent = reader.ReadBoolean();
+        }
+
+        if (sequenceHeader.IsFrameIdNumbersPresent)
+        {
+            sequenceHeader.DeltaFrameIdLength = (int)reader.ReadLiteral(4) + 2;
+            sequenceHeader.AdditionalFrameIdLength = reader.ReadLiteral(3) + 1;
+        }
 
         // Video related flags removed
         sequenceHeader.Use128x128SuperBlock = reader.ReadBoolean();
@@ -354,15 +367,71 @@ internal class ObuReader
         sequenceHeader.SuperBlockSizeLog2 = sequenceHeader.Use128x128SuperBlock ? 7 : 6;
         sequenceHeader.EnableFilterIntra = reader.ReadBoolean();
         sequenceHeader.EnableIntraEdgeFilter = reader.ReadBoolean();
-        sequenceHeader.EnableInterIntraCompound = false;
-        sequenceHeader.EnableMaskedCompound = false;
-        sequenceHeader.EnableWarpedMotion = false;
-        sequenceHeader.EnableDualFilter = false;
-        sequenceHeader.OrderHintInfo.EnableJointCompound = false;
-        sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = false;
-        sequenceHeader.ForceScreenContentTools = 2;
-        sequenceHeader.ForceIntegerMotionVector = 2;
-        sequenceHeader.OrderHintInfo.OrderHintBits = 0;
+
+        if (sequenceHeader.IsReducedStillPictureHeader)
+        {
+            sequenceHeader.EnableInterIntraCompound = false;
+            sequenceHeader.EnableMaskedCompound = false;
+            sequenceHeader.EnableWarpedMotion = false;
+            sequenceHeader.EnableDualFilter = false;
+            sequenceHeader.OrderHintInfo.EnableJointCompound = false;
+            sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = false;
+            sequenceHeader.ForceScreenContentTools = 2; // SELECT_SCREEN_CONTENT_TOOLS
+            sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+            sequenceHeader.OrderHintInfo.OrderHintBits = 0;
+        }
+        else
+        {
+            sequenceHeader.EnableInterIntraCompound = reader.ReadBoolean();
+            sequenceHeader.EnableMaskedCompound = reader.ReadBoolean();
+            sequenceHeader.EnableWarpedMotion = reader.ReadBoolean();
+            sequenceHeader.EnableDualFilter |= reader.ReadBoolean();
+            sequenceHeader.EnableOrderHint = reader.ReadBoolean();
+            if (sequenceHeader.EnableOrderHint)
+            {
+                sequenceHeader.OrderHintInfo.EnableJointCompound = reader.ReadBoolean();
+                sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = reader.ReadBoolean();
+            }
+            else
+            {
+                sequenceHeader.OrderHintInfo.EnableJointCompound = false;
+                sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = false;
+            }
+
+            bool seqChooseScreenContentTools = reader.ReadBoolean();
+            if (seqChooseScreenContentTools)
+            {
+                sequenceHeader.ForceScreenContentTools = 2; // SELECT_SCREEN_CONTENT_TOOLS
+            }
+            else
+            {
+                sequenceHeader.ForceScreenContentTools = (int)reader.ReadLiteral(1);
+            }
+
+            if (sequenceHeader.ForceScreenContentTools > 0)
+            {
+                bool seqChooseIntegerMv = reader.ReadBoolean();
+                if (seqChooseIntegerMv)
+                {
+                    sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+                }
+                else
+                {
+                    sequenceHeader.ForceIntegerMotionVector = (int)reader.ReadLiteral(1);
+                }
+            }
+            else
+            {
+                if (sequenceHeader.EnableOrderHint)
+                {
+                    sequenceHeader.OrderHintInfo.OrderHintBits = (int)reader.ReadLiteral(3) + 1;
+                }
+                else
+                {
+                    sequenceHeader.OrderHintInfo.OrderHintBits = 0;
+                }
+            }
+        }
 
         // Video related flags removed
         sequenceHeader.EnableSuperResolution = reader.ReadBoolean();

@@ -51,6 +51,8 @@ internal class ObuSequenceHeader
 
     public ObuOrderHintInfo OrderHintInfo { get; set; } = new ObuOrderHintInfo();
 
+    public bool EnableOrderHint { get; set; }
+
     public bool EnableInterIntraCompound { get; set; }
 
     public bool EnableMaskedCompound { get; set; }
@@ -76,4 +78,6 @@ internal class ObuSequenceHeader
     public int FrameIdLength { get; set; }
 
     public int DeltaFrameIdLength { get; set; }
+
+    public uint AdditionalFrameIdLength { get; set; }
 }

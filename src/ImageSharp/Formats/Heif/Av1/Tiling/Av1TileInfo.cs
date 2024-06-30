@@ -5,9 +5,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
-internal class Av1TileLocation
+internal class Av1TileInfo
 {
-    public Av1TileLocation(int row, int column, ObuFrameHeader frameInfo)
+    public Av1TileInfo(int row, int column, ObuFrameHeader frameInfo)
     {
         this.SetTileRow(frameInfo.TilesInfo, frameInfo.ModeInfoRowCount, row);
         this.SetTileColumn(frameInfo.TilesInfo, frameInfo.ModeInfoColumnCount, column);

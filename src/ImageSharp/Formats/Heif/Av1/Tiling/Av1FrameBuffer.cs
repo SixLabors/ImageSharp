@@ -39,17 +39,43 @@ internal class Av1FrameBuffer
         int superblockCount = this.superblockColumnCount * this.superblockRowCount;
         this.modeInfoSizePerSuperblock = 1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
         this.modeInfoCountPerSuperblock = this.modeInfoSizePerSuperblock * this.modeInfoSizePerSuperblock;
+        int numPlanes = sequenceHeader.ColorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
+
+        // Allocate the arrays.
         this.superblockInfos = new Av1SuperblockInfo[superblockCount];
         this.modeInfos = new Av1BlockModeInfo[superblockCount * this.modeInfoCountPerSuperblock];
         this.transformInfosY = new Av1TransformInfo[superblockCount * this.modeInfoCountPerSuperblock];
         this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.modeInfoCountPerSuperblock];
-        this.coefficientsY = new int[superblockCount * this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo];
+
+        // Initialize the arrays.
+        int i = 0;
+        int j = 0;
+        for (int y = 0; y < this.superblockRowCount; y++)
+        {
+            for (int x = 0; x < this.superblockColumnCount; x++)
+            {
+                Point point = new(x, y);
+                this.superblockInfos[i] = new(this, point);
+                for (int u = 0; u < this.modeInfoSizePerSuperblock; u++)
+                {
+                    for (int v = 0; v < this.modeInfoSizePerSuperblock; v++)
+                    {
+                        this.modeInfos[j] = new Av1BlockModeInfo(numPlanes, Av1BlockSize.Block4x4, new Point(u, v));
+                        j++;
+                    }
+                }
+
+                i++;
+            }
+        }
+
         bool subX = sequenceHeader.ColorConfig.SubSamplingX;
         bool subY = sequenceHeader.ColorConfig.SubSamplingY;
 
         // Factor: 444 => 0, 422 => 1, 420 => 2.
         this.subsamplingFactor = (subX && subY) ? 2 : (subX && !subY) ? 1 : (!subX && !subY) ? 0 : -1;
         Guard.IsFalse(this.subsamplingFactor == -1, nameof(this.subsamplingFactor), "Invalid combination of subsampling.");
+        this.coefficientsY = new int[superblockCount * this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo];
         this.coefficientsU = new int[(this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor];
         this.coefficientsV = new int[(this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor];
         this.deltaQ = new int[superblockCount];
@@ -68,12 +94,19 @@ internal class Av1FrameBuffer
         return span[i];
     }
 
+    public Av1BlockModeInfo GetModeInfo(Point superblockIndex)
+    {
+        Span<Av1BlockModeInfo> span = this.modeInfos;
+        int superblock = (superblockIndex.Y * this.superblockColumnCount) + superblockIndex.X;
+        return span[superblock * this.modeInfoCountPerSuperblock];
+    }
+
     public Av1BlockModeInfo GetModeInfo(Point superblockIndex, Point modeInfoIndex)
     {
         Span<Av1BlockModeInfo> span = this.modeInfos;
-        int baseIndex = ((superblockIndex.Y * this.superblockColumnCount) + superblockIndex.X) * this.modeInfoCountPerSuperblock;
-        int offset = (modeInfoIndex.Y * this.modeInfoSizePerSuperblock) + modeInfoIndex.X;
-        return span[baseIndex + offset];
+        int superblock = (superblockIndex.Y * this.superblockColumnCount) + superblockIndex.X;
+        int modeInfo = (modeInfoIndex.Y * this.modeInfoSizePerSuperblock) + modeInfoIndex.X;
+        return span[(superblock * this.modeInfoCountPerSuperblock) + modeInfo];
     }
 
     public Av1TransformInfo GetTransformY(Point index)
@@ -124,6 +157,15 @@ internal class Av1FrameBuffer
         Span<int> span = this.cdefStrength;
         int i = ((index.Y * this.superblockColumnCount) + index.X) << this.cdefStrengthFactorLog2;
         return span.Slice(i, 1 << this.cdefStrengthFactorLog2);
+    }
+
+    internal void ClearCdef(Point index)
+    {
+        Span<int> cdefs = this.GetCdefStrength(index);
+        for (int i = 0; i < cdefs.Length; i++)
+        {
+            cdefs[i] = -1;
+        }
     }
 
     public Span<int> GetDeltaLoopFilter(Point index)

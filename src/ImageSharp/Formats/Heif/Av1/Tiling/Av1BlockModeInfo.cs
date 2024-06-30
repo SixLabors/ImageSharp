@@ -9,9 +9,10 @@ internal class Av1BlockModeInfo
 {
     private int[] paletteSize;
 
-    public Av1BlockModeInfo(int numPlanes, Av1BlockSize blockSize)
+    public Av1BlockModeInfo(int numPlanes, Av1BlockSize blockSize, Point position)
     {
         this.BlockSize = blockSize;
+        this.PositionInSuperblock = position;
         this.AngleDelta = new int[numPlanes];
         this.paletteSize = new int[numPlanes - 1];
         this.FilterIntraModeInfo = new();
@@ -39,7 +40,7 @@ internal class Av1BlockModeInfo
 
     public int[] AngleDelta { get; set; }
 
-    public Size IndexInSuperblock { get; set; }
+    public Point PositionInSuperblock { get; set; }
 
     public Av1IntraFilterModeInfo FilterIntraModeInfo { get; internal set; }
 

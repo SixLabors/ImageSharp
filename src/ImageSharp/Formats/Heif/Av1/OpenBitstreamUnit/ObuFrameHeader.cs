@@ -71,6 +71,8 @@ internal class ObuFrameHeader
 
     internal bool ShowableFrame { get; set; }
 
+    internal uint FrameToShowMapIdx { get; set; }
+
     internal bool ErrorResilientMode { get; set; }
 
     internal bool AllowScreenContentTools { get; set; }

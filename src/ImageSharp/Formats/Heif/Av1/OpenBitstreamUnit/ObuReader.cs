@@ -281,7 +281,7 @@ internal class ObuReader
             }
 
             operatingPoint.SequenceTier = 0;
-            operatingPoint.IsDecoderModelPresent = false;
+            operatingPoint.IsDecoderModelInfoPresent = false;
             operatingPoint.IsInitialDisplayDelayPresent = false;
         }
         else
@@ -289,10 +289,15 @@ internal class ObuReader
             sequenceHeader.TimingInfoPresentFlag = reader.ReadBoolean();
             if (sequenceHeader.TimingInfoPresentFlag)
             {
+                ReadTimingInfo(ref reader,  sequenceHeader);
                 sequenceHeader.DecoderModelInfoPresentFlag = reader.ReadBoolean();
                 if (sequenceHeader.DecoderModelInfoPresentFlag)
                 {
                     ReadDecoderModelInfo(ref reader, sequenceHeader);
+                }
+                else
+                {
+                    sequenceHeader.DecoderModelInfoPresentFlag = false;
                 }
             }
 
@@ -315,15 +320,15 @@ internal class ObuReader
 
                 if (sequenceHeader.DecoderModelInfoPresentFlag)
                 {
-                    sequenceHeader.OperatingPoint[i].IsDecoderModelPresent = reader.ReadBoolean();
-                    if (sequenceHeader.OperatingPoint[i].IsDecoderModelPresent)
+                    sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent = reader.ReadBoolean();
+                    if (sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent)
                     {
                         // TODO: operating_parameters_info( i )
                     }
                 }
                 else
                 {
-                    sequenceHeader.OperatingPoint[i].IsDecoderModelPresent = false;
+                    sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent = false;
                 }
 
                 if (sequenceHeader.InitialDisplayDelayPresentFlag)
@@ -542,6 +547,24 @@ internal class ObuReader
         BufferRemovalTimeLength = reader.ReadLiteral(5) + 1,
         FramePresentationTimeLength = reader.ReadLiteral(5) + 1
     };
+
+    /// <summary>
+    /// 5.5.3. Timing info syntax.
+    /// </summary>
+    private static void ReadTimingInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
+    {
+        sequenceHeader.TimingInfo = new ObuTimingInfo
+        {
+            NumUnitsInDisplayTick = reader.ReadLiteral(32),
+            TimeScale = reader.ReadLiteral(32),
+            EqualPictureInterval = reader.ReadBoolean()
+        };
+
+        if (sequenceHeader.TimingInfo.EqualPictureInterval)
+        {
+            sequenceHeader.TimingInfo.NumTicksPerPicture = reader.ReadUnsignedVariableLength() + 1;
+        }
+    }
 
     private static void ReadBitDepth(ref Av1BitStreamReader reader, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
     {
@@ -862,6 +885,16 @@ internal class ObuReader
             frameInfo.ShowFrame = true;
             frameInfo.ShowableFrame = false;
             frameInfo.ErrorResilientMode = true;
+        }
+        else
+        {
+            frameInfo.ShowExistingFrame = reader.ReadBoolean();
+            if (frameInfo.ShowExistingFrame)
+            {
+                frameInfo.FrameToShowMapIdx = reader.ReadLiteral(3);
+            }
+
+            // TODO: There is still some parts not implemented here
         }
 
         if (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame)

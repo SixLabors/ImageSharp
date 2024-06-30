@@ -11,7 +11,7 @@ internal class ObuOperatingPoint
 
     internal int SequenceTier { get; set; }
 
-    internal bool IsDecoderModelPresent { get; set; }
+    internal bool IsDecoderModelInfoPresent { get; set; }
 
     internal bool IsInitialDisplayDelayPresent { get; set; }
 

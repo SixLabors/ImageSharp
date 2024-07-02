@@ -900,7 +900,6 @@ internal class ObuReader
                 frameInfo.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
             }
 
-            int refreshFrameFlags = 0;
             if (sequenceHeader.IsFrameIdNumbersPresent)
             {
                 frameInfo.DisplayFrameId = reader.ReadLiteral(idLength);

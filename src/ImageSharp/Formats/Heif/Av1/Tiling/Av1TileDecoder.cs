@@ -116,6 +116,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private void ClearLoopFilterDelta()
         => this.FrameBuffer.ClearDeltaLoopFilter();
 
+    /// <summary>
+    /// 5.11.3. Clear block decoded flags function.
+    /// </summary>
     private void ClearBlockDecodedFlags(int row, int column, int superBlock4x4Size)
     {
         int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
@@ -175,6 +178,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         // TODO: Implement
     }
 
+    /// <summary>
+    /// 5.11.4. Decode partition syntax.
+    /// </summary>
     private void ParsePartition(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         int columnIndex = modeInfoLocation.X;
@@ -378,6 +384,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.34. Residual syntax.
+    /// </summary>
     private void Residual(int rowIndex, int columnIndex, Av1BlockSize blockSize)
     {
         bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -437,6 +446,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private Av1BlockSize GetPlaneResidualSize(Av1BlockSize sizeChunk, int plane) => throw new NotImplementedException();
 
+    /// <summary>
+    /// 5.11.35. Transform block syntax.
+    /// </summary>
     private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
     {
         Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid, new Point(0, 0)), new(this.FrameBuffer, default), false, Av1PartitionType.None);
@@ -522,10 +534,16 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void PredictChromaFromLuma(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();
 
+    /// <summary>
+    /// 7.11.2. Intra prediction process.
+    /// </summary>
     private void PredictIntra(int plane, int startX, int startY, bool leftAvailable, bool upAvailable, bool haveAboveRight, bool haveBelowLeft, Av1PredictionMode mode, int log2Width, int log2Height) => throw new NotImplementedException();
 
     private void PredictPalette(int plane, int startX, int startY, int x, int y, Av1TransformSize transformSize) => throw new NotImplementedException();
 
+    /// <summary>
+    /// Page 65, below 5.11.5. Decode block syntax.
+    /// </summary>
     private void ResetBlockContext(int rowIndex, int columnIndex, Av1BlockSize blockSize)
     {
         int block4x4Width = blockSize.Get4x4WideCount();
@@ -552,6 +570,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.16. Block TX size syntax.
+    /// </summary>
     private static void ReadBlockTransformSize(ref Av1SymbolDecoder reader, int rowIndex, int columnIndex, Av1BlockSize blockSize)
     {
         int block4x4Width = blockSize.Get4x4WideCount();
@@ -568,6 +589,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }*/
     }
 
+    /// <summary>
+    /// 5.11.49. Palette tokens syntax.
+    /// </summary>
     private static void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         reader.ReadLiteral(-1);
@@ -584,12 +608,18 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.6. Mode info syntax.
+    /// </summary>
     private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         DebugGuard.IsTrue(this.FrameInfo.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
         this.ReadIntraFrameModeInfo(ref reader, partitionInfo);
     }
 
+    /// <summary>
+    /// 5.11.7. Intra frame mode info syntax.
+    /// </summary>
     private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip)
@@ -631,6 +661,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         {
             // this.IsInter = false;
             partitionInfo.ModeInfo.YMode = reader.ReadYMode(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
+
+            // 5.11.42.Intra angle info luma syntax.
             partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Y] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.YMode, partitionInfo.ModeInfo.BlockSize);
             if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
             {
@@ -640,6 +672,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                     this.ReadChromaFromLumaAlphas(ref reader, partitionInfo);
                 }
 
+                // 5.11.43.Intra angle info chroma syntax.
                 partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Uv] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode, partitionInfo.ModeInfo.BlockSize);
             }
             else
@@ -699,16 +732,25 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.46. Palette mode info syntax.
+    /// </summary>
     private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
 
         // TODO: Implement.
         throw new NotImplementedException();
 
+    /// <summary>
+    /// 5.11.45. Read CFL alphas syntax.
+    /// </summary>
     private void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
 
         // TODO: Implement.
         throw new NotImplementedException();
 
+    /// <summary>
+    /// 5.11.42. and 5.11.43.
+    /// </summary>
     private static int IntraAngleInfo(ref Av1SymbolDecoder reader, Av1PredictionMode mode, Av1BlockSize blockSize)
     {
         int angleDelta = 0;
@@ -724,6 +766,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private static bool IsDirectionalMode(Av1PredictionMode mode)
         => mode is >= Av1PredictionMode.Vertical and <= Av1PredictionMode.Directional67Degrees;
 
+    /// <summary>
+    /// 5.11.8. Intra segment ID syntax.
+    /// </summary>
     private void IntraSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (this.FrameInfo.SegmentationParameters.Enabled)
@@ -746,6 +791,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.9. Read segment ID syntax.
+    /// </summary>
     private void ReadSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         int predictor;
@@ -861,6 +909,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
     }
 
+    /// <summary>
+    /// 5.11.56. Read CDEF syntax.
+    /// </summary>
     private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameInfo.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameInfo.AllowIntraBlockCopy)

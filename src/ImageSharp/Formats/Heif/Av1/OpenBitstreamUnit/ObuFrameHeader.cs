@@ -73,6 +73,8 @@ internal class ObuFrameHeader
 
     internal uint FrameToShowMapIdx { get; set; }
 
+    internal uint DisplayFrameId { get; set; }
+
     internal bool ErrorResilientMode { get; set; }
 
     internal bool AllowScreenContentTools { get; set; }
@@ -88,4 +90,7 @@ internal class ObuFrameHeader
     internal uint PrimaryReferenceFrame { get; set; } = Av1Constants.PrimaryReferenceFrameNone;
 
     internal uint RefreshFrameFlags { get; set; }
+
+    // 5.9.31. Temporal point info syntax
+    internal uint FramePresentationTime { get; set; }
 }

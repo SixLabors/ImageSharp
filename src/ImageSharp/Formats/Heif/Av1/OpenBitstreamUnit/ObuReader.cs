@@ -894,7 +894,20 @@ internal class ObuReader
                 frameInfo.FrameToShowMapIdx = reader.ReadLiteral(3);
             }
 
-            // TODO: There is still some parts not implemented here
+            if (sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
+            {
+                // 5.9.31. Temporal point info syntax.
+                frameInfo.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
+            }
+
+            int refreshFrameFlags = 0;
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                frameInfo.DisplayFrameId = reader.ReadLiteral(idLength);
+            }
+
+            // TODO: This is incomplete here, not sure how we can display an already decoded frame here.
+            throw new NotImplementedException("ShowExistingFrame is not yet implemented");
         }
 
         if (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame)

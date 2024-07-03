@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
@@ -44,6 +44,8 @@ internal class Av1ParseAboveNeighbor4x4Context
 
     public int[] AbovePartitionWidth => this.abovePartitionWidth;
 
+    public int[] AboveTransformWidth => this.aboveTransformWidth;
+
     public void Clear(ObuSequenceHeader sequenceHeader)
     {
         int planeCount = sequenceHeader.ColorConfig.ChannelCount;
@@ -67,6 +69,22 @@ internal class Av1ParseAboveNeighbor4x4Context
         for (int i = 0; i < bw; i++)
         {
             this.abovePartitionWidth[startIndex + i] = value;
+        }
+    }
+
+    public void UpdateTransformation(Point modeInfoLocation, Av1TileInfo tileInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
+    {
+        int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
+        int transformWidth = transformSize.GetWidth();
+        int n4w = blockSize.Get4x4WideCount();
+        if (skip)
+        {
+            transformWidth = n4w * (1 << Av1Constants.ModeInfoSizeLog2);
+        }
+
+        for (int i = 0; i < n4w; i++)
+        {
+            this.aboveTransformWidth[startIndex + i] = transformWidth;
         }
     }
 

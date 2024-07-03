@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -87,6 +88,24 @@ internal static class Av1BlockSizeExtensions
         }
 
         return SubSampled[(int)blockSize][subX ? 1 : 0][subY ? 1 : 0];
+    }
+
+    public static Av1TransformSize GetMaxUvTransformSize(this Av1BlockSize blockSize, bool subX, bool subY)
+    {
+        Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX, subY);
+        Av1TransformSize uvTransformSize = Av1TransformSize.Invalid;
+        if (planeBlockSize < Av1BlockSize.SizeS)
+        {
+            uvTransformSize = planeBlockSize.GetMaximumTransformSize();
+        }
+
+        return uvTransformSize switch
+        {
+            Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64 => Av1TransformSize.Size32x32,
+            Av1TransformSize.Size64x16 => Av1TransformSize.Size32x16,
+            Av1TransformSize.Size16x64 => Av1TransformSize.Size16x32,
+            _ => uvTransformSize,
+        };
     }
 
     /// <summary>

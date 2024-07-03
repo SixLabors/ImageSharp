@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
@@ -50,6 +51,7 @@ internal class Av1FrameBuffer
         // Initialize the arrays.
         int i = 0;
         int j = 0;
+        int k = 0;
         for (int y = 0; y < this.superblockRowCount; y++)
         {
             for (int x = 0; x < this.superblockColumnCount; x++)
@@ -58,11 +60,16 @@ internal class Av1FrameBuffer
                 this.superblockInfos[i] = new(this, point);
                 for (int u = 0; u < this.modeInfoSizePerSuperblock; u++)
                 {
+                    this.transformInfosY[j] = new Av1TransformInfo();
+                    this.transformInfosY[j << 1] = new Av1TransformInfo();
+                    this.transformInfosY[(j << 1) + 1] = new Av1TransformInfo();
                     for (int v = 0; v < this.modeInfoSizePerSuperblock; v++)
                     {
-                        this.modeInfos[j] = new Av1BlockModeInfo(numPlanes, Av1BlockSize.Block4x4, new Point(u, v));
-                        j++;
+                        this.modeInfos[k] = new Av1BlockModeInfo(numPlanes, Av1BlockSize.Block4x4, new Point(u, v));
+                        k++;
                     }
+
+                    j++;
                 }
 
                 i++;
@@ -87,6 +94,8 @@ internal class Av1FrameBuffer
         this.deltaLoopFilter = new int[superblockCount << this.deltaLoopFactorLog2];
     }
 
+    public int ModeInfoCount => this.modeInfos.Length;
+
     public Av1SuperblockInfo GetSuperblock(Point index)
     {
         Span<Av1SuperblockInfo> span = this.superblockInfos;
@@ -109,19 +118,35 @@ internal class Av1FrameBuffer
         return span[(superblock * this.modeInfoCountPerSuperblock) + modeInfo];
     }
 
-    public Av1TransformInfo GetTransformY(Point index)
+    public ref Av1TransformInfo GetTransformY(int index)
+    {
+        Span<Av1TransformInfo> span = this.transformInfosY;
+        return ref span[index];
+    }
+
+    public void SetTransformY(int index, Av1TransformInfo transformInfo)
+    {
+        Span<Av1TransformInfo> span = this.transformInfosY;
+        span[index] = transformInfo;
+    }
+
+    public ref Av1TransformInfo GetTransformY(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosY;
         int i = (index.Y * this.superblockColumnCount) + index.X;
-        return span[i * this.modeInfoCountPerSuperblock];
+        return ref span[i * this.modeInfoCountPerSuperblock];
     }
 
-    public void GetTransformUv(Point index, out Av1TransformInfo transformU, out Av1TransformInfo transformV)
+    public ref Av1TransformInfo GetTransformUv(int index)
     {
         Span<Av1TransformInfo> span = this.transformInfosUv;
-        int i = 2 * ((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock;
-        transformU = span[i];
-        transformV = span[i + 1];
+        return ref span[index];
+    }
+
+    public void SetTransformUv(int index, Av1TransformInfo transformInfo)
+    {
+        Span<Av1TransformInfo> span = this.transformInfosUv;
+        span[index] = transformInfo;
     }
 
     public Span<int> GetCoefficientsY(Point index)
@@ -175,5 +200,5 @@ internal class Av1FrameBuffer
         return span.Slice(i, 1 << this.deltaLoopFactorLog2);
     }
 
-    internal void ClearDeltaLoopFilter() => Array.Fill(this.deltaLoopFilter, 0);
+    public void ClearDeltaLoopFilter() => Array.Fill(this.deltaLoopFilter, 0);
 }

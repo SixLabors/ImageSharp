@@ -171,4 +171,12 @@ internal static class Av1DefaultDistributions
             new(16384), new(16384), new(16384), new(16384), new(12770), new(10368),
             new(20229), new(18101), new(16384), new(16384)
         ];
+
+    public static Av1Distribution[][] TransformSize =>
+        [
+            [new(19968), new(19968), new(24320)],
+            [new(12272, 30172), new(12272, 30172), new(18677, 30848)],
+            [new(12986, 15180), new(12986, 15180), new(24302, 25602)],
+            [new(5782, 11475), new(5782, 11475), new(16803, 22759)],
+        ];
 }

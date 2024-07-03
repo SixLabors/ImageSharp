@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Drawing;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
@@ -20,6 +22,7 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[] angleDelta = Av1DefaultDistributions.AngleDelta;
     private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
     private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
+    private readonly Av1Distribution[][] transformSize = Av1DefaultDistributions.TransformSize;
     private Av1SymbolReader reader;
 
     public Av1SymbolDecoder(Span<byte> tileData) => this.reader = new Av1SymbolReader(tileData);
@@ -147,6 +150,30 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return (Av1FilterIntraMode)r.ReadSymbol(this.filterIntraMode);
+    }
+
+    public Av1TransformSize ReadTransformSize(Av1BlockSize blockSize, int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        Av1TransformSize maxTransformSize = blockSize.GetMaximumTransformSize();
+        int depth = 0;
+        while (maxTransformSize != Av1TransformSize.Size4x4)
+        {
+            depth++;
+            maxTransformSize = maxTransformSize.GetSubSize();
+            DebugGuard.MustBeLessThan(depth, 10, nameof(depth));
+        }
+
+        DebugGuard.MustBeLessThanOrEqualTo(depth, Av1Constants.MaxTransformCategories, nameof(depth));
+        int category = depth - 1;
+        int value = r.ReadSymbol(this.transformSize[category][context]);
+        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+        for (int d = 0; d < value; ++d)
+        {
+            transformSize = transformSize.GetSubSize();
+        }
+
+        return transformSize;
     }
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)

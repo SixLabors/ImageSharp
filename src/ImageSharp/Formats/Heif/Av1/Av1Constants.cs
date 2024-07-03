@@ -133,4 +133,9 @@ internal static class Av1Constants
     /// Number of values for palette_size.
     /// </summary>
     public const int PaletteMaxSize = 8;
+
+    /// <summary>
+    /// Maximum transform size categories.
+    /// </summary>
+    public const int MaxTransformCategories = 4;
 }

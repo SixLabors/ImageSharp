@@ -13,9 +13,11 @@ internal class Av1BlockModeInfo
     {
         this.BlockSize = blockSize;
         this.PositionInSuperblock = position;
-        this.AngleDelta = new int[numPlanes];
+        this.AngleDelta = new int[numPlanes - 1];
         this.paletteSize = new int[numPlanes - 1];
         this.FilterIntraModeInfo = new();
+        this.FirstTransformLocation = new int[numPlanes - 1];
+        this.TusCount = new int[numPlanes - 1];
     }
 
     public Av1BlockSize BlockSize { get; }
@@ -24,7 +26,7 @@ internal class Av1BlockModeInfo
 
     public bool Skip { get; set; }
 
-    public Av1PartitionType PartitionType { get; }
+    public Av1PartitionType PartitionType { get; set; }
 
     public bool SkipMode { get; set; }
 
@@ -43,6 +45,10 @@ internal class Av1BlockModeInfo
     public Point PositionInSuperblock { get; set; }
 
     public Av1IntraFilterModeInfo FilterIntraModeInfo { get; internal set; }
+
+    public int[] FirstTransformLocation { get; }
+
+    public int[] TusCount { get; internal set; }
 
     public int GetPaletteSize(Av1PlaneType planeType) => this.paletteSize[(int)planeType];
 

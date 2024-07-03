@@ -29,7 +29,7 @@ internal static class TransformUtils
     public static bool IsDegenerate(Matrix4x4 matrix)
         => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsZero(float a)
         => a > -Constants.EpsilonSquared && a < Constants.EpsilonSquared;
 
@@ -39,13 +39,11 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="matrix">The transform matrix.</param>
     /// <returns>The <see cref="bool"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Matrix3x2 matrix)
-    {
-        return float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12)
-            || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22)
-            || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32);
-    }
+        => float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12)
+        || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22)
+        || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32);
 
     /// <summary>
     /// Returns a value that indicates whether the specified matrix contains any values
@@ -53,14 +51,12 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="matrix">The transform matrix.</param>
     /// <returns>The <see cref="bool"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNaN(Matrix4x4 matrix)
-    {
-        return float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12) || float.IsNaN(matrix.M13) || float.IsNaN(matrix.M14)
-            || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22) || float.IsNaN(matrix.M23) || float.IsNaN(matrix.M24)
-            || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32) || float.IsNaN(matrix.M33) || float.IsNaN(matrix.M34)
-            || float.IsNaN(matrix.M41) || float.IsNaN(matrix.M42) || float.IsNaN(matrix.M43) || float.IsNaN(matrix.M44);
-    }
+        => float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12) || float.IsNaN(matrix.M13) || float.IsNaN(matrix.M14)
+        || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22) || float.IsNaN(matrix.M23) || float.IsNaN(matrix.M24)
+        || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32) || float.IsNaN(matrix.M33) || float.IsNaN(matrix.M34)
+        || float.IsNaN(matrix.M41) || float.IsNaN(matrix.M42) || float.IsNaN(matrix.M43) || float.IsNaN(matrix.M44);
 
     /// <summary>
     /// Applies the projective transform against the given coordinates flattened into the 2D space.
@@ -69,71 +65,121 @@ internal static class TransformUtils
     /// <param name="y">The "y" vector coordinate.</param>
     /// <param name="matrix">The transform matrix.</param>
     /// <returns>The <see cref="Vector2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 ProjectiveTransform2D(float x, float y, Matrix4x4 matrix)
     {
-        const float Epsilon = 0.0000001F;
-        var v4 = Vector4.Transform(new Vector4(x, y, 0, 1F), matrix);
-        return new Vector2(v4.X, v4.Y) / MathF.Max(v4.W, Epsilon);
+        const float epsilon = 0.0000001F;
+        Vector4 v4 = Vector4.Transform(new Vector4(x, y, 0, 1F), matrix);
+        return new Vector2(v4.X, v4.Y) / MathF.Max(v4.W, epsilon);
     }
 
     /// <summary>
-    /// Creates a centered rotation matrix using the given rotation in degrees and the source size.
+    /// Creates a centered rotation transform matrix using the given rotation in degrees and the source size.
     /// </summary>
     /// <param name="degrees">The amount of rotation, in degrees.</param>
     /// <param name="size">The source image size.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Matrix3x2 CreateRotationMatrixDegrees(float degrees, Size size)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateRotationTransformMatrixDegrees(float degrees, Size size)
         => CreateCenteredTransformMatrix(
             new Rectangle(Point.Empty, size),
             Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty));
 
     /// <summary>
-    /// Creates a centered rotation matrix using the given rotation in radians and the source size.
+    /// Creates a centered rotation transform matrix using the given rotation in radians and the source size.
     /// </summary>
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <param name="size">The source image size.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Matrix3x2 CreateRotationMatrixRadians(float radians, Size size)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateRotationTransformMatrixRadians(float radians, Size size)
         => CreateCenteredTransformMatrix(
             new Rectangle(Point.Empty, size),
             Matrix3x2Extensions.CreateRotation(radians, PointF.Empty));
 
     /// <summary>
-    /// Creates a centered skew matrix from the give angles in degrees and the source size.
+    /// Creates a centered rotation bounds matrix using the given rotation in degrees and the source size.
+    /// </summary>
+    /// <param name="degrees">The amount of rotation, in degrees.</param>
+    /// <param name="size">The source image size.</param>
+    /// <returns>The <see cref="Matrix3x2"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateRotationBoundsMatrixDegrees(float degrees, Size size)
+        => CreateCenteredBoundsMatrix(
+            new Rectangle(Point.Empty, size),
+            Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty));
+
+    /// <summary>
+    /// Creates a centered rotation bounds matrix using the given rotation in radians and the source size.
+    /// </summary>
+    /// <param name="radians">The amount of rotation, in radians.</param>
+    /// <param name="size">The source image size.</param>
+    /// <returns>The <see cref="Matrix3x2"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateRotationBoundsMatrixRadians(float radians, Size size)
+        => CreateCenteredBoundsMatrix(
+            new Rectangle(Point.Empty, size),
+            Matrix3x2Extensions.CreateRotation(radians, PointF.Empty));
+
+    /// <summary>
+    /// Creates a centered skew transform matrix from the give angles in degrees and the source size.
     /// </summary>
     /// <param name="degreesX">The X angle, in degrees.</param>
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <param name="size">The source image size.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Matrix3x2 CreateSkewMatrixDegrees(float degreesX, float degreesY, Size size)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateSkewTransformMatrixDegrees(float degreesX, float degreesY, Size size)
         => CreateCenteredTransformMatrix(
             new Rectangle(Point.Empty, size),
             Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty));
 
     /// <summary>
-    /// Creates a centered skew matrix from the give angles in radians and the source size.
+    /// Creates a centered skew transform matrix from the give angles in radians and the source size.
     /// </summary>
     /// <param name="radiansX">The X angle, in radians.</param>
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <param name="size">The source image size.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static Matrix3x2 CreateSkewMatrixRadians(float radiansX, float radiansY, Size size)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateSkewTransformMatrixRadians(float radiansX, float radiansY, Size size)
         => CreateCenteredTransformMatrix(
             new Rectangle(Point.Empty, size),
             Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty));
 
     /// <summary>
-    /// Gets the centered transform matrix based upon the source and destination rectangles.
+    /// Creates a centered skew bounds matrix from the give angles in degrees and the source size.
+    /// </summary>
+    /// <param name="degreesX">The X angle, in degrees.</param>
+    /// <param name="degreesY">The Y angle, in degrees.</param>
+    /// <param name="size">The source image size.</param>
+    /// <returns>The <see cref="Matrix3x2"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateSkewBoundsMatrixDegrees(float degreesX, float degreesY, Size size)
+        => CreateCenteredBoundsMatrix(
+            new Rectangle(Point.Empty, size),
+            Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty));
+
+    /// <summary>
+    /// Creates a centered skew bounds matrix from the give angles in radians and the source size.
+    /// </summary>
+    /// <param name="radiansX">The X angle, in radians.</param>
+    /// <param name="radiansY">The Y angle, in radians.</param>
+    /// <param name="size">The source image size.</param>
+    /// <returns>The <see cref="Matrix3x2"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateSkewBoundsMatrixRadians(float radiansX, float radiansY, Size size)
+        => CreateCenteredBoundsMatrix(
+            new Rectangle(Point.Empty, size),
+            Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty));
+
+    /// <summary>
+    /// Gets the centered transform matrix based upon the source rectangle.
     /// </summary>
     /// <param name="sourceRectangle">The source image bounds.</param>
     /// <param name="matrix">The transformation matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/></returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix3x2 CreateCenteredTransformMatrix(Rectangle sourceRectangle, Matrix3x2 matrix)
     {
         Rectangle destinationRectangle = GetTransformedBoundingRectangle(sourceRectangle, matrix);
@@ -142,8 +188,33 @@ internal static class TransformUtils
         // This ensures scaling matrices are correct.
         Matrix3x2.Invert(matrix, out Matrix3x2 inverted);
 
-        var translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-destinationRectangle.Width, -destinationRectangle.Height) * .5F);
-        var translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(sourceRectangle.Width, sourceRectangle.Height) * .5F);
+        // Centered transforms must be 0 based so we offset the bounds width and height.
+        Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-(destinationRectangle.Width - 1), -(destinationRectangle.Height - 1)) * .5F);
+        Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(sourceRectangle.Width - 1, sourceRectangle.Height - 1) * .5F);
+
+        // Translate back to world space.
+        Matrix3x2.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix3x2 centered);
+
+        return centered;
+    }
+
+    /// <summary>
+    /// Gets the centered bounds matrix based upon the source rectangle.
+    /// </summary>
+    /// <param name="sourceRectangle">The source image bounds.</param>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <returns>The <see cref="Matrix3x2"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 CreateCenteredBoundsMatrix(Rectangle sourceRectangle, Matrix3x2 matrix)
+    {
+        Rectangle destinationRectangle = GetTransformedBoundingRectangle(sourceRectangle, matrix);
+
+        // We invert the matrix to handle the transformation from screen to world space.
+        // This ensures scaling matrices are correct.
+        Matrix3x2.Invert(matrix, out Matrix3x2 inverted);
+
+        Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-destinationRectangle.Width, -destinationRectangle.Height) * .5F);
+        Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(sourceRectangle.Width, sourceRectangle.Height) * .5F);
 
         // Translate back to world space.
         Matrix3x2.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix3x2 centered);
@@ -160,7 +231,7 @@ internal static class TransformUtils
     /// <param name="corner">An enumeration that indicates on which corners to taper the rectangle.</param>
     /// <param name="fraction">The amount to taper.</param>
     /// <returns>The <see cref="Matrix4x4"/></returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix4x4 CreateTaperMatrix(Size size, TaperSide side, TaperCorner corner, float fraction)
     {
         Matrix4x4 matrix = Matrix4x4.Identity;
@@ -281,7 +352,7 @@ internal static class TransformUtils
     /// <returns>
     /// The <see cref="Rectangle"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rectangle GetTransformedBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
     {
         Rectangle transformed = GetTransformedRectangle(rectangle, matrix);
@@ -303,10 +374,10 @@ internal static class TransformUtils
             return rectangle;
         }
 
-        var tl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
-        var tr = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
-        var bl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
-        var br = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
+        Vector2 tl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
+        Vector2 tr = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
+        Vector2 bl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
+        Vector2 br = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
 
         return GetBoundingRectangle(tl, tr, bl, br);
     }
@@ -341,7 +412,7 @@ internal static class TransformUtils
     /// <returns>
     /// The <see cref="Rectangle"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rectangle GetTransformedRectangle(Rectangle rectangle, Matrix4x4 matrix)
     {
         if (rectangle.Equals(default) || Matrix4x4.Identity.Equals(matrix))
@@ -365,7 +436,7 @@ internal static class TransformUtils
     /// <returns>
     /// The <see cref="Size"/>.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Size GetTransformedSize(Size size, Matrix4x4 matrix)
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
@@ -380,7 +451,7 @@ internal static class TransformUtils
         return ConstrainSize(rectangle);
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Size ConstrainSize(Rectangle rectangle)
     {
         // We want to resize the canvas here taking into account any translations.
@@ -402,7 +473,7 @@ internal static class TransformUtils
         return new Size(width, height);
     }
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Rectangle GetBoundingRectangle(Vector2 tl, Vector2 tr, Vector2 bl, Vector2 br)
     {
         // Find the minimum and maximum "corners" based on the given vectors

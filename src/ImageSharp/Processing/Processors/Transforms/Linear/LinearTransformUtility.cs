@@ -38,8 +38,8 @@ internal static class LinearTransformUtility
     /// </summary>
     /// <param name="radius">The radius.</param>
     /// <param name="center">The center position.</param>
-    /// <param name="min">The min allowed amouunt.</param>
-    /// <param name="max">The max allowed amouunt.</param>
+    /// <param name="min">The min allowed amount.</param>
+    /// <param name="max">The max allowed amount.</param>
     /// <returns>The <see cref="int"/>.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int GetRangeStart(float radius, float center, int min, int max)
@@ -51,8 +51,8 @@ internal static class LinearTransformUtility
     /// </summary>
     /// <param name="radius">The radius.</param>
     /// <param name="center">The center position.</param>
-    /// <param name="min">The min allowed amouunt.</param>
-    /// <param name="max">The max allowed amouunt.</param>
+    /// <param name="min">The min allowed amount.</param>
+    /// <param name="max">The max allowed amount.</param>
     /// <returns>The <see cref="int"/>.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int GetRangeEnd(float radius, float center, int min, int max)

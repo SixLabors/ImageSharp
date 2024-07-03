@@ -10,11 +10,13 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -130,6 +132,7 @@ internal static class AotCompilerTools
         AotCompileImageDecoderInternals<TPixel>();
         AotCompileImageEncoders<TPixel>();
         AotCompileImageDecoders<TPixel>();
+        AotCompileSpectralConverter<TPixel>();
         AotCompileImageProcessors<TPixel>();
         AotCompileGenericImageProcessors<TPixel>();
         AotCompileResamplers<TPixel>();
@@ -267,6 +270,17 @@ internal static class AotCompilerTools
         AotCompileImageDecoder<TPixel, PngDecoder>();
         AotCompileImageDecoder<TPixel, TgaDecoder>();
         AotCompileImageDecoder<TPixel, TiffDecoder>();
+    }
+
+    [Preserve]
+    private static void AotCompileSpectralConverter<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        default(SpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
     }
 
     /// <summary>

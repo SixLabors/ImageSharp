@@ -252,23 +252,24 @@ public class AffineTransformTests
     [Fact]
     public void TransformRotationDoesNotOffset()
     {
-        Rgba32 marker = Color.Aqua;
+        Rgba32 background = Color.DimGray.ToPixel<Rgba32>();
+        Rgba32 marker = Color.Aqua.ToPixel<Rgba32>();
 
-        using Image<Rgba32> img = new(100, 100, Color.DimGray);
+        using Image<Rgba32> img = new(100, 100, background);
         img[0, 0] = marker;
 
         img.Mutate(c => c.Rotate(180));
 
         Assert.Equal(marker, img[99, 99]);
 
-        using Image<Rgba32> img2 = new(100, 100, Color.DimGray);
+        using Image<Rgba32> img2 = new(100, 100, background);
         img2[0, 0] = marker;
 
         img2.Mutate(
             c =>
             c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180), KnownResamplers.NearestNeighbor));
 
-        using Image<Rgba32> img3 = new(100, 100, Color.DimGray);
+        using Image<Rgba32> img3 = new(100, 100, background);
         img3[0, 0] = marker;
 
         img3.Mutate(c => c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180)));

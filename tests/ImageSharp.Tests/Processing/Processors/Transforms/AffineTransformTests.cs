@@ -249,6 +249,34 @@ public class AffineTransformTests
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }
 
+    [Fact]
+    public void TransformRotationDoesNotOffset()
+    {
+        Rgba32 marker = Color.Aqua;
+
+        using Image<Rgba32> img = new(100, 100, Color.DimGray);
+        img[0, 0] = marker;
+
+        img.Mutate(c => c.Rotate(180));
+
+        Assert.Equal(marker, img[99, 99]);
+
+        using Image<Rgba32> img2 = new(100, 100, Color.DimGray);
+        img2[0, 0] = marker;
+
+        img2.Mutate(
+            c =>
+            c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180), KnownResamplers.NearestNeighbor));
+
+        using Image<Rgba32> img3 = new(100, 100, Color.DimGray);
+        img3[0, 0] = marker;
+
+        img3.Mutate(c => c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180)));
+
+        ImageComparer.Exact.VerifySimilarity(img, img2);
+        ImageComparer.Exact.VerifySimilarity(img, img3);
+    }
+
     private static IResampler GetResampler(string name)
     {
         PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name)

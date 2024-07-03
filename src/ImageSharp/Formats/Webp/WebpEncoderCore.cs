@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-internal sealed class WebpEncoderCore : IImageEncoderInternals
+internal sealed class WebpEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.

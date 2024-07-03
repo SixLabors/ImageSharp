@@ -128,6 +128,9 @@ internal class ObuReader
 
                     break;
                 case ObuType.TemporalDelimiter:
+                    // 5.6. Temporal delimiter obu syntax.
+                    seenFrameHeader = false;
+                    break;
                 default:
                     // Ignore unknown OBU types.
                     // throw new InvalidImageContentException($"Unknown OBU header found: {header.Type.ToString()}");
@@ -900,6 +903,7 @@ internal class ObuReader
                 frameInfo.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
             }
 
+            // int refreshFrameFlags = 0;
             if (sequenceHeader.IsFrameIdNumbersPresent)
             {
                 frameInfo.DisplayFrameId = reader.ReadLiteral(idLength);

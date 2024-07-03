@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
@@ -216,18 +215,17 @@ public class JpegFixture : MeasureFixture
     internal static JpegDecoderCore ParseJpegStream(string testFileName, bool metaDataOnly = false)
     {
         byte[] bytes = TestFile.Create(testFileName).Bytes;
-        using var ms = new MemoryStream(bytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
-
-        JpegDecoderOptions options = new();
-        var decoder = new JpegDecoderCore(options);
+        using MemoryStream ms = new(bytes);
+        JpegDecoderOptions decoderOptions = new();
+        Configuration configuration = decoderOptions.GeneralOptions.Configuration;
+        JpegDecoderCore decoder = new(decoderOptions);
         if (metaDataOnly)
         {
-            decoder.Identify(bufferedStream, cancellationToken: default);
+            decoder.Identify(configuration, ms, default);
         }
         else
         {
-            using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
+            using Image<Rgba32> image = decoder.Decode<Rgba32>(configuration, ms, default);
         }
 
         return decoder;

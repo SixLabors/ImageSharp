@@ -67,11 +67,11 @@ public partial class JpegDecoderTests
     public void ParseStream_BasicPropertiesAreCorrect()
     {
         JpegDecoderOptions options = new();
+        Configuration configuration = options.GeneralOptions.Configuration;
         byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
         using MemoryStream ms = new(bytes);
-        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
         using JpegDecoderCore decoder = new(options);
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
+        using Image<Rgba32> image = decoder.Decode<Rgba32>(configuration, ms, cancellationToken: default);
 
         // I don't know why these numbers are different. All I know is that the decoder works
         // and spectral data is exactly correct also.

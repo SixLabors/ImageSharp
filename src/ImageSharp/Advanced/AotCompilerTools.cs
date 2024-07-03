@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -195,39 +196,41 @@ internal static class AotCompilerTools
             => default(DefaultImageOperationsProviderFactory).CreateImageProcessingContext<TPixel>(default, default, default);
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageEncoderInternals"/> in the AoT compiler.
+    /// This method pre-seeds the all core encoders in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
     private static void AotCompileImageEncoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(WebpEncoderCore).Encode<TPixel>(default, default, default);
         default(BmpEncoderCore).Encode<TPixel>(default, default, default);
         default(GifEncoderCore).Encode<TPixel>(default, default, default);
         default(JpegEncoderCore).Encode<TPixel>(default, default, default);
         default(PbmEncoderCore).Encode<TPixel>(default, default, default);
         default(PngEncoderCore).Encode<TPixel>(default, default, default);
+        default(QoiEncoderCore).Encode<TPixel>(default, default, default);
         default(TgaEncoderCore).Encode<TPixel>(default, default, default);
         default(TiffEncoderCore).Encode<TPixel>(default, default, default);
+        default(WebpEncoderCore).Encode<TPixel>(default, default, default);
     }
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageDecoderInternals"/> in the AoT compiler.
+    /// This method pre-seeds the all <see cref="ImageDecoderCore"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
     private static void AotCompileImageDecoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(WebpDecoderCore).Decode<TPixel>(default, default);
-        default(BmpDecoderCore).Decode<TPixel>(default, default);
-        default(GifDecoderCore).Decode<TPixel>(default, default);
-        default(JpegDecoderCore).Decode<TPixel>(default, default);
-        default(PbmDecoderCore).Decode<TPixel>(default, default);
-        default(PngDecoderCore).Decode<TPixel>(default, default);
-        default(TgaDecoderCore).Decode<TPixel>(default, default);
-        default(TiffDecoderCore).Decode<TPixel>(default, default);
+        default(BmpDecoderCore).Decode<TPixel>(default, default, default);
+        default(GifDecoderCore).Decode<TPixel>(default, default, default);
+        default(JpegDecoderCore).Decode<TPixel>(default, default, default);
+        default(PbmDecoderCore).Decode<TPixel>(default, default, default);
+        default(PngDecoderCore).Decode<TPixel>(default, default, default);
+        default(QoiDecoderCore).Decode<TPixel>(default, default, default);
+        default(TgaDecoderCore).Decode<TPixel>(default, default, default);
+        default(TiffDecoderCore).Decode<TPixel>(default, default, default);
+        default(WebpDecoderCore).Decode<TPixel>(default, default, default);
     }
 
     /// <summary>

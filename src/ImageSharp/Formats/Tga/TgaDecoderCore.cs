@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Performs the tga decoding operation.
 /// </summary>
-internal sealed class TgaDecoderCore : IImageDecoderInternals
+internal sealed class TgaDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// General configuration options.
@@ -52,21 +52,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The options.</param>
     public TgaDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
     /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc />
-    public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
-
-    /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         try
         {
@@ -653,7 +646,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadFileHeader(stream);
         return new ImageInfo(
@@ -933,6 +926,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
         stream.Read(buffer, 0, TgaFileHeader.Size);
         this.fileHeader = TgaFileHeader.Parse(buffer);
+        this.Dimensions = new Size(this.fileHeader.Width, this.fileHeader.Height);
+
         this.metadata = new ImageMetadata();
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;

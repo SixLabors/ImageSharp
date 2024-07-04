@@ -6,7 +6,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal static class Av1LookupTables
 {
     // The Subsampled_Size table in the spec (Section 5.11.38. Get plane residual size function).
-    public static Av1BlockSize[,,] SubSampledSize =
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1500:Braces for multi-line statements should not share line", Justification = "alignment should match the spec file definition")]
+    public static readonly Av1BlockSize[,,] SubSampledSize =
     {
         { { Av1BlockSize.Block4x4,      Av1BlockSize.Block4x4 },    { Av1BlockSize.Block4x4,    Av1BlockSize.Block4x4 } },
         { { Av1BlockSize.Block4x8,      Av1BlockSize.Block4x4 },    { Av1BlockSize.Invalid,     Av1BlockSize.Block4x4 } },

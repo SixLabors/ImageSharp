@@ -1,15 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Data.Common;
-using System.Drawing;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using static SixLabors.ImageSharp.PixelFormats.Utils.Vector4Converters;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
@@ -34,8 +29,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int maxLumaHeight;
     private int deltaLoopFilterResolution = -1;
     private bool readDeltas;
-    private int[][] tusCount = [];
+    private int[][] tusCount;
     private int[] firstTransformOffset = new int[2];
+    private int[][] coefficients = [];
+    private int[] coefficientIndex = [];
 
     public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
@@ -64,6 +61,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         this.tusCount[0] = new int[this.FrameBuffer.ModeInfoCount];
         this.tusCount[1] = new int[this.FrameBuffer.ModeInfoCount];
         this.tusCount[2] = new int[this.FrameBuffer.ModeInfoCount];
+        this.coefficients = new int[3][];
+        this.coefficientIndex = new int[3];
     }
 
     public ObuFrameHeader FrameInfo { get; }
@@ -371,7 +370,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             this.ResetSkipContext(partitionInfo);
         }
 
-        this.Residual(rowIndex, columnIndex, blockSize);
+        this.Residual(partitionInfo, superblockInfo, tileInfo, blockSize);
     }
 
     private void ResetSkipContext(Av1PartitionInfo partitionInfo)
@@ -394,46 +393,97 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// <summary>
     /// 5.11.34. Residual syntax.
     /// </summary>
-    private void Residual(int rowIndex, int columnIndex, Av1BlockSize blockSize)
+    private void Residual(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
     {
-        bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
-        bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
-        int superBlockMask = this.SequenceHeader.Use128x128SuperBlock ? 31 : 15;
-        int widthChunks = Math.Max(1, blockSize.Get4x4WideCount() >> 6);
-        int heightChunks = Math.Max(1, blockSize.Get4x4HighCount() >> 6);
-        Av1BlockSize sizeChunk = widthChunks > 1 || heightChunks > 1 ? Av1BlockSize.Block64x64 : blockSize;
+        int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
+        int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
+        Av1BlockSize maxUnitSize = Av1BlockSize.Block64x64;
+        int modeUnitBlocksWide = maxUnitSize.GetWidth() >> 2;
+        int modeUnitBlocksHigh = maxUnitSize.GetHeight() >> 2;
+        modeUnitBlocksWide = Math.Min(maxBlocksWide, modeUnitBlocksWide);
+        modeUnitBlocksHigh = Math.Min(maxBlocksHigh, modeUnitBlocksHigh);
+        int planeCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        bool isLossless = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
+        bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
+        int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
+        int chromaTusCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TusCount[(int)Av1PlaneType.Uv];
+        int[] transformInfoIndices = new int[3];
+        transformInfoIndices[0] = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
+        transformInfoIndices[1] = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
+        transformInfoIndices[2] = transformInfoIndices[1] + chromaTusCount;
+        int forceSplitCount = 0;
 
-        for (int chunkY = 0; chunkY < heightChunks; chunkY++)
+        for (int row = 0; row < maxBlocksHigh; row += modeUnitBlocksHigh)
         {
-            for (int chunkX = 0; chunkX < widthChunks; chunkX++)
+            for (int column = 0; column < maxBlocksWide; column += modeUnitBlocksWide)
             {
-                int rowChunk = rowIndex + (chunkY << 4);
-                int columnChunk = columnIndex + (chunkX << 4);
-                int subBlockRow = rowChunk & superBlockMask;
-                int subBlockColumn = columnChunk & superBlockMask;
-                int endPlane = 1 + (this.HasChroma(rowIndex, columnIndex, blockSize) ? 2 : 0);
-                for (int plane = 0; plane < endPlane; plane++)
+                for (int plane = 0; plane < planeCount; ++plane)
                 {
-                    Av1TransformSize transformSize = this.FrameInfo.CodedLossless ? Av1TransformSize.Size4x4 : this.GetSize(plane, -1);
-                    int stepX = transformSize.GetWidth() >> 2;
-                    int stepY = transformSize.GetHeight() >> 2;
-                    Av1BlockSize planeSize = this.GetPlaneResidualSize(sizeChunk, plane);
-                    int num4x4Width = planeSize.Get4x4WideCount();
-                    int num4x4Height = planeSize.Get4x4HighCount();
-                    int subX = plane > 0 && subsamplingX ? 1 : 0;
-                    int subY = plane > 0 && subsamplingY ? 1 : 0;
-                    int baseX = (columnChunk >> subX) * (1 << Av1Constants.ModeInfoSizeLog2);
-                    int baseY = (rowChunk >> subY) * (1 << Av1Constants.ModeInfoSizeLog2);
-                    int baseXBlock = (columnIndex >> subX) * (1 << Av1Constants.ModeInfoSizeLog2);
-                    int baseYBlock = (rowIndex >> subY) * (1 << Av1Constants.ModeInfoSizeLog2);
-                    for (int y = 0; y < num4x4Height; y += stepY)
+                    int totalTusCount;
+                    int tusCount;
+                    int subX = plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
+                    int subY = plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
+
+                    if (plane != 0 && !partitionInfo.IsChroma)
                     {
-                        for (int x = 0; x < num4x4Width; x += stepX)
+                        continue;
+                    }
+
+                    if (isLosslessBlock)
+                    {
+                        // TODO: Implement.
+                        int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
+                        int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
+                        totalTusCount = 0;
+                        tusCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
+                    }
+                    else
+                    {
+                        totalTusCount = partitionInfo.ModeInfo.TusCount[Math.Min(1, plane)];
+                        tusCount = this.tusCount[plane][forceSplitCount];
+
+                        DebugGuard.IsFalse(totalTusCount == 0, nameof(totalTusCount), string.Empty);
+                        DebugGuard.IsTrue(totalTusCount == this.tusCount[plane][0] + this.tusCount[plane][1] + this.tusCount[plane][2] + this.tusCount[plane][3], nameof(totalTusCount), string.Empty);
+                    }
+
+                    DebugGuard.IsFalse(tusCount == 0, nameof(tusCount), string.Empty);
+
+                    for (int tu = 0; tu < tusCount; tu++)
+                    {
+                        int coefficientIndex = this.coefficientIndex[plane];
+                        int endOfBlock = 0;
+                        Av1TransformInfo transformInfo = this.FrameBuffer.GetTransform(plane, transformInfoIndices[plane])!;
+                        int blockColumn = transformInfo.TransformOffsetX;
+                        int blockRow = transformInfo.TransformOffsetY;
+                        int startX = (partitionInfo.ColumnIndex >> subX) + blockColumn;
+                        int startY = (partitionInfo.RowIndex >> subY) + blockRow;
+
+                        if (startX >= (this.FrameInfo.ModeInfoColumnCount >> subX) ||
+                            startY >= (this.FrameInfo.ModeInfoRowCount >> subY))
                         {
-                            this.TransformBlock(plane, baseXBlock, baseYBlock, transformSize, x + (chunkX << 4 >> subX), y + (chunkY << 4 >> subY));
+                            return;
                         }
+
+                        if (!partitionInfo.ModeInfo.Skip)
+                        {
+                            endOfBlock = this.TransformBlock(partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.TransformSize, subX, subY);
+                        }
+
+                        if (endOfBlock != 0)
+                        {
+                            this.coefficientIndex[plane] += 2;
+                            transformInfo.CodeBlockFlag = true;
+                        }
+                        else
+                        {
+                            transformInfo.CodeBlockFlag = false;
+                        }
+
+                        transformInfoIndices[plane]++;
                     }
                 }
+
+                forceSplitCount++;
             }
         }
     }
@@ -458,25 +508,29 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// </summary>
     private Av1BlockSize GetPlaneResidualSize(Av1BlockSize sizeChunk, int plane)
     {
-        int subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
-        int subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
-        int subX = plane > 0 ? subsamplingX : 0;
-        int subY = plane > 0 ? subsamplingY : 0;
-        return Av1LookupTables.SubSampledSize[(byte)sizeChunk, subX, subY];
+        bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
+        bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
+        bool subX = plane > 0 && subsamplingX;
+        bool subY = plane > 0 && subsamplingY;
+        return sizeChunk.GetSubsampled(subX, subY);
     }
 
     /// <summary>
     /// 5.11.35. Transform block syntax.
     /// </summary>
-    private void TransformBlock(int plane, int baseX, int baseY, Av1TransformSize transformSize, int x, int y)
+    private int TransformBlock(
+        Av1PartitionInfo partitionInfo,
+        int coefficientIndex,
+        Av1TransformInfo transformInfo,
+        int plane,
+        int blockColumn,
+        int blockRow,
+        int startX,
+        int startY,
+        Av1TransformSize transformSize,
+        int subX,
+        int subY)
     {
-        Av1PartitionInfo partitionInfo = new(new(1, Av1BlockSize.Invalid, new Point(0, 0)), new(this.FrameBuffer, default), false, Av1PartitionType.None);
-        int startX = (baseX + 4) * x;
-        int startY = (baseY + 4) * y;
-        bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
-        bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
-        int subX = plane > 0 && subsamplingX ? 1 : 0;
-        int subY = plane > 0 && subsamplingY ? 1 : 0;
         int columnIndex = startX << subX >> Av1Constants.ModeInfoSizeLog2;
         int rowIndex = startY << subY >> Av1Constants.ModeInfoSizeLog2;
         int superBlockMask = this.SequenceHeader.Use128x128SuperBlock ? 31 : 15;
@@ -488,13 +542,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int maxY = (this.SequenceHeader.ModeInfoSize * (1 << Av1Constants.ModeInfoSizeLog2)) >> subY;
         if (startX >= maxX || startY >= maxY)
         {
-            return;
+            return 0;
         }
 
         if ((plane == 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) > 0) ||
             (plane != 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) > 0))
         {
-            this.PredictPalette(plane, startX, startY, x, y, transformSize);
+            this.PredictPalette(plane, startX, startY, blockColumn, blockRow, transformSize);
         }
         else
         {
@@ -511,8 +565,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
             int log2Width = transformSize.GetWidthLog2();
             int log2Height = transformSize.GetHeightLog2();
-            bool leftAvailable = x > 0 || plane == 0 ? partitionInfo.AvailableLeft : partitionInfo.AvailableLeftForChroma;
-            bool upAvailable = y > 0 || plane == 0 ? partitionInfo.AvailableUp : partitionInfo.AvailableUpForChroma;
+            bool leftAvailable = blockColumn > 0 || plane == 0 ? partitionInfo.AvailableLeft : partitionInfo.AvailableLeftForChroma;
+            bool upAvailable = blockRow > 0 || plane == 0 ? partitionInfo.AvailableUp : partitionInfo.AvailableUpForChroma;
             bool haveAboveRight = this.blockDecoded[plane][(subBlockRow >> subY) - 1][(subBlockColumn >> subX) + stepX];
             bool haveBelowLeft = this.blockDecoded[plane][(subBlockRow >> subY) + stepY][(subBlockColumn >> subX) - 1];
             this.PredictIntra(plane, startX, startY, leftAvailable, upAvailable, haveAboveRight, haveBelowLeft, mode, log2Width, log2Height);
@@ -545,6 +599,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 this.blockDecoded[plane][(subBlockRow >> subY) + i][(subBlockColumn >> subX) + j] = true;
             }
         }
+
+        return -1;
     }
 
     private void Reconstruct(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();

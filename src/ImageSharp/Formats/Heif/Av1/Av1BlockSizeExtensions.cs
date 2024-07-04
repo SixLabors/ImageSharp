@@ -11,6 +11,7 @@ internal static class Av1BlockSizeExtensions
     private static readonly int[] SizeWide = [1, 1, 2, 2, 2, 4, 4, 4, 8, 8, 8, 16, 16, 16, 32, 32, 1, 4, 2, 8, 4, 16];
     private static readonly int[] SizeHigh = [1, 2, 1, 2, 4, 2, 4, 8, 4, 8, 16, 8, 16, 32, 16, 32, 4, 1, 8, 2, 16, 4];
 
+    // The Subsampled_Size table in the spec (Section 5.11.38. Get plane residual size function).
     private static readonly Av1BlockSize[][][] SubSampled =
         [
 

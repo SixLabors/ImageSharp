@@ -137,6 +137,8 @@ internal static class Av1Math
         return (value + mask) & ~mask;
     }
 
+    internal static int RoundPowerOf2(int value, int n) => (value + ((1 << n) >> 1)) >> n;
+
     internal static int Clamp(int value, int low, int high)
         => value < low ? low : (value > high ? high : value);
 }

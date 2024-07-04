@@ -23,4 +23,10 @@ internal class Av1TransformInfo
     public int OffsetX { get; internal set; }
 
     public int OffsetY { get; internal set; }
+
+    public bool CodeBlockFlag { get; internal set; }
+
+    public int TransformOffsetX { get; internal set; }
+
+    public int TransformOffsetY { get; internal set; }
 }

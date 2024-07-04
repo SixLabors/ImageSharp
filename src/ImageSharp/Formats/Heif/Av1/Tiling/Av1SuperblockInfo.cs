@@ -25,11 +25,13 @@ internal class Av1SuperblockInfo
 
     public Span<int> CoefficientsV => this.frameBuffer.GetCoefficientsV(this.Position);
 
-    public Av1TransformInfo SuperblockTransformInfo => this.frameBuffer.GetTransformY(this.Position);
-
     public Span<int> CdefStrength => this.frameBuffer.GetCdefStrength(this.Position);
 
     public Span<int> SuperblockDeltaLoopFilter => this.frameBuffer.GetDeltaLoopFilter(this.Position);
+
+    public int TransformInfoIndexY { get; internal set; }
+
+    public int TransformInfoIndexUv { get; internal set; }
 
     public Av1BlockModeInfo GetModeInfo(Point index) => this.frameBuffer.GetModeInfo(this.Position, index);
 }

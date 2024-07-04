@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Reflection.Metadata.Ecma335;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -201,4 +202,12 @@ internal class Av1FrameBuffer
     }
 
     public void ClearDeltaLoopFilter() => Array.Fill(this.deltaLoopFilter, 0);
+
+    public Av1TransformInfo? GetTransform(int plane, int transformInfoIndex) =>
+        plane switch
+        {
+            0 => this.GetTransformY(transformInfoIndex),
+            1 or 2 => this.GetTransformUv(transformInfoIndex),
+            _ => null,
+        };
 }

@@ -451,7 +451,19 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private Av1TransformSize GetSize(int plane, object transformSize) => throw new NotImplementedException();
 
-    private Av1BlockSize GetPlaneResidualSize(Av1BlockSize sizeChunk, int plane) => throw new NotImplementedException();
+    /// <summary>
+    /// 5.11.38. Get plane residual size function.
+    /// The GetPlaneResidualSize returns the size of a residual block for the specified plane. (The residual block will always
+    /// have width and height at least equal to 4.)
+    /// </summary>
+    private Av1BlockSize GetPlaneResidualSize(Av1BlockSize sizeChunk, int plane)
+    {
+        int subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
+        int subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
+        int subX = plane > 0 ? subsamplingX : 0;
+        int subY = plane > 0 ? subsamplingY : 0;
+        return Av1LookupTables.SubSampledSize[(byte)sizeChunk, subX, subY];
+    }
 
     /// <summary>
     /// 5.11.35. Transform block syntax.

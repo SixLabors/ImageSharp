@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal enum Av1BlockSize
+internal enum Av1BlockSize : byte
 {
     // See sction 6.10.4 of the Av1 Specification.
 

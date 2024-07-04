@@ -50,6 +50,9 @@ internal static class Av1BlockSizeExtensions
         Av1TransformSize.Size16x64, Av1TransformSize.Size64x16
     ];
 
+    private static readonly int[] PelsLog2Count =
+        [4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10];
+
     public static int Get4x4WideCount(this Av1BlockSize blockSize) => SizeWide[(int)blockSize];
 
     public static int Get4x4HighCount(this Av1BlockSize blockSize) => SizeHigh[(int)blockSize];
@@ -82,13 +85,19 @@ internal static class Av1BlockSizeExtensions
     /// Returns the block size of a sub sampled block.
     /// </summary>
     public static Av1BlockSize GetSubsampled(this Av1BlockSize blockSize, bool subX, bool subY)
+        => GetSubsampled(blockSize, subX ? 1 : 0, subY ? 1 : 0);
+
+    /// <summary>
+    /// Returns the block size of a sub sampled block.
+    /// </summary>
+    public static Av1BlockSize GetSubsampled(this Av1BlockSize blockSize, int subX, int subY)
     {
         if (blockSize == Av1BlockSize.Invalid)
         {
             return Av1BlockSize.Invalid;
         }
 
-        return SubSampled[(int)blockSize][subX ? 1 : 0][subY ? 1 : 0];
+        return SubSampled[(int)blockSize][subX][subY];
     }
 
     public static Av1TransformSize GetMaxUvTransformSize(this Av1BlockSize blockSize, bool subX, bool subY)
@@ -115,4 +124,7 @@ internal static class Av1BlockSizeExtensions
     /// </summary>
     public static Av1TransformSize GetMaximumTransformSize(this Av1BlockSize blockSize)
         => MaxTransformSize[(int)blockSize];
+
+    public static int GetPelsLog2Count(this Av1BlockSize blockSize)
+        => PelsLog2Count[(int)blockSize];
 }

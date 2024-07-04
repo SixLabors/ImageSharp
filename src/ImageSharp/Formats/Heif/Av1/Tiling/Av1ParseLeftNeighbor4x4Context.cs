@@ -91,4 +91,6 @@ internal class Av1ParseLeftNeighbor4x4Context
 
     internal void ClearContext(int plane, int offset, int length)
         => Array.Fill(this.leftContext[plane], 0, offset, length);
+
+    internal int[] GetContext(int plane) => this.leftContext[plane];
 }

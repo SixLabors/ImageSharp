@@ -13,6 +13,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private static readonly int[] SgrprojXqdMid = [-32, 31];
     private static readonly int[] WienerTapsMid = [3, -7, 15];
     private const int PartitionProbabilitySet = 4;
+    private static readonly int[] Signs = [0, -1, 1];
+    private static readonly int[] DcSignContexts = [
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
+
+    private static readonly int[][] SkipContexts = [
+        [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]];
 
     private bool[][][] blockDecoded = [];
     private int[][] referenceSgrXqd = [];
@@ -25,13 +32,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private int[][] leftLevelContext = [];
     private int[][] leftDcContext = [];
     private int[][] segmentIds = [];
-    private int maxLumaWidth;
-    private int maxLumaHeight;
     private int deltaLoopFilterResolution = -1;
     private bool readDeltas;
     private int[][] tusCount;
     private int[] firstTransformOffset = new int[2];
-    private int[][] coefficients = [];
     private int[] coefficientIndex = [];
 
     public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
@@ -61,8 +65,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         this.tusCount[0] = new int[this.FrameBuffer.ModeInfoCount];
         this.tusCount[1] = new int[this.FrameBuffer.ModeInfoCount];
         this.tusCount[2] = new int[this.FrameBuffer.ModeInfoCount];
-        this.coefficients = new int[3][];
-        this.coefficientIndex = new int[3];
+        this.coefficientIndex = new int[Av1Constants.MaxPlanes];
     }
 
     public ObuFrameHeader FrameInfo { get; }
@@ -370,7 +373,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             this.ResetSkipContext(partitionInfo);
         }
 
-        this.Residual(partitionInfo, superblockInfo, tileInfo, blockSize);
+        this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
     }
 
     private void ResetSkipContext(Av1PartitionInfo partitionInfo)
@@ -393,7 +396,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// <summary>
     /// 5.11.34. Residual syntax.
     /// </summary>
-    private void Residual(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
+    private void Residual(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
     {
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -466,7 +469,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
                         if (!partitionInfo.ModeInfo.Skip)
                         {
-                            endOfBlock = this.TransformBlock(partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.TransformSize, subX, subY);
+                            endOfBlock = this.TransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.TransformSize, subX != 0, subY != 0);
                         }
 
                         if (endOfBlock != 0)
@@ -519,6 +522,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// 5.11.35. Transform block syntax.
     /// </summary>
     private int TransformBlock(
+        ref Av1SymbolDecoder reader,
         Av1PartitionInfo partitionInfo,
         int coefficientIndex,
         Av1TransformInfo transformInfo,
@@ -528,79 +532,227 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int startX,
         int startY,
         Av1TransformSize transformSize,
-        int subX,
-        int subY)
+        bool subX,
+        bool subY)
     {
-        int columnIndex = startX << subX >> Av1Constants.ModeInfoSizeLog2;
-        int rowIndex = startY << subY >> Av1Constants.ModeInfoSizeLog2;
-        int superBlockMask = this.SequenceHeader.Use128x128SuperBlock ? 31 : 15;
-        int subBlockColumn = columnIndex & superBlockMask;
-        int subBlockRow = rowIndex & superBlockMask;
-        int stepX = transformSize.GetWidth() >> Av1Constants.ModeInfoSizeLog2;
-        int stepY = transformSize.GetHeight() >> Av1Constants.ModeInfoSizeLog2;
-        int maxX = (this.SequenceHeader.ModeInfoSize * (1 << Av1Constants.ModeInfoSizeLog2)) >> subX;
-        int maxY = (this.SequenceHeader.ModeInfoSize * (1 << Av1Constants.ModeInfoSizeLog2)) >> subY;
-        if (startX >= maxX || startY >= maxY)
+        int endOfBlock = 0;
+        Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+        int transformBlockUnitWideCount = transformSize.Get4x4WideCount();
+        int transformBlockUnitHighCount = transformSize.Get4x4HighCount();
+
+        if (partitionInfo.ModeBlockToRightEdge < 0)
         {
-            return 0;
+            int blocksWide = partitionInfo.GetMaxBlockWide(planeBlockSize, subX);
+            transformBlockUnitWideCount = Math.Min(transformBlockUnitWideCount, blocksWide - blockColumn);
         }
 
-        if ((plane == 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) > 0) ||
-            (plane != 0 && partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) > 0))
+        if (partitionInfo.ModeBlockToBottomEdge < 0)
         {
-            this.PredictPalette(plane, startX, startY, blockColumn, blockRow, transformSize);
+            int blocksHigh = partitionInfo.GetMaxBlockHigh(planeBlockSize, subY);
+            transformBlockUnitHighCount = Math.Min(transformBlockUnitHighCount, blocksHigh - blockRow);
         }
-        else
-        {
-            bool isChromaFromLuma = plane > 0 && partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma;
-            Av1PredictionMode mode;
-            if (plane == 0)
-            {
-                mode = partitionInfo.ModeInfo.YMode;
-            }
-            else
-            {
-                mode = isChromaFromLuma ? Av1PredictionMode.DC : partitionInfo.ModeInfo.UvMode;
-            }
 
-            int log2Width = transformSize.GetWidthLog2();
-            int log2Height = transformSize.GetHeightLog2();
-            bool leftAvailable = blockColumn > 0 || plane == 0 ? partitionInfo.AvailableLeft : partitionInfo.AvailableLeftForChroma;
-            bool upAvailable = blockRow > 0 || plane == 0 ? partitionInfo.AvailableUp : partitionInfo.AvailableUpForChroma;
-            bool haveAboveRight = this.blockDecoded[plane][(subBlockRow >> subY) - 1][(subBlockColumn >> subX) + stepX];
-            bool haveBelowLeft = this.blockDecoded[plane][(subBlockRow >> subY) + stepY][(subBlockColumn >> subX) - 1];
-            this.PredictIntra(plane, startX, startY, leftAvailable, upAvailable, haveAboveRight, haveBelowLeft, mode, log2Width, log2Height);
-            if (isChromaFromLuma)
-            {
-                this.PredictChromaFromLuma(plane, startX, startY, transformSize);
-            }
+        Av1TransformBlockContext transformBlockContext = this.GetTransformBlockContext(transformSize, plane, planeBlockSize, transformBlockUnitHighCount, transformBlockUnitWideCount, startY, startX);
+        endOfBlock = this.ParseCoefficients(ref reader, partitionInfo, startY, startX, blockRow, blockColumn, plane, transformBlockContext, transformSize, coefficientIndex, transformInfo);
+
+        return endOfBlock;
+    }
+
+    /// <summary>
+    /// 5.11.39. Coefficients syntax.
+    /// </summary>
+    private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int startY, int startX, int blockRow, int blockColumn, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, int coefficientIndex, Av1TransformInfo transformInfo) => throw new NotImplementedException();
+
+    private Av1TransformBlockContext GetTransformBlockContext(Av1TransformSize transformSize, int plane, Av1BlockSize planeBlockSize, int transformBlockUnitHighCount, int transformBlockUnitWideCount, int startY, int startX)
+    {
+        Av1TransformBlockContext transformBlockContext = new();
+        int[] aboveContext = this.aboveNeighborContext.GetContext(plane);
+        int[] leftContext = this.leftNeighborContext.GetContext(plane);
+        int dcSign = 0;
+        int k = 0;
+        int mask = (1 << Av1Constants.CoefficientContextCount) - 1;
+
+        do
+        {
+            int sign = aboveContext[k] >> Av1Constants.CoefficientContextCount;
+            DebugGuard.MustBeLessThanOrEqualTo(sign, 2, nameof(sign));
+            dcSign += Signs[sign];
         }
+        while (++k < transformBlockUnitHighCount);
+        transformBlockContext.DcSignContext = dcSign;
 
         if (plane == 0)
         {
-            this.maxLumaWidth = startX + (stepX * 4);
-            this.maxLumaHeight = startY + (stepY * 4);
-        }
-
-        if (!partitionInfo.ModeInfo.Skip)
-        {
-            int eob = this.Coefficients(plane, startX, startY, transformSize);
-            if (eob > 0)
+            if (planeBlockSize == transformSize.GetBlockSize())
             {
-                this.Reconstruct(plane, startX, startY, transformSize);
+                transformBlockContext.SkipContext = 0;
+            }
+            else
+            {
+                int top = 0;
+                int left = 0;
+
+                k = 0;
+                do
+                {
+                    top |= aboveContext[k];
+                }
+                while (++k < transformBlockUnitWideCount);
+                top &= mask;
+
+                k = 0;
+                do
+                {
+                    left |= leftContext[k];
+                }
+                while (++k < transformBlockUnitHighCount);
+                left &= mask;
+
+                int max = Math.Min(top | left, 4);
+                int min = Math.Min(Math.Min(top, left), 4);
+
+                transformBlockContext.SkipContext = SkipContexts[min][max];
             }
         }
-
-        for (int i = 0; i < stepY; i++)
+        else
         {
-            for (int j = 0; j < stepX; j++)
-            {
-                // Ignore loop filter.
-                this.blockDecoded[plane][(subBlockRow >> subY) + i][(subBlockColumn >> subX) + j] = true;
-            }
+            int contextBase = GetEntropyContext(transformSize, aboveContext, leftContext);
+            int contextOffset = planeBlockSize.GetPelsLog2Count() > transformSize.GetBlockSize().GetPelsLog2Count() ? 10 : 7;
+            transformBlockContext.SkipContext = contextBase + contextOffset;
         }
 
-        return -1;
+        return transformBlockContext;
+    }
+
+    private static int GetEntropyContext(Av1TransformSize transformSize, int[] above, int[] left)
+    {
+        bool aboveEntropyContext = false;
+        bool leftEntropyContext = false;
+
+        switch (transformSize)
+        {
+            case Av1TransformSize.Size4x4:
+                aboveEntropyContext = above[0] != 0;
+                leftEntropyContext = left[0] != 0;
+                break;
+            case Av1TransformSize.Size4x8:
+                aboveEntropyContext = above[0] != 0;
+                leftEntropyContext = (left[0] & (left[1] << 8)) != 0; // !!*(const uint16_t*)left;
+                break;
+            case Av1TransformSize.Size8x4:
+                aboveEntropyContext = (above[0] & (above[1] << 8)) != 0; // !!*(const uint16_t*)above;
+                leftEntropyContext = left[0] != 0;
+                break;
+            case Av1TransformSize.Size8x16:
+                aboveEntropyContext = (above[0] & (above[1] << 8)) != 0; // !!*(const uint16_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0; //  !!*(const uint32_t*)left;
+                break;
+            case Av1TransformSize.Size16x8:
+                aboveEntropyContext = (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0; // !!*(const uint32_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8)) != 0; // !!*(const uint16_t*)left;
+                break;
+            case Av1TransformSize.Size16x32:
+                aboveEntropyContext = (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0; // !!*(const uint32_t*)above;
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0; // !!*(const uint64_t*)left;
+                break;
+            case Av1TransformSize.Size32x16:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0; // !!*(const uint64_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0; // !!*(const uint32_t*)left;
+                break;
+            case Av1TransformSize.Size8x8:
+                aboveEntropyContext = (above[0] & (above[1] << 8)) != 0; // !!*(const uint16_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8)) != 0; // !!*(const uint16_t*)left;
+                break;
+            case Av1TransformSize.Size16x16:
+                aboveEntropyContext = (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0; // !!*(const uint32_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0; // !!*(const uint32_t*)left;
+                break;
+            case Av1TransformSize.Size32x32:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0; // !!*(const uint64_t*)above;
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0; // !!*(const uint64_t*)left;
+                break;
+            case Av1TransformSize.Size64x64:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0 ||
+                    (above[8] & (above[9] << 8) & (above[10] << 16) & (above[11] << 24)) != 0 ||
+                    (above[12] & (above[13] << 8) & (above[14] << 16) & (above[15] << 24)) != 0; // !!(*(const uint64_t*)above | *(const uint64_t*)(above + 8));
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0 ||
+                    (left[8] & (left[9] << 8) & (left[10] << 16) & (left[11] << 24)) != 0 ||
+                    (left[12] & (left[13] << 8) & (left[14] << 16) & (left[15] << 24)) != 0; // !!(*(const uint64_t*)left | *(const uint64_t*)(left + 8));
+                break;
+            case Av1TransformSize.Size32x64:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0; // !!*(const uint64_t*)above;
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0 ||
+                    (left[8] & (left[9] << 8) & (left[10] << 16) & (left[11] << 24)) != 0 ||
+                    (left[12] & (left[13] << 8) & (left[14] << 16) & (left[15] << 24)) != 0; // !!(*(const uint64_t*)left | *(const uint64_t*)(left + 8));
+                break;
+            case Av1TransformSize.Size64x32:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0 ||
+                    (above[8] & (above[9] << 8) & (above[10] << 16) & (above[11] << 24)) != 0 ||
+                    (above[12] & (above[13] << 8) & (above[14] << 16) & (above[15] << 24)) != 0; // !!(*(const uint64_t*)above | *(const uint64_t*)(above + 8));
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0; // !!*(const uint64_t*)left;
+                break;
+            case Av1TransformSize.Size4x16:
+                aboveEntropyContext = above[0] != 0;
+                leftEntropyContext = (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0; // !!*(const uint32_t*)left;
+                break;
+            case Av1TransformSize.Size16x4:
+                aboveEntropyContext = (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0; // !!*(const uint32_t*)above;
+                leftEntropyContext = left[0] != 0;
+                break;
+            case Av1TransformSize.Size8x32:
+                aboveEntropyContext = (above[0] & (above[1] << 8)) != 0; // !!*(const uint16_t*)above;
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0; // !!*(const uint64_t*)left;
+                break;
+            case Av1TransformSize.Size32x8:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0; // !!*(const uint64_t*)above;
+                leftEntropyContext = (left[0] & (left[1] << 8)) != 0; // !!*(const uint16_t*)left;
+                break;
+            case Av1TransformSize.Size16x64:
+                aboveEntropyContext = (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0; // !!*(const uint32_t*)above;
+                leftEntropyContext =
+                    (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0 ||
+                    (left[4] & (left[5] << 8) & (left[6] << 16) & (left[7] << 24)) != 0 ||
+                    (left[8] & (left[9] << 8) & (left[10] << 16) & (left[11] << 24)) != 0 ||
+                    (left[12] & (left[13] << 8) & (left[14] << 16) & (left[15] << 24)) != 0; // !!(*(const uint64_t*)left | *(const uint64_t*)(left + 8));
+                break;
+            case Av1TransformSize.Size64x16:
+                aboveEntropyContext =
+                    (above[0] & (above[1] << 8) & (above[2] << 16) & (above[3] << 24)) != 0 ||
+                    (above[4] & (above[5] << 8) & (above[6] << 16) & (above[7] << 24)) != 0 ||
+                    (above[8] & (above[9] << 8) & (above[10] << 16) & (above[11] << 24)) != 0 ||
+                    (above[12] & (above[13] << 8) & (above[14] << 16) & (above[15] << 24)) != 0; // !!(*(const uint64_t*)above | *(const uint64_t*)(above + 8));
+                leftEntropyContext = (left[0] & (left[1] << 8) & (left[2] << 16) & (left[3] << 24)) != 0; // !!*(const uint32_t*)left;
+                break;
+            default:
+                Guard.IsTrue(false, nameof(transformSize), "Invalid transform size.");
+                break;
+        }
+
+        return (aboveEntropyContext ? 1 : 0) + (leftEntropyContext ? 1 : 0);
     }
 
     private void Reconstruct(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();

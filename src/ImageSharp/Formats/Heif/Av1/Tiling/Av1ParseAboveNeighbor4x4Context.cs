@@ -46,6 +46,8 @@ internal class Av1ParseAboveNeighbor4x4Context
 
     public int[] AboveTransformWidth => this.aboveTransformWidth;
 
+    public int[] GetContext(int plane) => this.aboveContext[plane];
+
     public void Clear(ObuSequenceHeader sequenceHeader)
     {
         int planeCount = sequenceHeader.ColorConfig.ChannelCount;

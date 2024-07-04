@@ -50,6 +50,10 @@ internal class Av1PartitionInfo
 
     public int[] ReferenceFrame { get; set; }
 
+    public int ModeBlockToRightEdge => this.modeBlockToRightEdge;
+
+    public int ModeBlockToBottomEdge => this.modeBlockToBottomEdge;
+
     public void ComputeBoundaryOffsets(ObuFrameHeader frameInfo, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = this.ModeInfo.BlockSize;

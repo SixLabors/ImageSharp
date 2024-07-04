@@ -36,6 +36,29 @@ internal static class Av1TransformSizeExtensions
     // Transform block height in unit
     private static readonly int[] HighUnit = [1, 2, 4, 8, 16, 2, 1, 4, 2, 8, 4, 16, 8, 4, 1, 8, 2, 16, 4];
 
+    // Transform size conversion into Block Size
+    private static readonly Av1BlockSize[] BlockSize = [
+        Av1BlockSize.Block4x4, // TX_4X4
+        Av1BlockSize.Block8x8, // TX_8X8
+        Av1BlockSize.Block16x16, // TX_16X16
+        Av1BlockSize.Block32x32, // TX_32X32
+        Av1BlockSize.Block64x64, // TX_64X64
+        Av1BlockSize.Block4x8, // TX_4X8
+        Av1BlockSize.Block8x4, // TX_8X4
+        Av1BlockSize.Block8x16, // TX_8X16
+        Av1BlockSize.Block16x8, // TX_16X8
+        Av1BlockSize.Block16x32, // TX_16X32
+        Av1BlockSize.Block32x16, // TX_32X16
+        Av1BlockSize.Block32x64, // TX_32X64
+        Av1BlockSize.Block64x32, // TX_64X32
+        Av1BlockSize.Block4x16, // TX_4X16
+        Av1BlockSize.Block16x4, // TX_16X4
+        Av1BlockSize.Block8x32, // TX_8X32
+        Av1BlockSize.Block32x8, // TX_32X8
+        Av1BlockSize.Block16x64, // TX_16X64
+        Av1BlockSize.Block64x16, // TX_64X16
+    ];
+
     public static int GetScale(this Av1TransformSize size)
     {
         int pels = Size2d[(int)size];
@@ -55,4 +78,6 @@ internal static class Av1TransformSizeExtensions
     public static int Get4x4HighCount(this Av1TransformSize size) => HighUnit[(int)size];
 
     public static Av1TransformSize GetSubSize(this Av1TransformSize size) => SubTransformSize[(int)size];
+
+    public static Av1BlockSize GetBlockSize(this Av1TransformSize transformSize) => (Av1BlockSize)BlockSize[(int)transformSize];
 }

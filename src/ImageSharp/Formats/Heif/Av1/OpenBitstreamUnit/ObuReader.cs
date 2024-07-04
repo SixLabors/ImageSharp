@@ -1095,7 +1095,6 @@ internal class ObuReader
         ReadFrameDeltaLoopFilterParameters(ref reader, frameInfo);
 
         // SetupSegmentationDequantization();
-        Av1MainParseContext mainParseContext = new();
         if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             // ResetParseContext(mainParseContext, frameInfo.QuantizationParameters.BaseQIndex);

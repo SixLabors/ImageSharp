@@ -150,6 +150,15 @@ internal class Av1FrameBuffer
         span[index] = transformInfo;
     }
 
+    public Span<int> GetCoefficients(int plane) =>
+        plane switch
+        {
+            0 => (Span<int>)this.coefficientsY,
+            2 => (Span<int>)this.coefficientsY,
+            3 => (Span<int>)this.coefficientsY,
+            _ => null,
+        };
+
     public Span<int> GetCoefficientsY(Point index)
     {
         Span<int> span = this.coefficientsY;

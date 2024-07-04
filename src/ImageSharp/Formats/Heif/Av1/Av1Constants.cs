@@ -138,4 +138,6 @@ internal static class Av1Constants
     /// Maximum transform size categories.
     /// </summary>
     public const int MaxTransformCategories = 4;
+
+    public const int CoefficientContextCount = 6;
 }

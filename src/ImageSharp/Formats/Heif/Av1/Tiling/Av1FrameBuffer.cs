@@ -61,9 +61,6 @@ internal class Av1FrameBuffer
                 this.superblockInfos[i] = new(this, point);
                 for (int u = 0; u < this.modeInfoSizePerSuperblock; u++)
                 {
-                    this.transformInfosY[j] = new Av1TransformInfo();
-                    this.transformInfosY[j << 1] = new Av1TransformInfo();
-                    this.transformInfosY[(j << 1) + 1] = new Av1TransformInfo();
                     for (int v = 0; v < this.modeInfoSizePerSuperblock; v++)
                     {
                         this.modeInfos[k] = new Av1BlockModeInfo(numPlanes, Av1BlockSize.Block4x4, new Point(u, v));

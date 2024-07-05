@@ -346,7 +346,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)
             {
-                partitionInfo.AvailableUpForChroma = this.IsInside(rowIndex - 2, columnIndex);
+                partitionInfo.AvailableAboveForChroma = this.IsInside(rowIndex - 2, columnIndex);
             }
 
             if (this.SequenceHeader.ColorConfig.SubSamplingX && block4x4Width == 1)
@@ -355,7 +355,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             }
         }
 
-        if (partitionInfo.AvailableUp)
+        if (partitionInfo.AvailableAbove)
         {
             partitionInfo.AboveModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex - 1, columnIndex));
         }
@@ -456,8 +456,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                         int coefficientIndex = this.coefficientIndex[plane];
                         int endOfBlock = 0;
                         Av1TransformInfo transformInfo = this.FrameBuffer.GetTransform(plane, transformInfoIndices[plane])!;
-                        int blockColumn = transformInfo.TransformOffsetX;
-                        int blockRow = transformInfo.TransformOffsetY;
+                        int blockColumn = transformInfo.OffsetX;
+                        int blockRow = transformInfo.OffsetY;
                         int startX = (partitionInfo.ColumnIndex >> subX) + blockColumn;
                         int startY = (partitionInfo.RowIndex >> subY) + blockRow;
 
@@ -469,7 +469,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
                         if (!partitionInfo.ModeInfo.Skip)
                         {
-                            endOfBlock = this.TransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.TransformSize, subX != 0, subY != 0);
+                            endOfBlock = this.TransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.Size, subX != 0, subY != 0);
                         }
 
                         if (endOfBlock != 0)
@@ -824,7 +824,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int above = (aboveWidth >= maxTransformSize.GetWidth()) ? 1 : 0;
         int leftHeight = this.leftNeighborContext.LeftTransformHeight[partitionInfo.RowIndex - superblockInfo.Position.Y];
         int left = (leftHeight >= maxTransformSize.GetHeight()) ? 1 : 0;
-        bool hasAbove = partitionInfo.AvailableUp;
+        bool hasAbove = partitionInfo.AvailableAbove;
         bool hasLeft = partitionInfo.AvailableLeft;
 
         if (hasAbove && hasLeft)
@@ -902,12 +902,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        this.FrameBuffer.SetTransformY(transformInfoYIndex, new Av1TransformInfo
-                        {
-                            TransformSize = transformSize,
-                            OffsetX = blockColumn,
-                            OffsetY = blockRow
-                        });
+                        this.FrameBuffer.SetTransformY(transformInfoYIndex, new Av1TransformInfo(
+                            transformSize, blockColumn, blockRow));
                         transformInfoYIndex++;
                         lumaTusCount++;
                         totalLumaTusCount++;
@@ -931,12 +927,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        this.FrameBuffer.SetTransformUv(transformInfoUvIndex, new Av1TransformInfo
-                        {
-                            TransformSize = transformSizeUv,
-                            OffsetX = blockColumn,
-                            OffsetY = blockRow
-                        });
+                        this.FrameBuffer.SetTransformUv(transformInfoUvIndex, new Av1TransformInfo(
+                            transformSizeUv, blockColumn, blockRow));
                         transformInfoUvIndex++;
                         chromaTusCount++;
                         totalChromaTusCount++;
@@ -1176,12 +1168,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int prevL = -1;
         int columnIndex = partitionInfo.ColumnIndex;
         int rowIndex = partitionInfo.RowIndex;
-        if (partitionInfo.AvailableUp && partitionInfo.AvailableLeft)
+        if (partitionInfo.AvailableAbove && partitionInfo.AvailableLeft)
         {
             prevUL = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex - 1);
         }
 
-        if (partitionInfo.AvailableUp)
+        if (partitionInfo.AvailableAbove)
         {
             prevU = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex);
         }

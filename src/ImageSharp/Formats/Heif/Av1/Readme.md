@@ -41,7 +41,11 @@ Paritions can contain other partitions and blocks.
 
 ## Block
 
-A block is the smallest are of the image which has the same transformation parameters. A block contains ore or more ModeInfos.
+
+## Transform Block
+
+A Transform Block is the smallest area of the image, which has the same transformation parameters. A block contains ore or more ModeInfos.
+
 
 ## ModeInfo
 

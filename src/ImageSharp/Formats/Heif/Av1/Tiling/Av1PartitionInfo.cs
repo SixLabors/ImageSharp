@@ -17,29 +17,50 @@ internal class Av1PartitionInfo
         this.ModeInfo = modeInfo;
         this.SuperblockInfo = superblockInfo;
         this.IsChroma = isChroma;
-        this.PartitionType = partitionType;
+        this.Type = partitionType;
         this.CdefStrength = [];
         this.ReferenceFrame = [-1, -1];
     }
 
     public Av1BlockModeInfo ModeInfo { get; }
 
+    /// <summary>
+    /// Gets the <see cref="Av1SuperblockInfo"/> this partition resides inside.
+    /// </summary>
     public Av1SuperblockInfo SuperblockInfo { get; }
 
     public bool IsChroma { get; }
 
-    public Av1PartitionType PartitionType { get; }
+    public Av1PartitionType Type { get; }
 
-    public bool AvailableUp { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the information from the block above can be used on the luma plane.
+    /// </summary>
+    public bool AvailableAbove { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the information from the block left can be used on the luma plane.
+    /// </summary>
     public bool AvailableLeft { get; set; }
 
-    public bool AvailableUpForChroma { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the information from the block above can be used on the chroma plane.
+    /// </summary>
+    public bool AvailableAboveForChroma { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the information from the block left can be used on the chroma plane.
+    /// </summary>
     public bool AvailableLeftForChroma { get; set; }
 
+    /// <summary>
+    /// Gets or sets the horizontal location of the block in units of 4x4 luma samples.
+    /// </summary>
     public int ColumnIndex { get; set; }
 
+    /// <summary>
+    /// Gets or sets the vertical location of the block in units of 4x4 luma samples.
+    /// </summary>
     public int RowIndex { get; set; }
 
     public Av1BlockModeInfo? AboveModeInfo { get; set; }
@@ -59,9 +80,9 @@ internal class Av1PartitionInfo
         Av1BlockSize blockSize = this.ModeInfo.BlockSize;
         int bw4 = blockSize.Get4x4WideCount();
         int bh4 = blockSize.Get4x4HighCount();
-        this.AvailableUp = this.RowIndex > tileInfo.ModeInfoRowStart;
+        this.AvailableAbove = this.RowIndex > tileInfo.ModeInfoRowStart;
         this.AvailableLeft = this.ColumnIndex > tileInfo.ModeInfoColumnStart;
-        this.AvailableUpForChroma = this.AvailableUp;
+        this.AvailableAboveForChroma = this.AvailableAbove;
         this.AvailableLeftForChroma = this.AvailableLeft;
         this.modeBlockToLeftEdge = -(this.ColumnIndex << Av1Constants.ModeInfoSizeLog2) << 3;
         this.modeBlockToRightEdge = ((frameInfo.ModeInfoColumnCount - bw4 - this.ColumnIndex) << Av1Constants.ModeInfoSizeLog2) << 3;

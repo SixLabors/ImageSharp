@@ -33,7 +33,7 @@ internal class ObuFrameHeader
 
     public ObuFilmGrainParameters FilmGrainParameters { get; set; } = new ObuFilmGrainParameters();
 
-    public bool ReducedTransformSet { get; set; }
+    public bool UseReducedTransformSet { get; set; }
 
     public ObuLoopFilterParameters LoopFilterParameters { get; set; } = new ObuLoopFilterParameters();
 

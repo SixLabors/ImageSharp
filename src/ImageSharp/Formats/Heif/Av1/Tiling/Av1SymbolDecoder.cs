@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Drawing;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -23,9 +22,14 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
     private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
     private readonly Av1Distribution[][] transformSize = Av1DefaultDistributions.TransformSize;
+    private readonly Av1Distribution[][][] endOfBlockFlag;
     private Av1SymbolReader reader;
 
-    public Av1SymbolDecoder(Span<byte> tileData) => this.reader = new Av1SymbolReader(tileData);
+    public Av1SymbolDecoder(Span<byte> tileData, int qIndex)
+    {
+        this.reader = new Av1SymbolReader(tileData);
+        this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
+    }
 
     public int ReadLiteral(int bitCount)
     {
@@ -175,6 +179,26 @@ internal ref struct Av1SymbolDecoder
 
         return transformSize;
     }
+
+    public int ReadEndOfBlockFlag(Av1PlaneType planeType, Av1TransformClass transformClass, Av1TransformSize transformSize)
+    {
+        int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
+        int endOfBlockMultiSize = transformSize.GetLog2Minus4();
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
+    }
+
+    public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext) => throw new NotImplementedException();
+
+    public bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext) => throw new NotImplementedException();
+
+    public int ReadBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext) => throw new NotImplementedException();
+
+    public int ReadDcSign(Av1PlaneType planeType, int dcSignContext) => throw new NotImplementedException();
+
+    public int ReadBaseEndOfBlock(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext) => throw new NotImplementedException();
+
+    public int ReadBase(int coeff_ctx, Av1TransformSize transformSizeContext, Av1PlaneType planeType) => throw new NotImplementedException();
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)
         => probability[(int)element - 1] - probability[(int)element];

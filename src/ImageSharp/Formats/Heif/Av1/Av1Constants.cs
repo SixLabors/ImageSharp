@@ -140,4 +140,30 @@ internal static class Av1Constants
     public const int MaxTransformCategories = 4;
 
     public const int CoefficientContextCount = 6;
+
+    public const int BaseLevelsCount = 2;
+
+    public const int CoefficientBaseRange = 12;
+
+    public const int TransformPadHorizontalLog2 = 2;
+
+    public const int TransformPadHorizontal = 1 << TransformPadHorizontalLog2;
+
+    public const int TransformPadVertical = 6;
+
+    public const int TransformPadEnd = 16;
+
+    public const int CoefficientContextBits = 6;
+
+    public const int CoefficientContextMask = (1 << CoefficientContextBits) - 1;
+
+    public const int TransformPad2d = ((MaxTransformSize + TransformPadHorizontal) * (MaxTransformSize + TransformPadVertical)) + TransformPadEnd;
+
+    public const int MaxTransformSize = 1 << 6;
+
+    public const int TransformPadTop = 2;
+
+    public const int BaseRangeSizeMinus1 = 3;
+
+    public const int MaxBaseRange = 15;
 }

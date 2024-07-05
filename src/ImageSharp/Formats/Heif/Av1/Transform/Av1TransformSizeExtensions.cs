@@ -59,6 +59,82 @@ internal static class Av1TransformSizeExtensions
         Av1BlockSize.Block64x16, // TX_64X16
     ];
 
+    private static readonly Av1TransformSize[] SquareMap = [
+        Av1TransformSize.Size4x4,    // TX_4X4
+        Av1TransformSize.Size8x8,    // TX_8X8
+        Av1TransformSize.Size16x16,  // TX_16X16
+        Av1TransformSize.Size32x32,  // TX_32X32
+        Av1TransformSize.Size64x64,  // TX_64X64
+        Av1TransformSize.Size4x4,    // TX_4X8
+        Av1TransformSize.Size4x4,    // TX_8X4
+        Av1TransformSize.Size8x8,    // TX_8X16
+        Av1TransformSize.Size8x8,    // TX_16X8
+        Av1TransformSize.Size16x16,  // TX_16X32
+        Av1TransformSize.Size16x16,  // TX_32X16
+        Av1TransformSize.Size32x32,  // TX_32X64
+        Av1TransformSize.Size32x32,  // TX_64X32
+        Av1TransformSize.Size4x4,    // TX_4X16
+        Av1TransformSize.Size4x4,    // TX_16X4
+        Av1TransformSize.Size8x8,    // TX_8X32
+        Av1TransformSize.Size8x8,    // TX_32X8
+        Av1TransformSize.Size16x16,  // TX_16X64
+        Av1TransformSize.Size16x16,  // TX_64X16
+    ];
+
+    private static readonly Av1TransformSize[] SquareUpMap = [
+        Av1TransformSize.Size4x4,    // TX_4X4
+        Av1TransformSize.Size8x8,    // TX_8X8
+        Av1TransformSize.Size16x16,  // TX_16X16
+        Av1TransformSize.Size32x32,  // TX_32X32
+        Av1TransformSize.Size64x64,  // TX_64X64
+        Av1TransformSize.Size8x8,    // TX_4X8
+        Av1TransformSize.Size8x8,    // TX_8X4
+        Av1TransformSize.Size16x16,  // TX_8X16
+        Av1TransformSize.Size16x16,  // TX_16X8
+        Av1TransformSize.Size32x32,  // TX_16X32
+        Av1TransformSize.Size32x32,  // TX_32X16
+        Av1TransformSize.Size64x64,  // TX_32X64
+        Av1TransformSize.Size64x64,  // TX_64X32
+        Av1TransformSize.Size16x16,  // TX_4X16
+        Av1TransformSize.Size16x16,  // TX_16X4
+        Av1TransformSize.Size32x32,  // TX_8X32
+        Av1TransformSize.Size32x32,  // TX_32X8
+        Av1TransformSize.Size64x64,  // TX_16X64
+        Av1TransformSize.Size64x64,  // TX_64X16
+    ];
+
+    private static readonly int[] Log2Minus4 = [
+        0, // TX_4X4
+        2, // TX_8X8
+        4, // TX_16X16
+        6, // TX_32X32
+        6, // TX_64X64
+        1, // TX_4X8
+        1, // TX_8X4
+        3, // TX_8X16
+        3, // TX_16X8
+        5, // TX_16X32
+        5, // TX_32X16
+        6, // TX_32X64
+        6, // TX_64X32
+        2, // TX_4X16
+        2, // TX_16X4
+        4, // TX_8X32
+        4, // TX_32X8
+        5, // TX_16X64
+        5, // TX_64X16
+    ];
+
+    // Transform block width in log2
+    private static readonly int[] BlockWidthLog2 = [
+        2, 3, 4, 5, 6, 2, 3, 3, 4, 4, 5, 5, 6, 2, 4, 3, 5, 4, 6,
+    ];
+
+    // Transform block height in log2
+    private static readonly int[] BlockHeightLog2 = [
+        2, 3, 4, 5, 6, 3, 2, 4, 3, 5, 4, 6, 5, 4, 2, 5, 3, 6, 4,
+    ];
+
     public static int GetScale(this Av1TransformSize size)
     {
         int pels = Size2d[(int)size];
@@ -79,5 +155,23 @@ internal static class Av1TransformSizeExtensions
 
     public static Av1TransformSize GetSubSize(this Av1TransformSize size) => SubTransformSize[(int)size];
 
-    public static Av1BlockSize GetBlockSize(this Av1TransformSize transformSize) => (Av1BlockSize)BlockSize[(int)transformSize];
+    public static Av1TransformSize GetSquareSize(this Av1TransformSize size) => SquareMap[(int)size];
+
+    public static Av1TransformSize GetSquareUpSize(this Av1TransformSize size) => SquareUpMap[(int)size];
+
+    public static Av1BlockSize ToBlockSize(this Av1TransformSize transformSize) => BlockSize[(int)transformSize];
+
+    public static int GetLog2Minus4(this Av1TransformSize size) => Log2Minus4[(int)size];
+
+    public static Av1TransformSize GetAdjusted(this Av1TransformSize size) => size switch
+    {
+        Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64 => Av1TransformSize.Size32x32,
+        Av1TransformSize.Size64x16 => Av1TransformSize.Size32x16,
+        Av1TransformSize.Size16x64 => Av1TransformSize.Size16x32,
+        _ => size
+    };
+
+    public static int GetBlockWidthLog2(this Av1TransformSize size) => BlockWidthLog2[(int)GetAdjusted(size)];
+
+    public static int GetBlockHeightLog2(this Av1TransformSize size) => BlockHeightLog2[(int)GetAdjusted(size)];
 }

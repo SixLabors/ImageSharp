@@ -206,7 +206,7 @@ public class SymbolTest
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan());
+        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
@@ -234,7 +234,7 @@ public class SymbolTest
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan());
+        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {

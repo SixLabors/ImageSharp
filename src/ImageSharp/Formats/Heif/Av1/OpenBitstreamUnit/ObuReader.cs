@@ -1159,7 +1159,7 @@ internal class ObuReader
             frameInfo.AllowWarpedMotion = reader.ReadBoolean();
         }
 
-        frameInfo.ReducedTransformSet = reader.ReadBoolean();
+        frameInfo.UseReducedTransformSet = reader.ReadBoolean();
         ReadGlobalMotionParameters(ref reader, sequenceHeader, frameInfo, isIntraFrame);
         frameInfo.FilmGrainParameters = ReadFilmGrainFilterParameters(ref reader, sequenceHeader, frameInfo);
     }

@@ -415,7 +415,7 @@ internal class ObuWriter
         // Not applicable for INTRA frames.
         // WriteFrameReferenceMode(ref writer, frameInfo.ReferenceMode, isIntraFrame);
         // WriteSkipModeParameters(ref writer, sequenceHeader, frameInfo, isIntraFrame, frameInfo.ReferenceMode);
-        writer.WriteBoolean(frameInfo.ReducedTransformSet);
+        writer.WriteBoolean(frameInfo.UseReducedTransformSet);
 
         // Not applicable for INTRA frames.
         // WriteGlobalMotionParameters(ref writer, sequenceHeader, frameInfo, isIntraFrame);

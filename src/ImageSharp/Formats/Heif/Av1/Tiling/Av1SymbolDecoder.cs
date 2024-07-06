@@ -233,7 +233,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadCoefficientsBase(int coefficientContext, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.coefficientsBase[coefficientContext][(int)transformSizeContext][(int)planeType]);
+        return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)

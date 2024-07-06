@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using System.Formats.Asn1;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -216,18 +214,18 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
         else if (hasRows && hasColumns)
         {
-            int ctx = this.GetPartitionContext(modeInfoLocation, blockSize, tileInfo, this.FrameInfo.ModeInfoRowCount);
+            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
             partitionType = reader.ReadPartitionType(ctx);
         }
         else if (hasColumns)
         {
-            int ctx = this.GetPartitionContext(modeInfoLocation, blockSize, tileInfo, this.FrameInfo.ModeInfoRowCount);
+            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
             bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
             partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
         }
         else if (hasRows)
         {
-            int ctx = this.GetPartitionContext(modeInfoLocation, blockSize, tileInfo, this.FrameInfo.ModeInfoRowCount);
+            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
             bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
             partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Vertical;
         }
@@ -666,7 +664,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
             }
         }
 
-        coefficientBuffer[this.coefficientIndex[plane]] = endOfBlock;
+        DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
+        coefficientBuffer[0] = endOfBlock;
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
@@ -890,11 +889,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
     {
         if (dcValue < 0)
         {
-            culLevel |= 1 << Av1Constants.CoefficientContextBits;
+            culLevel |= 1 << Av1Constants.CoefficientContextBitCount;
         }
         else if (dcValue > 0)
         {
-            culLevel += 2 << Av1Constants.CoefficientContextBits;
+            culLevel += 2 << Av1Constants.CoefficientContextBitCount;
         }
     }
 
@@ -1053,16 +1052,26 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int[] leftContext = this.leftNeighborContext.GetContext(plane);
         int dcSign = 0;
         int k = 0;
-        int mask = (1 << Av1Constants.CoefficientContextCount) - 1;
+        int mask = (1 << Av1Constants.CoefficientContextBitCount) - 1;
 
         do
         {
-            int sign = aboveContext[k] >> Av1Constants.CoefficientContextCount;
-            DebugGuard.MustBeLessThanOrEqualTo(sign, 2, nameof(sign));
+            uint sign = (uint)aboveContext[k] >> Av1Constants.CoefficientContextBitCount;
+            DebugGuard.MustBeLessThanOrEqualTo(sign, 2U, nameof(sign));
+            dcSign += Signs[sign];
+        }
+        while (++k < transformBlockUnitWideCount);
+
+        k = 0;
+        do
+        {
+            uint sign = (uint)leftContext[k] >> Av1Constants.CoefficientContextBitCount;
+            DebugGuard.MustBeLessThanOrEqualTo(sign, 2U, nameof(sign));
             dcSign += Signs[sign];
         }
         while (++k < transformBlockUnitHighCount);
-        transformBlockContext.DcSignContext = dcSign;
+
+        transformBlockContext.DcSignContext = DcSignContexts[dcSign + (Av1Constants.MaxTransformSizeUnit << 1)];
 
         if (plane == 0)
         {
@@ -1869,11 +1878,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
         return xPos && yPos;
     }*/
 
-    private int GetPartitionContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileLoc, int superblockModeInfoRowCount)
+    private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo)
     {
         // Maximum partition point is 8x8. Offset the log value occordingly.
         int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileLoc.ModeInfoColumnStart];
-        int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockModeInfoRowCount) & Av1PartitionContext.Mask];
+        int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.Position.Y) & Av1PartitionContext.Mask];
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;

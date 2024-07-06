@@ -151,8 +151,8 @@ internal class Av1FrameBuffer
         plane switch
         {
             0 => (Span<int>)this.coefficientsY,
+            1 => (Span<int>)this.coefficientsY,
             2 => (Span<int>)this.coefficientsY,
-            3 => (Span<int>)this.coefficientsY,
             _ => null,
         };
 

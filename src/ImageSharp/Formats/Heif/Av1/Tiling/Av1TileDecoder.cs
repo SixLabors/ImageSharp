@@ -642,7 +642,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             int baseRangeContext = GetBaseRangeContextEndOfBlock(pos, bwl, transformClass);
             for (int idx = 0; idx < Av1Constants.CoefficientBaseRange / Av1Constants.BaseRangeSizeMinus1; idx++)
             {
-                int coefficinetBaseRange = reader.ReadBaseRange(transformSizeContext, planeType, baseRangeContext);
+                int coefficinetBaseRange = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
                 level += coefficinetBaseRange;
                 if (coefficinetBaseRange < Av1Constants.BaseRangeSizeMinus1)
                 {
@@ -715,13 +715,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
         {
             int pos = scan[c];
             int coeff_ctx = GetLowerLevelsContext2d(levels, pos, bwl, transformSize);
-            int level = reader.ReadBase(pos, transformSizeContext, planeType);
+            int level = reader.ReadCoefficientsBase(pos, transformSizeContext, planeType);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = GetBaseRangeContext2d(levels, pos, bwl);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int k = reader.ReadBaseRange(transformSizeContext, planeType, baseRangeContext);
+                    int k = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
                     level += k;
                     if (k < Av1Constants.BaseRangeSizeMinus1)
                     {
@@ -776,13 +776,13 @@ internal class Av1TileDecoder : IAv1TileDecoder
         {
             int pos = scan[c];
             int coeff_ctx = GetLowerLevelsContext(levels, pos, bwl, transformSize, transformClass);
-            int level = reader.ReadBase(coeff_ctx, transformSizeContext, planeType);
+            int level = reader.ReadCoefficientsBase(coeff_ctx, transformSizeContext, planeType);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = GetBaseRangeContext(levels, pos, bwl, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int k = reader.ReadBaseRange(transformSizeContext, planeType, baseRangeContext);
+                    int k = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
                     level += k;
                     if (k < Av1Constants.BaseRangeSizeMinus1)
                     {

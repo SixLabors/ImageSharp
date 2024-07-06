@@ -23,12 +23,24 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
     private readonly Av1Distribution[][] transformSize = Av1DefaultDistributions.TransformSize;
     private readonly Av1Distribution[][][] endOfBlockFlag;
+    private readonly Av1Distribution[][][] coefficientsBase;
+    private readonly Av1Distribution[][][] baseEndOfBlock;
+    private readonly Av1Distribution[][] dcSign;
+    private readonly Av1Distribution[][][] coefficientsBaseRange;
+    private readonly Av1Distribution[][] transformBlockSkip;
+    private readonly Av1Distribution[][][] endOfBlockExtra;
     private Av1SymbolReader reader;
 
     public Av1SymbolDecoder(Span<byte> tileData, int qIndex)
     {
         this.reader = new Av1SymbolReader(tileData);
         this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
+        this.coefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
+        this.baseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
+        this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
+        this.coefficientsBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex);
+        this.transformBlockSkip = Av1DefaultDistributions.GetTransformBlockSkip(qIndex);
+        this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
     }
 
     public int ReadLiteral(int bitCount)
@@ -188,17 +200,41 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
     }
 
-    public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext) => throw new NotImplementedException();
+    public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.transformBlockSkip[(int)transformSizeContext][skipContext]) > 0;
+    }
 
-    public bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext) => throw new NotImplementedException();
+    public bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.endOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
+    }
 
-    public int ReadBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext) => throw new NotImplementedException();
+    public int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
+    }
 
-    public int ReadDcSign(Av1PlaneType planeType, int dcSignContext) => throw new NotImplementedException();
+    public int ReadDcSign(Av1PlaneType planeType, int dcSignContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.dcSign[(int)planeType][dcSignContext]);
+    }
 
-    public int ReadBaseEndOfBlock(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext) => throw new NotImplementedException();
+    public int ReadBaseEndOfBlock(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.baseEndOfBlock[(int)transformSizeContext][(int)planeType][coefficientContext]);
+    }
 
-    public int ReadBase(int coeff_ctx, Av1TransformSize transformSizeContext, Av1PlaneType planeType) => throw new NotImplementedException();
+    public int ReadCoefficientsBase(int coefficientContext, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.coefficientsBase[coefficientContext][(int)transformSizeContext][(int)planeType]);
+    }
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)
         => probability[(int)element - 1] - probability[(int)element];

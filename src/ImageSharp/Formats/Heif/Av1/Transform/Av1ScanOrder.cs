@@ -12,11 +12,11 @@ internal readonly struct Av1ScanOrder
         this.Neighbors = [];
     }
 
-    public Av1ScanOrder(short[] scan, short[] iscan, short[] neighbors)
+    public Av1ScanOrder(short[]? scan, short[]? iscan, short[]? neighbors)
     {
-        this.Scan = scan;
-        this.IScan = iscan;
-        this.Neighbors = neighbors;
+        this.Scan = scan!;
+        this.IScan = iscan!;
+        this.Neighbors = neighbors!;
     }
 
     public short[] Scan { get; }

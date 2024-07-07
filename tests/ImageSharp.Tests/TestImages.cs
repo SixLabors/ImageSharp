@@ -320,6 +320,7 @@ public static class TestImages
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
             public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
             public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
+            public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
 
             public static class Fuzz
             {
@@ -530,6 +531,7 @@ public static class TestImages
             public const string Issue2450_A = "Gif/issues/issue_2450.gif";
             public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
+            public const string Issue2758 = "Gif/issues/issue_2758.gif";
         }
 
         public static readonly string[] Animated =

@@ -1,8 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
+    private static readonly ColorProfileConverter ColorProfileConverter = new();
     private const float Inv255 = 1f / 255f;
 
     /// <inheritdoc/>
@@ -23,7 +23,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             for (int x = 0; x < pixelRow.Length; x++)
             {
                 Cmyk cmyk = new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, data[offset + 3] * Inv255);
-                Rgb rgb = ColorSpaceConverter.ToRgb(in cmyk);
+                Rgb rgb = ColorProfileConverter.Convert<Cmyk, Rgb>(in cmyk);
                 pixelRow[x] = TPixel.FromScaledVector4(new(rgb.R, rgb.G, rgb.B, 1.0f));
 
                 offset += 4;

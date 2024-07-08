@@ -241,13 +241,17 @@ internal class HuffmanScanEncoder
     /// Encodes the DC coefficients for a given component's blocks in a scan.
     /// </summary>
     /// <param name="component">The component whose DC coefficients need to be encoded.</param>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeDcScan(Component component, CancellationToken cancellationToken)
+    public void EncodeDcScan(Component component, int restartInterval, CancellationToken cancellationToken)
     {
         int h = component.HeightInBlocks;
         int w = component.WidthInBlocks;
 
         ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
+
+        int restarts = 0;
+        int restartsToGo = restartInterval;
 
         for (int i = 0; i < h; i++)
         {
@@ -258,6 +262,13 @@ internal class HuffmanScanEncoder
 
             for (nuint k = 0; k < (uint)w; k++)
             {
+                if (restartInterval > 0 && restartsToGo == 0)
+                {
+                    this.FlushRemainingBytes();
+                    this.WriteRestart(restarts % 8);
+                    component.DcPredictor = 0;
+                }
+
                 this.WriteDc(
                     component,
                     ref Unsafe.Add(ref blockRef, k),
@@ -266,6 +277,18 @@ internal class HuffmanScanEncoder
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
+                }
+
+                if (restartInterval > 0)
+                {
+                    if (restartsToGo == 0)
+                    {
+                        restartsToGo = restartInterval;
+                        restarts++;
+                        restarts &= 7;
+                    }
+
+                    restartsToGo--;
                 }
             }
         }
@@ -279,11 +302,15 @@ internal class HuffmanScanEncoder
     /// <param name="component">The component whose AC coefficients need to be encoded.</param>
     /// <param name="start">The starting index of the AC coefficient range to encode.</param>
     /// <param name="end">The ending index of the AC coefficient range to encode.</param>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeAcScan(Component component, nint start, nint end, CancellationToken cancellationToken)
+    public void EncodeAcScan(Component component, nint start, nint end, int restartInterval, CancellationToken cancellationToken)
     {
         int h = component.HeightInBlocks;
         int w = component.WidthInBlocks;
+
+        int restarts = 0;
+        int restartsToGo = restartInterval;
 
         ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
@@ -296,6 +323,12 @@ internal class HuffmanScanEncoder
 
             for (nuint k = 0; k < (uint)w; k++)
             {
+                if (restartInterval > 0 && restartsToGo == 0)
+                {
+                    this.FlushRemainingBytes();
+                    this.WriteRestart(restarts % 8);
+                }
+
                 this.WriteAcBlock(
                     ref Unsafe.Add(ref blockRef, k),
                     start,
@@ -305,6 +338,18 @@ internal class HuffmanScanEncoder
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
+                }
+
+                if (restartInterval > 0)
+                {
+                    if (restartsToGo == 0)
+                    {
+                        restartsToGo = restartInterval;
+                        restarts++;
+                        restarts &= 7;
+                    }
+
+                    restartsToGo--;
                 }
             }
         }
@@ -507,6 +552,9 @@ internal class HuffmanScanEncoder
         this.WriteDc(component, ref block, ref dcTable);
         this.WriteAcBlock(ref block, 1, 64, ref acTable);
     }
+
+    private void WriteRestart(int restart) =>
+        this.target.Write([0xff, (byte)(JpegConstants.Markers.RST0 + restart)]);
 
     /// <summary>
     /// Emits the most significant count of bits to the buffer.

@@ -106,6 +106,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // Write the quantization tables.
         this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.encoder.Quality, jpegMetadata, buffer);
 
+        // Write define restart interval
+        this.WriteDri(this.encoder.RestartInterval, buffer);
+
         // Write scans with actual pixel data
         using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
         this.WriteHuffmanScans(frame, frameConfig, spectralConverter, scanEncoder, buffer, cancellationToken);
@@ -427,6 +430,25 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
+    /// Writes the DRI marker
+    /// </summary>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    private void WriteDri(int restartInterval, Span<byte> buffer)
+    {
+        if (restartInterval <= 0)
+        {
+            return;
+        }
+
+        this.WriteMarkerHeader(JpegConstants.Markers.DRI, 4, buffer);
+
+        buffer[1] = (byte)(restartInterval & 0xff);
+        buffer[0] = (byte)(restartInterval >> 8);
+        this.outputStream.Write(buffer);
+    }
+
+    /// <summary>
     /// Writes the App1 header.
     /// </summary>
     /// <param name="app1Length">The length of the data the app1 marker contains.</param>
@@ -742,7 +764,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         {
             this.WriteStartOfScan(components.Slice(i, 1), buffer, 0x00, 0x00);
 
-            encoder.EncodeDcScan(frame.Components[i], cancellationToken);
+            encoder.EncodeDcScan(frame.Components[i], this.encoder.RestartInterval, cancellationToken);
         }
 
         // Phase 2: AC scans
@@ -757,7 +779,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             {
                 this.WriteStartOfScan(components.Slice(i, 1), buffer, (byte)start, (byte)(end - 1));
 
-                encoder.EncodeAcScan(frame.Components[i], start, end, cancellationToken);
+                encoder.EncodeAcScan(frame.Components[i], start, end, this.encoder.RestartInterval, cancellationToken);
             }
         }
     }

@@ -19,6 +19,11 @@ public sealed class JpegEncoder : ImageEncoder
     private int progressiveScans = 4;
 
     /// <summary>
+    /// Backing field for <see cref="RestartInterval"/>
+    /// </summary>
+    private int restartInterval = 0;
+
+    /// <summary>
     /// Gets the quality, that will be used to encode the image. Quality
     /// index must be between 1 and 100 (compression from max to min).
     /// Defaults to <value>75</value>.
@@ -63,6 +68,28 @@ public sealed class JpegEncoder : ImageEncoder
             }
 
             this.progressiveScans = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets numbers of MCUs between restart markers.
+    /// Defaults to <value>0</value>.
+    /// </summary>
+    /// <remarks>
+    /// Currently supported in progressive encoding only.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Restart interval must be in [0..65535] range.</exception>
+    public int RestartInterval
+    {
+        get => this.restartInterval;
+        init
+        {
+            if (value is < 0 or > 65535)
+            {
+                throw new ArgumentException("Restart interval must be in [0..65535] range.");
+            }
+
+            this.restartInterval = value;
         }
     }
 

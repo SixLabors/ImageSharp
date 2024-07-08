@@ -538,8 +538,10 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         int bytesRead = 0;
         byte version = boxBuffer[bytesRead];
         bytesRead += 4;
-        byte b1 = boxBuffer[bytesRead++];
-        byte b2 = boxBuffer[bytesRead++];
+        byte b1 = boxBuffer[bytesRead];
+        bytesRead++;
+        byte b2 = boxBuffer[bytesRead];
+        bytesRead++;
         int offsetSize = (b1 >> 4) & 0x0f;
         int lengthSize = b1 & 0x0f;
         int baseOffsetSize = (b2 >> 4) & 0x0f;
@@ -554,28 +556,31 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         {
             uint itemId = ReadUInt16Or32(boxBuffer, version == 2, ref bytesRead);
             HeifItem? item = this.FindItemById(itemId);
+            HeifLocationOffsetOrigin constructionMethod = HeifLocationOffsetOrigin.FileOffset;
             if (version is 1 or 2)
             {
                 bytesRead++;
-                byte b3 = boxBuffer[bytesRead++];
-                int constructionMethod = b3 & 0x0f;
+                byte b3 = boxBuffer[bytesRead];
+                bytesRead++;
+                constructionMethod = (HeifLocationOffsetOrigin)(b3 & 0x0f);
             }
 
             uint dataReferenceIndex = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]);
             bytesRead += 2;
-            ulong baseOffset = ReadUIntVariable(boxBuffer, baseOffsetSize, ref bytesRead);
+            long baseOffset = ReadUIntVariable(boxBuffer, baseOffsetSize, ref bytesRead);
             uint extentCount = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]);
             bytesRead += 2;
             for (uint j = 0; j < extentCount; j++)
             {
+                uint extentIndex = 0;
                 if (version is 1 or 2 && indexSize > 0)
                 {
-                    _ = ReadUIntVariable(boxBuffer, indexSize, ref bytesRead);
+                    extentIndex = (uint)ReadUIntVariable(boxBuffer, indexSize, ref bytesRead);
                 }
 
-                ulong extentOffset = ReadUIntVariable(boxBuffer, offsetSize, ref bytesRead);
-                ulong extentLength = ReadUIntVariable(boxBuffer, lengthSize, ref bytesRead);
-                HeifLocation loc = new HeifLocation((long)extentOffset, (long)extentLength);
+                long extentOffset = ReadUIntVariable(boxBuffer, offsetSize, ref bytesRead);
+                long extentLength = ReadUIntVariable(boxBuffer, lengthSize, ref bytesRead);
+                HeifLocation loc = new(constructionMethod, baseOffset, dataReferenceIndex, extentOffset, extentLength, extentIndex);
                 item?.DataLocations.Add(loc);
             }
         }
@@ -598,29 +603,36 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
         return result;
     }
 
-    private static ulong ReadUIntVariable(Span<byte> buffer, int numBytes, ref int bytesRead)
+    private static long ReadUIntVariable(Span<byte> buffer, int numBytes, ref int bytesRead)
     {
-        ulong result = 0UL;
-        if (numBytes == 8)
+        long result = 0L;
+        int shift = 0;
+        if (numBytes > 8)
         {
-            result = BinaryPrimitives.ReadUInt64BigEndian(buffer[bytesRead..]);
-            bytesRead += 8;
+            throw new InvalidImageContentException($"Can't store large integer of {numBytes * 8} bits.");
         }
-        else if (numBytes == 4)
+        else
+        if (numBytes > 4)
+        {
+            result = (long)BinaryPrimitives.ReadUInt64BigEndian(buffer[bytesRead..]);
+            shift = 8 - numBytes;
+        }
+        else if (numBytes > 2)
         {
             result = BinaryPrimitives.ReadUInt32BigEndian(buffer[bytesRead..]);
-            bytesRead += 4;
+            shift = 4 - numBytes;
         }
-        else if (numBytes == 2)
+        else if (numBytes > 1)
         {
             result = BinaryPrimitives.ReadUInt16BigEndian(buffer[bytesRead..]);
-            bytesRead += 2;
         }
         else if (numBytes == 1)
         {
-            result = buffer[bytesRead++];
+            result = buffer[bytesRead];
         }
 
+        bytesRead += numBytes;
+        result >>= shift << 3;
         return result;
     }
 
@@ -642,11 +654,11 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
             throw new NotImplementedException("No HVC decoding implemented yet");
         }
 
-        int thumbFileOffset = (int)thumbItem.DataLocations[0].Offset;
-        int thumbFileLength = (int)thumbItem.DataLocations[0].Length;
-        stream.Skip((int)(thumbFileOffset - stream.Position));
-        EnsureBoxBoundary(thumbFileLength, stream);
-        using IMemoryOwner<byte> thumbMemory = this.ReadIntoBuffer(stream, thumbFileLength);
+        long thumbPosition = thumbItem.DataLocations[0].GetStreamPosition(stream.Position, stream.Position);
+        long thumbLength = thumbItem.DataLocations[0].Length;
+        stream.Skip((int)(thumbPosition - stream.Position));
+        EnsureBoxBoundary(thumbLength, stream);
+        using IMemoryOwner<byte> thumbMemory = this.ReadIntoBuffer(stream, thumbLength);
         Span<byte> thumbSpan = thumbMemory.GetSpan();
 
         HeifMetadata meta = this.metadata.GetHeifMetadata();

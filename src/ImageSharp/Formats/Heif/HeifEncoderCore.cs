@@ -66,7 +66,7 @@ internal sealed class HeifEncoderCore : IImageEncoderInternals
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifItem primaryItem = new(Heif4CharCode.Jpeg, 1u);
-        primaryItem.DataLocations.Add(new HeifLocation(0L, pixels.LongLength));
+        primaryItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.ItemDataOffset, 0L, 0U, 0L, pixels.LongLength, 0U));
         primaryItem.BitsPerPixel = 24;
         primaryItem.ChannelCount = 3;
         primaryItem.SetExtent(image.Size);

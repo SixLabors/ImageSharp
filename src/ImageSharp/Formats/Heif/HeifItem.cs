@@ -71,7 +71,7 @@ internal class HeifItem(Heif4CharCode type, uint id)
     /// <summary>
     /// Gets the list of data locations for this item.
     /// </summary>
-    public List<HeifLocation> DataLocations { get; } = new List<HeifLocation>();
+    public List<HeifLocation> DataLocations { get; } = [];
 
     /// <summary>
     /// Set the image extent.

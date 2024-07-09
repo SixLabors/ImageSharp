@@ -84,10 +84,11 @@ internal class Av1PartitionInfo
         this.AvailableLeft = this.ColumnIndex > tileInfo.ModeInfoColumnStart;
         this.AvailableAboveForChroma = this.AvailableAbove;
         this.AvailableLeftForChroma = this.AvailableLeft;
-        this.modeBlockToLeftEdge = -(this.ColumnIndex << Av1Constants.ModeInfoSizeLog2) << 3;
-        this.modeBlockToRightEdge = ((frameInfo.ModeInfoColumnCount - bw4 - this.ColumnIndex) << Av1Constants.ModeInfoSizeLog2) << 3;
-        this.modeBlockToTopEdge = -(this.RowIndex << Av1Constants.ModeInfoSizeLog2) << 3;
-        this.modeBlockToBottomEdge = ((frameInfo.ModeInfoRowCount - bh4 - this.RowIndex) << Av1Constants.ModeInfoSizeLog2) << 3;
+        int shift = Av1Constants.ModeInfoSizeLog2 + 3;
+        this.modeBlockToLeftEdge = -this.ColumnIndex << shift;
+        this.modeBlockToRightEdge = (frameInfo.ModeInfoColumnCount - bw4 - this.ColumnIndex) << shift;
+        this.modeBlockToTopEdge = -this.RowIndex << shift;
+        this.modeBlockToBottomEdge = (frameInfo.ModeInfoRowCount - bh4 - this.RowIndex) << shift;
     }
 
     public int GetMaxBlockWide(Av1BlockSize blockSize, bool subX)

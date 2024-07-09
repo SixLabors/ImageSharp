@@ -81,13 +81,10 @@ internal class Av1ParseAboveNeighbor4x4Context
         int n4w = blockSize.Get4x4WideCount();
         if (skip)
         {
-            transformWidth = n4w * (1 << Av1Constants.ModeInfoSizeLog2);
+            transformWidth = n4w << Av1Constants.ModeInfoSizeLog2;
         }
 
-        for (int i = 0; i < n4w; i++)
-        {
-            this.aboveTransformWidth[startIndex + i] = transformWidth;
-        }
+        Array.Fill(this.aboveTransformWidth, transformWidth, startIndex, n4w);
     }
 
     internal void ClearContext(int plane, int offset, int length)

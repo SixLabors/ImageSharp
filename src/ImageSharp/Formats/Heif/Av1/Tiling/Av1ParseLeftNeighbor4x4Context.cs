@@ -80,13 +80,11 @@ internal class Av1ParseLeftNeighbor4x4Context
         int n4h = blockSize.Get4x4HighCount();
         if (skip)
         {
-            transformHeight = n4h * (1 << Av1Constants.ModeInfoSizeLog2);
+            transformHeight = n4h << Av1Constants.ModeInfoSizeLog2;
         }
 
-        for (int i = 0; i < n4h; i++)
-        {
-            this.leftTransformHeight[startIndex + i] = transformHeight;
-        }
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex + n4h, this.leftTransformHeight.Length, nameof(startIndex));
+        Array.Fill(this.leftTransformHeight, transformHeight, startIndex, n4h);
     }
 
     internal void ClearContext(int plane, int offset, int length)

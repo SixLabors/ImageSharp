@@ -1285,17 +1285,16 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int block4x4Height = blockSize.Get4x4HighCount();
 
         // First condition in spec is for INTER frames, implemented only the INTRA condition.
-        bool allowSelect = !partitionInfo.ModeInfo.Skip || true;
-        Av1TransformSize transformSize = this.ReadTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo, allowSelect);
+        Av1TransformSize transformSize = this.ReadTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo, true);
         this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, false);
         this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, false);
-        this.UpdateTransformInfo(partitionInfo, blockSize, transformSize);
+        this.UpdateTransformInfo(partitionInfo, superblockInfo, blockSize, transformSize);
     }
 
-    private unsafe void UpdateTransformInfo(Av1PartitionInfo partitionInfo, Av1BlockSize blockSize, Av1TransformSize transformSize)
+    private unsafe void UpdateTransformInfo(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1BlockSize blockSize, Av1TransformSize transformSize)
     {
-        int transformInfoYIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
-        int transformInfoUvIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
+        int transformInfoYIndex = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
+        int transformInfoUvIndex = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
         Av1TransformInfo lumaTransformInfo = this.FrameBuffer.GetTransformY(transformInfoYIndex);
         Av1TransformInfo chromaTransformInfo = this.FrameBuffer.GetTransformUv(transformInfoUvIndex);
         int totalLumaTusCount = 0;
@@ -1324,8 +1323,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 int stepColumn = transformSize.Get4x4WideCount();
                 int stepRow = transformSize.Get4x4HighCount();
 
-                int unitHeight = Av1Math.Round2(Math.Min(height + idy, maxBlockHigh), 0);
-                int unitWidth = Av1Math.Round2(Math.Min(width + idx, maxBlockWide), 0);
+                int unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idy, maxBlockHigh), 0);
+                int unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), 0);
                 for (int blockRow = idy; blockRow < unitHeight; blockRow += stepRow)
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
@@ -1349,8 +1348,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 stepColumn = transformSizeUv.Get4x4WideCount();
                 stepRow = transformSizeUv.Get4x4HighCount();
 
-                unitHeight = Av1Math.Round2(Math.Min(height + idx, maxBlockHigh), subY ? 1 : 0);
-                unitWidth = Av1Math.Round2(Math.Min(width + idx, maxBlockWide), subX ? 1 : 0);
+                unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idx, maxBlockHigh), subY ? 1 : 0);
+                unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), subX ? 1 : 0);
                 for (int blockRow = idy; blockRow < unitHeight; blockRow += stepRow)
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
@@ -1382,7 +1381,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         partitionInfo.ModeInfo.TusCount[(int)Av1PlaneType.Uv] = totalChromaTusCount;
 
         this.firstTransformOffset[(int)Av1PlaneType.Y] += totalLumaTusCount;
-        this.firstTransformOffset[(int)Av1PlaneType.Uv] += totalChromaTusCount;
+        this.firstTransformOffset[(int)Av1PlaneType.Uv] += totalChromaTusCount << 1;
     }
 
     /// <summary>

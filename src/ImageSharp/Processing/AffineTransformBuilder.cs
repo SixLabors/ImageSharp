@@ -11,7 +11,8 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class AffineTransformBuilder
 {
-    private readonly List<Func<Size, Matrix3x2>> matrixFactories = new List<Func<Size, Matrix3x2>>();
+    private readonly List<Func<Size, Matrix3x2>> transformMatrixFactories = new();
+    private readonly List<Func<Size, Matrix3x2>> boundsMatrixFactories = new();
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation angle in degrees
@@ -29,7 +30,9 @@ public class AffineTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
+        => this.Prepend(
+            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size),
+            size => TransformUtils.CreateRotationBoundsMatrixRadians(radians, size));
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -65,7 +68,9 @@ public class AffineTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
+        => this.Append(
+            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size),
+            size => TransformUtils.CreateRotationBoundsMatrixRadians(radians, size));
 
     /// <summary>
     /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -140,7 +145,9 @@ public class AffineTransformBuilder
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
-        => this.Prepend(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+        => this.Prepend(
+            size => TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size),
+            size => TransformUtils.CreateSkewBoundsMatrixDegrees(degreesX, degreesY, size));
 
     /// <summary>
     /// Prepends a centered skew matrix from the give angles in radians.
@@ -149,7 +156,9 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
+        => this.Prepend(
+            size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size),
+            size => TransformUtils.CreateSkewBoundsMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -178,7 +187,9 @@ public class AffineTransformBuilder
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
-        => this.Append(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+        => this.Append(
+            size => TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size),
+            size => TransformUtils.CreateSkewBoundsMatrixDegrees(degreesX, degreesY, size));
 
     /// <summary>
     /// Appends a centered skew matrix from the give angles in radians.
@@ -187,7 +198,9 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
+        => this.Append(
+            size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size),
+            size => TransformUtils.CreateSkewBoundsMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -254,7 +267,7 @@ public class AffineTransformBuilder
     public AffineTransformBuilder PrependMatrix(Matrix3x2 matrix)
     {
         CheckDegenerate(matrix);
-        return this.Prepend(_ => matrix);
+        return this.Prepend(_ => matrix, _ => matrix);
     }
 
     /// <summary>
@@ -270,7 +283,7 @@ public class AffineTransformBuilder
     public AffineTransformBuilder AppendMatrix(Matrix3x2 matrix)
     {
         CheckDegenerate(matrix);
-        return this.Append(_ => matrix);
+        return this.Append(_ => matrix, _ => matrix);
     }
 
     /// <summary>
@@ -281,7 +294,7 @@ public class AffineTransformBuilder
     public Matrix3x2 BuildMatrix(Size sourceSize) => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
 
     /// <summary>
-    /// Returns the combined matrix for a given source rectangle.
+    /// Returns the combined transform matrix for a given source rectangle.
     /// </summary>
     /// <param name="sourceRectangle">The rectangle in the source image.</param>
     /// <exception cref="DegenerateTransformException">
@@ -296,11 +309,11 @@ public class AffineTransformBuilder
         Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
         // Translate the origin matrix to cater for source rectangle offsets.
-        var matrix = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
+        Matrix3x2 matrix = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
 
         Size size = sourceRectangle.Size;
 
-        foreach (Func<Size, Matrix3x2> factory in this.matrixFactories)
+        foreach (Func<Size, Matrix3x2> factory in this.transformMatrixFactories)
         {
             matrix *= factory(size);
         }
@@ -308,6 +321,32 @@ public class AffineTransformBuilder
         CheckDegenerate(matrix);
 
         return matrix;
+    }
+
+    /// <summary>
+    /// Returns the size of a rectangle large enough to contain the transformed source rectangle.
+    /// </summary>
+    /// <param name="sourceRectangle">The rectangle in the source image.</param>
+    /// <exception cref="DegenerateTransformException">
+    /// The resultant matrix is degenerate containing one or more values equivalent
+    /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+    /// for linear transforms.
+    /// </exception>
+    /// <returns>The <see cref="Size"/>.</returns>
+    public Size GetTransformedSize(Rectangle sourceRectangle)
+    {
+        Size size = sourceRectangle.Size;
+
+        // Translate the origin matrix to cater for source rectangle offsets.
+        Matrix3x2 matrix = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
+
+        foreach (Func<Size, Matrix3x2> factory in this.boundsMatrixFactories)
+        {
+            matrix *= factory(size);
+            CheckDegenerate(matrix);
+        }
+
+        return TransformUtils.GetTransformedSize(size, matrix);
     }
 
     private static void CheckDegenerate(Matrix3x2 matrix)
@@ -318,15 +357,17 @@ public class AffineTransformBuilder
         }
     }
 
-    private AffineTransformBuilder Prepend(Func<Size, Matrix3x2> factory)
+    private AffineTransformBuilder Prepend(Func<Size, Matrix3x2> transformFactory, Func<Size, Matrix3x2> boundsFactory)
     {
-        this.matrixFactories.Insert(0, factory);
+        this.transformMatrixFactories.Insert(0, transformFactory);
+        this.boundsMatrixFactories.Insert(0, boundsFactory);
         return this;
     }
 
-    private AffineTransformBuilder Append(Func<Size, Matrix3x2> factory)
+    private AffineTransformBuilder Append(Func<Size, Matrix3x2> transformFactory, Func<Size, Matrix3x2> boundsFactory)
     {
-        this.matrixFactories.Add(factory);
+        this.transformMatrixFactories.Add(transformFactory);
+        this.boundsMatrixFactories.Add(boundsFactory);
         return this;
     }
 }

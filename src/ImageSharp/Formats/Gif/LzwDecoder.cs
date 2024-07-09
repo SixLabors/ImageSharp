@@ -45,9 +45,28 @@ internal sealed class LzwDecoder : IDisposable
     private readonly IMemoryOwner<int> suffix;
 
     /// <summary>
+    /// The scratch buffer for reading data blocks.
+    /// </summary>
+    private readonly IMemoryOwner<byte> scratchBuffer;
+
+    /// <summary>
     /// The pixel stack buffer.
     /// </summary>
     private readonly IMemoryOwner<int> pixelStack;
+    private readonly int minCodeSize;
+    private readonly int clearCode;
+    private readonly int endCode;
+    private int code;
+    private int codeSize;
+    private int codeMask;
+    private int availableCode;
+    private int oldCode = NullCode;
+    private int bits;
+    private int top;
+    private int count;
+    private int bufferIndex;
+    private int data;
+    private int first;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LzwDecoder"/> class
@@ -55,335 +74,277 @@ internal sealed class LzwDecoder : IDisposable
     /// </summary>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
     /// <param name="stream">The stream to read from.</param>
+    /// <param name="minCodeSize">The minimum code size.</param>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
-    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream)
+    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize)
     {
         this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
         this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
         this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
         this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
+        this.scratchBuffer = memoryAllocator.Allocate<byte>(byte.MaxValue, AllocationOptions.None);
+        this.minCodeSize = minCodeSize;
+
+        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
+        this.clearCode = 1 << minCodeSize;
+        this.codeSize = minCodeSize + 1;
+        this.codeMask = (1 << this.codeSize) - 1;
+        this.endCode = this.clearCode + 1;
+        this.availableCode = this.clearCode + 2;
+
+        ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
+        for (this.code = 0; this.code < this.clearCode; this.code++)
+        {
+            Unsafe.Add(ref suffixRef, (uint)this.code) = (byte)this.code;
+        }
     }
 
     /// <summary>
-    /// Decodes and decompresses all pixel indices from the stream, assigning the pixel values to the buffer.
+    /// Gets a value indicating whether the minimum code size is valid.
     /// </summary>
-    /// <param name="minCodeSize">Minimum code size of the data.</param>
-    /// <param name="pixels">The pixel array to decode to.</param>
-    public void DecodePixels(int minCodeSize, Buffer2D<byte> pixels)
+    /// <param name="minCodeSize">The minimum code size.</param>
+    /// <returns>
+    /// <see langword="true"/> if the minimum code size is valid; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsValidMinCodeSize(int minCodeSize)
     {
-        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
-        int clearCode = 1 << minCodeSize;
-
         // It is possible to specify a larger LZW minimum code size than the palette length in bits
         // which may leave a gap in the codes where no colors are assigned.
         // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
+        int clearCode = 1 << minCodeSize;
         if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || clearCode > MaxStackSize)
         {
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided
             // color palette but we won't bother since the image is most likely corrupted.
-            return;
+            return false;
         }
 
-        // The resulting index table length.
-        int width = pixels.Width;
-        int height = pixels.Height;
-        int length = width * height;
+        return true;
+    }
 
-        int codeSize = minCodeSize + 1;
+    /// <summary>
+    /// Decodes and decompresses all pixel indices for a single row from the stream, assigning the pixel values to the buffer.
+    /// </summary>
+    /// <param name="indices">The pixel indices array to decode to.</param>
+    public void DecodePixelRow(Span<byte> indices)
+    {
+        indices.Clear();
 
-        // Calculate the end code
-        int endCode = clearCode + 1;
-
-        // Calculate the available code.
-        int availableCode = clearCode + 2;
-
-        // Jillzhangs Code see: http://giflib.codeplex.com/
-        // Adapted from John Cristy's ImageMagick.
-        int code;
-        int oldCode = NullCode;
-        int codeMask = (1 << codeSize) - 1;
-        int bits = 0;
-
-        int top = 0;
-        int count = 0;
-        int bi = 0;
-        int xyz = 0;
-
-        int data = 0;
-        int first = 0;
-
+        ref byte pixelsRowRef = ref MemoryMarshal.GetReference(indices);
         ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
         ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
         ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
+        Span<byte> buffer = this.scratchBuffer.GetSpan();
 
-        for (code = 0; code < clearCode; code++)
-        {
-            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
-        }
-
-        Span<byte> buffer = stackalloc byte[byte.MaxValue];
-
-        int y = 0;
         int x = 0;
-        int rowMax = width;
-        ref byte pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(y));
-        while (xyz < length)
+        int xyz = 0;
+        while (xyz < indices.Length)
         {
-            // Reset row reference.
-            if (xyz == rowMax)
+            if (this.top == 0)
             {
-                x = 0;
-                pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(++y));
-                rowMax = (y * width) + width;
-            }
-
-            if (top == 0)
-            {
-                if (bits < codeSize)
+                if (this.bits < this.codeSize)
                 {
                     // Load bytes until there are enough bits for a code.
-                    if (count == 0)
+                    if (this.count == 0)
                     {
                         // Read a new data block.
-                        count = this.ReadBlock(buffer);
-                        if (count == 0)
+                        this.count = this.ReadBlock(buffer);
+                        if (this.count == 0)
                         {
                             break;
                         }
 
-                        bi = 0;
+                        this.bufferIndex = 0;
                     }
 
-                    data += buffer[bi] << bits;
+                    this.data += buffer[this.bufferIndex] << this.bits;
 
-                    bits += 8;
-                    bi++;
-                    count--;
+                    this.bits += 8;
+                    this.bufferIndex++;
+                    this.count--;
                     continue;
                 }
 
                 // Get the next code
-                code = data & codeMask;
-                data >>= codeSize;
-                bits -= codeSize;
+                this.code = this.data & this.codeMask;
+                this.data >>= this.codeSize;
+                this.bits -= this.codeSize;
 
                 // Interpret the code
-                if (code > availableCode || code == endCode)
+                if (this.code > this.availableCode || this.code == this.endCode)
                 {
                     break;
                 }
 
-                if (code == clearCode)
+                if (this.code == this.clearCode)
                 {
                     // Reset the decoder
-                    codeSize = minCodeSize + 1;
-                    codeMask = (1 << codeSize) - 1;
-                    availableCode = clearCode + 2;
-                    oldCode = NullCode;
+                    this.codeSize = this.minCodeSize + 1;
+                    this.codeMask = (1 << this.codeSize) - 1;
+                    this.availableCode = this.clearCode + 2;
+                    this.oldCode = NullCode;
                     continue;
                 }
 
-                if (oldCode == NullCode)
+                if (this.oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    oldCode = code;
-                    first = code;
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
+                    this.oldCode = this.code;
+                    this.first = this.code;
                     continue;
                 }
 
-                int inCode = code;
-                if (code == availableCode)
+                int inCode = this.code;
+                if (this.code == this.availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = (byte)this.first;
 
-                    code = oldCode;
+                    this.code = this.oldCode;
                 }
 
-                while (code > clearCode)
+                while (this.code > this.clearCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    code = Unsafe.Add(ref prefixRef, (uint)code);
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
+                    this.code = Unsafe.Add(ref prefixRef, (uint)this.code);
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
-                first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
+                int suffixCode = Unsafe.Add(ref suffixRef, (uint)this.code);
+                this.first = suffixCode;
+                Unsafe.Add(ref pixelStackRef, (uint)this.top++) = suffixCode;
 
                 // Fix for Gifs that have "deferred clear code" as per here :
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
-                if (availableCode < MaxStackSize)
+                if (this.availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
-                    availableCode++;
-                    if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
+                    Unsafe.Add(ref prefixRef, (uint)this.availableCode) = this.oldCode;
+                    Unsafe.Add(ref suffixRef, (uint)this.availableCode) = this.first;
+                    this.availableCode++;
+                    if (this.availableCode == this.codeMask + 1 && this.availableCode < MaxStackSize)
                     {
-                        codeSize++;
-                        codeMask = (1 << codeSize) - 1;
+                        this.codeSize++;
+                        this.codeMask = (1 << this.codeSize) - 1;
                     }
                 }
 
-                oldCode = inCode;
+                this.oldCode = inCode;
             }
 
             // Pop a pixel off the pixel stack.
-            top--;
+            this.top--;
 
             // Clear missing pixels
             xyz++;
-            Unsafe.Add(ref pixelsRowRef, (uint)x++) = (byte)Unsafe.Add(ref pixelStackRef, (uint)top);
+            Unsafe.Add(ref pixelsRowRef, (uint)x++) = (byte)Unsafe.Add(ref pixelStackRef, (uint)this.top);
         }
     }
 
     /// <summary>
     /// Decodes and decompresses all pixel indices from the stream allowing skipping of the data.
     /// </summary>
-    /// <param name="minCodeSize">Minimum code size of the data.</param>
     /// <param name="length">The resulting index table length.</param>
-    public void SkipIndices(int minCodeSize, int length)
+    public void SkipIndices(int length)
     {
-        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
-        int clearCode = 1 << minCodeSize;
-
-        // It is possible to specify a larger LZW minimum code size than the palette length in bits
-        // which may leave a gap in the codes where no colors are assigned.
-        // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || clearCode > MaxStackSize)
-        {
-            // Don't attempt to decode the frame indices.
-            // Theoretically we could determine a min code size from the length of the provided
-            // color palette but we won't bother since the image is most likely corrupted.
-            GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
-        }
-
-        int codeSize = minCodeSize + 1;
-
-        // Calculate the end code
-        int endCode = clearCode + 1;
-
-        // Calculate the available code.
-        int availableCode = clearCode + 2;
-
-        // Jillzhangs Code see: http://giflib.codeplex.com/
-        // Adapted from John Cristy's ImageMagick.
-        int code;
-        int oldCode = NullCode;
-        int codeMask = (1 << codeSize) - 1;
-        int bits = 0;
-
-        int top = 0;
-        int count = 0;
-        int bi = 0;
-        int xyz = 0;
-
-        int data = 0;
-        int first = 0;
-
         ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
         ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
         ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
+        Span<byte> buffer = this.scratchBuffer.GetSpan();
 
-        for (code = 0; code < clearCode; code++)
-        {
-            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
-        }
-
-        Span<byte> buffer = stackalloc byte[byte.MaxValue];
+        int xyz = 0;
         while (xyz < length)
         {
-            if (top == 0)
+            if (this.top == 0)
             {
-                if (bits < codeSize)
+                if (this.bits < this.codeSize)
                 {
                     // Load bytes until there are enough bits for a code.
-                    if (count == 0)
+                    if (this.count == 0)
                     {
                         // Read a new data block.
-                        count = this.ReadBlock(buffer);
-                        if (count == 0)
+                        this.count = this.ReadBlock(buffer);
+                        if (this.count == 0)
                         {
                             break;
                         }
 
-                        bi = 0;
+                        this.bufferIndex = 0;
                     }
 
-                    data += buffer[bi] << bits;
+                    this.data += buffer[this.bufferIndex] << this.bits;
 
-                    bits += 8;
-                    bi++;
-                    count--;
+                    this.bits += 8;
+                    this.bufferIndex++;
+                    this.count--;
                     continue;
                 }
 
                 // Get the next code
-                code = data & codeMask;
-                data >>= codeSize;
-                bits -= codeSize;
+                this.code = this.data & this.codeMask;
+                this.data >>= this.codeSize;
+                this.bits -= this.codeSize;
 
                 // Interpret the code
-                if (code > availableCode || code == endCode)
+                if (this.code > this.availableCode || this.code == this.endCode)
                 {
                     break;
                 }
 
-                if (code == clearCode)
+                if (this.code == this.clearCode)
                 {
                     // Reset the decoder
-                    codeSize = minCodeSize + 1;
-                    codeMask = (1 << codeSize) - 1;
-                    availableCode = clearCode + 2;
-                    oldCode = NullCode;
+                    this.codeSize = this.minCodeSize + 1;
+                    this.codeMask = (1 << this.codeSize) - 1;
+                    this.availableCode = this.clearCode + 2;
+                    this.oldCode = NullCode;
                     continue;
                 }
 
-                if (oldCode == NullCode)
+                if (this.oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    oldCode = code;
-                    first = code;
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
+                    this.oldCode = this.code;
+                    this.first = this.code;
                     continue;
                 }
 
-                int inCode = code;
-                if (code == availableCode)
+                int inCode = this.code;
+                if (this.code == this.availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = (byte)this.first;
 
-                    code = oldCode;
+                    this.code = this.oldCode;
                 }
 
-                while (code > clearCode)
+                while (this.code > this.clearCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    code = Unsafe.Add(ref prefixRef, (uint)code);
+                    Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
+                    this.code = Unsafe.Add(ref prefixRef, (uint)this.code);
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
-                first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
+                int suffixCode = Unsafe.Add(ref suffixRef, (uint)this.code);
+                this.first = suffixCode;
+                Unsafe.Add(ref pixelStackRef, (uint)this.top++) = suffixCode;
 
                 // Fix for Gifs that have "deferred clear code" as per here :
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
-                if (availableCode < MaxStackSize)
+                if (this.availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
-                    availableCode++;
-                    if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
+                    Unsafe.Add(ref prefixRef, (uint)this.availableCode) = this.oldCode;
+                    Unsafe.Add(ref suffixRef, (uint)this.availableCode) = this.first;
+                    this.availableCode++;
+                    if (this.availableCode == this.codeMask + 1 && this.availableCode < MaxStackSize)
                     {
-                        codeSize++;
-                        codeMask = (1 << codeSize) - 1;
+                        this.codeSize++;
+                        this.codeMask = (1 << this.codeSize) - 1;
                     }
                 }
 
-                oldCode = inCode;
+                this.oldCode = inCode;
             }
 
             // Pop a pixel off the pixel stack.
-            top--;
+            this.top--;
 
             // Clear missing pixels
             xyz++;
@@ -419,5 +380,6 @@ internal sealed class LzwDecoder : IDisposable
         this.prefix.Dispose();
         this.suffix.Dispose();
         this.pixelStack.Dispose();
+        this.scratchBuffer.Dispose();
     }
 }

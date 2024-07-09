@@ -142,6 +142,14 @@ internal static class Numerics
     public static float Pow3(float x) => x * x * x;
 
     /// <summary>
+    /// Returns a specified number raised to the power of 3
+    /// </summary>
+    /// <param name="x">A double-precision floating-point number</param>
+    /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Pow3(double x) => x * x * x;
+
+    /// <summary>
     /// Implementation of 1D Gaussian G(x) function
     /// </summary>
     /// <param name="x">The x provided to G(x).</param>

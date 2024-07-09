@@ -146,7 +146,7 @@ internal static class Quantization
             quality = (int)Math.Round(5000.0 / sumPercent);
         }
 
-        return quality;
+        return Numerics.Clamp(quality, MinQualityFactor, MaxQualityFactor);
     }
 
     /// <summary>

@@ -25,16 +25,15 @@ internal class Av1Decoder : IAv1TileDecoder
         this.frameBuffer = this.tileDecoder?.FrameBuffer;
     }
 
-    public void StartDecodeTiles()
-    {
-        this.SequenceHeader = this.obuReader.SequenceHeader;
-        this.FrameHeader = this.obuReader.FrameHeader;
-        this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!);
-    }
-
     public void DecodeTile(Span<byte> tileData, int tileNum)
-        => this.tileDecoder!.DecodeTile(tileData, tileNum);
+    {
+        if (this.tileDecoder == null)
+        {
+            this.SequenceHeader = this.obuReader.SequenceHeader;
+            this.FrameHeader = this.obuReader.FrameHeader;
+            this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!);
+        }
 
-    public void FinishDecodeTiles(bool doCdef, bool doLoopRestoration)
-        => this.tileDecoder!.FinishDecodeTiles(doCdef, doLoopRestoration);
+        this.tileDecoder.DecodeTile(tileData, tileNum);
+    }
 }

@@ -698,7 +698,7 @@ internal class Vp8LEncoder : IDisposable
                     }
                 }
 
-                histogramImageSize = maxIndex; 
+                histogramImageSize = maxIndex;
 
                 this.bitWriter.PutBits((uint)(this.HistoBits - 2), 3);
                 this.EncodeImageNoHuffman(

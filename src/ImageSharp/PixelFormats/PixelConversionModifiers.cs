@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.ColorSpaces.Companding;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 

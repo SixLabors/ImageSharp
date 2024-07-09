@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorSpaces.Companding;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
@@ -161,12 +161,12 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     [MemberData(nameof(ArraySizesData))]
     public void FromCompandedScaledVector4(int count)
     {
-        void SourceAction(ref Vector4 v) => SRgbCompanding.Expand(ref v);
+        void SourceAction(ref Vector4 v) => v = SRgbCompanding.Expand(v);
 
-        void ExpectedAction(ref Vector4 v) => SRgbCompanding.Compress(ref v);
+        void ExpectedAction(ref Vector4 v) => v = SRgbCompanding.Compress(v);
 
-        Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
-        TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
+        Vector4[] source = CreateVector4TestData(count, SourceAction);
+        TPixel[] expected = CreateScaledExpectedPixelData(source, ExpectedAction);
 
         TestOperation(
             source,
@@ -261,7 +261,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     {
         void SourceAction(ref Vector4 v)
         {
-            SRgbCompanding.Expand(ref v);
+            v = SRgbCompanding.Expand(v);
 
             if (this.HasUnassociatedAlpha)
             {
@@ -276,11 +276,11 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
                 Numerics.UnPremultiply(ref v);
             }
 
-            SRgbCompanding.Compress(ref v);
+            v = SRgbCompanding.Compress(v);
         }
 
-        Vector4[] source = CreateVector4TestData(count, (ref Vector4 v) => SourceAction(ref v));
-        TPixel[] expected = CreateScaledExpectedPixelData(source, (ref Vector4 v) => ExpectedAction(ref v));
+        Vector4[] source = CreateVector4TestData(count, SourceAction);
+        TPixel[] expected = CreateScaledExpectedPixelData(source, ExpectedAction);
 
         TestOperation(
             source,
@@ -385,10 +385,10 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
         }
 
-        void ExpectedAction(ref Vector4 v) => SRgbCompanding.Expand(ref v);
+        void ExpectedAction(ref Vector4 v) => v = SRgbCompanding.Expand(v);
 
-        TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
+        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
+        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
 
         TestOperation(
             source,
@@ -410,8 +410,8 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
         void ExpectedAction(ref Vector4 v) => Numerics.Premultiply(ref v);
 
-        TPixel[] source = CreatePixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
-        Vector4[] expected = CreateExpectedVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
+        TPixel[] source = CreatePixelTestData(count, SourceAction);
+        Vector4[] expected = CreateExpectedVector4Data(source, ExpectedAction);
 
         TestOperation(
             source,
@@ -429,7 +429,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
         void ExpectedAction(ref Vector4 v) => Numerics.Premultiply(ref v);
 
-        TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
+        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
         Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
 
         TestOperation(
@@ -452,12 +452,12 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
         void ExpectedAction(ref Vector4 v)
         {
-            SRgbCompanding.Expand(ref v);
+            v = SRgbCompanding.Expand(v);
             Numerics.Premultiply(ref v);
         }
 
-        TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
-        Vector4[] expected = CreateExpectedScaledVector4Data(source, (ref Vector4 v) => ExpectedAction(ref v));
+        TPixel[] source = CreateScaledPixelTestData(count, SourceAction);
+        Vector4[] expected = CreateExpectedScaledVector4Data(source, ExpectedAction);
 
         TestOperation(
             source,

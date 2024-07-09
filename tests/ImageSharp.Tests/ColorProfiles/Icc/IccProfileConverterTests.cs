@@ -35,7 +35,6 @@ public class IccProfileConverterTests
 
         image.DebugSave(provider, extension: "png", appendPixelTypeToFileName: false, appendSourceFileOrDescription: true, encoder: Encoder);
 
-        // TODO: This is comparing the input image. It should compare the output.
         TPixel actual = image[0, 0];
 
         Assert.Equal(expected, actual);

@@ -510,8 +510,6 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        image.SaveAsWebp(@"C:\Users\james\Downloads\2763-fixed.webp", encoder);
-
         image.DebugSave(provider);
         image.VerifyEncoder(provider, "webp", string.Empty, encoder);
     }

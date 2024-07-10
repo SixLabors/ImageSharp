@@ -696,6 +696,8 @@ internal class Vp8LEncoder : IDisposable
                     }
                 }
 
+                histogramImageSize = maxIndex;
+
                 this.bitWriter.PutBits((uint)(this.HistoBits - 2), 3);
                 this.EncodeImageNoHuffman(
                     histogramBgra,
@@ -711,7 +713,7 @@ internal class Vp8LEncoder : IDisposable
             // Store Huffman codes.
             // Find maximum number of symbols for the huffman tree-set.
             int maxTokens = 0;
-            for (int i = 0; i < 5 * histogramImage.Count; i++)
+            for (int i = 0; i < 5 * histogramImageSize; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 if (maxTokens < codes.NumSymbols)
@@ -726,7 +728,7 @@ internal class Vp8LEncoder : IDisposable
                 tokens[i] = new HuffmanTreeToken();
             }
 
-            for (int i = 0; i < 5 * histogramImage.Count; i++)
+            for (int i = 0; i < 5 * histogramImageSize; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 this.StoreHuffmanCode(huffTree, tokens, codes);

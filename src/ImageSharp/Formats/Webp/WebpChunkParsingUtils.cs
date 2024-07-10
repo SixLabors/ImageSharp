@@ -218,10 +218,6 @@ internal static class WebpChunkParsingUtils
 
         // 3 reserved bytes should follow which are supposed to be zero.
         stream.Read(buffer, 0, 3);
-        if (buffer[0] != 0 || buffer[1] != 0 || buffer[2] != 0)
-        {
-            WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
-        }
 
         // 3 bytes for the width.
         uint width = ReadUInt24LittleEndian(stream, buffer) + 1;

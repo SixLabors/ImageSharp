@@ -497,6 +497,23 @@ public class WebpEncoderTests
         image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2763
+    [Theory]
+    [WithFile(Lossy.Issue2763, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2763<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpEncoder encoder = new()
+        {
+            Quality = 84,
+            FileFormat = WebpFileFormatType.Lossless
+        };
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.DebugSave(provider);
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+    }
+
     public static void RunEncodeLossy_WithPeakImage()
     {
         TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);

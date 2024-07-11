@@ -8,30 +8,24 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal class Av1ParseAboveNeighbor4x4Context
 {
-    /* Buffer holding the transform sizes of the previous 4x4 block row. */
-    private readonly int[] aboveTransformWidth;
-
-    /* Buffer holding the partition context of the previous 4x4 block row. */
-    private int[] abovePartitionWidth;
-
     /* Buffer holding the sign of the DC coefficients and the
        cumulative sum of the coefficient levels of the above 4x4
        blocks corresponding to the current super block row. */
-    private int[][] aboveContext = new int[Av1Constants.MaxPlanes][];
+    private readonly int[][] aboveContext = new int[Av1Constants.MaxPlanes][];
 
     /* Buffer holding the seg_id_predicted of the previous 4x4 block row. */
-    private int[] aboveSegmentIdPredictionContext;
+    private readonly int[] aboveSegmentIdPredictionContext;
 
     /* Value of base colors for Y, U, and V */
-    private int[][] abovePaletteColors = new int[Av1Constants.MaxPlanes][];
+    private readonly int[][] abovePaletteColors = new int[Av1Constants.MaxPlanes][];
 
-    private int[] aboveCompGroupIndex;
+    private readonly int[] aboveCompGroupIndex;
 
     public Av1ParseAboveNeighbor4x4Context(int planesCount, int modeInfoColumnCount)
     {
         int wide64x64Count = Av1BlockSize.Block64x64.Get4x4WideCount();
-        this.aboveTransformWidth = new int[modeInfoColumnCount];
-        this.abovePartitionWidth = new int[modeInfoColumnCount];
+        this.AboveTransformWidth = new int[modeInfoColumnCount];
+        this.AbovePartitionWidth = new int[modeInfoColumnCount];
         for (int i = 0; i < planesCount; i++)
         {
             this.aboveContext[i] = new int[modeInfoColumnCount];
@@ -42,25 +36,32 @@ internal class Av1ParseAboveNeighbor4x4Context
         this.aboveCompGroupIndex = new int[modeInfoColumnCount];
     }
 
-    public int[] AbovePartitionWidth => this.abovePartitionWidth;
+    /// <summary>
+    /// Gets a buffer holding the partition context of the previous 4x4 block row.
+    /// </summary>
+    public int[] AbovePartitionWidth { get; }
 
-    public int[] AboveTransformWidth => this.aboveTransformWidth;
+    /// <summary>
+    /// Gets a buffer holding the transform sizes of the previous 4x4 block row.
+    /// </summary>
+    public int[] AboveTransformWidth { get; }
 
     public int[] GetContext(int plane) => this.aboveContext[plane];
 
-    public void Clear(ObuSequenceHeader sequenceHeader)
+    public void Clear(ObuSequenceHeader sequenceHeader, int modeInfoColumnStart, int modeInfoColumnEnd)
     {
         int planeCount = sequenceHeader.ColorConfig.ChannelCount;
-        Array.Fill(this.aboveTransformWidth, Av1TransformSize.Size64x64.GetWidth());
-        Array.Fill(this.abovePartitionWidth, 0);
+        int width = modeInfoColumnEnd - modeInfoColumnStart;
+        Array.Fill(this.AboveTransformWidth, Av1TransformSize.Size64x64.GetWidth(), 0, width);
+        Array.Fill(this.AbovePartitionWidth, 0, 0, width);
         for (int i = 0; i < planeCount; i++)
         {
-            Array.Fill(this.aboveContext[i], 0);
-            Array.Fill(this.abovePaletteColors[i], 0);
+            Array.Fill(this.aboveContext[i], 0, 0, width);
+            Array.Fill(this.abovePaletteColors[i], 0, 0, width);
         }
 
-        Array.Fill(this.aboveSegmentIdPredictionContext, 0);
-        Array.Fill(this.aboveCompGroupIndex, 0);
+        Array.Fill(this.aboveSegmentIdPredictionContext, 0, 0, width);
+        Array.Fill(this.aboveCompGroupIndex, 0, 0, width);
     }
 
     public void UpdatePartition(Point modeInfoLocation, Av1TileInfo tileLoc, Av1BlockSize subSize, Av1BlockSize blockSize)
@@ -70,7 +71,7 @@ internal class Av1ParseAboveNeighbor4x4Context
         int value = Av1PartitionContext.GetAboveContext(subSize);
         for (int i = 0; i < bw; i++)
         {
-            this.abovePartitionWidth[startIndex + i] = value;
+            this.AbovePartitionWidth[startIndex + i] = value;
         }
     }
 
@@ -84,7 +85,7 @@ internal class Av1ParseAboveNeighbor4x4Context
             transformWidth = n4w << Av1Constants.ModeInfoSizeLog2;
         }
 
-        Array.Fill(this.aboveTransformWidth, transformWidth, startIndex, n4w);
+        Array.Fill(this.AboveTransformWidth, transformWidth, startIndex, n4w);
     }
 
     internal void ClearContext(int plane, int offset, int length)

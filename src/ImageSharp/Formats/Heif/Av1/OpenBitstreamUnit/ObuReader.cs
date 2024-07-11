@@ -369,10 +369,10 @@ internal class ObuReader
         }
 
         // Video related flags removed
-        sequenceHeader.Use128x128SuperBlock = reader.ReadBoolean();
-        sequenceHeader.SuperBlockSize = sequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        sequenceHeader.ModeInfoSize = sequenceHeader.Use128x128SuperBlock ? 32 : 16;
-        sequenceHeader.SuperBlockSizeLog2 = sequenceHeader.Use128x128SuperBlock ? 7 : 6;
+        sequenceHeader.Use128x128Superblock = reader.ReadBoolean();
+        sequenceHeader.SuperblockSize = sequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+        sequenceHeader.SuperblockModeInfoSize = sequenceHeader.Use128x128Superblock ? 32 : 16;
+        sequenceHeader.SuperblockSizeLog2 = sequenceHeader.Use128x128Superblock ? 7 : 6;
         sequenceHeader.EnableFilterIntra = reader.ReadBoolean();
         sequenceHeader.EnableIntraEdgeFilter = reader.ReadBoolean();
 
@@ -701,7 +701,7 @@ internal class ObuReader
         int superBlockColumnCount;
         int superBlockRowCount;
         int superBlockShift;
-        if (sequenceHeader.Use128x128SuperBlock)
+        if (sequenceHeader.Use128x128Superblock)
         {
             superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 31) >> 5;
             superBlockRowCount = (frameInfo.ModeInfoRowCount + 31) >> 5;
@@ -1579,7 +1579,7 @@ internal class ObuReader
         if (usesLoopRestoration)
         {
             uint loopRestorationShift = reader.ReadLiteral(1);
-            if (sequenceHeader.Use128x128SuperBlock)
+            if (sequenceHeader.Use128x128Superblock)
             {
                 loopRestorationShift++;
             }

@@ -33,7 +33,7 @@ internal class Av1FrameBuffer
     public Av1FrameBuffer(ObuSequenceHeader sequenceHeader)
     {
         // init_main_frame_ctxt
-        int superblockSizeLog2 = sequenceHeader.SuperBlockSizeLog2;
+        int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
         int superblockAlignedWidth = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2);
         int superblockAlignedHeight = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2);
         this.superblockColumnCount = superblockAlignedWidth >> superblockSizeLog2;

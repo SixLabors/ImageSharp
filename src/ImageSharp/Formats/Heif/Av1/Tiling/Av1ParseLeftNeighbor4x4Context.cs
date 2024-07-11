@@ -8,31 +8,23 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 internal class Av1ParseLeftNeighbor4x4Context
 {
-    /* Buffer holding the transform sizes of the left 4x4 blocks corresponding
-         to the current super block row. */
-    private readonly int[] leftTransformHeight;
-
-    /* Buffer holding the partition context of the left 4x4 blocks corresponding
-     to the current super block row. */
-    private int[] leftPartitionHeight;
-
     /* Buffer holding the sign of the DC coefficients and the
        cumulative sum of the coefficient levels of the left 4x4
        blocks corresponding to the current super block row. */
-    private int[][] leftContext = new int[Av1Constants.MaxPlanes][];
+    private readonly int[][] leftContext = new int[Av1Constants.MaxPlanes][];
 
     /* Buffer holding the seg_id_predicted of the previous 4x4 block row. */
-    private int[] leftSegmentIdPredictionContext;
+    private readonly int[] leftSegmentIdPredictionContext;
 
     /* Value of base colors for Y, U, and V */
-    private int[][] leftPaletteColors = new int[Av1Constants.MaxPlanes][];
+    private readonly int[][] leftPaletteColors = new int[Av1Constants.MaxPlanes][];
 
-    private int[] leftCompGroupIndex;
+    private readonly int[] leftCompGroupIndex;
 
     public Av1ParseLeftNeighbor4x4Context(int planesCount, int superblockModeInfoSize)
     {
-        this.leftTransformHeight = new int[superblockModeInfoSize];
-        this.leftPartitionHeight = new int[superblockModeInfoSize];
+        this.LeftTransformHeight = new int[superblockModeInfoSize];
+        this.LeftPartitionHeight = new int[superblockModeInfoSize];
         for (int i = 0; i < planesCount; i++)
         {
             this.leftContext[i] = new int[superblockModeInfoSize];
@@ -43,23 +35,33 @@ internal class Av1ParseLeftNeighbor4x4Context
         this.leftCompGroupIndex = new int[superblockModeInfoSize];
     }
 
-    public int[] LeftPartitionHeight => this.leftPartitionHeight;
+    /// <summary>
+    /// Gets a buffer holding the partition context of the left 4x4 blocks corresponding
+    /// to the current super block row.
+    /// </summary>
+    public int[] LeftPartitionHeight { get; }
 
-    public int[] LeftTransformHeight => this.leftTransformHeight;
+    /// <summary>
+    /// Gets a buffer holding the transform sizes of the left 4x4 blocks corresponding
+    /// to the current super block row.
+    /// </summary>
+    public int[] LeftTransformHeight { get; }
 
     public void Clear(ObuSequenceHeader sequenceHeader)
     {
+        int blockCount = sequenceHeader.SuperblockModeInfoSize;
         int planeCount = sequenceHeader.ColorConfig.ChannelCount;
-        Array.Fill(this.leftTransformHeight, Av1TransformSize.Size64x64.GetHeight());
-        Array.Fill(this.leftPartitionHeight, 0);
+        int neighbor4x4Count = sequenceHeader.SuperblockModeInfoSize;
+        Array.Fill(this.LeftTransformHeight, Av1TransformSize.Size64x64.GetHeight(), 0, blockCount);
+        Array.Fill(this.LeftPartitionHeight, 0, 0, blockCount);
         for (int i = 0; i < planeCount; i++)
         {
-            Array.Fill(this.leftContext[i], 0);
-            Array.Fill(this.leftPaletteColors[i], 0);
+            Array.Fill(this.leftContext[i], 0, 0, blockCount);
+            Array.Fill(this.leftPaletteColors[i], 0, 0, blockCount);
         }
 
-        Array.Fill(this.leftSegmentIdPredictionContext, 0);
-        Array.Fill(this.leftCompGroupIndex, 0);
+        Array.Fill(this.leftSegmentIdPredictionContext, 0, 0, blockCount);
+        Array.Fill(this.leftCompGroupIndex, 0, 0, blockCount);
     }
 
     public void UpdatePartition(Point modeInfoLocation, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize)
@@ -69,7 +71,7 @@ internal class Av1ParseLeftNeighbor4x4Context
         int value = Av1PartitionContext.GetLeftContext(subSize);
         for (int i = 0; i < bh; i++)
         {
-            this.leftPartitionHeight[startIndex + i] = value;
+            this.LeftPartitionHeight[startIndex + i] = value;
         }
     }
 
@@ -83,8 +85,8 @@ internal class Av1ParseLeftNeighbor4x4Context
             transformHeight = n4h << Av1Constants.ModeInfoSizeLog2;
         }
 
-        DebugGuard.MustBeLessThanOrEqualTo(startIndex + n4h, this.leftTransformHeight.Length, nameof(startIndex));
-        Array.Fill(this.leftTransformHeight, transformHeight, startIndex, n4h);
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex + n4h, this.LeftTransformHeight.Length, nameof(startIndex));
+        Array.Fill(this.LeftTransformHeight, transformHeight, startIndex, n4h);
     }
 
     internal void ClearContext(int plane, int offset, int length)

@@ -54,11 +54,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
         // Hard code number of threads to 1 for now.
         int planesCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
         int superblockColumnCount =
-            Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperBlockSizeLog2) >> sequenceHeader.SuperBlockSizeLog2;
-        int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.ModeInfoSize;
-        modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperBlockSizeLog2 - 2);
+            Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
+        int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.SuperblockModeInfoSize;
+        modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - 2);
         this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(planesCount, modeInfoWideColumnCount);
-        this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.ModeInfoSize);
+        this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.SuperblockModeInfoSize);
         this.tusCount = new int[Av1Constants.MaxPlanes][];
         this.tusCount[0] = new int[this.FrameBuffer.ModeInfoCount];
         this.tusCount[1] = new int[this.FrameBuffer.ModeInfoCount];
@@ -78,7 +78,11 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int tileColumnIndex = tileNum % this.FrameInfo.TilesInfo.TileColumnCount;
         int tileRowIndex = tileNum / this.FrameInfo.TilesInfo.TileColumnCount;
 
-        this.aboveNeighborContext.Clear(this.SequenceHeader);
+        int modeInfoColumnStart = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex];
+        int modeInfoColumnEnd = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex + 1];
+        int modeInfoRowStart = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex];
+        int modeInfoRowEnd = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1];
+        this.aboveNeighborContext.Clear(this.SequenceHeader, modeInfoColumnStart, modeInfoColumnEnd);
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
 
@@ -98,15 +102,15 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
 
         Av1TileInfo tileInfo = new(tileRowIndex, tileColumnIndex, this.FrameInfo);
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
         int superBlock4x4Size = superBlockSize.Get4x4WideCount();
-        for (int row = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex]; row < this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1]; row += this.SequenceHeader.ModeInfoSize)
+        for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += this.SequenceHeader.SuperblockModeInfoSize)
         {
-            int superBlockRow = row << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
+            int superBlockRow = row << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperblockSizeLog2;
             this.leftNeighborContext.Clear(this.SequenceHeader);
-            for (int column = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex]; column < this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex + 1]; column += this.SequenceHeader.ModeInfoSize)
+            for (int column = modeInfoColumnStart; column < modeInfoColumnEnd; column += this.SequenceHeader.SuperblockModeInfoSize)
             {
-                int superBlockColumn = column << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperBlockSizeLog2;
+                int superBlockColumn = column << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperblockSizeLog2;
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
                 Av1SuperblockInfo superblockInfo = this.FrameBuffer.GetSuperblock(superblockPosition);
 
@@ -162,6 +166,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int quarterBlock4x4Size = halfBlock4x4Size >> 1;
         bool hasRows = (modeInfoLocation.Y + halfBlock4x4Size) < this.FrameInfo.ModeInfoRowCount;
         bool hasColumns = (modeInfoLocation.X + halfBlock4x4Size) < this.FrameInfo.ModeInfoColumnCount;
+        int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
         Av1PartitionType partitionType = Av1PartitionType.Split;
         if (blockSize < Av1BlockSize.Block8x8)
         {
@@ -169,20 +174,17 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
         else if (hasRows && hasColumns)
         {
-            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
             partitionType = reader.ReadPartitionType(ctx);
         }
         else if (hasColumns)
         {
-            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
-            bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
-            partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
+            bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
+            partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
         }
         else if (hasRows)
         {
-            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
-            bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
-            partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Vertical;
+            bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
+            partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Vertical;
         }
 
         Av1BlockSize subSize = partitionType.GetBlockSubSize(blockSize);
@@ -1204,27 +1206,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
         return (aboveEntropyContext ? 1 : 0) + (leftEntropyContext ? 1 : 0);
     }
 
-    private void Reconstruct(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();
-
-    private int Coefficients(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();
-
-    private void PredictChromaFromLuma(int plane, int startX, int startY, Av1TransformSize transformSize) => throw new NotImplementedException();
-
-    /// <summary>
-    /// 7.11.2. Intra prediction process.
-    /// </summary>
-    private void PredictIntra(int plane, int startX, int startY, bool leftAvailable, bool upAvailable, bool haveAboveRight, bool haveBelowLeft, Av1PredictionMode mode, int log2Width, int log2Height) => throw new NotImplementedException();
-
-    private void PredictPalette(int plane, int startX, int startY, int x, int y, Av1TransformSize transformSize) => throw new NotImplementedException();
-
-    /// <summary>
-    /// Page 65, below 5.11.5. Decode block syntax.
-    /// </summary>
-    private static void ResetBlockContext(int rowIndex, int columnIndex, Av1BlockSize blockSize)
-    {
-        // TODO: Do we still need this method.
-    }
-
     /// <summary>
     /// 5.11.15. TX size syntax.
     /// </summary>
@@ -1236,7 +1217,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             return Av1TransformSize.Size4x4;
         }
 
-        if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameInfo.TransformMode == Transform.Av1TransformMode.Select)
+        if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameInfo.TransformMode == Av1TransformMode.Select)
         {
             return this.ReadSelectedTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo);
         }
@@ -1719,7 +1700,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         if (partitionInfo.CdefStrength[r][c] == -1)
         {
             partitionInfo.CdefStrength[r][c] = reader.ReadLiteral(this.FrameInfo.CdefParameters.BitCount);
-            if (this.SequenceHeader.SuperBlockSize == Av1BlockSize.Block128x128)
+            if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
             {
                 int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
                 int h4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
@@ -1736,7 +1717,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
         if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent ||
             (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
@@ -1790,14 +1771,14 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128SuperBlock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
         if (!this.FrameInfo.DeltaQParameters.IsPresent ||
             (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
             return;
         }
 
-        if (partitionInfo.ModeInfo.BlockSize != this.SequenceHeader.SuperBlockSize || !partitionInfo.ModeInfo.Skip)
+        if (partitionInfo.ModeInfo.BlockSize != this.SequenceHeader.SuperblockSize || !partitionInfo.ModeInfo.Skip)
         {
             int deltaQuantizerAbsolute = reader.ReadDeltaQuantizerAbsolute();
             if (deltaQuantizerAbsolute == Av1Constants.DeltaQuantizerSmall)
@@ -1834,15 +1815,17 @@ internal class Av1TileDecoder : IAv1TileDecoder
         return xPos && yPos;
     }*/
 
-    private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo)
+    private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileInfo, Av1SuperblockInfo superblockInfo)
     {
         // Maximum partition point is 8x8. Offset the log value occordingly.
-        int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileLoc.ModeInfoColumnStart];
+        int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileInfo.ModeInfoColumnStart];
         int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.Position.Y) & Av1PartitionContext.Mask];
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;
-        return (left * 2) + above + (blockSizeLog * PartitionProbabilitySet);
+        DebugGuard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), "Blocks should be square");
+        DebugGuard.MustBeGreaterThanOrEqualTo(blockSizeLog, 0, nameof(blockSizeLog));
+        return ((left << 1) + above) + (blockSizeLog * PartitionProbabilitySet);
     }
 
     private void UpdatePartitionContext(Point modeInfoLocation, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize, Av1PartitionType partition)

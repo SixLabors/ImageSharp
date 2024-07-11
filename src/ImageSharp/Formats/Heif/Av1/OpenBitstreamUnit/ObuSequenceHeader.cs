@@ -37,13 +37,13 @@ internal class ObuSequenceHeader
 
     public int MaxFrameHeight { get; set; }
 
-    public bool Use128x128SuperBlock { get; set; }
+    public bool Use128x128Superblock { get; set; }
 
-    public Av1BlockSize SuperBlockSize { get; set; }
+    public Av1BlockSize SuperblockSize { get; set; }
 
-    public int ModeInfoSize { get; set; }
+    public int SuperblockModeInfoSize { get; set; }
 
-    public int SuperBlockSizeLog2 { get; set; }
+    public int SuperblockSizeLog2 { get; set; }
 
     public int FilterIntraLevel { get; set; }
 

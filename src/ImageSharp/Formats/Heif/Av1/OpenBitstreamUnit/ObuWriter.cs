@@ -91,7 +91,7 @@ internal class ObuWriter
         writer.WriteLiteral((uint)sequenceHeader.MaxFrameHeight - 1, sequenceHeader.FrameHeightBits);
 
         // Video related flags removed
-        writer.WriteBoolean(sequenceHeader.Use128x128SuperBlock);
+        writer.WriteBoolean(sequenceHeader.Use128x128Superblock);
         writer.WriteBoolean(sequenceHeader.EnableFilterIntra);
         writer.WriteBoolean(sequenceHeader.EnableIntraEdgeFilter);
 
@@ -223,7 +223,7 @@ internal class ObuWriter
         int superBlockColumnCount;
         int superBlockRowCount;
         int superBlockShift;
-        if (sequenceHeader.Use128x128SuperBlock)
+        if (sequenceHeader.Use128x128Superblock)
         {
             superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 31) >> 5;
             superBlockRowCount = (frameInfo.ModeInfoRowCount + 31) >> 5;

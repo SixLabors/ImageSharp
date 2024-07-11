@@ -21,7 +21,7 @@ public sealed class JpegEncoder : ImageEncoder
     /// <summary>
     /// Backing field for <see cref="RestartInterval"/>
     /// </summary>
-    private int restartInterval = 0;
+    private int restartInterval;
 
     /// <summary>
     /// Gets the quality, that will be used to encode the image. Quality

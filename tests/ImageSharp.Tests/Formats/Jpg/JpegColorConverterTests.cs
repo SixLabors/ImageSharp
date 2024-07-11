@@ -3,11 +3,10 @@
 
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
+using SixLabors.ImageSharp.Tests.ColorProfiles;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit.Abstractions;
 
@@ -24,9 +23,9 @@ public class JpegColorConverterTests
 
     private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2;
 
-    private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new(epsilon: Precision);
+    private static readonly ApproximateColorProfileComparer ColorSpaceComparer = new(epsilon: Precision);
 
-    private static readonly ColorSpaceConverter ColorSpaceConverter = new();
+    private static readonly ColorProfileConverter ColorSpaceConverter = new();
 
     public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
@@ -38,7 +37,7 @@ public class JpegColorConverterTests
     [Fact]
     public void GetConverterThrowsExceptionOnInvalidColorSpace()
     {
-        JpegColorSpace invalidColorSpace = (JpegColorSpace)(-1);
+        const JpegColorSpace invalidColorSpace = (JpegColorSpace)(-1);
         Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(invalidColorSpace, 8));
     }
 
@@ -46,7 +45,7 @@ public class JpegColorConverterTests
     public void GetConverterThrowsExceptionOnInvalidPrecision()
     {
         // Valid precisions: 8 & 12 bit
-        int invalidPrecision = 9;
+        const int invalidPrecision = 9;
         Assert.Throws<InvalidImageContentException>(() => JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, invalidPrecision));
     }
 
@@ -428,7 +427,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYCbCrArm(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.YCbCrArm(8),
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.YCbCrArm(8),
             3,
             seed,
             new JpegColorConverterBase.YCbCrScalar(8));
@@ -436,7 +436,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToYCbCrArm(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.YCbCrArm(8),
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.YCbCrArm(8),
             3,
             seed,
             new JpegColorConverterBase.YCbCrScalar(8),
@@ -502,7 +503,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromGrayscaleArm(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleArm(8),
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.GrayscaleArm(8),
             1,
             seed,
             new JpegColorConverterBase.GrayscaleScalar(8));
@@ -510,7 +512,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToGrayscaleArm(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.GrayscaleArm(8),
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.GrayscaleArm(8),
             1,
             seed,
             new JpegColorConverterBase.GrayscaleScalar(8),
@@ -556,7 +559,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromYccKArm64(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.YccKArm64(8),
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.YccKArm64(8),
             4,
             seed,
             new JpegColorConverterBase.YccKScalar(8));
@@ -564,7 +568,8 @@ public class JpegColorConverterTests
     [Theory]
     [MemberData(nameof(Seeds))]
     public void FromRgbToYccKArm64(int seed) =>
-        this.TestConversionFromRgb(new JpegColorConverterBase.YccKArm64(8),
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.YccKArm64(8),
             4,
             seed,
             new JpegColorConverterBase.YccKScalar(8),
@@ -617,9 +622,9 @@ public class JpegColorConverterTests
         int componentCount,
         int seed)
     {
-        var rnd = new Random(seed);
+        Random rnd = new(seed);
 
-        var buffers = new Buffer2D<float>[componentCount];
+        Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
         for (int i = 0; i < componentCount; i++)
         {
             float[] values = new float[length];
@@ -630,8 +635,8 @@ public class JpegColorConverterTests
             }
 
             // no need to dispose when buffer is not array owner
-            var memory = new Memory<float>(values);
-            var source = MemoryGroup<float>.Wrap(memory);
+            Memory<float> memory = new(values);
+            MemoryGroup<float> source = MemoryGroup<float>.Wrap(memory);
             buffers[i] = new Buffer2D<float>(source, values.Length, 1);
         }
 
@@ -786,9 +791,9 @@ public class JpegColorConverterTests
         float y = values.Component0[i];
         float cb = values.Component1[i];
         float cr = values.Component2[i];
-        Rgb expected = ColorSpaceConverter.ToRgb(new YCbCr(y, cb, cr));
+        Rgb expected = ColorSpaceConverter.Convert<YCbCr, Rgb>(new YCbCr(y, cb, cr));
 
-        Rgb actual = new(result.Component0[i], result.Component1[i], result.Component2[i]);
+        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -810,9 +815,9 @@ public class JpegColorConverterTests
         r /= MaxColorChannelValue;
         g /= MaxColorChannelValue;
         b /= MaxColorChannelValue;
-        var expected = new Rgb(r, g, b);
+        Rgb expected = Rgb.Clamp(new(r, g, b));
 
-        var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -823,9 +828,9 @@ public class JpegColorConverterTests
         float r = values.Component0[i] / MaxColorChannelValue;
         float g = values.Component1[i] / MaxColorChannelValue;
         float b = values.Component2[i] / MaxColorChannelValue;
-        var expected = new Rgb(r, g, b);
+        Rgb expected = Rgb.Clamp(new(r, g, b));
 
-        var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -834,9 +839,9 @@ public class JpegColorConverterTests
     private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
     {
         float y = values.Component0[i] / MaxColorChannelValue;
-        var expected = new Rgb(y, y, y);
+        Rgb expected = Rgb.Clamp(new(y, y, y));
 
-        var actual = new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]);
+        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component0[i], result.Component0[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -852,9 +857,9 @@ public class JpegColorConverterTests
         float r = c * k / MaxColorChannelValue;
         float g = m * k / MaxColorChannelValue;
         float b = y * k / MaxColorChannelValue;
-        var expected = new Rgb(r, g, b);
+        Rgb expected = Rgb.Clamp(new(r, g, b));
 
-        var actual = new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]);
+        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");

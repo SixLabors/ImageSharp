@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
@@ -54,13 +55,13 @@ public partial struct Rgb24 : IPixel<Rgb24>
     }
 
     /// <summary>
-    /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+    /// Allows the implicit conversion of an instance of <see cref="Rgb"/> to a
     /// <see cref="Rgb24"/>.
     /// </summary>
-    /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+    /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgb24"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgb24(ColorSpaces.Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1f));
+    public static implicit operator Rgb24(Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1f));
 
     /// <summary>
     /// Compares two <see cref="Rgb24"/> objects for equality.

@@ -100,19 +100,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
             this.skipMetadata = options.IgnoreMetadata;
-            this.DecodingMode = options.DecodingMode;
             this.configuration = configuration ?? Configuration.Default;
-            this.maxFrames = options.MaxFrames;
+            this.maxFrames = options.DecodingMode == FrameDecodingMode.All ? options.MaxFrames : 1;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
 
         /// <inheritdoc />
         public Configuration Configuration => this.configuration;
-
-        /// <summary>
-        /// Gets the decoding mode for multi-frame images.
-        /// </summary>
-        public FrameDecodingMode DecodingMode { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.

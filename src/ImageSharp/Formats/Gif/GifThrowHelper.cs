@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -24,5 +25,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// if no inner exception is specified.</param>
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException) => throw new InvalidImageContentException(errorMessage, innerException);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNoHeader() => throw new InvalidImageContentException("Gif image does not contain a Logical Screen Descriptor.");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowNoData() => throw new InvalidImageContentException("Unable to read Gif image data");
     }
 }

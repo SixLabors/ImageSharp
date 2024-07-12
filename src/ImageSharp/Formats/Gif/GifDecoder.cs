@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
+        /// <summary>
+        /// Gets or sets the maximum number of gif frames.
+        /// </summary>
+        public uint MaxFrames { get; set; } = uint.MaxValue;
+
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>

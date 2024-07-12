@@ -306,5 +306,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             image.DebugSave(provider);
             image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
         }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2743
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.BadMaxLzwBits, PixelTypes.Rgba32)]
+        public void IssueTooLargeLzwBits<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
     }
 }

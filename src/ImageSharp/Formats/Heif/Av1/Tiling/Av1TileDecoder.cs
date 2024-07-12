@@ -115,12 +115,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 Av1SuperblockInfo superblockInfo = this.FrameBuffer.GetSuperblock(superblockPosition);
 
                 // this.ClearBlockDecodedFlags(modeInfoLocation, superBlock4x4Size);
-                Point modeInfoLocation = new(column, row);
+                Point modeInfoPosition = new(column, row);
                 this.FrameBuffer.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
-                this.ReadLoopRestoration(modeInfoLocation, superBlockSize);
-                this.ParsePartition(ref reader, modeInfoLocation, superBlockSize, superblockInfo, tileInfo);
+                this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
+                this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
             }
         }
     }
@@ -291,7 +291,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
         int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
-        Av1BlockModeInfo blockModeInfo = superblockInfo.GetModeInfo(modeInfoLocation);
+        Point superblockLocation = superblockInfo.Position * this.SequenceHeader.SuperblockModeInfoSize;
+        Point locationInSuperblock = new Point(modeInfoLocation.X - superblockLocation.X, modeInfoLocation.Y - superblockLocation.Y);
+        Av1BlockModeInfo blockModeInfo = new(planesCount, blockSize, locationInSuperblock);
         blockModeInfo.PartitionType = partitionType;
         blockModeInfo.FirstTransformLocation[0] = this.firstTransformOffset[0];
         blockModeInfo.FirstTransformLocation[1] = this.firstTransformOffset[1];
@@ -332,6 +334,9 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
 
         this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
+
+        // Update the Frame buffer for this ModeInfo.
+        this.FrameBuffer.UpdateModeInfo(blockModeInfo, superblockInfo);
     }
 
     private void ResetSkipContext(Av1PartitionInfo partitionInfo)
@@ -367,7 +372,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         bool isLossless = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
         int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
-        int chromaTusCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TusCount[(int)Av1PlaneType.Uv];
+        int chromaTusCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv];
         int[] transformInfoIndices = new int[3];
         transformInfoIndices[0] = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
         transformInfoIndices[1] = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
@@ -400,7 +405,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                     }
                     else
                     {
-                        totalTusCount = partitionInfo.ModeInfo.TusCount[Math.Min(1, plane)];
+                        totalTusCount = partitionInfo.ModeInfo.TransformUnitsCount[Math.Min(1, plane)];
                         tusCount = this.tusCount[plane][forceSplitCount];
 
                         DebugGuard.IsFalse(totalTusCount == 0, nameof(totalTusCount), string.Empty);
@@ -1358,8 +1363,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
             }
         }
 
-        partitionInfo.ModeInfo.TusCount[(int)Av1PlaneType.Y] = totalLumaTusCount;
-        partitionInfo.ModeInfo.TusCount[(int)Av1PlaneType.Uv] = totalChromaTusCount;
+        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Y] = totalLumaTusCount;
+        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv] = totalChromaTusCount;
 
         this.firstTransformOffset[(int)Av1PlaneType.Y] += totalLumaTusCount;
         this.firstTransformOffset[(int)Av1PlaneType.Uv] += totalChromaTusCount << 1;

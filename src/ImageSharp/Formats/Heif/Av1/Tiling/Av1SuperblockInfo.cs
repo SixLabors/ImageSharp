@@ -13,11 +13,14 @@ internal class Av1SuperblockInfo
         this.frameBuffer = frameBuffer;
     }
 
+    /// <summary>
+    /// Gets the position of this superblock inside the tile, counted in superblocks.
+    /// </summary>
     public Point Position { get; }
 
     public ref int SuperblockDeltaQ => ref this.frameBuffer.GetDeltaQuantizationIndex(this.Position);
 
-    public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(default);
+    public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));
 
     public Span<int> CoefficientsY => this.frameBuffer.GetCoefficientsY(this.Position);
 

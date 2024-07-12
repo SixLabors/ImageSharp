@@ -1,13 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.Reflection.Metadata.Ecma335;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
-internal class Av1FrameBuffer
+internal partial class Av1FrameBuffer
 {
     // Number of Coefficients in a single ModeInfo 4x4 block of pixels (1 length + 4 x 4).
     public const int CoefficientCountPerModeInfo = 1 + 16;
@@ -22,6 +23,7 @@ internal class Av1FrameBuffer
     private readonly int subsamplingFactor;
     private readonly Av1SuperblockInfo[] superblockInfos;
     private readonly Av1BlockModeInfo[] modeInfos;
+    private readonly Av1FrameModeInfoMap modeInfoMap;
     private readonly Av1TransformInfo[] transformInfosY;
     private readonly Av1TransformInfo[] transformInfosUv;
     private readonly int[] deltaQ;
@@ -46,30 +48,18 @@ internal class Av1FrameBuffer
         // Allocate the arrays.
         this.superblockInfos = new Av1SuperblockInfo[superblockCount];
         this.modeInfos = new Av1BlockModeInfo[superblockCount * this.modeInfoCountPerSuperblock];
+        this.modeInfoMap = new Av1FrameModeInfoMap(new Size(this.modeInfoCountPerSuperblock * this.superblockColumnCount, this.modeInfoCountPerSuperblock * this.superblockRowCount), superblockSizeLog2);
         this.transformInfosY = new Av1TransformInfo[superblockCount * this.modeInfoCountPerSuperblock];
         this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.modeInfoCountPerSuperblock];
 
         // Initialize the arrays.
         int i = 0;
-        int j = 0;
-        int k = 0;
         for (int y = 0; y < this.superblockRowCount; y++)
         {
             for (int x = 0; x < this.superblockColumnCount; x++)
             {
                 Point point = new(x, y);
                 this.superblockInfos[i] = new(this, point);
-                for (int u = 0; u < this.modeInfoSizePerSuperblock; u++)
-                {
-                    for (int v = 0; v < this.modeInfoSizePerSuperblock; v++)
-                    {
-                        this.modeInfos[k] = new Av1BlockModeInfo(numPlanes, Av1BlockSize.Block4x4, new Point(u, v));
-                        k++;
-                    }
-
-                    j++;
-                }
-
                 i++;
             }
         }
@@ -110,10 +100,9 @@ internal class Av1FrameBuffer
 
     public Av1BlockModeInfo GetModeInfo(Point superblockIndex, Point modeInfoIndex)
     {
-        Span<Av1BlockModeInfo> span = this.modeInfos;
-        int superblock = (superblockIndex.Y * this.superblockColumnCount) + superblockIndex.X;
-        int modeInfo = (modeInfoIndex.Y * this.modeInfoSizePerSuperblock) + modeInfoIndex.X;
-        return span[(superblock * this.modeInfoCountPerSuperblock) + modeInfo];
+        Point location = this.GetModeInfoPosition(superblockIndex, modeInfoIndex);
+        int index = this.modeInfoMap[location];
+        return this.modeInfos[index];
     }
 
     public ref Av1TransformInfo GetTransformY(int index)
@@ -216,4 +205,17 @@ internal class Av1FrameBuffer
             1 or 2 => this.GetTransformUv(transformInfoIndex),
             _ => null,
         };
+
+    public void UpdateModeInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo)
+    {
+        this.modeInfos[this.modeInfoMap.NextIndex] = modeInfo;
+        this.modeInfoMap.Update(this.GetModeInfoPosition(superblockInfo.Position, modeInfo.PositionInSuperblock), modeInfo.BlockSize);
+    }
+
+    private Point GetModeInfoPosition(Point superblockPosition, Point positionInSuperblock)
+    {
+        int x = (superblockPosition.X * this.modeInfoCountPerSuperblock) + positionInSuperblock.X;
+        int y = (superblockPosition.Y * this.modeInfoCountPerSuperblock) + positionInSuperblock.Y;
+        return new Point(x, y);
+    }
 }

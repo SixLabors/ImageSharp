@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 quality = (int)Math.Round(5000.0 / sumPercent);
             }
 
-        return Numerics.Clamp(quality, MinQualityFactor, MaxQualityFactor);
+            return Numerics.Clamp(quality, MinQualityFactor, MaxQualityFactor);
         }
 
         /// <summary>

@@ -677,8 +677,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         for (int c = endSi; c >= startSi; --c)
         {
             int pos = scan[c];
-            int coeff_ctx = GetLowerLevelsContext2d(levels, pos, bwl, transformSize);
-            int level = reader.ReadCoefficientsBase(pos, transformSizeContext, planeType);
+            int coefficientContext = GetLowerLevelsContext2d(levels, pos, bwl, transformSize);
+            int level = reader.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = GetBaseRangeContext2d(levels, pos, bwl);

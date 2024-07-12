@@ -1565,7 +1565,11 @@ internal class ObuReader
         bool usesChromaLoopRestoration = false;
         for (int i = 0; i < planesCount; i++)
         {
-            frameInfo.LoopRestorationParameters[i].Type = (ObuRestorationType)reader.ReadLiteral(2);
+            frameInfo.LoopRestorationParameters[i] = new ObuLoopRestorationParameters
+            {
+                Type = (ObuRestorationType)reader.ReadLiteral(2)
+            };
+
             if (frameInfo.LoopRestorationParameters[i].Type != ObuRestorationType.None)
             {
                 usesLoopRestoration = true;

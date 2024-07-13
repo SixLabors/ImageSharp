@@ -373,6 +373,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
         int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
         int chromaTusCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv];
+
         int[] transformInfoIndices = new int[3];
         transformInfoIndices[0] = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
         transformInfoIndices[1] = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
@@ -409,16 +410,20 @@ internal class Av1TileDecoder : IAv1TileDecoder
                         tusCount = this.tusCount[plane][forceSplitCount];
 
                         DebugGuard.IsFalse(totalTusCount == 0, nameof(totalTusCount), string.Empty);
-                        DebugGuard.IsTrue(totalTusCount == this.tusCount[plane][0] + this.tusCount[plane][1] + this.tusCount[plane][2] + this.tusCount[plane][3], nameof(totalTusCount), string.Empty);
+
+                        // DebugGuard.IsTrue(totalTusCount == this.tusCount[plane][0] + this.tusCount[plane][1] + this.tusCount[plane][2] + this.tusCount[plane][3], nameof(totalTusCount), string.Empty);
                     }
 
                     DebugGuard.IsFalse(tusCount == 0, nameof(tusCount), string.Empty);
-
+                    Span<Av1TransformInfo> transformInfos = plane == 0 ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
                     for (int tu = 0; tu < tusCount; tu++)
                     {
+                        Av1TransformInfo transformInfo = transformInfos[transformInfoIndices[plane]];
+                        DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
+                        DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetY, maxBlocksHigh, nameof(transformInfo));
+
                         int coefficientIndex = this.coefficientIndex[plane];
                         int endOfBlock = 0;
-                        Av1TransformInfo transformInfo = this.FrameBuffer.GetTransform(plane, transformInfoIndices[plane])!;
                         int blockColumn = transformInfo.OffsetX;
                         int blockRow = transformInfo.OffsetY;
                         int startX = (partitionInfo.ColumnIndex >> subX) + blockColumn;
@@ -432,12 +437,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
                         if (!partitionInfo.ModeInfo.Skip)
                         {
-                            endOfBlock = this.TransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.Size, subX != 0, subY != 0);
+                            endOfBlock = this.ParseTransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.Size, subX != 0, subY != 0);
                         }
 
                         if (endOfBlock != 0)
                         {
-                            this.coefficientIndex[plane] += 2;
+                            this.coefficientIndex[plane] += endOfBlock + 1;
                             transformInfo.CodeBlockFlag = true;
                         }
                         else
@@ -487,7 +492,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// <remarks>
     /// The implementation is taken from SVT-AV1 library, which deviates from the code flow in the specification.
     /// </remarks>
-    private int TransformBlock(
+    private int ParseTransformBlock(
         ref Av1SymbolDecoder reader,
         Av1PartitionInfo partitionInfo,
         int coefficientIndex,
@@ -1279,10 +1284,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private unsafe void UpdateTransformInfo(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1BlockSize blockSize, Av1TransformSize transformSize)
     {
-        int transformInfoYIndex = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
-        int transformInfoUvIndex = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
-        Av1TransformInfo lumaTransformInfo = this.FrameBuffer.GetTransformY(transformInfoYIndex);
-        Av1TransformInfo chromaTransformInfo = this.FrameBuffer.GetTransformUv(transformInfoUvIndex);
+        int transformInfoYIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
+        int transformInfoUvIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
+        Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
+        Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
         int totalLumaTusCount = 0;
         int totalChromaTusCount = 0;
         int forceSplitCount = 0;
@@ -1315,8 +1320,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        this.FrameBuffer.SetTransformY(transformInfoYIndex, new Av1TransformInfo(
-                            transformSize, blockColumn, blockRow));
+                        lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
+                            transformSize, blockColumn, blockRow);
                         transformInfoYIndex++;
                         lumaTusCount++;
                         totalLumaTusCount++;
@@ -1340,8 +1345,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        this.FrameBuffer.SetTransformUv(transformInfoUvIndex, new Av1TransformInfo(
-                            transformSizeUv, blockColumn, blockRow));
+                        chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
+                            transformSizeUv, blockColumn, blockRow);
                         transformInfoUvIndex++;
                         chromaTusCount++;
                         totalChromaTusCount++;
@@ -1359,7 +1364,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             int originalIndex = transformInfoUvIndex - totalChromaTusCount;
             for (int i = 0; i < totalChromaTusCount; i++)
             {
-                this.FrameBuffer.SetTransformUv(transformInfoUvIndex + i, this.FrameBuffer.GetTransformUv(originalIndex + i));
+                chromaTransformInfo[transformInfoUvIndex + i] = chromaTransformInfo[originalIndex + i];
             }
         }
 

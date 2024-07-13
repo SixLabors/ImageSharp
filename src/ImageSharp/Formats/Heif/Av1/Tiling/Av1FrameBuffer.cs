@@ -105,35 +105,20 @@ internal partial class Av1FrameBuffer
         return this.modeInfos[index];
     }
 
-    public ref Av1TransformInfo GetTransformY(int index)
+    public Span<Av1TransformInfo> GetSuperblockTransformY(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosY;
-        return ref span[index];
+        int offset = ((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock;
+        int length = this.modeInfoCountPerSuperblock;
+        return span.Slice(offset, length);
     }
 
-    public void SetTransformY(int index, Av1TransformInfo transformInfo)
-    {
-        Span<Av1TransformInfo> span = this.transformInfosY;
-        span[index] = transformInfo;
-    }
-
-    public ref Av1TransformInfo GetTransformY(Point index)
-    {
-        Span<Av1TransformInfo> span = this.transformInfosY;
-        int i = (index.Y * this.superblockColumnCount) + index.X;
-        return ref span[i * this.modeInfoCountPerSuperblock];
-    }
-
-    public ref Av1TransformInfo GetTransformUv(int index)
+    public Span<Av1TransformInfo> GetSuperblockTransformUv(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosUv;
-        return ref span[index];
-    }
-
-    public void SetTransformUv(int index, Av1TransformInfo transformInfo)
-    {
-        Span<Av1TransformInfo> span = this.transformInfosUv;
-        span[index] = transformInfo;
+        int offset = (((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock) << 1;
+        int length = this.modeInfoCountPerSuperblock << 1;
+        return span.Slice(offset, length);
     }
 
     public Span<int> GetCoefficients(int plane) =>
@@ -197,14 +182,6 @@ internal partial class Av1FrameBuffer
     }
 
     public void ClearDeltaLoopFilter() => Array.Fill(this.deltaLoopFilter, 0);
-
-    public Av1TransformInfo? GetTransform(int plane, int transformInfoIndex) =>
-        plane switch
-        {
-            0 => this.GetTransformY(transformInfoIndex),
-            1 or 2 => this.GetTransformUv(transformInfoIndex),
-            _ => null,
-        };
 
     public void UpdateModeInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo)
     {

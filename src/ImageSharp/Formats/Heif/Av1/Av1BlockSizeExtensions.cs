@@ -104,7 +104,7 @@ internal static class Av1BlockSizeExtensions
     {
         Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX, subY);
         Av1TransformSize uvTransformSize = Av1TransformSize.Invalid;
-        if (planeBlockSize < Av1BlockSize.SizeS)
+        if (planeBlockSize < Av1BlockSize.SizesAll)
         {
             uvTransformSize = planeBlockSize.GetMaximumTransformSize();
         }

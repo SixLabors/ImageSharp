@@ -465,7 +465,6 @@ internal class ObuReader
             colorConfig.IsMonochrome = reader.ReadBoolean();
         }
 
-        colorConfig.PlaneCount = colorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
         colorConfig.IsColorDescriptionPresent = reader.ReadBoolean();
         colorConfig.ColorPrimaries = ObuColorPrimaries.Unspecified;
         colorConfig.TransferCharacteristics = ObuTransferCharacteristics.Unspecified;

@@ -112,6 +112,7 @@ internal class ObuWriter
             writer.WriteBoolean(colorConfig.IsMonochrome);
         }
 
+        colorConfig.PlaneCount = colorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
         writer.WriteBoolean(false); // colorConfig.IsColorDescriptionPresent
         if (colorConfig.IsMonochrome)
         {

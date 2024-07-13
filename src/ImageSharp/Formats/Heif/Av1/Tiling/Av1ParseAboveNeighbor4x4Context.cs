@@ -50,7 +50,7 @@ internal class Av1ParseAboveNeighbor4x4Context
 
     public void Clear(ObuSequenceHeader sequenceHeader, int modeInfoColumnStart, int modeInfoColumnEnd)
     {
-        int planeCount = sequenceHeader.ColorConfig.ChannelCount;
+        int planeCount = sequenceHeader.ColorConfig.PlaneCount;
         int width = modeInfoColumnEnd - modeInfoColumnStart;
         Array.Fill(this.AboveTransformWidth, Av1TransformSize.Size64x64.GetWidth(), 0, width);
         Array.Fill(this.AbovePartitionWidth, 0, 0, width);

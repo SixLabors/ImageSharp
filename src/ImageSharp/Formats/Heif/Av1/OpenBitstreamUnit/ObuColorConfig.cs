@@ -7,8 +7,15 @@ internal class ObuColorConfig
 {
     public bool IsColorDescriptionPresent { get; set; }
 
-    public int ChannelCount { get; set; }
+    /// <summary>
+    /// Gets or sets the number of color channels in this image.
+    /// </summary>
+    public int PlaneCount { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the image has a single greyscale plane, will have
+    /// <see cref="Av1Constants.MaxPlanes"/> color planes otherwise.
+    /// </summary>
     public bool IsMonochrome { get; set; }
 
     public ObuColorPrimaries ColorPrimaries { get; set; }

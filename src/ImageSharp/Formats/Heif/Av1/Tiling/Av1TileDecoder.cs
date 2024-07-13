@@ -52,7 +52,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
         // reallocate_parse_context_memory
         // Hard code number of threads to 1 for now.
-        int planesCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
+        int planesCount = sequenceHeader.ColorConfig.PlaneCount;
         int superblockColumnCount =
             Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
         int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.SuperblockModeInfoSize;
@@ -84,7 +84,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int modeInfoRowEnd = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1];
         this.aboveNeighborContext.Clear(this.SequenceHeader, modeInfoColumnStart, modeInfoColumnEnd);
         this.ClearLoopFilterDelta();
-        int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
 
         // Default initialization of Wiener and SGR Filter.
         this.referenceSgrXqd = new int[planesCount][];
@@ -138,7 +138,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ReadLoopRestoration(Point modeInfoLocation, Av1BlockSize superBlockSize)
     {
-        int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int plane = 0; plane < planesCount; plane++)
         {
             if (this.FrameInfo.LoopRestorationParameters[plane].Type != ObuRestorationType.None)
@@ -290,7 +290,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int columnIndex = modeInfoLocation.X;
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
-        int planesCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         Point superblockLocation = superblockInfo.Position * this.SequenceHeader.SuperblockModeInfoSize;
         Point locationInSuperblock = new Point(modeInfoLocation.X - superblockLocation.X, modeInfoLocation.Y - superblockLocation.Y);
         Av1BlockModeInfo blockModeInfo = new(planesCount, blockSize, locationInSuperblock);
@@ -341,7 +341,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ResetSkipContext(Av1PartitionInfo partitionInfo)
     {
-        int planesCount = this.SequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
+        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int i = 0; i < planesCount; i++)
         {
             bool subX = i > 0 && this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -368,7 +368,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int modeUnitBlocksHigh = maxUnitSize.GetHeight() >> 2;
         modeUnitBlocksWide = Math.Min(maxBlocksWide, modeUnitBlocksWide);
         modeUnitBlocksHigh = Math.Min(maxBlocksHigh, modeUnitBlocksHigh);
-        int planeCount = this.SequenceHeader.ColorConfig.ChannelCount;
+        int planeCount = this.SequenceHeader.ColorConfig.PlaneCount;
         bool isLossless = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
         int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
@@ -1734,7 +1734,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
             int frameLoopFilterCount = 1;
             if (this.FrameInfo.DeltaLoopFilterParameters.IsMulti)
             {
-                frameLoopFilterCount = this.SequenceHeader.ColorConfig.ChannelCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
+                frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
 
             Span<int> currentDeltaLoopFilter = partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter;

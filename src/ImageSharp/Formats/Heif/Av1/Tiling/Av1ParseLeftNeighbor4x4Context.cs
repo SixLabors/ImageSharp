@@ -50,7 +50,7 @@ internal class Av1ParseLeftNeighbor4x4Context
     public void Clear(ObuSequenceHeader sequenceHeader)
     {
         int blockCount = sequenceHeader.SuperblockModeInfoSize;
-        int planeCount = sequenceHeader.ColorConfig.ChannelCount;
+        int planeCount = sequenceHeader.ColorConfig.PlaneCount;
         int neighbor4x4Count = sequenceHeader.SuperblockModeInfoSize;
         Array.Fill(this.LeftTransformHeight, Av1TransformSize.Size64x64.GetHeight(), 0, blockCount);
         Array.Fill(this.LeftPartitionHeight, 0, 0, blockCount);

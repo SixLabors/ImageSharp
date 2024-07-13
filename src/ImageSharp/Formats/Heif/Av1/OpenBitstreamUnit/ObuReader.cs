@@ -465,7 +465,7 @@ internal class ObuReader
             colorConfig.IsMonochrome = reader.ReadBoolean();
         }
 
-        colorConfig.ChannelCount = colorConfig.IsMonochrome ? 1 : 3;
+        colorConfig.PlaneCount = colorConfig.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
         colorConfig.IsColorDescriptionPresent = reader.ReadBoolean();
         colorConfig.ColorPrimaries = ObuColorPrimaries.Unspecified;
         colorConfig.TransferCharacteristics = ObuTransferCharacteristics.Unspecified;
@@ -1191,7 +1191,7 @@ internal class ObuReader
     /// </summary>
     private void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
-        int planeCount = this.SequenceHeader!.ColorConfig.IsMonochrome ? 1 : 3;
+        int planeCount = this.SequenceHeader!.ColorConfig.PlaneCount;
         int startBitPosition = reader.BitPosition;
         this.ReadUncompressedFrameHeader(ref reader, header, planeCount);
         if (trailingBit)

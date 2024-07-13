@@ -32,7 +32,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private readonly int[][] segmentIds = [];
     private int deltaLoopFilterResolution = -1;
     private readonly bool readDeltas;
-    private readonly int[][] tusCount;
+    private readonly int[][] transformUnitCount;
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
 
@@ -59,10 +59,10 @@ internal class Av1TileDecoder : IAv1TileDecoder
         modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - 2);
         this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(planesCount, modeInfoWideColumnCount);
         this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.SuperblockModeInfoSize);
-        this.tusCount = new int[Av1Constants.MaxPlanes][];
-        this.tusCount[0] = new int[this.FrameBuffer.ModeInfoCount];
-        this.tusCount[1] = new int[this.FrameBuffer.ModeInfoCount];
-        this.tusCount[2] = new int[this.FrameBuffer.ModeInfoCount];
+        this.transformUnitCount = new int[Av1Constants.MaxPlanes][];
+        this.transformUnitCount[0] = new int[this.FrameBuffer.ModeInfoCount];
+        this.transformUnitCount[1] = new int[this.FrameBuffer.ModeInfoCount];
+        this.transformUnitCount[2] = new int[this.FrameBuffer.ModeInfoCount];
         this.coefficientIndex = new int[Av1Constants.MaxPlanes];
     }
 
@@ -372,12 +372,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
         bool isLossless = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
         int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
-        int chromaTusCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv];
+        int chromaTransformUnitCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv];
 
         int[] transformInfoIndices = new int[3];
         transformInfoIndices[0] = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
         transformInfoIndices[1] = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
-        transformInfoIndices[2] = transformInfoIndices[1] + chromaTusCount;
+        transformInfoIndices[2] = transformInfoIndices[1] + chromaTransformUnitCount;
         int forceSplitCount = 0;
 
         for (int row = 0; row < maxBlocksHigh; row += modeUnitBlocksHigh)
@@ -386,37 +386,41 @@ internal class Av1TileDecoder : IAv1TileDecoder
             {
                 for (int plane = 0; plane < planeCount; ++plane)
                 {
-                    int totalTusCount;
-                    int tusCount;
-                    int subX = plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
-                    int subY = plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
+                    int totalTransformUnitCount;
+                    int transformUnitCount;
+                    int subX = (plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingX) ? 1 : 0;
+                    int subY = (plane > 0 && this.SequenceHeader.ColorConfig.SubSamplingY) ? 1 : 0;
 
                     if (plane != 0 && !partitionInfo.IsChroma)
                     {
                         continue;
                     }
 
+                    Span<Av1TransformInfo> transformInfos = plane == 0 ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
                     if (isLosslessBlock)
                     {
                         // TODO: Implement.
                         int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
                         int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
-                        totalTusCount = 0;
-                        tusCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
+                        DebugGuard.IsTrue(transformInfos[transformInfoIndices[plane]].Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
+                        transformUnitCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
                     }
                     else
                     {
-                        totalTusCount = partitionInfo.ModeInfo.TransformUnitsCount[Math.Min(1, plane)];
-                        tusCount = this.tusCount[plane][forceSplitCount];
+                        totalTransformUnitCount = partitionInfo.ModeInfo.TransformUnitsCount[Math.Min(1, plane)];
+                        transformUnitCount = this.transformUnitCount[plane][forceSplitCount];
 
-                        DebugGuard.IsFalse(totalTusCount == 0, nameof(totalTusCount), string.Empty);
-
-                        // DebugGuard.IsTrue(totalTusCount == this.tusCount[plane][0] + this.tusCount[plane][1] + this.tusCount[plane][2] + this.tusCount[plane][3], nameof(totalTusCount), string.Empty);
+                        DebugGuard.IsFalse(totalTransformUnitCount == 0, nameof(totalTransformUnitCount), string.Empty);
+                        DebugGuard.IsTrue(
+                            totalTransformUnitCount ==
+                                this.transformUnitCount[plane][0] + this.transformUnitCount[plane][1] +
+                                this.transformUnitCount[plane][2] + this.transformUnitCount[plane][3],
+                            nameof(totalTransformUnitCount),
+                            string.Empty);
                     }
 
-                    DebugGuard.IsFalse(tusCount == 0, nameof(tusCount), string.Empty);
-                    Span<Av1TransformInfo> transformInfos = plane == 0 ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
-                    for (int tu = 0; tu < tusCount; tu++)
+                    DebugGuard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), string.Empty);
+                    for (int tu = 0; tu < transformUnitCount; tu++)
                     {
                         Av1TransformInfo transformInfo = transformInfos[transformInfoIndices[plane]];
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
@@ -1288,8 +1292,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int transformInfoUvIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
         Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
         Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
-        int totalLumaTusCount = 0;
-        int totalChromaTusCount = 0;
+        int totalLumaTransformUnitCount = 0;
+        int totalChromaTransformUnitCount = 0;
         int forceSplitCount = 0;
         bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
         bool subY = this.SequenceHeader.ColorConfig.SubSamplingY;
@@ -1307,8 +1311,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         {
             for (int idx = 0; idx < maxBlockWide; idx += width, forceSplitCount++)
             {
-                int lumaTusCount = 0;
-                int chromaTusCount = 0;
+                int lumaTransformUnitCount = 0;
+                int chromaTransformUnitCount = 0;
 
                 // Update Luminance Transform Info.
                 int stepColumn = transformSize.Get4x4WideCount();
@@ -1323,12 +1327,12 @@ internal class Av1TileDecoder : IAv1TileDecoder
                         lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
                             transformSize, blockColumn, blockRow);
                         transformInfoYIndex++;
-                        lumaTusCount++;
-                        totalLumaTusCount++;
+                        lumaTransformUnitCount++;
+                        totalLumaTransformUnitCount++;
                     }
                 }
 
-                this.tusCount[(int)Av1Plane.Y][forceSplitCount] = lumaTusCount;
+                this.transformUnitCount[(int)Av1Plane.Y][forceSplitCount] = lumaTransformUnitCount;
 
                 if (this.SequenceHeader.ColorConfig.IsMonochrome || !partitionInfo.IsChroma)
                 {
@@ -1348,31 +1352,31 @@ internal class Av1TileDecoder : IAv1TileDecoder
                         chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
                             transformSizeUv, blockColumn, blockRow);
                         transformInfoUvIndex++;
-                        chromaTusCount++;
-                        totalChromaTusCount++;
+                        chromaTransformUnitCount++;
+                        totalChromaTransformUnitCount++;
                     }
                 }
 
-                this.tusCount[(int)Av1Plane.U][forceSplitCount] = lumaTusCount;
-                this.tusCount[(int)Av1Plane.V][forceSplitCount] = lumaTusCount;
+                this.transformUnitCount[(int)Av1Plane.U][forceSplitCount] = lumaTransformUnitCount;
+                this.transformUnitCount[(int)Av1Plane.V][forceSplitCount] = lumaTransformUnitCount;
             }
         }
 
         // Cr Transform Info Update from Cb.
-        if (totalChromaTusCount != 0)
+        if (totalChromaTransformUnitCount != 0)
         {
-            int originalIndex = transformInfoUvIndex - totalChromaTusCount;
-            for (int i = 0; i < totalChromaTusCount; i++)
+            int originalIndex = transformInfoUvIndex - totalChromaTransformUnitCount;
+            for (int i = 0; i < totalChromaTransformUnitCount; i++)
             {
                 chromaTransformInfo[transformInfoUvIndex + i] = chromaTransformInfo[originalIndex + i];
             }
         }
 
-        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Y] = totalLumaTusCount;
-        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv] = totalChromaTusCount;
+        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Y] = totalLumaTransformUnitCount;
+        partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv] = totalChromaTransformUnitCount;
 
-        this.firstTransformOffset[(int)Av1PlaneType.Y] += totalLumaTusCount;
-        this.firstTransformOffset[(int)Av1PlaneType.Uv] += totalChromaTusCount << 1;
+        this.firstTransformOffset[(int)Av1PlaneType.Y] += totalLumaTransformUnitCount;
+        this.firstTransformOffset[(int)Av1PlaneType.Uv] += totalChromaTransformUnitCount << 1;
     }
 
     /// <summary>

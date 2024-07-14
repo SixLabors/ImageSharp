@@ -894,22 +894,49 @@ internal class ObuReader
             if (frameInfo.ShowExistingFrame)
             {
                 frameInfo.FrameToShowMapIdx = reader.ReadLiteral(3);
+
+                if (sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
+                {
+                    // 5.9.31. Temporal point info syntax.
+                    frameInfo.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
+                }
+
+                if (sequenceHeader.IsFrameIdNumbersPresent)
+                {
+                    frameInfo.DisplayFrameId = reader.ReadLiteral(idLength);
+                }
+
+                // TODO: This is incomplete here, not sure how we can display an already decoded frame here or if this is really relevent for still pictures.
+                throw new NotImplementedException("ShowExistingFrame is not yet implemented");
             }
 
-            if (sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
+            frameInfo.FrameType = (ObuFrameType)reader.ReadLiteral(2);
+            bool frameIsIntra = frameInfo.FrameType is ObuFrameType.IntraOnlyFrame or ObuFrameType.KeyFrame;
+            frameInfo.ShowFrame = reader.ReadBoolean();
+
+            if (frameInfo.ShowFrame && !sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
             {
                 // 5.9.31. Temporal point info syntax.
                 frameInfo.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
             }
 
-            // int refreshFrameFlags = 0;
-            if (sequenceHeader.IsFrameIdNumbersPresent)
+            if (frameInfo.ShowFrame)
             {
-                frameInfo.DisplayFrameId = reader.ReadLiteral(idLength);
+                frameInfo.ShowableFrame = frameInfo.FrameType != ObuFrameType.KeyFrame;
+            }
+            else
+            {
+                frameInfo.ShowableFrame = reader.ReadBoolean();
             }
 
-            // TODO: This is incomplete here, not sure how we can display an already decoded frame here.
-            throw new NotImplementedException("ShowExistingFrame is not yet implemented");
+            if (frameInfo.FrameType == ObuFrameType.SwitchFrame || (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame))
+            {
+                frameInfo.ErrorResilientMode = true;
+            }
+            else
+            {
+                frameInfo.ErrorResilientMode = reader.ReadBoolean();
+            }
         }
 
         if (frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame)
@@ -1079,6 +1106,10 @@ internal class ObuReader
         if (sequenceHeader.IsReducedStillPictureHeader || frameInfo.DisableCdfUpdate)
         {
             frameInfo.DisableFrameEndUpdateCdf = true;
+        }
+        else
+        {
+            frameInfo.DisableFrameEndUpdateCdf = reader.ReadBoolean();
         }
 
         if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)

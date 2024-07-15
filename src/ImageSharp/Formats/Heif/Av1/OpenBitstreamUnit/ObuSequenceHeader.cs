@@ -5,6 +5,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuSequenceHeader
 {
+    private bool use128x128Superblock;
+
     public bool EnableFilterIntra { get; set; }
 
     public bool EnableCdef { get; set; }
@@ -37,13 +39,23 @@ internal class ObuSequenceHeader
 
     public int MaxFrameHeight { get; set; }
 
-    public bool Use128x128Superblock { get; set; }
+    public bool Use128x128Superblock
+    {
+        get => this.use128x128Superblock;
+        set
+        {
+            this.use128x128Superblock = value;
+            this.SuperblockSize = value ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+            this.SuperblockSizeLog2 = value ? 7 : 6;
+            this.SuperblockModeInfoSize = 1 << (this.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
+        }
+    }
 
-    public Av1BlockSize SuperblockSize { get; set; }
+    public Av1BlockSize SuperblockSize { get; private set; }
 
-    public int SuperblockModeInfoSize { get; set; }
+    public int SuperblockModeInfoSize { get; private set; }
 
-    public int SuperblockSizeLog2 { get; set; }
+    public int SuperblockSizeLog2 { get; private set; }
 
     public int FilterIntraLevel { get; set; }
 

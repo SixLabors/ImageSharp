@@ -114,7 +114,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
                 Av1SuperblockInfo superblockInfo = this.FrameBuffer.GetSuperblock(superblockPosition);
 
-                // this.ClearBlockDecodedFlags(modeInfoLocation, superBlock4x4Size);
                 Point modeInfoPosition = new(column, row);
                 this.FrameBuffer.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
@@ -127,14 +126,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     private void ClearLoopFilterDelta()
         => this.FrameBuffer.ClearDeltaLoopFilter();
-
-    /// <summary>
-    /// 5.11.3. Clear block decoded flags function.
-    /// </summary>
-    private static void ClearBlockDecodedFlags(Point modeInfoLocation, int superBlock4x4Size)
-    {
-        // Nothing to do here.
-    }
 
     private void ReadLoopRestoration(Point modeInfoLocation, Av1BlockSize superBlockSize)
     {

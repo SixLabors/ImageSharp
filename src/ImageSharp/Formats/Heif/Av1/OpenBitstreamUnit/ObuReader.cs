@@ -370,9 +370,6 @@ internal class ObuReader
 
         // Video related flags removed
         sequenceHeader.Use128x128Superblock = reader.ReadBoolean();
-        sequenceHeader.SuperblockSize = sequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        sequenceHeader.SuperblockModeInfoSize = sequenceHeader.Use128x128Superblock ? 32 : 16;
-        sequenceHeader.SuperblockSizeLog2 = sequenceHeader.Use128x128Superblock ? 7 : 6;
         sequenceHeader.EnableFilterIntra = reader.ReadBoolean();
         sequenceHeader.EnableIntraEdgeFilter = reader.ReadBoolean();
 
@@ -699,25 +696,15 @@ internal class ObuReader
         ObuTileGroupHeader tileInfo = new();
         int superBlockColumnCount;
         int superBlockRowCount;
-        int superBlockShift;
-        if (sequenceHeader.Use128x128Superblock)
-        {
-            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 31) >> 5;
-            superBlockRowCount = (frameInfo.ModeInfoRowCount + 31) >> 5;
-            superBlockShift = 5;
-        }
-        else
-        {
-            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 15) >> 4;
-            superBlockRowCount = (frameInfo.ModeInfoRowCount + 15) >> 4;
-            superBlockShift = 4;
-        }
+        int superBlockShift = sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
+        superBlockColumnCount = (frameInfo.ModeInfoColumnCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superBlockShift;
+        superBlockRowCount = (frameInfo.ModeInfoRowCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superBlockShift;
 
-        int superBlockSize = superBlockShift + 2;
-        int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
+        int superBlockSizeLog2 = superBlockShift + 2;
+        int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSizeLog2);
 
-        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superBlockSize;
-        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
+        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superBlockSizeLog2;
+        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSizeLog2;
         tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperBlock, superBlockColumnCount);
         tileInfo.MaxLog2TileColumnCount = TileLog2(1, Math.Min(superBlockColumnCount, Av1Constants.MaxTileColumnCount));
         tileInfo.MaxLog2TileRowCount = TileLog2(1, Math.Min(superBlockRowCount, Av1Constants.MaxTileRowCount));

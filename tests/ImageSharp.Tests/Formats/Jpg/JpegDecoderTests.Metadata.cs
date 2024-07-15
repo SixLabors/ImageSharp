@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 using Xunit;
 
@@ -362,6 +363,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ExifProfile exif = image.Metadata.ExifProfile;
                 VerifyEncodedStrings(exif);
             }
+        }
+
+        [Theory(Skip = "2.1 JPEG decoder detects this image as invalid.")]
+        [WithFile(TestImages.Jpeg.Issues.Issue2758, PixelTypes.L8)]
+        public void Issue2758_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            Assert.Equal(59787, image.Width);
+            Assert.Equal(511, image.Height);
+
+            JpegMetadata meta = image.Metadata.GetJpegMetadata();
+
+            // Quality determination should be between 1-100.
+            Assert.Equal(15, meta.LuminanceQuality);
+            Assert.Equal(1, meta.ChrominanceQuality);
+
+            // We want to test the encoder to ensure the determined values can be encoded but not by encoding
+            // the full size image as it would be too slow.
+            // We will crop the image to a smaller size and then encode it.
+            image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+
+            using MemoryStream ms = new();
+            image.Save(ms, new JpegEncoder());
         }
 
         private static void VerifyEncodedStrings(ExifProfile exif)

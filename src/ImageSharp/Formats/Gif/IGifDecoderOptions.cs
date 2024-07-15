@@ -19,5 +19,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the decoding mode for multi-frame images.
         /// </summary>
         FrameDecodingMode DecodingMode { get; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of gif frames.
+        /// </summary>
+        uint MaxFrames { get; set; }
     }
 }

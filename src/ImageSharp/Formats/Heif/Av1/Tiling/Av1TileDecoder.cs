@@ -1357,14 +1357,18 @@ internal class Av1TileDecoder : IAv1TileDecoder
                     }
                 }
 
-                this.transformUnitCount[(int)Av1Plane.U][forceSplitCount] = lumaTransformUnitCount;
-                this.transformUnitCount[(int)Av1Plane.V][forceSplitCount] = lumaTransformUnitCount;
+                this.transformUnitCount[(int)Av1Plane.U][forceSplitCount] = chromaTransformUnitCount;
+                this.transformUnitCount[(int)Av1Plane.V][forceSplitCount] = chromaTransformUnitCount;
             }
         }
 
         // Cr Transform Info Update from Cb.
         if (totalChromaTransformUnitCount != 0)
         {
+            DebugGuard.IsTrue(
+                (transformInfoUvIndex - totalChromaTransformUnitCount) ==
+                partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv],
+                nameof(totalChromaTransformUnitCount));
             int originalIndex = transformInfoUvIndex - totalChromaTransformUnitCount;
             for (int i = 0; i < totalChromaTransformUnitCount; i++)
             {

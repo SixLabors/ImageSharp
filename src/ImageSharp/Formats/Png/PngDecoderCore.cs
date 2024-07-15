@@ -208,7 +208,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -266,7 +266,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 previousFrameControl = currentFrameControl;
                             }
 
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -389,7 +389,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }
@@ -397,7 +397,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }

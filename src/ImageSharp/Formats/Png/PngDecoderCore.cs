@@ -210,18 +210,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.FrameControl:
                             frameCount++;
-                            if (frameCount == this.maxFrames)
-                            {
-                                break;
-                            }
-
                             currentFrame = null;
                             currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
-                                break;
+                                goto EOF;
                             }
 
                             if (image is null)
@@ -275,6 +270,11 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             {
                                 previousFrame = currentFrame;
                                 previousFrameControl = currentFrameControl;
+                            }
+
+                            if (frameCount >= this.maxFrames)
+                            {
+                                goto EOF;
                             }
 
                             break;
@@ -396,7 +396,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }
@@ -405,7 +405,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }

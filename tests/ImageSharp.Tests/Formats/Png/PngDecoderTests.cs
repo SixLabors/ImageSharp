@@ -701,4 +701,14 @@ public partial class PngDecoderTests
         string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
         using Image image = Image.Load(path);
     }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
+    public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
+        Assert.Equal(1, image.Frames.Count);
+    }
 }

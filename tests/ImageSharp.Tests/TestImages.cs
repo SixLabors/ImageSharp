@@ -156,6 +156,9 @@ public static class TestImages
         // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
         public const string Issue2668 = "Png/issues/Issue_2668.png";
 
+        // Issue 2752: https://github.com/SixLabors/ImageSharp/issues/2752
+        public const string Issue2752 = "Png/issues/Issue_2752.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";

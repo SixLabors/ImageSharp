@@ -1477,7 +1477,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         // Use options, then check metadata, if nothing set there then we suggest
         // a sensible default based upon the pixel format.
         this.colorType = encoder.ColorType ?? pngMetadata.ColorType ?? SuggestColorType<TPixel>();
-        if (!encoder.FilterMethod.HasValue)
+        if (encoder.FilterMethod.HasValue)
+        {
+            this.filterMethod = encoder.FilterMethod.Value;
+        }
+        else
         {
             // Specification recommends default filter method None for paletted images and Paeth for others.
             this.filterMethod = this.colorType is PngColorType.Palette ? PngFilterMethod.None : PngFilterMethod.Paeth;

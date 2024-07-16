@@ -69,10 +69,8 @@ internal class Av1ParseLeftNeighbor4x4Context
         int startIndex = (modeInfoLocation.Y - superblockInfo.Position.Y) & Av1PartitionContext.Mask;
         int bh = blockSize.Get4x4HighCount();
         int value = Av1PartitionContext.GetLeftContext(subSize);
-        for (int i = 0; i < bh; i++)
-        {
-            this.LeftPartitionHeight[startIndex + i] = value;
-        }
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftTransformHeight.Length - bh, nameof(startIndex));
+        Array.Fill(this.LeftPartitionHeight, value, startIndex, bh);
     }
 
     public void UpdateTransformation(Point modeInfoLocation, Av1SuperblockInfo superblockInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
@@ -85,7 +83,7 @@ internal class Av1ParseLeftNeighbor4x4Context
             transformHeight = n4h << Av1Constants.ModeInfoSizeLog2;
         }
 
-        DebugGuard.MustBeLessThanOrEqualTo(startIndex + n4h, this.LeftTransformHeight.Length, nameof(startIndex));
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftTransformHeight.Length - n4h, nameof(startIndex));
         Array.Fill(this.LeftTransformHeight, transformHeight, startIndex, n4h);
     }
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal static class Av1Math
@@ -141,4 +142,7 @@ internal static class Av1Math
 
     internal static int Clamp(int value, int low, int high)
         => value < low ? low : (value > high ? high : value);
+
+    internal static int DivideLog2Ceiling(int value, int n)
+        => (value + (1 << n) - 1) >> n;
 }

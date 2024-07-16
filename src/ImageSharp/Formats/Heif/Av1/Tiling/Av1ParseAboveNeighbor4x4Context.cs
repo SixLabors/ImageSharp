@@ -69,10 +69,9 @@ internal class Av1ParseAboveNeighbor4x4Context
         int startIndex = modeInfoLocation.X - tileLoc.ModeInfoColumnStart;
         int bw = blockSize.Get4x4WideCount();
         int value = Av1PartitionContext.GetAboveContext(subSize);
-        for (int i = 0; i < bw; i++)
-        {
-            this.AbovePartitionWidth[startIndex + i] = value;
-        }
+
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - bw, nameof(startIndex));
+        Array.Fill(this.AbovePartitionWidth, value, startIndex, bw);
     }
 
     public void UpdateTransformation(Point modeInfoLocation, Av1TileInfo tileInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
@@ -85,6 +84,7 @@ internal class Av1ParseAboveNeighbor4x4Context
             transformWidth = n4w << Av1Constants.ModeInfoSizeLog2;
         }
 
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - n4w, nameof(startIndex));
         Array.Fill(this.AboveTransformWidth, transformWidth, startIndex, n4w);
     }
 

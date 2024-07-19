@@ -239,9 +239,9 @@ internal class ObuWriter
         int superBlockSize = superBlockShift + 2;
         int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
 
-        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superBlockSize;
-        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
-        tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperBlock, superBlockColumnCount);
+        tileInfo.MaxTileWidthSuperblock = Av1Constants.MaxTileWidth >> superBlockSize;
+        tileInfo.MaxTileHeightSuperblock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
+        tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperblock, superBlockColumnCount);
         tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superBlockColumnCount, Av1Constants.MaxTileColumnCount));
         tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superBlockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superBlockColumnCount * superBlockRowCount));
@@ -276,7 +276,7 @@ internal class ObuWriter
             for (; startSuperBlock < superBlockColumnCount; i++)
             {
                 uint widthInSuperBlocks = (uint)((tileInfo.TileColumnStartModeInfo[i] >> superBlockShift) - startSuperBlock);
-                uint maxWidth = (uint)Math.Min(superBlockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperBlock);
+                uint maxWidth = (uint)Math.Min(superBlockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
                 writer.WriteNonSymmetric(widthInSuperBlocks - 1, maxWidth);
                 startSuperBlock += (int)widthInSuperBlocks;
             }
@@ -290,7 +290,7 @@ internal class ObuWriter
             for (i = 0; startSuperBlock < superBlockRowCount; i++)
             {
                 uint heightInSuperBlocks = (uint)((tileInfo.TileRowStartModeInfo[i] >> superBlockShift) - startSuperBlock);
-                uint maxHeight = (uint)Math.Min(superBlockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperBlock);
+                uint maxHeight = (uint)Math.Min(superBlockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
                 writer.WriteNonSymmetric(heightInSuperBlocks - 1, maxHeight);
                 startSuperBlock += (int)heightInSuperBlocks;
             }

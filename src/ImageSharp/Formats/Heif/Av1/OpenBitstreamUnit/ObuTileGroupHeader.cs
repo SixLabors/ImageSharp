@@ -5,9 +5,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuTileGroupHeader
 {
-    internal int MaxTileWidthSuperBlock { get; set; }
+    internal int MaxTileWidthSuperblock { get; set; }
 
-    internal int MaxTileHeightSuperBlock { get; set; }
+    internal int MaxTileHeightSuperblock { get; set; }
 
     internal int MinLog2TileColumnCount { get; set; }
 

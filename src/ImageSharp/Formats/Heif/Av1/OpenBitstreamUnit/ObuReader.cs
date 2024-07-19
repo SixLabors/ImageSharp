@@ -703,9 +703,9 @@ internal class ObuReader
 
         int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (superblockSizeLog2 << 1);
 
-        tileInfo.MaxTileWidthSuperBlock = Av1Constants.MaxTileWidth >> superblockSizeLog2;
-        tileInfo.MaxTileHeightSuperBlock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superblockSizeLog2;
-        tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperBlock, superblockColumnCount);
+        tileInfo.MaxTileWidthSuperblock = Av1Constants.MaxTileWidth >> superblockSizeLog2;
+        tileInfo.MaxTileHeightSuperblock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superblockSizeLog2;
+        tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperblock, superblockColumnCount);
         tileInfo.MaxLog2TileColumnCount = TileLog2(1, Math.Min(superblockColumnCount, Av1Constants.MaxTileColumnCount));
         tileInfo.MaxLog2TileRowCount = TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
@@ -726,12 +726,12 @@ internal class ObuReader
             }
 
             int tileWidthSuperblock = Av1Math.DivideLog2Ceiling(superblockColumnCount, tileInfo.TileColumnCountLog2);
-            DebugGuard.MustBeLessThanOrEqualTo(tileWidthSuperblock, tileInfo.MaxTileWidthSuperBlock, nameof(tileWidthSuperblock));
+            DebugGuard.MustBeLessThanOrEqualTo(tileWidthSuperblock, tileInfo.MaxTileWidthSuperblock, nameof(tileWidthSuperblock));
             int i = 0;
             tileInfo.TileColumnStartModeInfo = new int[superblockColumnCount + 1];
-            for (int startSuperBlock = 0; startSuperBlock < superblockColumnCount; startSuperBlock += tileWidthSuperblock)
+            for (int startSuperblock = 0; startSuperblock < superblockColumnCount; startSuperblock += tileWidthSuperblock)
             {
-                tileInfo.TileColumnStartModeInfo[i] = startSuperBlock << superblockShift;
+                tileInfo.TileColumnStartModeInfo[i] = startSuperblock << superblockShift;
                 i++;
             }
 
@@ -752,17 +752,13 @@ internal class ObuReader
                 }
             }
 
-            int tileHeightSuperBlock = Av1Math.DivideLog2Ceiling(superblockRowCount, tileInfo.TileRowCountLog2);
-            if (tileHeightSuperBlock > tileInfo.MaxTileHeightSuperBlock)
-            {
-                throw new ImageFormatException("Invalid tile height specified.");
-            }
-
+            int tileHeightSuperblock = Av1Math.DivideLog2Ceiling(superblockRowCount, tileInfo.TileRowCountLog2);
+            DebugGuard.MustBeLessThanOrEqualTo(tileHeightSuperblock, tileInfo.MaxTileHeightSuperblock, nameof(tileHeightSuperblock));
             i = 0;
             tileInfo.TileRowStartModeInfo = new int[superblockRowCount + 1];
-            for (int startSuperBlock = 0; startSuperBlock < superblockRowCount; startSuperBlock += tileHeightSuperBlock)
+            for (int startSuperblock = 0; startSuperblock < superblockRowCount; startSuperblock += tileHeightSuperblock)
             {
-                tileInfo.TileRowStartModeInfo[i] = startSuperBlock << superblockShift;
+                tileInfo.TileRowStartModeInfo[i] = startSuperblock << superblockShift;
                 i++;
             }
 
@@ -777,7 +773,7 @@ internal class ObuReader
             for (; startSuperBlock < superblockColumnCount; i++)
             {
                 tileInfo.TileColumnStartModeInfo[i] = startSuperBlock << superblockShift;
-                uint maxWidth = (uint)Math.Min(superblockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperBlock);
+                uint maxWidth = (uint)Math.Min(superblockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
                 uint widthInSuperBlocks = reader.ReadNonSymmetric(maxWidth) + 1;
                 widestTileSuperBlock = Math.Max(widthInSuperBlocks, widestTileSuperBlock);
                 startSuperBlock += (int)widthInSuperBlocks;
@@ -801,13 +797,13 @@ internal class ObuReader
             }
 
             DebugGuard.MustBeGreaterThan(widestTileSuperBlock, 0U, nameof(widestTileSuperBlock));
-            tileInfo.MaxTileHeightSuperBlock = Math.Max(maxTileAreaOfSuperBlock / (int)widestTileSuperBlock, 1);
+            tileInfo.MaxTileHeightSuperblock = Math.Max(maxTileAreaOfSuperBlock / (int)widestTileSuperBlock, 1);
 
             startSuperBlock = 0;
             for (i = 0; startSuperBlock < superblockRowCount; i++)
             {
                 tileInfo.TileRowStartModeInfo[i] = startSuperBlock << superblockShift;
-                uint maxHeight = (uint)Math.Min(superblockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperBlock);
+                uint maxHeight = (uint)Math.Min(superblockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
                 uint heightInSuperBlocks = reader.ReadNonSymmetric(maxHeight) + 1;
                 startSuperBlock += (int)heightInSuperBlocks;
             }

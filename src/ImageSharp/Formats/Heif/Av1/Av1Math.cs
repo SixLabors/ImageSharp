@@ -142,6 +142,14 @@ internal static class Av1Math
     internal static int Clamp(int value, int low, int high)
         => value < low ? low : (value > high ? high : value);
 
+    internal static int DivideLog2Floor(int value, int n)
+        => value >> n;
+
     internal static int DivideLog2Ceiling(int value, int n)
         => (value + (1 << n) - 1) >> n;
+
+    // Last 3 bits are the value of mod 8.
+    internal static int Modulus8(int value) => value & 0x07;
+
+    internal static int DivideBy8Floor(int value) => value >> 3;
 }

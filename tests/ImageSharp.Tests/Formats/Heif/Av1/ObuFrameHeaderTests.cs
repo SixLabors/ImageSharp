@@ -33,8 +33,8 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
         Assert.NotNull(obuReader.FrameHeader.TilesInfo);
-        Assert.Equal(reader.Length * Av1BitStreamReader.WordSize, reader.BitPosition);
-        Assert.Equal(reader.Length * 4, blockSize);
+        Assert.Equal(reader.Length * 8, reader.BitPosition);
+        Assert.Equal(reader.Length, blockSize);
     }
 
     /*

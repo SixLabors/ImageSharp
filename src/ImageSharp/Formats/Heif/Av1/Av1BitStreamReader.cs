@@ -70,8 +70,14 @@ internal ref struct Av1BitStreamReader
     {
         // See section 4.10.3 of the AV1-Specification
         int leadingZerosCount = 0;
-        while (leadingZerosCount < 32 && !this.ReadBoolean())
+        while (leadingZerosCount < 32)
         {
+            uint bit = this.ReadLiteral(1);
+            if (bit == 1)
+            {
+                break;
+            }
+
             leadingZerosCount++;
         }
 
@@ -80,9 +86,14 @@ internal ref struct Av1BitStreamReader
             return uint.MaxValue;
         }
 
-        uint basis = (1U << leadingZerosCount) - 1U;
-        uint value = this.ReadLiteral(leadingZerosCount);
-        return basis + value;
+        if (leadingZerosCount != 0)
+        {
+            uint basis = (1U << leadingZerosCount) - 1U;
+            uint value = this.ReadLiteral(leadingZerosCount);
+            return basis + value;
+        }
+
+        return 0;
     }
 
     public uint ReadNonSymmetric(uint n)

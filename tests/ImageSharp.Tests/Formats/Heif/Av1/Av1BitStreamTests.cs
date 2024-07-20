@@ -268,6 +268,23 @@ public class Av1BitStreamTests
     }
 
     [Theory]
+    [InlineData(new byte[] { 0x80 }, 0)] // Zero bit value.
+    [InlineData(new byte[] { 0x60 }, 2)] // One bit value, 011.
+    [InlineData(new byte[] { 0x38 }, 6)] // Two bit value, 00111.
+    [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE }, uint.MaxValue - 1)] // 31 bit value.
+    public void ReadUnsignedVariableLength(byte[] buffer, uint expected)
+    {
+        // arrange
+        Av1BitStreamReader reader = new(buffer);
+
+        // act
+        uint actual = reader.ReadUnsignedVariableLength();
+
+        // assert
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(5, 6, 4, -7, -2)]
     [InlineData(7, 26, -8, -19, -26)]
     [InlineData(8, 52, 127, -127, -21)]

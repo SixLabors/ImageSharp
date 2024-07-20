@@ -316,6 +316,24 @@ public class Av1BitStreamTests
     }
 
     [Theory]
+    [InlineData(new byte[] { 0x01 }, 1)] // One byte value.
+    [InlineData(new byte[] { 0x81, 0x80, 0x80, 0x00 }, 1)] // One byte value with trailing bytes.
+    [InlineData(new byte[] { 0xD9, 0x01 }, 217)] // Two byte value.
+    [InlineData(new byte[] { 0xD9, 0x81, 0x80, 0x80, 0x00 }, 217)] // Two byte value with trailing bytes.
+    public void ReadLittleEndianBytes128(byte[] buffer, ulong expected)
+    {
+        // arrange
+        Av1BitStreamReader reader = new(buffer);
+
+        // act
+        ulong actual = reader.ReadLittleEndianBytes128(out int length);
+
+        // assert
+        Assert.Equal(expected, actual);
+        Assert.NotEqual(0UL, actual);
+    }
+
+    [Theory]
     [InlineData(4, 6, 7, 9, 14)]
     [InlineData(8, 42, 8, 189, 63)]
     [InlineData(8, 52, 18, 255, 241)]

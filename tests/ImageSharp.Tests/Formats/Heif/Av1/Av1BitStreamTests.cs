@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.IO;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -252,11 +251,11 @@ public class Av1BitStreamTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x01 }, 1, 1)]
-    [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00 }, 1, 1)] // One byte value with leading bytes.
-    [InlineData(new byte[] { 0xD9, 0x01 }, 473, 2)] // Two bytes.
-    [InlineData(new byte[] { 0xD9, 0x01, 0x00, 0x00 }, 473, 2)] // Two byte value with leading bytes.
-    public void ReadLittleEndian(byte[] buffer, uint expected, int n)
+    [InlineData(new byte[] { 0x01 }, 1, 1, 8)]
+    [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00 }, 1, 4, 32)] // One byte value with leading bytes.
+    [InlineData(new byte[] { 0xD9, 0x01 }, 473, 2, 16)] // Two bytes.
+    [InlineData(new byte[] { 0xD9, 0x01, 0x00, 0x00 }, 473, 4, 32)] // Two byte value with leading bytes.
+    public void ReadLittleEndian(byte[] buffer, uint expected, int n, int expectedBitPosition)
     {
         // arrange
         Av1BitStreamReader reader = new(buffer);
@@ -265,14 +264,15 @@ public class Av1BitStreamTests
         uint actual = reader.ReadLittleEndian(n);
 
         Assert.Equal(expected, actual);
+        Assert.Equal(expectedBitPosition, reader.BitPosition);
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x80 }, 0)] // Zero bit value.
-    [InlineData(new byte[] { 0x60 }, 2)] // One bit value, 011.
-    [InlineData(new byte[] { 0x38 }, 6)] // Two bit value, 00111.
-    [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE }, uint.MaxValue - 1)] // 31 bit value.
-    public void ReadUnsignedVariableLength(byte[] buffer, uint expected)
+    [InlineData(new byte[] { 0x80 }, 0, 1)] // Zero bit value.
+    [InlineData(new byte[] { 0x60 }, 2, 3)] // One bit value, 011.
+    [InlineData(new byte[] { 0x38 }, 6, 5)] // Two bit value, 00111.
+    [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE }, uint.MaxValue - 1, 63)] // 31 bit value.
+    public void ReadUnsignedVariableLength(byte[] buffer, uint expected, int expectedBitPosition)
     {
         // arrange
         Av1BitStreamReader reader = new(buffer);
@@ -282,6 +282,7 @@ public class Av1BitStreamTests
 
         // assert
         Assert.Equal(expected, actual);
+        Assert.Equal(expectedBitPosition, reader.BitPosition);
     }
 
     [Theory]
@@ -316,11 +317,11 @@ public class Av1BitStreamTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x01 }, 1)] // One byte value.
-    [InlineData(new byte[] { 0x81, 0x80, 0x80, 0x00 }, 1)] // One byte value with trailing bytes.
-    [InlineData(new byte[] { 0xD9, 0x01 }, 217)] // Two byte value.
-    [InlineData(new byte[] { 0xD9, 0x81, 0x80, 0x80, 0x00 }, 217)] // Two byte value with trailing bytes.
-    public void ReadLittleEndianBytes128(byte[] buffer, ulong expected)
+    [InlineData(new byte[] { 0x01 }, 1, 8)] // One byte value.
+    [InlineData(new byte[] { 0x81, 0x80, 0x80, 0x00 }, 1, 32)] // One byte value with trailing bytes.
+    [InlineData(new byte[] { 0xD9, 0x01 }, 217, 16)] // Two byte value.
+    [InlineData(new byte[] { 0xD9, 0x81, 0x80, 0x80, 0x00 }, 217, 40)] // Two byte value with trailing bytes.
+    public void ReadLittleEndianBytes128(byte[] buffer, ulong expected, int expectedBitPosition)
     {
         // arrange
         Av1BitStreamReader reader = new(buffer);
@@ -330,6 +331,7 @@ public class Av1BitStreamTests
 
         // assert
         Assert.Equal(expected, actual);
+        Assert.Equal(expectedBitPosition, reader.BitPosition);
         Assert.NotEqual(0UL, actual);
     }
 

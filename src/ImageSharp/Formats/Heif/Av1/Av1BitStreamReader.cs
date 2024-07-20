@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal ref struct Av1BitStreamReader

@@ -610,11 +610,13 @@ internal class ObuReader
             (frameInfo.FrameSize.SuperResolutionDenominator / 2)) /
             frameInfo.FrameSize.SuperResolutionDenominator;
 
+        /*
         if (frameInfo.FrameSize.SuperResolutionDenominator != Av1Constants.ScaleNumerator)
         {
             int manWidth = Math.Min(16, frameInfo.FrameSize.SuperResolutionUpscaledWidth);
             frameInfo.FrameSize.FrameWidth = Math.Max(manWidth, frameInfo.FrameSize.FrameWidth);
         }
+        */
     }
 
     /// <summary>
@@ -890,7 +892,7 @@ internal class ObuReader
             }
 
             frameInfo.FrameType = (ObuFrameType)reader.ReadLiteral(2);
-            bool frameIsIntra = frameInfo.FrameType is ObuFrameType.IntraOnlyFrame or ObuFrameType.KeyFrame;
+            isIntraFrame = frameInfo.FrameType is ObuFrameType.IntraOnlyFrame or ObuFrameType.KeyFrame;
             frameInfo.ShowFrame = reader.ReadBoolean();
 
             if (frameInfo.ShowFrame && !sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
@@ -1010,14 +1012,7 @@ internal class ObuReader
             frameSizeOverrideFlag = reader.ReadBoolean();
         }
 
-        if (sequenceHeader.OrderHintInfo.OrderHintBits > 0)
-        {
-            frameInfo.OrderHint = reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
-        }
-        else
-        {
-            frameInfo.OrderHint = 0;
-        }
+        frameInfo.OrderHint = reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
 
         if (isIntraFrame || frameInfo.ErrorResilientMode)
         {
@@ -1093,7 +1088,20 @@ internal class ObuReader
 
         if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
+            // InitConCoefficientCdfs();
             SetupPastIndependence(frameInfo);
+        }
+        else
+        {
+            // LoadCdfs(frameInfo.PrimaryReferenceFrame);
+            // LoadPrevious();
+            throw new NotImplementedException();
+        }
+
+        if (frameInfo.UseReferenceFrameMotionVectors)
+        {
+            // MotionFieldEstimations();
+            throw new NotImplementedException();
         }
 
         // GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
@@ -1107,6 +1115,11 @@ internal class ObuReader
         if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             // ResetParseContext(mainParseContext, frameInfo.QuantizationParameters.BaseQIndex);
+        }
+        else
+        {
+            // LoadPreviousSegmentIds();
+            throw new NotImplementedException();
         }
 
         int tilesCount = frameInfo.TilesInfo.TileColumnCount * frameInfo.TilesInfo.TileRowCount;
@@ -1175,7 +1188,8 @@ internal class ObuReader
 
     private static void SetupPastIndependence(ObuFrameHeader frameInfo)
     {
-        // TODO: Initialize the loop filter parameters.
+        // TODO: Implement.
+        // The current frame can be decoded without dependencies on previous coded frame.
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
@@ -1456,9 +1470,9 @@ internal class ObuReader
         }
         else
         {
-            for (int i = 0; i < MaxSegments; i++)
+            for (int i = 0; i < Av1Constants.MaxSegmentCount; i++)
             {
-                for (int j = 0; j < SegLvlMax; j++)
+                for (int j = 0; j < Av1Constants.SegmentationLevelMax; j++)
                 {
                     frameInfo.SegmentationParameters.FeatureEnabled[i, j] = false;
                     frameInfo.SegmentationParameters.FeatureData[i, j] = 0;
@@ -1468,9 +1482,9 @@ internal class ObuReader
 
         frameInfo.SegmentationParameters.SegmentIdPrecedesSkip = false;
         frameInfo.SegmentationParameters.LastActiveSegmentId = 0;
-        for (int i = 0; i < MaxSegments; i++)
+        for (int i = 0; i < Av1Constants.MaxSegmentCount; i++)
         {
-            for (int j = 0; j < SegLvlMax; j++)
+            for (int j = 0; j < Av1Constants.SegmentationLevelMax; j++)
             {
                 if (frameInfo.SegmentationParameters.FeatureEnabled[i, j])
                 {

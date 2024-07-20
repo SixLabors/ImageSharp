@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.IO;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -231,6 +232,39 @@ public class Av1BitStreamTests
         }
 
         Assert.Equal(values, actuals);
+    }
+
+    [Fact]
+    public void ReadSignedFromUnsigned()
+    {
+        // arrange
+        byte[] buffer = { 0xd2, 0xa4 };
+        Av1BitStreamReader reader = new(buffer);
+        int expected0 = -23;
+        int expected1 = 41;
+
+        // act
+        int actual0 = reader.ReadSignedFromUnsigned(7);
+        int actual1 = reader.ReadSignedFromUnsigned(7);
+
+        Assert.Equal(expected0, actual0);
+        Assert.Equal(expected1, actual1);
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0x01 }, 1, 1)]
+    [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00 }, 1, 1)] // One byte value with leading bytes.
+    [InlineData(new byte[] { 0xD9, 0x01 }, 473, 2)] // Two bytes.
+    [InlineData(new byte[] { 0xD9, 0x01, 0x00, 0x00 }, 473, 2)] // Two byte value with leading bytes.
+    public void ReadLittleEndian(byte[] buffer, uint expected, int n)
+    {
+        // arrange
+        Av1BitStreamReader reader = new(buffer);
+
+        // act
+        uint actual = reader.ReadLittleEndian(n);
+
+        Assert.Equal(expected, actual);
     }
 
     [Theory]

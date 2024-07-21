@@ -1449,7 +1449,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 partitionInfo.ModeInfo.UvMode = reader.ReadIntraModeUv(partitionInfo.ModeInfo.YMode, this.IsChromaForLumaAllowed(partitionInfo));
                 if (partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma)
                 {
-                    this.ReadChromaFromLumaAlphas(ref reader, partitionInfo);
+                    ReadChromaFromLumaAlphas(ref reader, partitionInfo.ModeInfo);
                 }
 
                 // 5.11.43.Intra angle info chroma syntax.
@@ -1523,10 +1523,23 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// <summary>
     /// 5.11.45. Read CFL alphas syntax.
     /// </summary>
-    private void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
+    private static void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1BlockModeInfo modeInfo)
+    {
+        int jointSign = reader.ReadChromFromLumaSign();
+        int index = 0;
+        if (jointSign + 1 != 0)
+        {
+            index = reader.ReadChromaFromLumaAlphaU(jointSign) << Av1Constants.ChromaFromLumaAlphabetSizeLog2;
+        }
 
-        // TODO: Implement.
-        throw new NotImplementedException();
+        if ((jointSign + 1) % 3 != 0)
+        {
+            index += reader.ReadChromaFromLumaAlphaV(jointSign);
+        }
+
+        modeInfo.ChromaFromLumaAlphaSign = jointSign;
+        modeInfo.ChromaFromLumaAlphaIndex = index;
+    }
 
     /// <summary>
     /// 5.11.42. and 5.11.43.

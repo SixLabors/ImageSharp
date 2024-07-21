@@ -29,6 +29,8 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][][] coefficientsBaseRange;
     private readonly Av1Distribution[][] transformBlockSkip;
     private readonly Av1Distribution[][][] endOfBlockExtra;
+    private readonly Av1Distribution chromeForLumaSign = Av1DefaultDistributions.ChromeForLumaSign;
+    private readonly Av1Distribution[] chromeForLumaAlpha = Av1DefaultDistributions.ChromeForLumaAlpha;
     private Av1SymbolReader reader;
 
     public Av1SymbolDecoder(Span<byte> tileData, int qIndex)
@@ -234,6 +236,26 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
+    }
+
+    public int ReadChromFromLumaSign()
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.chromeForLumaSign);
+    }
+
+    public int ReadChromaFromLumaAlphaU(int jointSign)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int context = jointSign + 1 - 3;
+        return r.ReadSymbol(this.chromeForLumaAlpha[context]);
+    }
+
+    public int ReadChromaFromLumaAlphaV(int jointSign)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int context = (((jointSign + 1) % 3) * 3) + ((jointSign + 1) / 3) - 3;
+        return r.ReadSymbol(this.chromeForLumaAlpha[context]);
     }
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)

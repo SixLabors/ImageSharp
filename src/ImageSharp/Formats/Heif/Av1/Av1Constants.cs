@@ -168,4 +168,9 @@ internal static class Av1Constants
     public const int BaseRangeSizeMinus1 = 3;
 
     public const int MaxBaseRange = 15;
+
+    /// <summary>
+    /// Log2 of number of values for ChromaFromLuma Alpha U and ChromaFromLuma Alpha V.
+    /// </summary>
+    public const int ChromaFromLumaAlphabetSizeLog2 = 4;
 }

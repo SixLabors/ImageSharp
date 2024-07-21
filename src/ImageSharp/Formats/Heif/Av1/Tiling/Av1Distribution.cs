@@ -79,6 +79,11 @@ internal class Av1Distribution
     {
     }
 
+    public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9, uint p10, uint p11, uint p12, uint p13, uint p14)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, 0], 2)
+    {
+    }
+
     private Av1Distribution(uint[] props, int speed)
     {
         // this.probabilities = props;

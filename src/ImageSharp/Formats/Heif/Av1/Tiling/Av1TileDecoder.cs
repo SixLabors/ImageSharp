@@ -99,15 +99,15 @@ internal class Av1TileDecoder : IAv1TileDecoder
         }
 
         Av1TileInfo tileInfo = new(tileRowIndex, tileColumnIndex, this.FrameInfo);
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        int superBlock4x4Size = superBlockSize.Get4x4WideCount();
-        for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += this.SequenceHeader.SuperblockModeInfoSize)
+        Av1BlockSize superBlockSize = this.SequenceHeader.SuperblockSize;
+        int superBlock4x4Size = this.SequenceHeader.SuperblockSizeLog2;
+        for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
-            int superBlockRow = row << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperblockSizeLog2;
+            int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlock4x4Size;
             this.leftNeighborContext.Clear(this.SequenceHeader);
-            for (int column = modeInfoColumnStart; column < modeInfoColumnEnd; column += this.SequenceHeader.SuperblockModeInfoSize)
+            for (int column = modeInfoColumnStart; column < modeInfoColumnEnd; column += superBlock4x4Size)
             {
-                int superBlockColumn = column << Av1Constants.ModeInfoSizeLog2 >> this.SequenceHeader.SuperblockSizeLog2;
+                int superBlockColumn = (column << Av1Constants.ModeInfoSizeLog2) >> superBlock4x4Size;
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
                 Av1SuperblockInfo superblockInfo = this.FrameBuffer.GetSuperblock(superblockPosition);
 

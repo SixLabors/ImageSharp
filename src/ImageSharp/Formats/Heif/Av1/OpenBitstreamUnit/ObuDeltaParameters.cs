@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-internal class ObuDeltaLoopFilterParameters
+internal class ObuDeltaParameters
 {
     public bool IsPresent { get; internal set; }
 

@@ -30,8 +30,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private readonly Av1ParseLeftNeighbor4x4Context leftNeighborContext;
     private int currentQuantizerIndex;
     private readonly int[][] segmentIds = [];
-    private int deltaLoopFilterResolution = -1;
-    private readonly bool readDeltas;
     private readonly int[][] transformUnitCount;
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
@@ -40,7 +38,6 @@ internal class Av1TileDecoder : IAv1TileDecoder
     {
         this.FrameInfo = frameInfo;
         this.SequenceHeader = sequenceHeader;
-        this.readDeltas = frameInfo.DeltaQParameters.IsPresent;
 
         // init_main_frame_ctxt
         this.FrameBuffer = new(this.SequenceHeader);
@@ -1420,7 +1417,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
         this.ReadCdef(ref reader, partitionInfo);
 
-        if (this.readDeltas)
+        if (this.FrameInfo.DeltaQParameters.IsPresent)
         {
             this.ReadDeltaQuantizerIndex(ref reader, partitionInfo);
             this.ReadDeltaLoopFilter(ref reader, partitionInfo);
@@ -1756,7 +1753,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
                 {
                     bool deltaLoopFilterSign = reader.ReadLiteral(1) > 0;
                     int reducedDeltaLoopFilterLevel = deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
-                    currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << this.deltaLoopFilterResolution));
+                    int deltaLoopFilterResolution = this.FrameInfo.DeltaLoopFilterParameters.Resolution;
+                    currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << deltaLoopFilterResolution));
                 }
             }
         }

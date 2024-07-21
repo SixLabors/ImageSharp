@@ -49,9 +49,9 @@ internal class ObuFrameHeader
 
     public Av1TransformMode TransformMode { get; set; }
 
-    public ObuDeltaLoopFilterParameters DeltaLoopFilterParameters { get; set; } = new ObuDeltaLoopFilterParameters();
+    public ObuDeltaParameters DeltaLoopFilterParameters { get; set; } = new ObuDeltaParameters();
 
-    public ObuDeltaQParameters DeltaQParameters { get; set; } = new ObuDeltaQParameters();
+    public ObuDeltaParameters DeltaQParameters { get; set; } = new ObuDeltaParameters();
 
     internal ObuFrameSize FrameSize { get; set; } = new ObuFrameSize();
 

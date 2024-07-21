@@ -46,11 +46,12 @@ public class Av1BitStreamTests
     {
         // arrange
         // Three 32-bit values with MSB set.
-        byte[] buffer = {
-                          0xff, 0xff, 0xff, 0xff, // 4294967295
-                          0x80, 0xff, 0xee, 0xdd, // 2164256477
-                          0xa0, 0xaa, 0xbb, 0xcc // 2695543756
-                        };
+        byte[] buffer =
+            [
+                0xff, 0xff, 0xff, 0xff, // 4294967295
+                0x80, 0xff, 0xee, 0xdd, // 2164256477
+                0xa0, 0xaa, 0xbb, 0xcc // 2695543756
+            ];
         uint expected0 = 4294967295;
         uint expected1 = 2164256477;
         uint expected2 = 2695543756;

@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 internal ref struct Av1SymbolDecoder
 {
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
+    private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
 
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
@@ -244,17 +245,17 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.chromeForLumaSign);
     }
 
-    public int ReadChromaFromLumaAlphaU(int jointSign)
+    public int ReadChromaFromLumaAlphaU(int jointSignPlus1)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int context = jointSign + 1 - 3;
+        int context = jointSignPlus1 - 3;
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
     }
 
-    public int ReadChromaFromLumaAlphaV(int jointSign)
+    public int ReadChromaFromLumaAlphaV(int jointSignPlus1)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int context = (((jointSign + 1) % 3) * 3) + ((jointSign + 1) / 3) - 3;
+        int context = AlphaVContexts[jointSignPlus1];
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
     }
 

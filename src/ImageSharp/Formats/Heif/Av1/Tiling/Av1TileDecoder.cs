@@ -154,25 +154,29 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int quarterBlock4x4Size = halfBlock4x4Size >> 1;
         bool hasRows = (modeInfoLocation.Y + halfBlock4x4Size) < this.FrameInfo.ModeInfoRowCount;
         bool hasColumns = (modeInfoLocation.X + halfBlock4x4Size) < this.FrameInfo.ModeInfoColumnCount;
-        int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
-        Av1PartitionType partitionType = Av1PartitionType.Split;
-        if (blockSize < Av1BlockSize.Block8x8)
+        Av1PartitionType partitionType = Av1PartitionType.None;
+        if (blockSize >= Av1BlockSize.Block8x8)
         {
-            partitionType = Av1PartitionType.None;
-        }
-        else if (hasRows && hasColumns)
-        {
-            partitionType = reader.ReadPartitionType(ctx);
-        }
-        else if (hasColumns)
-        {
-            bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
-            partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
-        }
-        else if (hasRows)
-        {
-            bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
-            partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Vertical;
+            int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
+            partitionType = Av1PartitionType.Split;
+            if (blockSize < Av1BlockSize.Block8x8)
+            {
+                partitionType = Av1PartitionType.None;
+            }
+            else if (hasRows && hasColumns)
+            {
+                partitionType = reader.ReadPartitionType(ctx);
+            }
+            else if (hasColumns)
+            {
+                bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
+                partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
+            }
+            else if (hasRows)
+            {
+                bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
+                partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Vertical;
+            }
         }
 
         Av1BlockSize subSize = partitionType.GetBlockSubSize(blockSize);
@@ -1525,19 +1529,19 @@ internal class Av1TileDecoder : IAv1TileDecoder
     /// </summary>
     private static void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1BlockModeInfo modeInfo)
     {
-        int jointSign = reader.ReadChromFromLumaSign();
+        int jointSignPlus1 = reader.ReadChromFromLumaSign() + 1;
         int index = 0;
-        if (jointSign + 1 != 0)
+        if (jointSignPlus1 >= 3)
         {
-            index = reader.ReadChromaFromLumaAlphaU(jointSign) << Av1Constants.ChromaFromLumaAlphabetSizeLog2;
+            index = reader.ReadChromaFromLumaAlphaU(jointSignPlus1) << Av1Constants.ChromaFromLumaAlphabetSizeLog2;
         }
 
-        if ((jointSign + 1) % 3 != 0)
+        if (jointSignPlus1 % 3 != 0)
         {
-            index += reader.ReadChromaFromLumaAlphaV(jointSign);
+            index += reader.ReadChromaFromLumaAlphaV(jointSignPlus1);
         }
 
-        modeInfo.ChromaFromLumaAlphaSign = jointSign;
+        modeInfo.ChromaFromLumaAlphaSign = jointSignPlus1 - 1;
         modeInfo.ChromaFromLumaAlphaIndex = index;
     }
 

@@ -169,7 +169,7 @@ internal class ObuReader
         {
             header.Size++;
             header.TemporalId = (int)reader.ReadLiteral(3);
-            header.SpatialId = (int)reader.ReadLiteral(3);
+            header.SpatialId = (int)reader.ReadLiteral(2);
             if (reader.ReadLiteral(3) != 0u)
             {
                 throw new ImageFormatException("Reserved bits in header extension should be unset.");
@@ -708,8 +708,8 @@ internal class ObuReader
         tileInfo.MaxTileWidthSuperblock = Av1Constants.MaxTileWidth >> superblockSizeLog2;
         tileInfo.MaxTileHeightSuperblock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superblockSizeLog2;
         tileInfo.MinLog2TileColumnCount = TileLog2(tileInfo.MaxTileWidthSuperblock, superblockColumnCount);
-        tileInfo.MaxLog2TileColumnCount = TileLog2(1, Math.Min(superblockColumnCount, Av1Constants.MaxTileColumnCount));
-        tileInfo.MaxLog2TileRowCount = TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
+        tileInfo.MaxLog2TileColumnCount = (int)Av1Math.CeilLog2((uint)Math.Min(superblockColumnCount, Av1Constants.MaxTileColumnCount));
+        tileInfo.MaxLog2TileRowCount = (int)Av1Math.CeilLog2((uint)Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
         tileInfo.HasUniformTileSpacing = reader.ReadBoolean();
         if (tileInfo.HasUniformTileSpacing)

@@ -425,7 +425,7 @@ public abstract partial class Image
 
         UnmanagedMemoryManager<TPixel> memoryManager = new(pointer, width * height);
 
-        Guard.MustBeGreaterThanOrEqualTo(bufferSizeInBytes, memoryManager.Memory.Span.Length, nameof(bufferSizeInBytes));
+        Guard.MustBeGreaterThanOrEqualTo(bufferSizeInBytes / sizeof(TPixel), memoryManager.Memory.Span.Length, nameof(bufferSizeInBytes));
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);

@@ -50,7 +50,7 @@ public abstract partial class Image
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
-        Guard.IsTrue(pixelMemory.Length >= width * height, nameof(pixelMemory), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(pixelMemory.Length >= (long)width * height, nameof(pixelMemory), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -145,7 +145,7 @@ public abstract partial class Image
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
-        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -232,7 +232,7 @@ public abstract partial class Image
 
         ByteMemoryManager<TPixel> memoryManager = new(byteMemory);
 
-        Guard.IsTrue(memoryManager.Memory.Length >= width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
+        Guard.IsTrue(memoryManager.Memory.Length >= (long)width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
         return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -422,6 +422,7 @@ public abstract partial class Image
         Guard.IsFalse(pointer == null, nameof(pointer), "Pointer must be not null");
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
+        Guard.MustBeLessThanOrEqualTo(height * (long)width, int.MaxValue, "Total amount of pixels exceeds int.MaxValue");
 
         UnmanagedMemoryManager<TPixel> memoryManager = new(pointer, width * height);
 

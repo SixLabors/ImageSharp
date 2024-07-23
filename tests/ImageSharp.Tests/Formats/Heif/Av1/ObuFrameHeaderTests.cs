@@ -1,9 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Collections;
-using System.Reflection;
-using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
@@ -13,7 +10,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class ObuFrameHeaderTests
 {
     private static readonly byte[] DefaultSequenceHeaderBitStream =
-        [0x0a, 0x0b, 0x00, 0x00, 0x00, 0x04, 0x3e, 0xa7, 0xbd, 0xf7, 0xf9, 0x80, 0x40];
+        [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
+
+    // Bits  Syntax element                  Value
+    // 1     obu_forbidden_bit               0
+    // 4     obu_type                        2 (OBU_TEMPORAL_DELIMITER)
+    // 1     obu_extension_flag              0
+    // 1     obu_has_size_field              1
+    // 1     obu_reserved_1bit               0
+    // 8     obu_size                        0
+    private static readonly byte[] DefaultTemporalDelimiterBitStream = [0x12, 0x00];
 
     [Theory]
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000D)]
@@ -30,7 +36,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act
-        obuReader.Read(ref reader, blockSize, decoder);
+        obuReader.ReadAll(ref reader, blockSize, decoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -54,7 +60,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act 1
-        obuReader.Read(ref reader, blockSize, tileDecoder);
+        obuReader.ReadAll(ref reader, blockSize, tileDecoder);
 
         // Assign 2
         MemoryStream encoded = new();
@@ -81,13 +87,13 @@ public class ObuFrameHeaderTests
         ObuReader obuReader1 = new();
 
         // Act 1
-        obuReader1.Read(ref reader, blockSize, tileDecoder);
+        obuReader1.ReadAll(ref reader, blockSize, tileDecoder);
 
         // Assign 2
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter.Write(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader);
+        ObuWriter.WriteAll(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
@@ -96,7 +102,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader2 = new();
 
         // Act 2
-        obuReader2.Read(ref reader2, encodedBuffer.Length, tileDecoder2);
+        obuReader2.ReadAll(ref reader2, encodedBuffer.Length, tileDecoder2);
 
         // Assert
         Assert.Equal(ObuPrettyPrint.PrettyPrintProperties(obuReader1.SequenceHeader.ColorConfig), ObuPrettyPrint.PrettyPrintProperties(obuReader2.SequenceHeader.ColorConfig));
@@ -106,16 +112,15 @@ public class ObuFrameHeaderTests
     }
 
     [Fact]
-    public void DefaultTemporalDelimiter()
+    public void ReadTemporalDelimiter()
     {
         // Arrange
-        byte[] bitStream = [0x12, 0x00];
-        Av1BitStreamReader reader = new(bitStream);
+        Av1BitStreamReader reader = new(DefaultTemporalDelimiterBitStream);
         ObuReader obuReader = new();
         IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
 
         // Act
-        obuReader.Read(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, DefaultTemporalDelimiterBitStream.Length, tileDecoder);
 
         // Assert
         Assert.Null(obuReader.SequenceHeader);
@@ -123,35 +128,7 @@ public class ObuFrameHeaderTests
     }
 
     [Fact]
-    public void DefaultTemporalDelimiterWithExtension()
-    {
-        // Bits  Syntax element                  Value
-        // 1     obu_forbidden_bit               0
-        // 4     obu_type                        2 (OBU_TEMPORAL_DELIMITER)
-        // 1     obu_extension_flag              1
-        // 1     obu_has_size_field              1
-        // 1     obu_reserved_1bit               0
-        // 3     temporal_id                     6
-        // 2     spatial_id                      2
-        // 3     extension_header_reserved_3bits 0
-        // 8     obu_size                        0
-
-        // Arrange
-        byte[] bitStream = [0x16, 0xd0, 0x00];
-        Av1BitStreamReader reader = new(bitStream);
-        ObuReader obuReader = new();
-        IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
-
-        // Act
-        obuReader.Read(ref reader, bitStream.Length, tileDecoder);
-
-        // Assert
-        Assert.Null(obuReader.SequenceHeader);
-        Assert.Null(obuReader.FrameHeader);
-    }
-
-    [Fact]
-    public void DefaultHeaderWithoutSizeField()
+    public void ReadHeaderWithoutSizeField()
     {
         // Arrange
         byte[] bitStream = [0x10];
@@ -160,7 +137,7 @@ public class ObuFrameHeaderTests
         IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
 
         // Act
-        obuReader.Read(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
 
         // Assert
         Assert.Null(obuReader.SequenceHeader);
@@ -168,92 +145,119 @@ public class ObuFrameHeaderTests
     }
 
     [Fact]
-    public void DefaultSequenceHeader()
+    public void ReadSequenceHeader()
     {
-        // Offset  Bits  Syntax element                     Value
-        // 0       3     seq_profile                        0
-        // 3       1     still_picture                      0
-        // 4       1     reduced_still_picture_header       0
-        // 5       1     timing_info_present_flag           0
-        // 6       1     initial_display_delay_present_flag 0
-        // 7       5     operating_points_cnt_minus_1       0
-        // 12      12    operating_point_idc[ 0 ]           0
-        // 24      5     seq_level_idx[ 0 ]                 0
-        // 29      4     frame_width_bits_minus_1           8
-        // 33      4     frame_height_bits_minus_1          7
-        // 37      9     max_frame_width_minus_1            425
-        // 46      8     max_frame_height_minus_1           239
-        // 54      1     frame_id_numbers_present_flag      0
-        // 55      1     use_128x128_superblock             1
-        // 56      1     enable_filter_intra                1
-        // 57      1     enable_intra_edge_filter           1
-        // 58      1     enable_interintra_compound         1
-        // 59      1     enable_masked_compound             1
-        // 60      1     enable_warped_motion               0
-        // 61      1     enable_dual_filter                 1
-        // 62      1     enable_order_hint                  1
-        // 63      1     enable_jnt_comp                    1
-        // 64      1     enable_ref_frame_mvs               1
-        // 65      1     seq_choose_screen_content_tools    1
-        // 66      1     seq_choose_integer_mv              1
-        // 67      3     order_hint_bits_minus_1            6
-        // 70      1     enable_superres                    0
-        // 71      1     enable_cdef                        1
-        // 72      1     enable_restoration                 1
-        // ...
-
         // Arrange
         byte[] bitStream = DefaultSequenceHeaderBitStream;
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
         IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
-        ObuSequenceHeader expected = new()
-        {
-            SequenceProfile = 0,
-            IsStillPicture = false,
-            IsReducedStillPictureHeader = false,
-            TimingInfoPresentFlag = false,
-            InitialDisplayDelayPresentFlag = false,
-            FrameWidthBits = 8 + 1,
-            FrameHeightBits = 7 + 1,
-            MaxFrameWidth = 425 + 1,
-            MaxFrameHeight = 239 + 1,
-            IsFrameIdNumbersPresent = false,
-            Use128x128Superblock = true,
-            EnableFilterIntra = true,
-            EnableIntraEdgeFilter = true,
-            EnableInterIntraCompound = true,
-            EnableMaskedCompound = true,
-            EnableWarpedMotion = false,
-            EnableDualFilter = true,
-            EnableOrderHint = true,
-            OperatingPoint = [new()],
-
-            // EnableJountCompound = true,
-            // EnableReferenceFrameMotionVectors = true,
-            ForceScreenContentTools = 2,
-            ForceIntegerMotionVector = 2,
-            EnableSuperResolution = false,
-            EnableCdef = true,
-            EnableRestoration = true,
-            ColorConfig = new()
-            {
-                IsMonochrome = false,
-                ColorPrimaries = ObuColorPrimaries.Unspecified,
-                TransferCharacteristics = ObuTransferCharacteristics.Unspecified,
-                MatrixCoefficients = ObuMatrixCoefficients.Unspecified,
-                SubSamplingX = true,
-                SubSamplingY = true,
-                BitDepth = 8,
-            }
-        };
+        ObuSequenceHeader expected = GetDefaultSequenceHeader();
 
         // Act
-        obuReader.Read(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.Null(obuReader.FrameHeader);
         Assert.Equal(ObuPrettyPrint.PrettyPrintProperties(expected), ObuPrettyPrint.PrettyPrintProperties(obuReader.SequenceHeader));
     }
+
+    [Fact]
+    public void WriteTemporalDelimiter()
+    {
+        // Arrange
+        using MemoryStream stream = new(2);
+
+        // Act
+        ObuWriter.WriteAll(stream, null, null);
+        byte[] actual = stream.GetBuffer();
+
+        // Assert
+        Assert.Equal(DefaultTemporalDelimiterBitStream, actual);
+    }
+
+    [Fact]
+    public void WriteSequenceHeader()
+    {
+        // Arrange
+        using MemoryStream stream = new(10);
+        ObuSequenceHeader input = GetDefaultSequenceHeader();
+
+        // Act
+        ObuWriter.WriteAll(stream, input, null);
+        byte[] buffer = stream.GetBuffer();
+
+        // Assert
+        // Skip over Temporal Delimiter header.
+        byte[] actual = buffer.AsSpan()[DefaultTemporalDelimiterBitStream.Length..].ToArray();
+        Assert.Equal(DefaultSequenceHeaderBitStream, actual);
+    }
+
+    private static ObuSequenceHeader GetDefaultSequenceHeader()
+
+            // Offset  Bits  Syntax element                     Value
+            // 0       3     seq_profile                        1
+            // 3       1     still_picture                      1
+            // 4       1     reduced_still_picture_header       1
+            // 5       5     seq_level_idx[ 0 ]                 0
+            // 10      4     frame_width_bits_minus_1           8
+            // 14      4     frame_height_bits_minus_1          7
+            // 18      9     max_frame_width_minus_1            425
+            // 27      8     max_frame_height_minus_1           239
+            // 35      1     use_128x128_superblock             1
+            // 36      1     enable_filter_intra                1
+            // 37      1     enable_intra_edge_filter           1
+            // 38      1     enable_superres                    0
+            // 39      1     enable_cdef                        1
+            // 40      1     enable_restoration                 1
+            // 41      1     ColorConfig.BitDepth.HasHighBit    0
+            // 42      1     ColorConfig.IsDescriptionPresent   0
+            // 43      1     ColorConfig.ColorRange             1
+            // 44      1     ColorConfig.HasSeparateUVDelta     1
+            // 45      1     film_grain_present                 1
+            // 47      2     Trailing bits                      2
+            => new()
+            {
+                SequenceProfile = ObuSequenceProfile.High,
+                IsStillPicture = true,
+                IsReducedStillPictureHeader = true,
+                TimingInfoPresentFlag = false,
+                InitialDisplayDelayPresentFlag = false,
+                FrameWidthBits = 8 + 1,
+                FrameHeightBits = 7 + 1,
+                MaxFrameWidth = 425 + 1,
+                MaxFrameHeight = 239 + 1,
+                IsFrameIdNumbersPresent = false,
+                Use128x128Superblock = true,
+                EnableFilterIntra = true,
+                EnableIntraEdgeFilter = true,
+                EnableInterIntraCompound = false,
+                EnableMaskedCompound = false,
+                EnableWarpedMotion = false,
+                EnableDualFilter = false,
+                EnableOrderHint = false,
+                OperatingPoint = [new()],
+
+                // EnableJountCompound = true,
+                // EnableReferenceFrameMotionVectors = true,
+                ForceScreenContentTools = 2,
+                ForceIntegerMotionVector = 2,
+                EnableSuperResolution = false,
+                EnableCdef = true,
+                EnableRestoration = true,
+                ColorConfig = new()
+                {
+                    IsMonochrome = false,
+                    ColorPrimaries = ObuColorPrimaries.Unspecified,
+                    TransferCharacteristics = ObuTransferCharacteristics.Unspecified,
+                    MatrixCoefficients = ObuMatrixCoefficients.Unspecified,
+                    SubSamplingX = false,
+                    SubSamplingY = false,
+                    BitDepth = 8,
+                    HasSeparateUvDelta = true,
+                    ColorRange = true,
+                },
+                AreFilmGrainingParametersPresent = true,
+            };
 }

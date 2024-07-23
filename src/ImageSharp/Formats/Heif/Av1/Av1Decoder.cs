@@ -21,7 +21,7 @@ internal class Av1Decoder : IAv1TileDecoder
     public void Decode(Span<byte> buffer)
     {
         Av1BitStreamReader reader = new(buffer);
-        this.obuReader.Read(ref reader, buffer.Length, this, false);
+        this.obuReader.ReadAll(ref reader, buffer.Length, this, false);
         this.frameBuffer = this.tileDecoder?.FrameBuffer;
     }
 

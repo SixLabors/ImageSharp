@@ -40,7 +40,7 @@ internal enum Av1TransformType : byte
     /// <summary>
     /// Number of Transform types.
     /// </summary>
-    TransformTypes,
+    AllTransformTypes,
 
     /// <summary>
     /// Invalid value.

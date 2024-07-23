@@ -10,25 +10,37 @@ internal class ObuWriter
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public static void Write(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    public static void WriteAll(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         MemoryStream bufferStream = new(100);
         Av1BitStreamWriter writer = new(bufferStream);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, [], 0);
 
-        WriteSequenceHeader(ref writer, sequenceHeader);
-        writer.Flush();
-        WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
+        if (sequenceHeader != null)
+        {
+            WriteSequenceHeader(ref writer, sequenceHeader);
+            int bytesWritten = (writer.BitPosition + 7) >> 3;
+            writer.Flush();
+            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, bufferStream.GetBuffer(), bytesWritten);
+        }
 
-        bufferStream.Position = 0;
-        WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
-        writer.Flush();
-        WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), (int)bufferStream.Position);
+        if (frameInfo != null && sequenceHeader != null)
+        {
+            bufferStream.Position = 0;
+            WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
+            int bytesWritten = (writer.BitPosition + 7) >> 3;
+            writer.Flush();
+            WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), bytesWritten);
+        }
 
-        bufferStream.Position = 0;
-        WriteTileGroup(ref writer, frameInfo.TilesInfo);
-        writer.Flush();
-        WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), (int)bufferStream.Position);
+        if (frameInfo?.TilesInfo != null)
+        {
+            bufferStream.Position = 0;
+            WriteTileGroup(ref writer, frameInfo.TilesInfo);
+            int bytesWritten = (writer.BitPosition + 7) >> 3;
+            writer.Flush();
+            WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), bytesWritten);
+        }
     }
 
     private static void WriteObuHeader(ref Av1BitStreamWriter writer, ObuType type)
@@ -58,7 +70,10 @@ internal class ObuWriter
     private static void WriteTrailingBits(ref Av1BitStreamWriter writer)
     {
         int bitsBeforeAlignment = 8 - (writer.BitPosition & 0x7);
-        writer.WriteLiteral(0, bitsBeforeAlignment);
+        if (bitsBeforeAlignment != 8)
+        {
+            writer.WriteLiteral(1U << (bitsBeforeAlignment - 1), bitsBeforeAlignment);
+        }
     }
 
     private static void AlignToByteBoundary(ref Av1BitStreamWriter writer)
@@ -101,11 +116,12 @@ internal class ObuWriter
         writer.WriteBoolean(sequenceHeader.EnableRestoration);
         WriteColorConfig(ref writer, sequenceHeader);
         writer.WriteBoolean(sequenceHeader.AreFilmGrainingParametersPresent);
+        WriteTrailingBits(ref writer);
     }
 
     private static void WriteColorConfig(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader)
     {
-        ObuColorConfig colorConfig = new();
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         WriteBitDepth(ref writer, colorConfig, sequenceHeader);
         if (sequenceHeader.SequenceProfile != ObuSequenceProfile.High)
         {

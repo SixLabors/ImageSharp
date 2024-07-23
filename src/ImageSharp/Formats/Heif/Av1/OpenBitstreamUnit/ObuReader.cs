@@ -45,7 +45,7 @@ internal class ObuReader
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public void Read(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB = false)
+    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB = false)
     {
         bool seenFrameHeader = false;
         bool frameDecodingFinished = false;
@@ -258,7 +258,7 @@ internal class ObuReader
     /// <summary>
     /// 5.5.1. General sequence header OBU syntax.
     /// </summary>
-    private static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
+    internal static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         sequenceHeader.SequenceProfile = (ObuSequenceProfile)reader.ReadLiteral(3);
         if (sequenceHeader.SequenceProfile > Av1Constants.MaxSequenceProfile)
@@ -1212,7 +1212,7 @@ internal class ObuReader
     /// <summary>
     /// 5.9.1. General frame header OBU syntax.
     /// </summary>
-    private void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
+    internal void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
         int planeCount = this.SequenceHeader!.ColorConfig.PlaneCount;
         int startBitPosition = reader.BitPosition;

@@ -27,7 +27,12 @@ internal ref struct Av1BitStreamWriter(Stream stream)
 
     public void Flush()
     {
-        this.stream.WriteByte(this.buffer);
+        if (Av1Math.Modulus8(this.bitOffset) != 0)
+        {
+            // Flush a partial byte also.
+            this.stream.WriteByte(this.buffer);
+        }
+
         this.bitOffset = 0;
     }
 

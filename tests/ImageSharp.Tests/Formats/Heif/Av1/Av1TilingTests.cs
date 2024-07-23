@@ -22,7 +22,7 @@ public class Av1TilingTests
         Av1BitStreamReader reader = new(headerSpan);
         IAv1TileDecoder stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
-        obuReader.Read(ref reader, headerSize, stub);
+        obuReader.ReadAll(ref reader, headerSize, stub);
         Av1TileDecoder decoder = new(obuReader.SequenceHeader, obuReader.FrameHeader);
 
         // Act

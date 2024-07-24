@@ -1447,7 +1447,11 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.colorType = color;
         this.bitDepth = bits;
 
-        if (!encoder.FilterMethod.HasValue)
+        if (encoder.FilterMethod.HasValue)
+        {
+            this.filterMethod = encoder.FilterMethod.Value;
+        }
+        else
         {
             // Specification recommends default filter method None for paletted images and Paeth for others.
             this.filterMethod = this.colorType is PngColorType.Palette ? PngFilterMethod.None : PngFilterMethod.Paeth;
